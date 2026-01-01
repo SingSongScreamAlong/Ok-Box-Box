@@ -25,6 +25,7 @@ export interface ClassificationEngineEvents {
 
 import { ExplanationBuilder } from '../explanations/ExplanationBuilder.js';
 import { SpokenSummaryBuilder } from '../explanations/SpokenSummaryBuilder.js';
+import { getVoiceService, VOICE_PRESETS } from '../voice/index.js';
 
 export class ClassificationEngine extends EventEmitter {
     private contactAnalyzer: ContactAnalyzer;
@@ -88,14 +89,36 @@ export class ClassificationEngine extends EventEmitter {
                             const summary = this.summaryBuilder.buildSpokenSummary(packet);
                             const evidence = this.summaryBuilder.buildEvidenceLine(packet);
 
-                            // Emit 'explanation_generated' event 
-                            // (Use string literal for event name to avoid circular depend on EVENTS constant if blocked)
-                            this.emit('explanation:generated', {
-                                packet,
-                                summary,
-                                evidence
-                            });
-                            console.log(`🗣️ Explanation: "${summary}" (Confidence: ${packet.confidence.toFixed(2)})`);
+                            // Only proceed with TTS if summary was generated
+                            if (summary) {
+                                // Generate TTS audio for team broadcast
+                                let audioBase64: string | undefined;
+                                const voiceService = getVoiceService();
+                                if (voiceService.isServiceAvailable()) {
+                                    try {
+                                        const result = await voiceService.textToSpeech({
+                                            text: summary,
+                                            ...VOICE_PRESETS.raceEngineer
+                                        });
+                                        if (result.success && result.audioBuffer) {
+                                            audioBase64 = result.audioBuffer.toString('base64');
+                                        }
+                                    } catch (ttsErr) {
+                                        console.error('TTS generation failed:', ttsErr);
+                                    }
+                                }
+
+                                // Emit 'explanation_generated' event with audio
+                                this.emit('explanation:generated', {
+                                    packet,
+                                    summary,
+                                    evidence,
+                                    audioBase64  // Base64 encoded MP3 for browser playback
+                                });
+                                console.log(`🗣️ Explanation: "${summary}" (Confidence: ${packet.confidence.toFixed(2)})${audioBase64 ? ' [+Audio]' : ''}`);
+                            } else {
+                                console.log('🔇 No summary generated, skipping TTS');
+                            };
                         } else {
                             // Log gated explanation for monitoring
                             console.log(`🔇 Explanation gated (confidence ${packet.confidence.toFixed(2)} < ${confidenceThreshold}): ${packet.type}`);

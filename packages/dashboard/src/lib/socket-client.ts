@@ -30,7 +30,7 @@ interface SocketClientEvents {
     onPenaltyApproved: (message: PenaltyProposedMessage) => void;
     onSessionState: (message: SessionStateMessage) => void;
     onSessionActive: (message: SessionActiveMessage) => void;
-    'explanation:generated': (packet: any) => void;
+    'explanation:generated': (packet: { packet: any; summary: string; evidence: string; audioBase64?: string }) => void;
     'video:frame': (packet: any) => void;
     'telemetry:driver': (data: any) => void;
     'disconnect': () => void;
