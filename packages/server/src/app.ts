@@ -9,7 +9,7 @@ import morgan from 'morgan';
 import { config } from './config/index.js';
 import { apiRouter } from './api/routes/index.js';
 import { errorHandler } from './api/middleware/error-handler.js';
-import { rateLimit } from 'express-rate-limit';
+import { tieredRateLimiter } from './api/middleware/rate-limit-tiers.js';
 import { correlationMiddleware, getMetricsText } from './observability/index.js';
 
 export const app: Express = express();
@@ -20,14 +20,9 @@ app.use(correlationMiddleware);
 // Security middleware
 app.use(helmet());
 
-// Rate Limiting
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 100, // Limit each IP to 100 requests per `window` (here, per 15 minutes)
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-});
-app.use('/api', limiter);
+// Tiered Rate Limiting (based on user entitlements)
+// Tiers: anonymous (50/15m), blackbox (200/15m), controlbox (500/15m), bundle (1000/15m), admin (2000/15m)
+app.use('/api', tieredRateLimiter);
 
 // CORS configuration
 app.use(cors({

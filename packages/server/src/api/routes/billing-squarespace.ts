@@ -18,6 +18,7 @@ import {
     EntitlementStatus
 } from '../../services/billing/entitlement-service.js';
 import { pool } from '../../db/client.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -301,13 +302,25 @@ async function findUserByEmail(email: string): Promise<{ id: string; email: stri
 // MANUAL RESOLUTION ENDPOINT (ADMIN)
 // ============================================================================
 
+// Note: requireAuth is imported at file top via index.ts or directly
+
 /**
  * POST /api/billing/squarespace/resolve-pending
  * 
  * Admin endpoint to manually resolve pending entitlements.
+ * Requires authentication and admin privileges.
  */
-router.post('/resolve-pending', async (req: Request, res: Response): Promise<void> => {
-    // TODO: Add admin auth check
+router.post('/resolve-pending', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    // Check for admin privileges
+    const user = (req as any).user;
+    if (!user?.isSuperAdmin && !user?.capabilities?.includes('admin:billing')) {
+        res.status(403).json({
+            success: false,
+            error: 'Admin privileges required'
+        });
+        return;
+    }
+
     const { pendingId, userId, notes } = req.body as {
         pendingId: string;
         userId: string;

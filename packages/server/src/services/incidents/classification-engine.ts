@@ -81,17 +81,25 @@ export class ClassificationEngine extends EventEmitter {
                     );
 
                     if (packet) {
-                        const summary = this.summaryBuilder.buildSpokenSummary(packet);
-                        const evidence = this.summaryBuilder.buildEvidenceLine(packet);
+                        // CONFIDENCE GATING: Only emit explanations above threshold
+                        const confidenceThreshold = parseFloat(process.env.CONFIDENCE_GATE_THRESHOLD || '0.6');
 
-                        // Emit 'explanation_generated' event 
-                        // (Use string literal for event name to avoid circular depend on EVENTS constant if blocked)
-                        this.emit('explanation:generated', {
-                            packet,
-                            summary,
-                            evidence
-                        });
-                        console.log(`🗣️ Explanation: "${summary}" (Confidence: ${packet.confidence.toFixed(2)})`);
+                        if (packet.confidence >= confidenceThreshold) {
+                            const summary = this.summaryBuilder.buildSpokenSummary(packet);
+                            const evidence = this.summaryBuilder.buildEvidenceLine(packet);
+
+                            // Emit 'explanation_generated' event 
+                            // (Use string literal for event name to avoid circular depend on EVENTS constant if blocked)
+                            this.emit('explanation:generated', {
+                                packet,
+                                summary,
+                                evidence
+                            });
+                            console.log(`🗣️ Explanation: "${summary}" (Confidence: ${packet.confidence.toFixed(2)})`);
+                        } else {
+                            // Log gated explanation for monitoring
+                            console.log(`🔇 Explanation gated (confidence ${packet.confidence.toFixed(2)} < ${confidenceThreshold}): ${packet.type}`);
+                        }
                     }
                 } catch (err) {
                     console.error("Failed to generate explanation:", err);
