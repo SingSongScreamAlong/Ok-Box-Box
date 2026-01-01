@@ -30,16 +30,33 @@ const RETURN_URL = typeof window !== 'undefined'
     : '/billing/return';
 
 interface PricingTier {
-    id: 'blackbox' | 'controlbox' | 'bundle';
+    id: 'racebox' | 'blackbox' | 'controlbox' | 'bundle';
     name: string;
     description: string;
     monthlyPrice: number;
     annualPrice: number;
     features: string[];
     popular?: boolean;
+    free?: boolean;
 }
 
 const PRICING_TIERS: PricingTier[] = [
+    {
+        id: 'racebox',
+        name: 'RaceBox',
+        description: 'Free broadcast & spectator platform',
+        monthlyPrice: 0,
+        annualPrice: 0,
+        features: [
+            'Public timing tower',
+            'Broadcast overlays',
+            'Live stream delays',
+            'Director controls',
+            'Social media cards',
+            'Unlimited viewers'
+        ],
+        free: true
+    },
     {
         id: 'blackbox',
         name: 'BlackBox',
@@ -116,7 +133,9 @@ export function Pricing() {
 
             <div className="pricing-grid">
                 {PRICING_TIERS.map(tier => {
-                    const owned = hasLicense(tier.id === 'bundle' ? 'blackbox' : tier.id);
+                    const owned = tier.id === 'racebox'
+                        ? true // RaceBox is always free
+                        : hasLicense(tier.id === 'bundle' ? 'blackbox' : tier.id as 'blackbox' | 'controlbox');
 
                     return (
                         <div
@@ -129,17 +148,24 @@ export function Pricing() {
                             <h2>{tier.name}</h2>
                             <p className="tier-description">{tier.description}</p>
 
-                            <div className="pricing-amounts">
-                                <div className="monthly">
-                                    <span className="price">${tier.monthlyPrice}</span>
-                                    <span className="period">/month</span>
+                            {!tier.free && (
+                                <div className="pricing-amounts">
+                                    <div className="monthly">
+                                        <span className="price">${tier.monthlyPrice}</span>
+                                        <span className="period">/month</span>
+                                    </div>
+                                    <div className="annual">
+                                        <span className="price">${tier.annualPrice}</span>
+                                        <span className="period">/year</span>
+                                        <span className="savings">Save ${((tier.monthlyPrice * 12) - tier.annualPrice).toFixed(0)}</span>
+                                    </div>
                                 </div>
-                                <div className="annual">
-                                    <span className="price">${tier.annualPrice}</span>
-                                    <span className="period">/year</span>
-                                    <span className="savings">Save ${((tier.monthlyPrice * 12) - tier.annualPrice).toFixed(0)}</span>
+                            )}
+                            {tier.free && (
+                                <div className="pricing-amounts free">
+                                    <span className="price-free">FREE</span>
                                 </div>
-                            </div>
+                            )}
 
                             <ul className="features">
                                 {tier.features.map((feature, i) => (
@@ -147,7 +173,14 @@ export function Pricing() {
                                 ))}
                             </ul>
 
-                            {owned ? (
+                            {tier.free ? (
+                                <button
+                                    className="subscribe-btn free-btn"
+                                    onClick={() => navigate('/broadcast')}
+                                >
+                                    Get Started Free
+                                </button>
+                            ) : owned ? (
                                 <button className="subscribe-btn owned" disabled>
                                     Already Subscribed
                                 </button>
@@ -155,13 +188,13 @@ export function Pricing() {
                                 <div className="subscribe-buttons">
                                     <button
                                         className="subscribe-btn monthly"
-                                        onClick={() => handleCheckout(tier.id, 'monthly')}
+                                        onClick={() => handleCheckout(tier.id as 'blackbox' | 'controlbox' | 'bundle', 'monthly')}
                                     >
                                         Subscribe Monthly
                                     </button>
                                     <button
                                         className="subscribe-btn annual"
-                                        onClick={() => handleCheckout(tier.id, 'annual')}
+                                        onClick={() => handleCheckout(tier.id as 'blackbox' | 'controlbox' | 'bundle', 'annual')}
                                     >
                                         Subscribe Annually
                                     </button>

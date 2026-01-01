@@ -1,0 +1,404 @@
+/**
+ * Driver HUD Styles - Lovely-inspired Design
+ * 
+ * Clean, modular dashboard with dark theme.
+ * Inspired by Lovely Sim Racing Dashboard with Ok, Box Box branding.
+ */
+
+:root {
+    --hud-bg: #0a0a0f;
+    --hud-panel: rgba(20, 20, 30, 0.95);
+    --hud-border: rgba(255, 255, 255, 0.08);
+    --hud-text: #ffffff;
+    --hud-text-dim: rgba(255, 255, 255, 0.5);
+    --hud-accent: #00d4ff;
+    --hud-green: #00ff88;
+    --hud-yellow: #ffd500;
+    --hud-red: #ff3b3b;
+    --hud-purple: #b366ff;
+}
+
+/* Main Container */
+.lovely-hud {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--hud-bg);
+    font-family: 'Inter', 'SF Pro Display', -apple-system, sans-serif;
+    color: var(--hud-text);
+    z-index: 1000;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.lovely-hud.disconnected {
+    opacity: 0.5;
+}
+
+/* Branding Bar */
+.hud-brand {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 16px;
+    background: linear-gradient(90deg, var(--hud-accent) 0%, var(--hud-purple) 100%);
+}
+
+.brand-text {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #000;
+}
+
+.brand-status {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.6);
+}
+
+.brand-status.live {
+    color: #000;
+}
+
+/* RPM Strip */
+.rpm-strip {
+    height: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.rpm-fill {
+    height: 100%;
+    background: linear-gradient(90deg,
+            var(--hud-green) 0%,
+            var(--hud-green) 60%,
+            var(--hud-yellow) 80%,
+            var(--hud-red) 95%);
+    transition: width 0.05s linear;
+}
+
+.rpm-strip.shift-light .rpm-fill {
+    animation: shift-flash 0.1s infinite;
+}
+
+@keyframes shift-flash {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.rpm-markers {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    display: flex;
+    justify-content: space-evenly;
+    pointer-events: none;
+}
+
+.rpm-marker {
+    width: 1px;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Main Grid */
+.hud-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 2px;
+    padding: 2px;
+    background: var(--hud-border);
+}
+
+.hud-panel {
+    background: var(--hud-panel);
+    padding: 12px;
+}
+
+/* Left Panel - Position & Gaps */
+.panel-left {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.info-block {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.info-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--hud-text-dim);
+}
+
+.info-value {
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.info-sub {
+    font-size: 10px;
+    color: var(--hud-text-dim);
+}
+
+.position-block .info-value {
+    font-size: 28px;
+    color: var(--hud-accent);
+}
+
+.position-total {
+    font-size: 14px;
+    color: var(--hud-text-dim);
+}
+
+.gap-value {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 16px;
+}
+
+/* Center Panel - Speed, Gear, Delta */
+.panel-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.center-display {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 8px;
+}
+
+.gear-display {
+    width: 70px;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 212, 255, 0.1);
+    border: 2px solid var(--hud-accent);
+    border-radius: 8px;
+}
+
+.gear-value {
+    font-size: 42px;
+    font-weight: 700;
+    color: var(--hud-accent);
+}
+
+.speed-display {
+    text-align: center;
+}
+
+.speed-value {
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.speed-unit {
+    display: block;
+    font-size: 11px;
+    color: var(--hud-text-dim);
+    letter-spacing: 2px;
+}
+
+.delta-display {
+    min-width: 80px;
+    text-align: center;
+    padding: 8px 12px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.delta-display.delta-faster {
+    background: rgba(0, 255, 136, 0.15);
+}
+
+.delta-display.delta-slower {
+    background: rgba(255, 59, 59, 0.15);
+}
+
+.delta-value {
+    font-size: 20px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+}
+
+.delta-faster .delta-value {
+    color: var(--hud-green);
+}
+
+.delta-slower .delta-value {
+    color: var(--hud-red);
+}
+
+/* Lap Info */
+.lap-info {
+    display: flex;
+    gap: 24px;
+}
+
+.lap-block {
+    text-align: center;
+}
+
+.lap-label {
+    display: block;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--hud-text-dim);
+    margin-bottom: 2px;
+}
+
+.lap-value {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.lap-value.time {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 13px;
+}
+
+.lap-block.best .lap-value {
+    color: var(--hud-purple);
+}
+
+/* Right Panel - Fuel & Tires */
+.panel-right {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fuel-block .info-value {
+    font-size: 20px;
+}
+
+.tire-display {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.tire-row {
+    display: flex;
+    gap: 4px;
+}
+
+.tire {
+    flex: 1;
+    padding: 6px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 4px;
+    color: #000;
+}
+
+.tire.wear-good {
+    background: var(--hud-green);
+}
+
+.tire.wear-warning {
+    background: var(--hud-yellow);
+}
+
+.tire.wear-critical {
+    background: var(--hud-red);
+}
+
+/* PTT Button */
+.ptt-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+    border: none;
+    border-top: 1px solid var(--hud-border);
+    color: var(--hud-text);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.ptt-button:hover {
+    background: linear-gradient(180deg, #252540 0%, #1a1a30 100%);
+}
+
+.ptt-button.active {
+    background: var(--hud-accent);
+    color: #000;
+}
+
+.ptt-icon {
+    font-size: 16px;
+}
+
+.ptt-text {
+    text-transform: uppercase;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hud-grid {
+        grid-template-columns: 1fr 1.5fr 1fr;
+    }
+
+    .speed-value {
+        font-size: 40px;
+    }
+
+    .gear-display {
+        width: 50px;
+        height: 50px;
+    }
+
+    .gear-value {
+        font-size: 32px;
+    }
+
+    .center-display {
+        gap: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .hud-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .panel-left,
+    .panel-right {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+}

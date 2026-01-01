@@ -23,6 +23,9 @@ import { Pricing } from './pages/Pricing';
 import { BillingReturn } from './pages/BillingReturn';
 import { DownloadRelay } from './pages/DownloadRelay';
 import DiagnosticsPage from './pages/admin/Diagnostics';
+import { Broadcast } from './pages/Broadcast';
+import { Watch } from './pages/Watch';
+import { DriverHUD } from './components/DriverHUD';
 
 // Wrapper to extract sessionId from URL for TeamDashboard
 function TeamDashboardWrapper() {
@@ -45,6 +48,27 @@ export function App() {
 
                             {/* Download relay (public) */}
                             <Route path="/download-relay" element={<DownloadRelay />} />
+
+                            {/* ============================================================
+                            RACEBOX SURFACES (Broadcast/Spectator) - FREE
+                            ============================================================ */}
+
+                            {/* Broadcast Director - authenticated but free */}
+                            <Route path="/broadcast" element={
+                                <ProtectedRoute>
+                                    <Broadcast />
+                                </ProtectedRoute>
+                            } />
+
+                            {/* Public Watch Page - no auth required */}
+                            <Route path="/watch/:sessionId" element={<Watch />} />
+
+                            {/* Driver HUD - authenticated */}
+                            <Route path="/driver" element={
+                                <ProtectedRoute>
+                                    <DriverHUD />
+                                </ProtectedRoute>
+                            } />
 
                             {/* Billing return (after checkout) */}
                             <Route path="/billing/return" element={

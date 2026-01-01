@@ -32,6 +32,8 @@ interface SocketClientEvents {
     onSessionActive: (message: SessionActiveMessage) => void;
     'explanation:generated': (packet: any) => void;
     'video:frame': (packet: any) => void;
+    'telemetry:driver': (data: any) => void;
+    'disconnect': () => void;
 }
 
 class SocketClient {

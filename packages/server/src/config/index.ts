@@ -38,6 +38,10 @@ export const config = {
     metricsEnabled: process.env.METRICS_ENABLED === 'true',
     diagnosticsEnabled: process.env.DIAGNOSTICS_ENABLED === 'true',
     opsUiEnabled: process.env.OPS_UI_ENABLED === '1',
+
+    // External AI Services
+    openaiApiKey: process.env.OPENAI_API_KEY || '',
+    elevenLabsApiKey: process.env.ELEVENLABS_API_KEY || '',
 } as const;
 
 // Validate required production configs

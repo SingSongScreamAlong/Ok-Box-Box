@@ -1,0 +1,215 @@
+/**
+ * Watch Page Styles
+ */
+
+.watch-page {
+    min-height: 100vh;
+    background: linear-gradient(180deg, #0a0a12 0%, #12121a 100%);
+    color: #fff;
+    font-family: 'Inter', -apple-system, sans-serif;
+}
+
+.watch-page.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-content {
+    text-align: center;
+}
+
+.spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #00d4ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 24px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-content h2 {
+    margin: 0 0 8px;
+    font-size: 20px;
+}
+
+.loading-content p {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 14px;
+}
+
+/* Header */
+.watch-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.brand-icon {
+    font-size: 24px;
+}
+
+.brand-text {
+    font-size: 18px;
+    font-weight: 700;
+    background: linear-gradient(90deg, #00d4ff, #b366ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.session-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: rgba(255, 68, 68, 0.2);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #ff4444;
+}
+
+.live-dot {
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* Track Info */
+.track-info {
+    padding: 24px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.track-info h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.session-info {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+}
+
+/* Timing Tower */
+.timing-tower {
+    max-width: 600px;
+    margin: 24px auto;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.tower-header {
+    display: grid;
+    grid-template-columns: 50px 1fr 80px 100px;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.tower-entries {
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.tower-entry {
+    display: grid;
+    grid-template-columns: 50px 1fr 80px 100px;
+    gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.tower-entry:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.tower-entry.off-track {
+    opacity: 0.5;
+}
+
+.tower-entry .pos {
+    font-weight: 700;
+    color: #00d4ff;
+}
+
+.tower-entry .driver {
+    font-weight: 500;
+}
+
+.tower-entry .gap,
+.tower-entry .last {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.no-data {
+    padding: 40px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Footer */
+.watch-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px;
+    background: rgba(10, 10, 18, 0.9);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.connection {
+    color: rgba(255, 68, 68, 0.7);
+}
+
+.connection.connected {
+    color: rgba(0, 255, 136, 0.7);
+}
