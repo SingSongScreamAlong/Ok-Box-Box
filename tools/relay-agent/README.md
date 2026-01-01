@@ -1,6 +1,6 @@
-# PitBox Relay Agent
+# ControlBox Relay Agent
 
-Real iRacing telemetry relay that bridges iRacing simulator to PitBox Server for AI coaching.
+Real iRacing telemetry relay that bridges iRacing simulator to ControlBox Server for live race execution.
 
 ## ⚠️ Requirements
 
@@ -24,11 +24,11 @@ pip install -r requirements.txt
 ```powershell
 python main.py
 ```
-This connects to the local PitBox Server at http://localhost:3000.
+This connects to the local ControlBox Server at http://localhost:3000.
 
 ### Custom Server URL
 ```powershell
-python main.py --url https://your-pitbox-server.com
+python main.py --url https://your-controlbox-server.com
 ```
 
 ### Verbose Logging
@@ -45,7 +45,7 @@ python main.py --rate 20  # 20 Hz telemetry
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BLACKBOX_SERVER_URL` | `http://localhost:3000` | PitBox Server URL |
+| `BLACKBOX_SERVER_URL` | `http://localhost:3000` | ControlBox Server URL |
 | `POLL_RATE_HZ` | `10` | Telemetry updates per second |
 | `LOG_LEVEL` | `INFO` | Logging verbosity |
 | `LOG_TELEMETRY` | `false` | Log each telemetry frame |
@@ -58,8 +58,8 @@ python main.py --rate 20  # 20 Hz telemetry
    - Flag states
    - Lap times
 3. **Detects incidents** by monitoring iRacing's incident counters
-4. **Sends data to PitBox Server** via Socket.IO WebSocket
-5. **Receives AI coaching recommendations** from the server
+4. **Sends data to ControlBox Server** via Socket.IO WebSocket
+5. **Receives situational awareness updates** from the server
 
 ## Troubleshooting
 
@@ -74,7 +74,7 @@ pip install pyirsdk
 - Try starting a replay if no live session available
 
 ### "Connection refused to server"
-- Make sure PitBox Server is running (`cd server && npm start`)
+- Make sure ControlBox Server is running (`cd server && npm start`)
 - Check the server URL is correct
 - Verify firewall isn't blocking the connection
 
@@ -83,6 +83,6 @@ pip install pyirsdk
 The relay is structured as:
 - `main.py` - Entry point and main loop
 - `iracing_reader.py` - pyirsdk wrapper
-- `data_mapper.py` - iRacing → PitBox protocol translation
+- `data_mapper.py` - iRacing → ControlBox protocol translation
 - `controlbox_client.py` - Socket.IO server client
 - `config.py` - Configuration and constants

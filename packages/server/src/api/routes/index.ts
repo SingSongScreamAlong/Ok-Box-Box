@@ -121,3 +121,7 @@ apiRouter.use('/admin', adminEntitlementsRouter);
 // DEV Diagnostics (admin only, gated by DIAGNOSTICS_ENABLED)
 import diagnosticsRouter from './dev/diagnostics.js';
 apiRouter.use('/dev/diagnostics', diagnosticsRouter);
+
+// Voice API (PTT → Whisper → AI → TTS)
+import voiceRouter from './voice.js';
+apiRouter.use('/voice', voiceRouter);

@@ -152,6 +152,14 @@ class SocketClient {
         this.socket.emit('steward:action', action);
     }
 
+    /**
+     * Generic emit for sending events to the server
+     */
+    emit(event: string, data?: unknown): void {
+        if (!this.socket?.connected) return;
+        this.socket.emit(event, data);
+    }
+
     on<K extends keyof SocketClientEvents>(
         event: K,
         callback: SocketClientEvents[K]

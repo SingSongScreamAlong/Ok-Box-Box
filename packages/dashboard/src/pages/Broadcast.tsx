@@ -1,7 +1,19 @@
+/**
+ * Broadcast Page - RaceBox Director Controls
+ * 
+ * Director interface for managing live race broadcasts.
+ * Features:
+ * - Stream delay controls
+ * - Overlay management
+ * - Go live toggle
+ * - Plus features gated for paid tier
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { socketClient } from '../lib/socket-client';
 import { useBootstrap } from '../hooks/useBootstrap';
+import { TimingOverlay, IncidentOverlay, RaceControlOverlay, PenaltyOverlay } from '../components/overlays/BroadcastOverlay';
 import './Broadcast.css';
 
 interface BroadcastSession {
@@ -34,6 +46,7 @@ export const Broadcast: React.FC = () => {
     });
     const [delaySeconds, setDelaySeconds] = useState(5);
     const [isLive, setIsLive] = useState(false);
+    const [previewMode, setPreviewMode] = useState(false);
 
     useEffect(() => {
         socketClient.on('onSessionActive', (msg) => {
@@ -63,10 +76,19 @@ export const Broadcast: React.FC = () => {
     const goLive = () => {
         if (!session) return;
         setIsLive(true);
+        // Emit broadcast:start event
+        socketClient.emit('broadcast:start' as any, {
+            sessionId: session.sessionId,
+            delaySeconds
+        });
     };
 
     const stopBroadcast = () => {
         setIsLive(false);
+        // Emit broadcast:stop event
+        socketClient.emit('broadcast:stop' as any, {
+            sessionId: session?.sessionId
+        });
     };
 
     const copyWatchUrl = () => {
@@ -77,130 +99,161 @@ export const Broadcast: React.FC = () => {
 
     return (
         <div className="broadcast-page">
+            {/* Header */}
             <header className="broadcast-header">
-                <div className="brand">
-                    <h1>🏎️ RaceBox</h1>
-                    <span className="subtitle">Broadcast Director</span>
+                <div className="header-brand">
+                    <span className="brand-text">RaceBox Director</span>
+                    {hasRaceBoxPlus && <span className="plus-badge">PLUS</span>}
                 </div>
-                <button className="back-btn" onClick={() => navigate('/home')}>
-                    ← Back
-                </button>
+                <div className="header-actions">
+                    <button onClick={() => navigate('/home')} className="back-btn">
+                        ← Back
+                    </button>
+                </div>
             </header>
 
-            <div className="broadcast-content">
-                {/* Session Info */}
-                <section className="broadcast-section session-info">
-                    <h2>Session</h2>
-                    {session ? (
-                        <div className="session-details">
-                            <div className="detail">
-                                <span className="label">Track</span>
-                                <span className="value">{session.trackName}</span>
+            <div className="broadcast-layout">
+                {/* Left Panel - Controls */}
+                <aside className="controls-panel">
+                    {/* Session Info */}
+                    <section className="control-section">
+                        <h3>Session</h3>
+                        {session ? (
+                            <div className="session-details">
+                                <p><strong>{session.trackName}</strong></p>
+                                <p>{session.sessionType}</p>
+                                <p className="session-id">ID: {session.sessionId}</p>
                             </div>
-                            <div className="detail">
-                                <span className="label">Type</span>
-                                <span className="value">{session.sessionType}</span>
-                            </div>
-                            <div className="detail">
-                                <span className="label">Status</span>
-                                <span className={`value status ${isLive ? 'live' : 'offline'}`}>
-                                    {isLive ? '● LIVE' : '○ Offline'}
-                                </span>
-                            </div>
+                        ) : (
+                            <p className="no-session">No active session</p>
+                        )}
+                    </section>
+
+                    {/* Delay Control */}
+                    <section className="control-section">
+                        <h3>Stream Delay</h3>
+                        <div className="delay-control">
+                            <input
+                                type="range"
+                                min="0"
+                                max="60"
+                                value={delaySeconds}
+                                onChange={(e) => setDelaySeconds(Number(e.target.value))}
+                                disabled={!hasRaceBoxPlus || isLive}
+                            />
+                            <span className="delay-value">{delaySeconds}s</span>
+                            {!hasRaceBoxPlus && (
+                                <span className="plus-required">Plus required</span>
+                            )}
                         </div>
-                    ) : (
-                        <div className="no-session">
-                            <p>No active session detected.</p>
-                            <p className="hint">Start iRacing to begin broadcasting.</p>
+                    </section>
+
+                    {/* Overlay Toggles */}
+                    <section className="control-section">
+                        <h3>Overlays</h3>
+                        <div className="overlay-toggles">
+                            <label className="toggle-row">
+                                <input
+                                    type="checkbox"
+                                    checked={overlays.timingTower}
+                                    onChange={() => toggleOverlay('timingTower')}
+                                />
+                                <span>Timing Tower</span>
+                            </label>
+                            <label className="toggle-row">
+                                <input
+                                    type="checkbox"
+                                    checked={overlays.lowerThird}
+                                    onChange={() => toggleOverlay('lowerThird')}
+                                />
+                                <span>Lower Third</span>
+                            </label>
+                            <label className={`toggle-row ${!hasRaceBoxPlus ? 'locked' : ''}`}>
+                                <input
+                                    type="checkbox"
+                                    checked={overlays.battleBox}
+                                    onChange={() => toggleOverlay('battleBox')}
+                                    disabled={!hasRaceBoxPlus}
+                                />
+                                <span>Battle Box {!hasRaceBoxPlus && '🔒'}</span>
+                            </label>
+                            <label className={`toggle-row ${!hasRaceBoxPlus ? 'locked' : ''}`}>
+                                <input
+                                    type="checkbox"
+                                    checked={overlays.incidentBanner}
+                                    onChange={() => toggleOverlay('incidentBanner')}
+                                    disabled={!hasRaceBoxPlus}
+                                />
+                                <span>Incident Banner {!hasRaceBoxPlus && '🔒'}</span>
+                            </label>
                         </div>
-                    )}
-                </section>
+                    </section>
 
-                {/* Delay Controls */}
-                <section className="broadcast-section delay-controls">
-                    <h2>Broadcast Delay</h2>
-                    <div className="delay-options">
-                        {[5, 10, 30, 60].map(seconds => (
-                            <button
-                                key={seconds}
-                                className={`delay-btn ${delaySeconds === seconds ? 'active' : ''}`}
-                                onClick={() => setDelaySeconds(seconds)}
-                            >
-                                {seconds}s
-                            </button>
-                        ))}
-                    </div>
-                    <p className="delay-hint">
-                        Delays telemetry to prevent ghosting in online lobbies.
-                    </p>
-                </section>
-
-                {/* Overlay Controls */}
-                <section className="broadcast-section overlay-controls">
-                    <h2>Overlays</h2>
-                    <div className="overlay-toggles">
-                        <label className="toggle">
-                            <input
-                                type="checkbox"
-                                checked={overlays.timingTower}
-                                onChange={() => toggleOverlay('timingTower')}
-                            />
-                            <span className="toggle-label">Timing Tower</span>
-                        </label>
-                        <label className="toggle">
-                            <input
-                                type="checkbox"
-                                checked={overlays.lowerThird}
-                                onChange={() => toggleOverlay('lowerThird')}
-                            />
-                            <span className="toggle-label">Lower Third</span>
-                        </label>
-                        <label className="toggle">
-                            <input
-                                type="checkbox"
-                                checked={overlays.battleBox}
-                                onChange={() => toggleOverlay('battleBox')}
-                            />
-                            <span className="toggle-label">Battle Box</span>
-                        </label>
-                        <label className="toggle">
-                            <input
-                                type="checkbox"
-                                checked={overlays.incidentBanner}
-                                onChange={() => toggleOverlay('incidentBanner')}
-                            />
-                            <span className="toggle-label">Incident Banner</span>
-                        </label>
-                    </div>
-                </section>
-
-                {/* Go Live Controls */}
-                <section className="broadcast-section live-controls">
-                    {!isLive ? (
-                        <button
-                            className="go-live-btn"
-                            onClick={goLive}
-                            disabled={!session}
-                        >
-                            🔴 Go Live
-                        </button>
-                    ) : (
-                        <div className="live-actions">
-                            <button className="copy-url-btn" onClick={copyWatchUrl}>
-                                📋 Copy Watch URL
-                            </button>
+                    {/* Go Live */}
+                    <section className="control-section live-section">
+                        {isLive ? (
                             <button className="stop-btn" onClick={stopBroadcast}>
-                                ⏹️ Stop Broadcast
+                                ⏹ Stop Broadcast
                             </button>
+                        ) : (
+                            <button
+                                className="go-live-btn"
+                                onClick={goLive}
+                                disabled={!session}
+                            >
+                                🔴 Go Live
+                            </button>
+                        )}
+                        <button className="copy-url-btn" onClick={copyWatchUrl} disabled={!session}>
+                            📋 Copy Watch URL
+                        </button>
+                    </section>
+                </aside>
+
+                {/* Main - Preview */}
+                <main className="preview-area">
+                    <div className="preview-header">
+                        <h3>Preview</h3>
+                        <label className="preview-toggle">
+                            <input
+                                type="checkbox"
+                                checked={previewMode}
+                                onChange={(e) => setPreviewMode(e.target.checked)}
+                            />
+                            <span>Show Overlays</span>
+                        </label>
+                    </div>
+                    <div className="preview-content">
+                        {previewMode && (
+                            <div className="preview-overlays">
+                                {overlays.timingTower && <TimingOverlay theme="dark" />}
+                                {overlays.incidentBanner && <IncidentOverlay theme="dark" />}
+                                <PenaltyOverlay theme="dark" />
+                                <RaceControlOverlay theme="dark" />
+                            </div>
+                        )}
+                        <div className="preview-placeholder">
+                            <p>OBS/Stream Preview</p>
+                            <p className="preview-hint">
+                                Add browser sources in OBS pointing to /overlay/* endpoints
+                            </p>
                         </div>
-                    )}
-                    {session && isLive && (
-                        <p className="watch-url">
-                            Watch at: <code>/watch/{session.sessionId}</code>
-                        </p>
-                    )}
-                </section>
+                    </div>
+                </main>
             </div>
+
+            {/* Status Bar */}
+            <footer className="broadcast-footer">
+                <span className={`status ${isLive ? 'live' : ''}`}>
+                    {isLive ? '🔴 LIVE' : '⚫ OFFLINE'}
+                </span>
+                <span className="viewer-count">
+                    {session?.viewerCount || 0} viewers
+                </span>
+                <span className="delay-info">
+                    Delay: {delaySeconds}s
+                </span>
+            </footer>
         </div>
     );
 };

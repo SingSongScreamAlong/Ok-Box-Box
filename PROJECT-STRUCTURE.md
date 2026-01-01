@@ -53,23 +53,29 @@ npm run db:migrate
 
 ## 🎯 Product Tiers
 
-### BlackBox ($19.99/month)
+### BlackBox ($16/month per driver)
 - Driver HUD overlay
-- AI coaching assistant  
+- Situational awareness  
 - Voice race engineer
 - Team pit wall view
 
-### ControlBox ($29.99/month)
+### ControlBox ($18/month per league + $2/series)
 - Race control tools
 - Incident review system
-- AI-assisted stewarding
+- Steward workflows
 - Protest handling
 
-### RaceBox (Broadcasting)
+### RaceBox (FREE baseline)
+- Public timing pages
+- Basic timing overlays
+- Ok, Box Box branding required
+
+### RaceBox Plus ($15/month per league + $2/series)
 - Director controls
 - Live timing overlays
-- Public spectator views
-- OBS integration
+- Delay buffer
+- League branding
+- Sponsor slots
 
 ## 🏗️ Architecture
 
