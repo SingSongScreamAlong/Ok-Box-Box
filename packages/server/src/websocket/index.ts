@@ -14,7 +14,7 @@ import type {
 } from '@controlbox/common';
 import { config } from '../config/index.js';
 import { RelayAdapter } from '../services/RelayAdapter.js';
-import { recordFrameIn, recordAckSent, cleanupParityData } from '../observability/parity-tracking.js';
+import { recordFrameIn, recordAckSent } from '../observability/parity-tracking.js';
 
 let io: Server;
 

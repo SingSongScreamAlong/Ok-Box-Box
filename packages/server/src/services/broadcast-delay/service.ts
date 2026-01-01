@@ -161,7 +161,7 @@ export class BroadcastDelayService {
                 return;
             }
 
-            const success = this.setDelay(data.sessionId, data.delayMs);
+            this.setDelay(data.sessionId, data.delayMs);
             socket.emit('broadcast:delay:state', this.getDelayState(data.sessionId));
         });
 

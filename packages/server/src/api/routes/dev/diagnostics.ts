@@ -4,12 +4,11 @@
 // =====================================================================
 
 import { Router, type Request, type Response, type NextFunction } from 'express';
-import { Socket } from 'socket.io';
 import { execSync } from 'child_process';
 import { config } from '../../../config/index.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { getActiveSessions, getIO } from '../../../websocket/index.js';
-import { getRecentErrors, getErrorCounts, pushError, ErrorEntry } from '../../../observability/error-buffer.js';
+import { getRecentErrors, getErrorCounts, pushError } from '../../../observability/error-buffer.js';
 import { getMetricsJson, getRuntimeStats } from '../../../observability/metrics.js';
 import { generateSupportBundle } from '../../../observability/support-bundle.js';
 import { getParitySnapshot, getParitySessionIds } from '../../../observability/parity-tracking.js';
