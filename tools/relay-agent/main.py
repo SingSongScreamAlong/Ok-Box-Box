@@ -453,6 +453,13 @@ def main():
     if args.rate:
         config.POLL_RATE_HZ = args.rate
         config.POLL_INTERVAL = 1.0 / args.rate
+        
+    # Check for updates
+    try:
+        from auto_updater import auto_update_check
+        auto_update_check()
+    except Exception as e:
+        logger.warning(f"Auto-update check failed: {e}")
     
     # Create and start agent
     agent = RelayAgent(args.url)

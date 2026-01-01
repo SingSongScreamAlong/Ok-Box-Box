@@ -31,6 +31,15 @@ if exist "dist\BlackBox-Relay.exe" (
     move "dist\BlackBox-Relay.exe" "dist\OkBoxBox-Relay.exe"
 )
 
+REM 4b. Code Signing (Requires Certificate)
+REM Uncomment the following lines if you have a code signing certificate
+REM set SIGN_CERT_FILE=C:\path\to\cert.pfx
+REM set SIGN_CERT_PASS=your_password
+REM if defined SIGN_CERT_FILE (
+REM     echo Signing executable...
+REM     "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe" sign /f "%SIGN_CERT_FILE%" /p "%SIGN_CERT_PASS%" /tr http://timestamp.digicert.com /td sha256 /fd sha256 "dist\OkBoxBox-Relay.exe"
+REM )
+
 REM 5. Copy to installer folder
 copy /Y "dist\OkBoxBox-Relay.exe" "installer\"
 copy /Y "README.md" "installer\"
