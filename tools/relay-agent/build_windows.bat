@@ -1,43 +1,61 @@
 @echo off
-REM BlackBox Relay Agent - Build Script
+REM Ok, Box Box Relay Agent - Build Script
 REM Builds executable via PyInstaller and Installer via NSIS
 
 echo ========================================
-echo building BlackBox Relay Agent...
+echo Building Ok, Box Box Relay Agent...
 echo ========================================
 
 REM 1. Clean previous builds
 echo Cleaning up...
-rmdir /s /q build
-rmdir /s /q dist
+rmdir /s /q build 2>nul
+rmdir /s /q dist 2>nul
 
-REM 2. Build Executable
+REM 2. Activate virtual environment if exists
+if exist "venv\Scripts\activate.bat" (
+    call venv\Scripts\activate.bat
+)
+
+REM 3. Build Executable
 echo.
 echo Running PyInstaller...
-pyinstaller build_dist.spec
+pyinstaller --noconfirm --clean build_dist.spec
 if %errorlevel% neq 0 (
-    echo ❌ PyInstaller failed!
+    echo [ERROR] PyInstaller failed!
     exit /b %errorlevel%
 )
-echo ✅ PyInstaller build complete.
+echo [OK] PyInstaller build complete.
 
-REM 3. Build Installer
+REM 4. Rename output to branded name
+if exist "dist\BlackBox-Relay.exe" (
+    move "dist\BlackBox-Relay.exe" "dist\OkBoxBox-Relay.exe"
+)
+
+REM 5. Copy to installer folder
+copy /Y "dist\OkBoxBox-Relay.exe" "installer\"
+copy /Y "README.md" "installer\"
+
+REM 6. Build Installer
 echo.
 echo Building Installer (requires NSIS)...
 if exist "C:\Program Files (x86)\NSIS\makensis.exe" (
-    "C:\Program Files (x86)\NSIS\makensis.exe" installer\BlackBox-Relay.nsi
+    "C:\Program Files (x86)\NSIS\makensis.exe" installer\OkBoxBox-Relay.nsi
     if %errorlevel% neq 0 (
-        echo ❌ NSIS build failed!
+        echo [ERROR] NSIS build failed!
         exit /b %errorlevel%
     )
-    echo ✅ Installer created: installer\BlackBox-Relay-Setup.exe
+    echo [OK] Installer created: installer\OkBoxBox-Relay-Setup.exe
 ) else (
-    echo ⚠️ NSIS not found at default location. Skipping installer build.
-    echo Please compile 'installer\BlackBox-Relay.nsi' manually.
+    echo [WARN] NSIS not found. Skipping installer build.
+    echo Please compile 'installer\OkBoxBox-Relay.nsi' manually.
 )
 
 echo.
 echo ========================================
-echo ✅ Build Process Complete!
+echo [OK] Build Process Complete!
+echo.
+echo Output:
+echo   - dist\OkBoxBox-Relay.exe  (standalone)
+echo   - installer\OkBoxBox-Relay-Setup.exe  (installer)
 echo ========================================
 pause

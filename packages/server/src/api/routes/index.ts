@@ -125,3 +125,7 @@ apiRouter.use('/dev/diagnostics', diagnosticsRouter);
 // Voice API (PTT → Whisper → AI → TTS)
 import voiceRouter from './voice.js';
 apiRouter.use('/voice', voiceRouter);
+
+// Relay version (for auto-update checks)
+import relayVersionRouter from './relay-version.js';
+apiRouter.use('/relay', relayVersionRouter);
