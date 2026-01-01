@@ -1,0 +1,148 @@
+{
+  "id": "watkins-glen",
+  "name": "Watkins Glen International",
+  "country": "USA",
+  "length": 5430,
+  "lengthUnit": "meters",
+  "layout": "Grand Prix (Boot)",
+  "sectors": [
+    { "number": 1, "name": "Sector 1", "startDistance": 0, "endDistance": 1810 },
+    { "number": 2, "name": "Sector 2", "startDistance": 1810, "endDistance": 3620 },
+    { "number": 3, "name": "Sector 3", "startDistance": 3620, "endDistance": 5430 }
+  ],
+  "corners": [
+    {
+      "number": 1,
+      "name": "Turn 1 (90°)",
+      "type": "right",
+      "apex": { "distance": 350, "x": 350, "y": 0, "normalizedDistance": 0.064 },
+      "braking": { "distance": 250, "x": 250, "y": 0 },
+      "exit": { "distance": 450, "x": 450, "y": -50 },
+      "gear": 3,
+      "apexSpeed": 110,
+      "difficulty": "hard",
+      "notes": "End of long straight, heavy braking, downhill"
+    },
+    {
+      "number": 2,
+      "name": "The Esses (Inner Loop)",
+      "type": "left-right-left",
+      "apex": { "distance": 750, "x": 500, "y": -150, "normalizedDistance": 0.138 },
+      "entry": { "distance": 650, "x": 480, "y": -100 },
+      "exit": { "distance": 900, "x": 550, "y": -200 },
+      "gear": 4,
+      "apexSpeed": 145,
+      "difficulty": "medium",
+      "notes": "Fast flowing esses, keep momentum"
+    },
+    {
+      "number": 3,
+      "name": "The 90 (Turn 4)",
+      "type": "left",
+      "apex": { "distance": 1100, "x": 600, "y": -300, "normalizedDistance": 0.203 },
+      "braking": { "distance": 1000, "x": 580, "y": -250 },
+      "exit": { "distance": 1200, "x": 620, "y": -350 },
+      "gear": 3,
+      "apexSpeed": 105,
+      "difficulty": "medium"
+    },
+    {
+      "number": 4,
+      "name": "Turn 5 (Downhill)",
+      "type": "right",
+      "apex": { "distance": 1450, "x": 700, "y": -450, "normalizedDistance": 0.267 },
+      "entry": { "distance": 1350, "x": 670, "y": -400 },
+      "exit": { "distance": 1550, "x": 730, "y": -500 },
+      "gear": 4,
+      "apexSpeed": 140,
+      "difficulty": "easy"
+    },
+    {
+      "number": 5,
+      "name": "Turn 6 (Boot Entry)",
+      "type": "left",
+      "apex": { "distance": 1850, "x": 800, "y": -650, "normalizedDistance": 0.341 },
+      "braking": { "distance": 1750, "x": 780, "y": -600 },
+      "exit": { "distance": 1950, "x": 820, "y": -700 },
+      "gear": 3,
+      "apexSpeed": 115,
+      "difficulty": "medium",
+      "notes": "Entry to The Boot section"
+    },
+    {
+      "number": 6,
+      "name": "Turn 7 (Boot)",
+      "type": "right",
+      "apex": { "distance": 2200, "x": 950, "y": -750, "normalizedDistance": 0.405 },
+      "entry": { "distance": 2100, "x": 920, "y": -720 },
+      "exit": { "distance": 2300, "x": 980, "y": -780 },
+      "gear": 4,
+      "apexSpeed": 135,
+      "difficulty": "medium"
+    },
+    {
+      "number": 7,
+      "name": "Turn 8",
+      "type": "left",
+      "apex": { "distance": 2600, "x": 1050, "y": -650, "normalizedDistance": 0.479 },
+      "entry": { "distance": 2500, "x": 1020, "y": -700 },
+      "exit": { "distance": 2700, "x": 1080, "y": -600 },
+      "gear": 4,
+      "apexSpeed": 140,
+      "difficulty": "easy"
+    },
+    {
+      "number": 8,
+      "name": "Turn 9 (Uphill)",
+      "type": "right",
+      "apex": { "distance": 3050, "x": 1150, "y": -500, "normalizedDistance": 0.562 },
+      "braking": { "distance": 2950, "x": 1120, "y": -550 },
+      "exit": { "distance": 3150, "x": 1180, "y": -450 },
+      "gear": 3,
+      "apexSpeed": 105,
+      "difficulty": "medium",
+      "notes": "Uphill braking zone, tricky to judge"
+    },
+    {
+      "number": 9,
+      "name": "Turn 10",
+      "type": "left",
+      "apex": { "distance": 3500, "x": 1100, "y": -300, "normalizedDistance": 0.645 },
+      "entry": { "distance": 3400, "x": 1120, "y": -350 },
+      "exit": { "distance": 3600, "x": 1080, "y": -250 },
+      "gear": 5,
+      "apexSpeed": 175,
+      "difficulty": "hard",
+      "notes": "Fast sweeper, blind apex"
+    },
+    {
+      "number": 10,
+      "name": "Turn 11 (Carousel)",
+      "type": "right",
+      "apex": { "distance": 4200, "x": 900, "y": -150, "normalizedDistance": 0.774 },
+      "braking": { "distance": 4050, "x": 950, "y": -200 },
+      "exit": { "distance": 4350, "x": 850, "y": -100 },
+      "gear": 3,
+      "apexSpeed": 100,
+      "difficulty": "hard",
+      "notes": "Decreasing radius, easy to run wide on exit"
+    }
+  ],
+  "metadata": {
+    "direction": "clockwise",
+    "elevation": {
+      "minimum": 479,
+      "maximum": 543,
+      "change": 64,
+      "unit": "meters"
+    },
+    "coordinates": {
+      "latitude": 42.3370,
+      "longitude": -76.9272
+    }
+  },
+  "svg": {
+    "viewBox": "0 0 1300 800",
+    "path": "M 100,100 L 350,100 Q 400,100 450,50 L 550,0 Q 620,-50 700,-100 L 800,-200 Q 900,-300 1000,-400 L 1150,-550 Q 1200,-600 1200,-650 L 1180,-700 Q 1150,-750 1100,-750 L 1000,-720 Q 900,-680 850,-600 L 800,-500 Q 750,-400 700,-300 L 600,-150 Q 500,-50 400,0 L 200,50 Q 120,80 100,100 Z"
+  }
+}

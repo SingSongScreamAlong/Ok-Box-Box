@@ -1,0 +1,67 @@
+name: blackbox-hybrid-cloud
+region: nyc
+services:
+  - name: relay-agent
+    github:
+      repo: SingSongScreamAlong/blackboxdriverapp
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    dockerfile_path: deployment/digitalocean/relay-agent/Dockerfile
+    http_port: 8766
+    instance_count: 1
+    instance_size_slug: basic-s
+    routes:
+      - path: /api
+    envs:
+      - key: LOG_LEVEL
+        value: INFO
+      - key: GRADIENT_AI_API_KEY
+        value: your-gradient-ai-key-here
+      - key: ELEVENLABS_API_KEY
+        value: your-elevenlabs-key-here
+
+  - name: dashboard
+    github:
+      repo: SingSongScreamAlong/blackboxdriverapp
+      branch: main
+      deploy_on_push: true
+    source_dir: dashboard
+    dockerfile_path: deployment/digitalocean/dashboard/Dockerfile
+    http_port: 80
+    instance_count: 1
+    instance_size_slug: basic-s
+    routes:
+      - path: /
+    envs:
+      - key: REACT_APP_API_URL
+        value: https://blackbox-hybrid-cloud.ondigitalocean.app/api
+      - key: REACT_APP_WS_URL
+        value: wss://blackbox-hybrid-cloud.ondigitalocean.app/ws
+
+  - name: ai-agent
+    github:
+      repo: SingSongScreamAlong/blackboxdriverapp
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    dockerfile_path: deployment/digitalocean/ai-agent/Dockerfile
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-s
+    routes:
+      - path: /ai
+    envs:
+      - key: GRADIENT_AI_API_KEY
+        value: your-gradient-ai-key-here
+      - key: ELEVENLABS_API_KEY
+        value: your-elevenlabs-key-here
+      - key: JWT_SECRET
+        value: your-jwt-secret-here
+
+databases:
+  - engine: pg
+    name: blackbox-db
+    num_nodes: 1
+    size: db-s-dev-database
+    version: "12"

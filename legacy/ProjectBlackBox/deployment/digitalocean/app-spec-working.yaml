@@ -1,0 +1,58 @@
+name: blackbox-hybrid
+region: nyc1
+services:
+  - name: dashboard
+    github:
+      repo: SingSongScreamAlong/blackboxdriverapp
+      branch: main
+      deploy_on_push: true
+    source_dir: dashboard
+    dockerfile_path: deployment/digitalocean/dashboard/Dockerfile
+    http_port: 80
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    envs:
+      - key: REACT_APP_API_URL
+        value: "https://blackbox-hybrid-dashboard.ondigitalocean.app/api"
+        scope: BUILD_TIME
+      - key: REACT_APP_WS_URL
+        value: "wss://blackbox-hybrid-dashboard.ondigitalocean.app/ws"
+        scope: BUILD_TIME
+
+  - name: backend
+    github:
+      repo: SingSongScreamAlong/blackboxdriverapp
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    dockerfile_path: deployment/digitalocean/backend-engine/Dockerfile
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /api
+    envs:
+      - key: NODE_ENV
+        value: "production"
+        scope: RUN_TIME
+      - key: OPENAI_API_KEY
+        value: "${OPENAI_API_KEY}"
+        type: SECRET
+        scope: RUN_TIME
+      - key: ELEVENLABS_API_KEY
+        value: "${ELEVENLABS_API_KEY}"
+        type: SECRET
+        scope: RUN_TIME
+      - key: JWT_SECRET
+        value: "blackbox-super-secret-jwt-key-2024"
+        type: SECRET
+        scope: RUN_TIME
+
+databases:
+  - name: blackbox-db
+    engine: PG
+    version: "15"
+    size: basic
+    num_nodes: 1

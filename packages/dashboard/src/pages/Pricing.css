@@ -1,0 +1,211 @@
+/**
+ * Pricing Page Styles
+ */
+
+.pricing-page {
+    min-height: 100vh;
+    padding: 3rem 2rem;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+    color: #fff;
+}
+
+.pricing-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.pricing-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+}
+
+.pricing-header p {
+    font-size: 1.1rem;
+    color: #888;
+    margin: 0;
+}
+
+.intent-notice {
+    margin-top: 1rem;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    padding: 8px 16px;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.pricing-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+    position: relative;
+    transition: all 0.3s;
+}
+
+.pricing-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-4px);
+}
+
+.pricing-card.popular {
+    border-color: #00d4ff;
+    background: rgba(0, 212, 255, 0.05);
+}
+
+.pricing-card.owned {
+    border-color: #00ff88;
+    background: rgba(0, 255, 136, 0.05);
+}
+
+.popular-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #00d4ff;
+    color: #000;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 4px 16px;
+    border-radius: 20px;
+}
+
+.owned-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(0, 255, 136, 0.2);
+    color: #00ff88;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 4px;
+}
+
+.pricing-card h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+}
+
+.tier-description {
+    font-size: 0.9rem;
+    color: #888;
+    margin: 0 0 1.5rem 0;
+}
+
+.pricing-amounts {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.monthly,
+.annual {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.price {
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+.period {
+    font-size: 0.9rem;
+    color: #888;
+}
+
+.savings {
+    font-size: 0.75rem;
+    background: rgba(0, 255, 136, 0.2);
+    color: #00ff88;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 8px;
+}
+
+.features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 2rem 0;
+}
+
+.features li {
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+.subscribe-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.subscribe-btn {
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.subscribe-btn.monthly {
+    background: transparent;
+    border: 2px solid #00d4ff;
+    color: #00d4ff;
+}
+
+.subscribe-btn.monthly:hover {
+    background: rgba(0, 212, 255, 0.1);
+}
+
+.subscribe-btn.annual {
+    background: linear-gradient(90deg, #00d4ff 0%, #00ff88 100%);
+    color: #000;
+}
+
+.subscribe-btn.annual:hover {
+    transform: scale(1.02);
+}
+
+.subscribe-btn.owned {
+    background: rgba(0, 255, 136, 0.1);
+    color: #00ff88;
+    cursor: default;
+}
+
+.pricing-footer {
+    text-align: center;
+    margin-top: 3rem;
+    color: #666;
+}
+
+.back-link {
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: 1rem;
+}
+
+.back-link:hover {
+    color: #fff;
+}

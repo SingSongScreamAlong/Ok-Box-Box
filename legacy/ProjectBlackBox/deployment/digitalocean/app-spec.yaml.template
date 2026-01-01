@@ -1,0 +1,107 @@
+name: blackbox-hybrid-cloud
+region: ${DO_REGION}
+services:
+  - name: backend-engine
+    github:
+      repo: SingSongScreamAlong/blackboxdriverapp
+      branch: main
+      deploy_on_push: true
+    source_dir: deployment/digitalocean/backend-engine
+    dockerfile_path: Dockerfile
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: basic-s
+    routes:
+      - path: /api
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        value: ${JWT_SECRET}
+      - key: DATABASE_URL
+        value: ${DATABASE_URL}
+      - key: GRADIENT_AI_API_KEY
+        value: ${GRADIENT_AI_API_KEY}
+      - key: ELEVENLABS_API_KEY
+        value: ${ELEVENLABS_API_KEY}
+
+  - name: relay-agent
+    github:
+      repo: SingSongScreamAlong/blackboxdriverapp
+      branch: main
+      deploy_on_push: true
+    source_dir: deployment/digitalocean/relay-agent
+    dockerfile_path: Dockerfile
+    http_port: 8081
+    instance_count: 1
+    instance_size_slug: basic-s
+    routes:
+      - path: /ws
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        value: ${JWT_SECRET}
+
+  - name: ai-agent
+    github:
+      repo: SingSongScreamAlong/blackboxdriverapp
+      branch: main
+      deploy_on_push: true
+    source_dir: deployment/digitalocean/ai-agent
+    dockerfile_path: Dockerfile
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-s
+    routes:
+      - path: /ai
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: GRADIENT_AI_API_KEY
+        value: ${GRADIENT_AI_API_KEY}
+      - key: ELEVENLABS_API_KEY
+        value: ${ELEVENLABS_API_KEY}
+      - key: JWT_SECRET
+        value: ${JWT_SECRET}
+
+  - name: dashboard
+    github:
+      repo: SingSongScreamAlong/blackboxdriverapp
+      branch: main
+      deploy_on_push: true
+    source_dir: deployment/digitalocean/dashboard
+    dockerfile_path: Dockerfile
+    http_port: 80
+    instance_count: 1
+    instance_size_slug: basic-s
+    routes:
+      - path: /
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: REACT_APP_API_URL
+        value: https://${SUBDOMAIN}.${DOMAIN}/api
+      - key: REACT_APP_WS_URL
+        value: wss://${SUBDOMAIN}.${DOMAIN}/ws
+      - key: REACT_APP_AI_URL
+        value: https://${SUBDOMAIN}.${DOMAIN}/ai
+
+databases:
+  - engine: pg
+    name: blackbox-db
+    num_nodes: 1
+    size: db-s-dev-database
+    version: "12"
+
+domains:
+  - domain: ${SUBDOMAIN}.${DOMAIN}
+    type: PRIMARY
+
+envs:
+  - key: TZ
+    value: UTC
+  - key: DOMAIN
+    value: ${DOMAIN}
+  - key: SUBDOMAIN
+    value: ${SUBDOMAIN}

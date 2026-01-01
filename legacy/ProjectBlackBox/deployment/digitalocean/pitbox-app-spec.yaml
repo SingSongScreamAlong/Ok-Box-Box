@@ -1,0 +1,28 @@
+# PitBox Dashboard Deployment for DigitalOcean App Platform
+# This creates a standalone PitBox dashboard app
+name: pitbox-dashboard
+region: nyc1
+services:
+  - name: pitbox-web
+    github:
+      repo: SingSongScreamAlong/ProjectBlackBox
+      branch: main
+      deploy_on_push: true
+    source_dir: dashboard
+    build_command: npm install --legacy-peer-deps && npm run build
+    run_command: npx serve -s build -l 8080
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    envs:
+      - key: NODE_ENV
+        value: "production"
+        scope: RUN_TIME
+      - key: REACT_APP_API_URL
+        value: "https://coral-app-x988a.ondigitalocean.app/api"
+        scope: BUILD_TIME
+      - key: REACT_APP_WS_URL
+        value: "wss://coral-app-x988a.ondigitalocean.app"
+        scope: BUILD_TIME

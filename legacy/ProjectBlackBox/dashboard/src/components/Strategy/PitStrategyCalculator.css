@@ -1,0 +1,330 @@
+.pit-calculator {
+  background: rgba(22, 27, 34, 0.95);
+  border-radius: 12px;
+  padding: 20px;
+  color: #fff;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.calc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.calc-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.risk-badge {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.risk-badge.low {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.risk-badge.medium {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffc107;
+}
+
+.risk-badge.high {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+}
+
+/* Input Section */
+.calc-inputs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.input-group label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.input-group input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: #fff;
+  font-size: 14px;
+  font-family: 'Roboto Mono', monospace;
+}
+
+.input-group input:focus {
+  outline: none;
+  border-color: #00d4ff;
+}
+
+.stop-buttons, .compound-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.stop-buttons button, .compound-buttons button {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.3);
+  color: rgba(255, 255, 255, 0.7);
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.stop-buttons button:hover, .compound-buttons button:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.stop-buttons button.active {
+  background: #00d4ff;
+  color: #000;
+  border-color: #00d4ff;
+}
+
+.compound-btn.soft { border-color: #ff4444; }
+.compound-btn.soft.active { background: #ff4444; color: #fff; }
+
+.compound-btn.medium { border-color: #ffeb3b; }
+.compound-btn.medium.active { background: #ffeb3b; color: #000; }
+
+.compound-btn.hard { border-color: #fff; }
+.compound-btn.hard.active { background: #fff; color: #000; }
+
+/* Race Progress */
+.race-progress {
+  margin-bottom: 24px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 8px;
+}
+
+.progress-bar {
+  position: relative;
+  height: 24px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 12px;
+  overflow: visible;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00d4ff, #00ff9d);
+  border-radius: 12px;
+  transition: width 0.3s ease;
+}
+
+.pit-marker {
+  position: absolute;
+  top: -8px;
+  transform: translateX(-50%);
+  background: #ff6b35;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: help;
+}
+
+/* Strategy Output */
+.strategy-output {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.strategy-output h4 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.no-stop-strategy {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.strategy-icon {
+  font-size: 24px;
+}
+
+.fuel-remaining {
+  margin-left: auto;
+  color: #4caf50;
+  font-weight: 600;
+}
+
+.pit-stops-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.pit-stop-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px 16px;
+}
+
+.stop-number {
+  font-size: 10px;
+  font-weight: 700;
+  color: #ff6b35;
+  margin-bottom: 8px;
+  letter-spacing: 1px;
+}
+
+.stop-details {
+  display: flex;
+  gap: 24px;
+}
+
+.stop-details > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stop-details .label {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+}
+
+.stop-details .value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #00d4ff;
+}
+
+.compound-badge {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.compound-badge.soft {
+  background: rgba(255, 68, 68, 0.2);
+  color: #ff4444;
+}
+
+.compound-badge.medium {
+  background: rgba(255, 235, 59, 0.2);
+  color: #ffeb3b;
+}
+
+.compound-badge.hard {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+/* Strategy Notes */
+.strategy-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.strategy-notes .note {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 8px 12px;
+  background: rgba(0, 212, 255, 0.1);
+  border-left: 3px solid #00d4ff;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Quick Stats */
+.quick-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.quick-stats .stat {
+  text-align: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+}
+
+.quick-stats .label {
+  display: block;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.quick-stats .value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+}
+
+/* Scrollbar */
+.pit-calculator::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pit-calculator::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.pit-calculator::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.3);
+  border-radius: 3px;
+}
+
+@media (max-width: 1200px) {
+  .calc-inputs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .quick-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

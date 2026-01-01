@@ -1,0 +1,117 @@
+/* =====================================================================
+   Timing Tower Overlay Styles (Week 8)
+   Designed for OBS Browser Source - minimal, stable layout
+   ===================================================================== */
+
+.timing-tower {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    width: 280px;
+    transform-origin: top left;
+}
+
+.timing-tower--right {
+    transform-origin: top right;
+}
+
+/* Dark Theme (default) */
+.timing-tower--dark {
+    background: transparent;
+}
+
+.timing-tower--dark .timing-row {
+    background: rgba(10, 10, 15, 0.9);
+    color: #e0e0e0;
+}
+
+.timing-tower--dark .timing-row__pos {
+    background: #2a2a3e;
+    color: #00d4ff;
+}
+
+.timing-tower--dark .timing-row--featured {
+    background: rgba(0, 212, 255, 0.2);
+    border-left: 3px solid #00d4ff;
+}
+
+/* Light Theme */
+.timing-tower--light .timing-row {
+    background: rgba(255, 255, 255, 0.95);
+    color: #1a1a2e;
+}
+
+.timing-tower--light .timing-row__pos {
+    background: #e0e0e0;
+    color: #1a1a2e;
+}
+
+/* Timing Row */
+.timing-row {
+    display: flex;
+    align-items: center;
+    height: 28px;
+    border-radius: 4px;
+    overflow: hidden;
+    transition: background 0.15s ease;
+}
+
+.timing-row--pit {
+    opacity: 0.6;
+}
+
+.timing-row__pos {
+    width: 28px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.timing-row__driver {
+    flex: 1;
+    padding: 0 8px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.timing-row__gap {
+    width: 70px;
+    text-align: right;
+    padding-right: 8px;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
+    font-size: 12px;
+    color: #888;
+}
+
+.timing-row:first-child .timing-row__gap {
+    color: #a855f7;
+    font-weight: 600;
+}
+
+.timing-row__flag {
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-right: 4px;
+}
+
+.timing-row__flag--pit {
+    background: #f97316;
+    color: white;
+}
+
+/* Featured driver highlight */
+.timing-row--featured .timing-row__driver {
+    font-weight: 700;
+    color: #00d4ff;
+}

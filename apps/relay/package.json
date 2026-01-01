@@ -1,0 +1,75 @@
+{
+    "name": "@okboxbox/relay",
+    "version": "1.0.0-alpha",
+    "description": "Ok, Box Box Relay Agent - Desktop app for telemetry uplink and Driver HUD",
+    "main": "dist/main.js",
+    "private": true,
+    "scripts": {
+        "dev": "npm run build && electron .",
+        "build": "tsc",
+        "start": "electron .",
+        "package": "npm run build && electron-builder",
+        "package:win": "npm run build && electron-builder --win",
+        "package:mac": "npm run build && electron-builder --mac",
+        "package:linux": "npm run build && electron-builder --linux",
+        "postinstall": "electron-builder install-app-deps"
+    },
+    "build": {
+        "appId": "com.okboxbox.relay",
+        "productName": "Ok Box Box Relay",
+        "files": [
+            "dist/**/*",
+            "assets/**/*",
+            "package.json"
+        ],
+        "directories": {
+            "output": "release"
+        },
+        "protocols": {
+            "name": "Ok Box Box Launch",
+            "schemes": [
+                "okboxbox"
+            ]
+        },
+        "mac": {
+            "category": "public.app-category.utilities",
+            "icon": "assets/icon.icns",
+            "hardenedRuntime": true,
+            "gatekeeperAssess": false,
+            "entitlements": "build/entitlements.mac.plist",
+            "entitlementsInherit": "build/entitlements.mac.plist"
+        },
+        "win": {
+            "icon": "assets/icon.ico",
+            "target": [
+                "nsis",
+                "portable"
+            ]
+        },
+        "linux": {
+            "icon": "assets/icon.png",
+            "target": [
+                "AppImage",
+                "deb"
+            ]
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true,
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true
+        }
+    },
+    "dependencies": {
+        "electron-store": "^8.2.0",
+        "keytar": "^7.9.0",
+        "node-fetch": "^3.3.2",
+        "socket.io-client": "^4.8.1"
+    },
+    "devDependencies": {
+        "@types/node": "^20.10.0",
+        "electron": "^28.0.0",
+        "electron-builder": "^24.9.1",
+        "typescript": "^5.3.0"
+    }
+}

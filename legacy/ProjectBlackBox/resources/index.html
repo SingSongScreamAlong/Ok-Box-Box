@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
+  <link rel="stylesheet" href="./css/styles.css">
+  <title>PitBox Driver App</title>
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <div class="logo-container">
+        <img src="./img/logo.png" alt="PitBox Logo" class="logo">
+        <h1>PitBox Driver App</h1>
+      </div>
+      <div class="status-indicator">
+        <span id="status-icon" class="status-icon"></span>
+        <span id="status-text">Disconnected</span>
+      </div>
+    </header>
+
+    <main>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="tab-btn" data-tab="settings">Settings</button>
+        <button class="tab-btn" data-tab="drivers">Drivers</button>
+        <button class="tab-btn" data-tab="about">About</button>
+      </div>
+
+      <div class="tab-content">
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-pane active">
+          <div class="dashboard-grid">
+            <div class="card telemetry-status">
+              <h2>Telemetry Status</h2>
+              <div class="status-group">
+                <div class="status-item">
+                  <span class="status-label">Sim Connection:</span>
+                  <span id="sim-status" class="status-value">Disconnected</span>
+                </div>
+                <div class="status-item">
+                  <span class="status-label">Server Connection:</span>
+                  <span id="server-status" class="status-value">Disconnected</span>
+                </div>
+                <div class="status-item">
+                  <span class="status-label">Current Driver:</span>
+                  <span id="driver-name" class="status-value">None</span>
+                </div>
+              </div>
+              <div class="button-group">
+                <button id="start-telemetry" class="primary-btn">Start Telemetry</button>
+                <button id="stop-telemetry" class="secondary-btn" disabled>Stop Telemetry</button>
+              </div>
+            </div>
+
+            <div class="card telemetry-stats">
+              <h2>Telemetry Stats</h2>
+              <div class="stats-group">
+                <div class="stat-item">
+                  <span class="stat-label">Data Points Sent:</span>
+                  <span id="data-points" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Data Rate:</span>
+                  <span id="data-rate" class="stat-value">0 Hz</span>
+                </div>
+                <div class="stat-item">
+                  <span class="stat-label">Session Duration:</span>
+                  <span id="session-duration" class="stat-value">00:00:00</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card video-status">
+              <h2>Video Capture</h2>
+              <div class="status-group">
+                <div class="status-item">
+                  <span class="status-label">Status:</span>
+                  <span id="video-status" class="status-value">Disabled</span>
+                </div>
+                <div class="status-item">
+                  <span class="status-label">Resolution:</span>
+                  <span id="video-resolution" class="status-value">640x480</span>
+                </div>
+                <div class="status-item">
+                  <span class="stat-label">Frames Captured:</span>
+                  <span id="frames-captured" class="stat-value">0</span>
+                </div>
+              </div>
+              <div class="button-group">
+                <button id="start-video" class="primary-btn">Start Video</button>
+                <button id="stop-video" class="secondary-btn" disabled>Stop Video</button>
+              </div>
+            </div>
+
+            <div class="card log-viewer">
+              <h2>Activity Log</h2>
+              <div id="log-container" class="log-container">
+                <div class="log-entry">
+                  <span class="log-time">16:21:37</span>
+                  <span class="log-message">Application started</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-pane">
+          <div class="settings-container">
+            <div class="settings-section">
+              <h2>Server Connection</h2>
+              <div class="form-group">
+                <label for="server-url">Server URL:</label>
+                <input type="text" id="server-url" value="http://localhost:3000">
+              </div>
+              <div class="form-group">
+                <label for="auth-token">Auth Token (optional):</label>
+                <input type="password" id="auth-token">
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h2>Telemetry Settings</h2>
+              <div class="form-group">
+                <label for="sim-select">Simulator:</label>
+                <select id="sim-select">
+                  <option value="iracing">iRacing</option>
+                  <option value="assettocorsa" disabled>Assetto Corsa (Coming Soon)</option>
+                  <option value="rf2" disabled>rFactor 2 (Coming Soon)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="capture-rate">Capture Rate (Hz):</label>
+                <input type="number" id="capture-rate" min="1" max="60" value="10">
+              </div>
+              <div class="form-group checkbox">
+                <input type="checkbox" id="local-cache" checked>
+                <label for="local-cache">Enable Local Cache</label>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h2>Data Transmission</h2>
+              <div class="form-group checkbox">
+                <input type="checkbox" id="compression-enabled" checked>
+                <label for="compression-enabled">Enable Compression</label>
+              </div>
+              <div class="form-group">
+                <label for="compression-threshold">Compression Threshold (bytes):</label>
+                <input type="number" id="compression-threshold" min="100" value="1024">
+              </div>
+              <div class="form-group checkbox">
+                <input type="checkbox" id="batching-enabled">
+                <label for="batching-enabled">Enable Batching</label>
+              </div>
+              <div class="form-group">
+                <label for="batch-size">Batch Size:</label>
+                <input type="number" id="batch-size" min="1" max="100" value="10" disabled>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h2>Video Capture</h2>
+              <div class="form-group checkbox">
+                <input type="checkbox" id="video-enabled">
+                <label for="video-enabled">Enable Video Capture</label>
+              </div>
+              <div class="form-group">
+                <label for="video-resolution">Resolution:</label>
+                <select id="video-resolution" disabled>
+                  <option value="640x480">640x480</option>
+                  <option value="1280x720">1280x720</option>
+                  <option value="1920x1080">1920x1080</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="frame-rate">Frame Rate (FPS):</label>
+                <input type="number" id="frame-rate" min="1" max="60" value="15" disabled>
+              </div>
+            </div>
+
+            <div class="settings-section">
+              <h2>Application Settings</h2>
+              <div class="form-group checkbox">
+                <input type="checkbox" id="auto-start">
+                <label for="auto-start">Auto-start Telemetry</label>
+              </div>
+              <div class="form-group checkbox">
+                <input type="checkbox" id="start-minimized">
+                <label for="start-minimized">Start Minimized</label>
+              </div>
+              <div class="form-group checkbox">
+                <input type="checkbox" id="minimize-to-tray" checked>
+                <label for="minimize-to-tray">Minimize to Tray</label>
+              </div>
+            </div>
+
+            <div class="button-group">
+              <button id="save-settings" class="primary-btn">Save Settings</button>
+              <button id="reset-settings" class="secondary-btn">Reset to Default</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Drivers Tab -->
+        <div id="drivers" class="tab-pane">
+          <div class="drivers-container">
+            <div class="drivers-header">
+              <h2>Driver Profiles</h2>
+              <button id="add-driver" class="primary-btn">Add Driver</button>
+            </div>
+
+            <div id="drivers-list" class="drivers-list">
+              <!-- Driver profiles will be loaded here dynamically -->
+              <div class="driver-card">
+                <div class="driver-info">
+                  <h3>Default Driver</h3>
+                  <p class="driver-details">Created: July 13, 2025</p>
+                </div>
+                <div class="driver-actions">
+                  <button class="select-driver-btn">Select</button>
+                  <button class="edit-driver-btn">Edit</button>
+                  <button class="delete-driver-btn">Delete</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="driver-form" class="driver-form hidden">
+              <h3>Add Driver</h3>
+              <div class="form-group">
+                <label for="driver-name">Name:</label>
+                <input type="text" id="driver-name" placeholder="Driver Name">
+              </div>
+              <div class="form-group">
+                <label for="driver-email">Email (optional):</label>
+                <input type="email" id="driver-email" placeholder="email@example.com">
+              </div>
+              <div class="form-group">
+                <label for="driver-team">Team (optional):</label>
+                <input type="text" id="driver-team" placeholder="Team Name">
+              </div>
+              <div class="button-group">
+                <button id="save-driver" class="primary-btn">Save</button>
+                <button id="cancel-driver" class="secondary-btn">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- About Tab -->
+        <div id="about" class="tab-pane">
+          <div class="about-container">
+            <div class="about-header">
+              <img src="./img/logo-large.png" alt="PitBox Logo" class="logo-large">
+              <h2>PitBox Driver App</h2>
+              <p class="version">Version 0.1.0</p>
+            </div>
+
+            <div class="about-content">
+              <p>PitBox Driver App is a lightweight telemetry collector for sim racing. It captures telemetry data from your simulator and transmits it to the PitBox Core for analysis.</p>
+              
+              <h3>Features</h3>
+              <ul>
+                <li>Real-time telemetry capture from iRacing</li>
+                <li>Secure data transmission to PitBox Core</li>
+                <li>Optional video capture for enhanced analysis</li>
+                <li>Multi-driver support with driver profiles</li>
+                <li>Local caching for offline use</li>
+              </ul>
+
+              <h3>System Requirements</h3>
+              <ul>
+                <li>Windows 10/11 or macOS 10.15+</li>
+                <li>iRacing subscription</li>
+                <li>Internet connection for real-time analysis</li>
+              </ul>
+
+              <h3>Support</h3>
+              <p>For support, please contact <a href="mailto:support@pitboxracing.com">support@pitboxracing.com</a></p>
+
+              <p class="copyright">© 2025 PitBox Racing. All rights reserved.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="./js/renderer.js"></script>
+</body>
+</html>

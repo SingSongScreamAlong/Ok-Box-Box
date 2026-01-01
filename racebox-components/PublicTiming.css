@@ -1,0 +1,183 @@
+/* =====================================================================
+   Public Timing Page Styles (Week 8)
+   ===================================================================== */
+
+.public-timing {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: #0a0a0f;
+    color: #e0e0e0;
+    font-family: 'Inter', -apple-system, sans-serif;
+}
+
+.public-timing--no-session {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.public-timing__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+    border-bottom: 1px solid #2a2a3e;
+}
+
+.public-timing__header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.session-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.session-info .status {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.session-info .status.connected {
+    color: #22c55e;
+}
+
+.session-info .status.disconnected {
+    color: #888;
+}
+
+.session-info .session-state {
+    background: #2a2a3e;
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Timing Table */
+.timing-table {
+    flex: 1;
+    overflow: auto;
+    padding: 1rem;
+}
+
+.timing-table__header {
+    display: flex;
+    padding: 0.75rem 0;
+    border-bottom: 2px solid #3a3a5e;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: sticky;
+    top: 0;
+    background: #0a0a0f;
+    z-index: 10;
+}
+
+.timing-table__body {
+    display: flex;
+    flex-direction: column;
+}
+
+.timing-row {
+    display: flex;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #1a1a2e;
+    transition: background 0.15s ease;
+}
+
+.timing-row:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.timing-row--featured {
+    background: rgba(0, 212, 255, 0.1);
+    border-left: 3px solid #00d4ff;
+}
+
+.timing-row--pit {
+    opacity: 0.6;
+}
+
+/* Columns */
+.col {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+}
+
+.col.pos {
+    width: 50px;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #00d4ff;
+}
+
+.col.driver {
+    flex: 1;
+    min-width: 150px;
+    font-weight: 500;
+}
+
+.col.gap,
+.col.interval {
+    width: 90px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #ffcc00;
+}
+
+.col.last,
+.col.best {
+    width: 100px;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.col.best {
+    color: #a855f7;
+}
+
+.col.status {
+    width: 80px;
+    display: flex;
+    gap: 4px;
+}
+
+/* Badges */
+.badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.625rem;
+    font-weight: 700;
+}
+
+.badge.pit {
+    background: #f97316;
+    color: white;
+}
+
+.badge.incident {
+    background: #ef4444;
+    color: white;
+}
+
+.badge.offline {
+    background: #666;
+    color: white;
+}
+
+/* Footer */
+.public-timing__footer {
+    padding: 0.75rem 1.5rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #666;
+    border-top: 1px solid #2a2a3e;
+}

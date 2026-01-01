@@ -1,0 +1,98 @@
+name: blackbox
+region: nyc
+services:
+  - name: relay-agent
+    github:
+      repo: SingSongScreamAlong/blackboxdriverapp
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    dockerfile_path: deployment/digitalocean/relay-agent/Dockerfile
+    http_port: 8766
+    instance_count: 1
+    instance_size_slug: basic-s
+    routes:
+      - path: /api
+    envs:
+      - key: LOG_LEVEL
+        value: "INFO"
+        scope: RUN_TIME
+      - key: OPENAI_API_KEY
+        value: "${OPENAI_API_KEY}"
+        type: SECRET
+        scope: RUN_TIME
+      - key: ELEVENLABS_API_KEY
+        value: "${ELEVENLABS_API_KEY}"
+        type: SECRET
+        scope: RUN_TIME
+    health_check:
+      http_path: /api/status
+      initial_delay_seconds: 10
+      period_seconds: 30
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
+
+  - name: dashboard
+    github:
+      repo: SingSongScreamAlong/blackboxdriverapp
+      branch: main
+      deploy_on_push: true
+    source_dir: dashboard
+    dockerfile_path: deployment/digitalocean/dashboard/Dockerfile
+    http_port: 80
+    instance_count: 1
+    instance_size_slug: basic-s
+    routes:
+      - path: /
+    envs:
+      - key: REACT_APP_API_URL
+        value: "${APP_URL}/api"
+        scope: BUILD_TIME
+      - key: REACT_APP_WS_URL
+        value: "wss://${APP_URL}/ws"
+        scope: BUILD_TIME
+
+  - name: ai-agent
+    github:
+      repo: SingSongScreamAlong/blackboxdriverapp
+      branch: main
+      deploy_on_push: true
+    source_dir: ai_agent
+    dockerfile_path: deployment/digitalocean/ai-agent/Dockerfile
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-s
+    routes:
+      - path: /ai
+    envs:
+      - key: OPENAI_API_KEY
+        value: "${OPENAI_API_KEY}"
+        type: SECRET
+        scope: RUN_TIME
+      - key: RELAY_AGENT_URL
+        value: "${APP_URL}/api"
+        scope: RUN_TIME
+
+databases:
+  - engine: PG
+    name: blackbox-db
+    num_nodes: 1
+    size: db-s-1vcpu-1gb
+    version: "14"
+
+jobs:
+  - name: db-migrate
+    github:
+      repo: SingSongScreamAlong/blackboxdriverapp
+      branch: main
+      deploy_on_push: true
+    source_dir: deployment/digitalocean/migrations
+    dockerfile_path: deployment/digitalocean/migrations/Dockerfile
+    envs:
+      - key: DATABASE_URL
+        value: "${blackbox-db.DATABASE_URL}"
+        type: SECRET
+        scope: RUN_TIME
+    kind: PRE_DEPLOY
+    run_command: npm run migrate

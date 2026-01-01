@@ -1,0 +1,151 @@
+/**
+ * Opponent Panel Styles
+ */
+
+.opponent-panel {
+    background: linear-gradient(135deg, #1a1f2e 0%, #0f141f 100%);
+    border-radius: 12px;
+    padding: 16px;
+    color: #e0e0e0;
+    min-width: 320px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.opponent-panel.disconnected {
+    opacity: 0.6;
+    text-align: center;
+    padding: 24px;
+}
+
+.opponent-panel h3 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.opponent-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.opponent-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+    border-left: 3px solid;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.opponent-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.opponent-card.critical {
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.opponent-card.high {
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.opponent-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.threat-emoji {
+    font-size: 14px;
+}
+
+.driver-name {
+    flex: 1;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.threat-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: #fff;
+}
+
+.opponent-quick-stats {
+    display: flex;
+    gap: 16px;
+    font-size: 11px;
+    color: #888;
+}
+
+.opponent-details {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 11px;
+}
+
+.detail-row .label {
+    color: #888;
+}
+
+.detail-row .value {
+    font-weight: 600;
+    color: #fff;
+}
+
+.detail-row.warning {
+    color: #facc15;
+}
+
+.detail-row.warning .label,
+.detail-row.warning .value {
+    color: #facc15;
+}
+
+.detail-row.confidence {
+    gap: 8px;
+}
+
+.confidence-bar {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.confidence-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ef4444, #facc15, #4ade80);
+    transition: width 0.3s ease;
+}
+
+.fuel-load {
+    text-transform: capitalize;
+}
+
+.opponent-empty {
+    text-align: center;
+    padding: 24px;
+    color: #666;
+}
+
+.opponent-empty .hint {
+    font-size: 11px;
+    color: #444;
+    margin-top: 8px;
+}

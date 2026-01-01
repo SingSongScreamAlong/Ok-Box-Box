@@ -1,0 +1,236 @@
+/* =====================================================================
+   Director View Styles (Week 8)
+   ===================================================================== */
+
+.director {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: #0a0a0f;
+    color: #e0e0e0;
+    font-family: 'Inter', -apple-system, sans-serif;
+}
+
+.director--unauthorized {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.director__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1a 100%);
+    border-bottom: 1px solid #2a2a3e;
+}
+
+.director__header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.connection-status {
+    font-size: 0.875rem;
+}
+
+/* Sections */
+.director__section {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #2a2a3e;
+}
+
+.director__section h2 {
+    margin: 0 0 0.75rem;
+    font-size: 0.875rem;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Session Input */
+.session-input input {
+    width: 100%;
+    padding: 0.75rem;
+    background: #1a1a2e;
+    border: 1px solid #3a3a5e;
+    border-radius: 8px;
+    color: white;
+    font-size: 1rem;
+}
+
+.session-input input:focus {
+    outline: none;
+    border-color: #00d4ff;
+}
+
+/* Delay Buttons */
+.delay-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.delay-buttons button {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    background: #2a2a3e;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.delay-buttons button:hover {
+    background: #3a3a5e;
+}
+
+.delay-buttons button.active {
+    background: #00d4ff;
+    color: #0a0a0f;
+    font-weight: 600;
+}
+
+/* Driver List */
+.driver-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.driver-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: #1a1a2e;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.driver-item:hover {
+    background: #2a2a3e;
+}
+
+.driver-item.selected {
+    background: rgba(0, 212, 255, 0.15);
+    border-left: 3px solid #00d4ff;
+}
+
+.driver-item .pos {
+    font-weight: 700;
+    color: #00d4ff;
+    width: 32px;
+}
+
+.driver-item .name {
+    flex: 1;
+}
+
+.feature-btn {
+    padding: 0.25rem 0.5rem;
+    background: #a855f7;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+/* Battle List */
+.battle-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.battle-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 6px;
+    border-left: 3px solid #ef4444;
+}
+
+.battle-item .drivers {
+    flex: 1;
+    font-weight: 500;
+}
+
+.battle-item .gap {
+    font-family: 'JetBrains Mono', monospace;
+    color: #ef4444;
+    font-weight: 700;
+}
+
+.battle-item button {
+    padding: 0.25rem 0.5rem;
+    background: #ef4444;
+    border: none;
+    border-radius: 4px;
+    color: white;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.empty {
+    color: #666;
+    font-style: italic;
+    padding: 0.5rem;
+}
+
+/* Cue Buttons */
+.cue-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.cue-buttons button {
+    padding: 0.5rem 1rem;
+    background: #2a2a3e;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+}
+
+.cue-buttons button:hover {
+    background: #3a3a5e;
+}
+
+/* OBS URLs */
+.obs-urls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.url-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.url-item label {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.url-item code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    background: #1a1a2e;
+    padding: 0.5rem;
+    border-radius: 4px;
+    word-break: break-all;
+}

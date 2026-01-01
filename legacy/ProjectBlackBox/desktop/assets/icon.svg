@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Background - Dark stealth -->
+  <rect width="256" height="256" rx="32" fill="#0a0c10"/>
+  
+  <!-- Outer ring - Subtle glow -->
+  <circle cx="128" cy="128" r="100" fill="none" stroke="#1a1f2e" stroke-width="4"/>
+  
+  <!-- B-2 Stealth shape (stylized) -->
+  <path d="M128 48 L208 148 L188 158 L128 128 L68 158 L48 148 Z" 
+        fill="#2d3748" stroke="#4a5568" stroke-width="2"/>
+  
+  <!-- Inner wing detail -->
+  <path d="M128 68 L178 138 L128 118 L78 138 Z" 
+        fill="#1a1f2e"/>
+  
+  <!-- Center cockpit -->
+  <ellipse cx="128" cy="108" rx="12" ry="8" fill="#3b82f6"/>
+  
+  <!-- Racing stripes -->
+  <line x1="128" y1="160" x2="128" y2="200" stroke="#3b82f6" stroke-width="4" stroke-linecap="round"/>
+  <line x1="108" y1="170" x2="108" y2="195" stroke="#1e40af" stroke-width="3" stroke-linecap="round"/>
+  <line x1="148" y1="170" x2="148" y2="195" stroke="#1e40af" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Speed lines -->
+  <line x1="60" y1="180" x2="90" y2="180" stroke="#4a5568" stroke-width="2" stroke-linecap="round"/>
+  <line x1="166" y1="180" x2="196" y2="180" stroke="#4a5568" stroke-width="2" stroke-linecap="round"/>
+  
+  <!-- Accent dots -->
+  <circle cx="128" cy="220" r="4" fill="#3b82f6"/>
+</svg>

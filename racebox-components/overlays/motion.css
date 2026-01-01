@@ -1,0 +1,327 @@
+/* =====================================================================
+   Overlay Motion Graphics (Week 10)
+   CSS-only transitions for OBS performance
+   ===================================================================== */
+
+/* =====================================================================
+   Global Motion Control
+   Use .motion-disabled class on root to disable all animations
+   ===================================================================== */
+
+:root {
+    --motion-duration: 0.3s;
+    --motion-easing: cubic-bezier(0.4, 0, 0.2, 1);
+    --stagger-delay: 0.05s;
+}
+
+.motion-disabled * {
+    animation-duration: 0s !important;
+    transition-duration: 0s !important;
+}
+
+/* =====================================================================
+   Timing Tower Row Animations
+   ===================================================================== */
+
+.timing-row {
+    transform: translateX(0);
+    opacity: 1;
+    transition:
+        transform var(--motion-duration) var(--motion-easing),
+        opacity var(--motion-duration) var(--motion-easing),
+        background var(--motion-duration) var(--motion-easing);
+}
+
+/* Enter animation */
+.timing-row.entering {
+    transform: translateX(-20px);
+    opacity: 0;
+}
+
+/* Featured highlight pulse */
+.timing-row--featured {
+    animation: featured-pulse 2s ease-in-out infinite;
+}
+
+@keyframes featured-pulse {
+
+    0%,
+    100% {
+        background: rgba(0, 212, 255, 0.1);
+        box-shadow: 0 0 0 0 rgba(0, 212, 255, 0);
+    }
+
+    50% {
+        background: rgba(0, 212, 255, 0.15);
+        box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+    }
+}
+
+/* Position change animation */
+.timing-row.position-up {
+    animation: position-up 0.4s var(--motion-easing);
+}
+
+.timing-row.position-down {
+    animation: position-down 0.4s var(--motion-easing);
+}
+
+@keyframes position-up {
+    0% {
+        transform: translateY(28px);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes position-down {
+    0% {
+        transform: translateY(-28px);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* =====================================================================
+   Lower Third Slide Animation
+   ===================================================================== */
+
+.lower-third {
+    transform: translateX(-100%);
+    opacity: 0;
+    transition:
+        transform 0.5s var(--motion-easing),
+        opacity 0.3s var(--motion-easing);
+}
+
+.lower-third.visible {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.lower-third.exiting {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+
+/* Content stagger */
+.lower-third.visible .lower-third__position {
+    animation: slide-in-left 0.4s var(--motion-easing) 0.1s both;
+}
+
+.lower-third.visible .lower-third__name {
+    animation: fade-up 0.3s var(--motion-easing) 0.2s both;
+}
+
+.lower-third.visible .lower-third__stats {
+    animation: fade-up 0.3s var(--motion-easing) 0.3s both;
+}
+
+@keyframes slide-in-left {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fade-up {
+    from {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* =====================================================================
+   Battle Box Crossfade
+   ===================================================================== */
+
+.battle-box {
+    animation: battle-enter 0.4s var(--motion-easing);
+}
+
+@keyframes battle-enter {
+    from {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.battle-box__gap {
+    animation: gap-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes gap-pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+.driver-card {
+    transition:
+        background 0.3s var(--motion-easing),
+        transform 0.2s var(--motion-easing);
+}
+
+.driver-card:hover {
+    transform: scale(1.02);
+}
+
+/* Driver swap crossfade */
+.driver-card.swapping {
+    animation: driver-swap 0.3s var(--motion-easing);
+}
+
+@keyframes driver-swap {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* =====================================================================
+   Incident Banner Stinger
+   ===================================================================== */
+
+.incident-banner {
+    transform: translateY(-100%);
+    opacity: 0;
+    transition:
+        transform 0.4s var(--motion-easing),
+        opacity 0.3s var(--motion-easing);
+}
+
+.incident-banner.visible {
+    transform: translateY(0);
+    opacity: 1;
+    animation: incident-stinger 0.6s var(--motion-easing);
+}
+
+@keyframes incident-stinger {
+    0% {
+        transform: translateY(-100%) scale(1.1);
+        opacity: 0;
+    }
+
+    50% {
+        transform: translateY(10px) scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Continuous attention pulse */
+.incident-banner.visible::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 10px;
+    border: 2px solid rgba(239, 68, 68, 0.5);
+    animation: incident-ring 2s ease-in-out infinite;
+}
+
+@keyframes incident-ring {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: scale(1.03);
+        opacity: 1;
+    }
+}
+
+/* =====================================================================
+   Utility Animations
+   ===================================================================== */
+
+.fade-in {
+    animation: fade-in 0.3s var(--motion-easing);
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.slide-up {
+    animation: slide-up 0.4s var(--motion-easing);
+}
+
+@keyframes slide-up {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.scale-in {
+    animation: scale-in 0.3s var(--motion-easing);
+}
+
+@keyframes scale-in {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}

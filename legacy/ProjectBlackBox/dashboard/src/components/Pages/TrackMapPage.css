@@ -1,0 +1,408 @@
+/* Track Map Page - B-2 Stealth Theme */
+.track-map-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 50px);
+  background: #050508;
+  color: #e8e8ec;
+  overflow: hidden;
+}
+
+.track-map-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: #08090c;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.track-map-header h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #d1d5db;
+}
+
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.track-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.track-selector label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.track-selector select {
+  padding: 8px 12px;
+  background: #0a0c10;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  color: #e8e8ec;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.connection-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.connection-badge .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e54545;
+}
+
+.connection-badge.connected .dot {
+  background: #3dd68c;
+  box-shadow: 0 0 8px rgba(61, 214, 140, 0.5);
+}
+
+/* Main Content */
+.track-map-content {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Map Container */
+.map-container {
+  position: relative;
+  background: #0a0c10;
+  border-right: 1px solid rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* Override the nested panel styles from TrackMap component */
+.map-container .panel {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  width: 100%;
+  height: 100%;
+}
+
+.map-container .panel-header {
+  display: none; /* Hide the duplicate header */
+}
+
+.map-container .track-container {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+}
+
+/* Ensure the TrackMap SVG fills the container properly */
+.map-container svg {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.map-container img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.map-overlay-controls {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 10;
+}
+
+/* Hide controls on this page - use sidebar instead */
+.track-map-page .map-overlay-controls {
+  display: none;
+}
+
+.track-map-page .map-legend {
+  left: 16px;
+  top: auto;
+  bottom: 16px;
+}
+
+.map-control-btn {
+  width: 40px;
+  height: 40px;
+  background: rgba(10, 12, 16, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  color: #a8aab0;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-control-btn:hover {
+  background: rgba(74, 158, 255, 0.15);
+  border-color: rgba(74, 158, 255, 0.3);
+  color: #4a9eff;
+}
+
+.map-control-btn.active {
+  background: rgba(74, 158, 255, 0.2);
+  border-color: #4a9eff;
+  color: #4a9eff;
+}
+
+/* Map Legend - Compact horizontal layout */
+.map-legend {
+  position: absolute;
+  top: 16px;
+  left: 70px; /* Position after controls */
+  background: rgba(10, 12, 16, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 10px 14px;
+  z-index: 10;
+}
+
+.map-legend h4 {
+  display: none; /* Hide title for compact view */
+}
+
+.legend-items {
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+/* Sidebar */
+.track-sidebar {
+  display: flex;
+  flex-direction: column;
+  background: #08090c;
+  overflow: hidden;
+}
+
+.sidebar-section {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.sidebar-section h3 {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Driver List */
+.driver-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.driver-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.driver-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.driver-item.you {
+  background: rgba(74, 158, 255, 0.1);
+  border: 1px solid rgba(74, 158, 255, 0.2);
+}
+
+.driver-position {
+  width: 24px;
+  height: 24px;
+  background: #0a0c10;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4a9eff;
+}
+
+.driver-info {
+  flex: 1;
+}
+
+.driver-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e8e8ec;
+}
+
+.driver-gap {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.driver-speed {
+  font-size: 12px;
+  font-weight: 600;
+  color: #3dd68c;
+  font-family: 'Roboto Mono', monospace;
+}
+
+/* Sector Times */
+.sector-times {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.sector-card {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.sector-label {
+  font-size: 10px;
+  color: #6b7280;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.sector-time {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: 'Roboto Mono', monospace;
+  color: #e8e8ec;
+}
+
+.sector-time.fastest {
+  color: #a855f7;
+}
+
+.sector-time.personal {
+  color: #3dd68c;
+}
+
+/* Track Info */
+.track-info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.info-card {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+}
+
+.info-label {
+  font-size: 10px;
+  color: #6b7280;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.info-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e8e8ec;
+}
+
+/* Conditions */
+.conditions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.condition-card {
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.condition-icon {
+  font-size: 20px;
+}
+
+.condition-data {
+  flex: 1;
+}
+
+.condition-label {
+  font-size: 10px;
+  color: #6b7280;
+}
+
+.condition-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e8e8ec;
+}
+
+/* Scrollbar */
+.driver-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.driver-list::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.driver-list::-webkit-scrollbar-thumb {
+  background: rgba(74, 158, 255, 0.3);
+  border-radius: 2px;
+}

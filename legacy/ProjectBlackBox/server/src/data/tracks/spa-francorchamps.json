@@ -1,0 +1,161 @@
+{
+  "id": "spa-francorchamps",
+  "name": "Circuit de Spa-Francorchamps",
+  "country": "Belgium",
+  "length": 7004,
+  "lengthUnit": "meters",
+  "layout": "Grand Prix",
+  "sectors": [
+    { "number": 1, "name": "Sector 1", "startDistance": 0, "endDistance": 2334 },
+    { "number": 2, "name": "Sector 2", "startDistance": 2334, "endDistance": 4669 },
+    { "number": 3, "name": "Sector 3", "startDistance": 4669, "endDistance": 7004 }
+  ],
+  "corners": [
+    {
+      "number": 1,
+      "name": "La Source",
+      "type": "hairpin",
+      "apex": { "distance": 180, "x": 0, "y": 180, "normalizedDistance": 0.026 },
+      "braking": { "distance": 100, "x": 0, "y": 100 },
+      "exit": { "distance": 250, "x": 0, "y": 250 },
+      "gear": 2,
+      "apexSpeed": 65,
+      "difficulty": "medium"
+    },
+    {
+      "number": 2,
+      "name": "Eau Rouge",
+      "type": "left-kink",
+      "apex": { "distance": 850, "x": 120, "y": 850, "normalizedDistance": 0.121 },
+      "entry": { "distance": 750, "x": 100, "y": 750 },
+      "exit": { "distance": 950, "x": 140, "y": 950 },
+      "gear": 6,
+      "apexSpeed": 260,
+      "difficulty": "hard",
+      "notes": "Flat out in GT3, lift in slower cars"
+    },
+    {
+      "number": 3,
+      "name": "Raidillon",
+      "type": "left",
+      "apex": { "distance": 1050, "x": 180, "y": 1050, "normalizedDistance": 0.150 },
+      "entry": { "distance": 950, "x": 140, "y": 950 },
+      "exit": { "distance": 1200, "x": 220, "y": 1200 },
+      "gear": 6,
+      "apexSpeed": 270,
+      "difficulty": "hard",
+      "notes": "Continuation of Eau Rouge, critical for Kemmel straight speed"
+    },
+    {
+      "number": 4,
+      "name": "Les Combes",
+      "type": "right-left chicane",
+      "apex": { "distance": 2100, "x": 400, "y": 2100, "normalizedDistance": 0.300 },
+      "braking": { "distance": 1950, "x": 380, "y": 1950 },
+      "exit": { "distance": 2250, "x": 420, "y": 2250 },
+      "gear": 3,
+      "apexSpeed": 120,
+      "difficulty": "medium"
+    },
+    {
+      "number": 5,
+      "name": "Malmedy",
+      "type": "right",
+      "apex": { "distance": 2650, "x": 550, "y": 2650, "normalizedDistance": 0.378 },
+      "braking": { "distance": 2500, "x": 530, "y": 2500 },
+      "exit": { "distance": 2800, "x": 570, "y": 2800 },
+      "gear": 4,
+      "apexSpeed": 145,
+      "difficulty": "medium"
+    },
+    {
+      "number": 6,
+      "name": "Rivage",
+      "type": "left",
+      "apex": { "distance": 3100, "x": 650, "y": 3100, "normalizedDistance": 0.443 },
+      "braking": { "distance": 2950, "x": 630, "y": 2950 },
+      "exit": { "distance": 3250, "x": 670, "y": 3250 },
+      "gear": 3,
+      "apexSpeed": 110,
+      "difficulty": "easy"
+    },
+    {
+      "number": 7,
+      "name": "Pouhon",
+      "type": "double-left",
+      "apex": { "distance": 3550, "x": 720, "y": 3550, "normalizedDistance": 0.507 },
+      "entry": { "distance": 3400, "x": 700, "y": 3400 },
+      "exit": { "distance": 3750, "x": 750, "y": 3750 },
+      "gear": 5,
+      "apexSpeed": 195,
+      "difficulty": "hard",
+      "notes": "Long, high-speed double-apex left. Commitment required."
+    },
+    {
+      "number": 8,
+      "name": "Campus",
+      "type": "chicane",
+      "apex": { "distance": 4200, "x": 850, "y": 4200, "normalizedDistance": 0.600 },
+      "braking": { "distance": 4050, "x": 830, "y": 4050 },
+      "exit": { "distance": 4350, "x": 870, "y": 4350 },
+      "gear": 3,
+      "apexSpeed": 115,
+      "difficulty": "easy"
+    },
+    {
+      "number": 9,
+      "name": "Stavelot",
+      "type": "left",
+      "apex": { "distance": 4700, "x": 950, "y": 4700, "normalizedDistance": 0.671 },
+      "entry": { "distance": 4550, "x": 930, "y": 4550 },
+      "exit": { "distance": 4850, "x": 970, "y": 4850 },
+      "gear": 5,
+      "apexSpeed": 180,
+      "difficulty": "medium"
+    },
+    {
+      "number": 10,
+      "name": "Blanchimont",
+      "type": "left-kink",
+      "apex": { "distance": 5500, "x": 1100, "y": 5500, "normalizedDistance": 0.785 },
+      "entry": { "distance": 5350, "x": 1080, "y": 5350 },
+      "exit": { "distance": 5650, "x": 1120, "y": 5650 },
+      "gear": 7,
+      "apexSpeed": 285,
+      "difficulty": "hard",
+      "notes": "High-speed left kink, flat out in most cars"
+    },
+    {
+      "number": 11,
+      "name": "Bus Stop Chicane",
+      "type": "chicane",
+      "apex": { "distance": 6450, "x": 1300, "y": 6450, "normalizedDistance": 0.921 },
+      "braking": { "distance": 6250, "x": 1280, "y": 6250 },
+      "exit": { "distance": 6600, "x": 1320, "y": 6600 },
+      "gear": 3,
+      "apexSpeed": 100,
+      "difficulty": "medium",
+      "notes": "Heavy braking zone, common overtaking spot"
+    }
+  ],
+  "metadata": {
+    "direction": "clockwise",
+    "elevation": {
+      "minimum": 386,
+      "maximum": 476,
+      "change": 90,
+      "unit": "meters"
+    },
+    "coordinates": {
+      "latitude": 50.4372,
+      "longitude": 5.9714
+    },
+    "drsZones": [
+      { "start": 1200, "end": 1950, "name": "Kemmel Straight" }
+    ]
+  },
+  "svg": {
+    "viewBox": "0 0 1400 1200",
+    "path": "M 100,100 L 100,200 Q 100,250 120,270 L 180,350 Q 200,400 220,450 L 400,600 Q 450,700 500,750 L 650,900 Q 700,1000 750,1050 L 850,1100 Q 950,1150 1050,1150 L 1200,1100 Q 1280,1050 1300,980 L 1300,850 Q 1280,750 1220,700 L 1100,600 Q 950,500 850,450 L 700,350 Q 550,280 450,250 L 300,200 Q 150,150 100,100 Z"
+  }
+}

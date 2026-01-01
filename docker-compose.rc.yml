@@ -1,0 +1,116 @@
+# =====================================================================
+# Release Candidate Docker Compose (Local RC Stack)
+# Full stack for local RC testing and verification
+# =====================================================================
+
+services:
+  # =====================================================================
+  # PostgreSQL Database
+  # =====================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: rc_postgres
+    environment:
+      POSTGRES_USER: controlbox
+      POSTGRES_PASSWORD: controlbox_dev
+      POSTGRES_DB: controlbox
+    ports:
+      - "5432:5432"
+    volumes:
+      - rc_postgres_data:/var/lib/postgresql/data
+      - ./packages/server/src/db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U controlbox"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rc_network
+
+  # =====================================================================
+  # Redis Cache
+  # =====================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: rc_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - rc_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rc_network
+
+  # =====================================================================
+  # Server (Gateway)
+  # =====================================================================
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+      args:
+        CACHE_BUST: ${CACHE_BUST:-2024123101}
+    container_name: rc_server
+    ports:
+      - "3001:8080"
+    environment:
+      NODE_ENV: development
+      PORT: 8080
+      DATABASE_URL: postgresql://controlbox:controlbox_dev@postgres:5432/controlbox
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: rc_testing_secret_min_32_chars_long
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000
+      LOG_LEVEL: debug
+      METRICS_ENABLED: "true"
+      DIAGNOSTICS_ENABLED: "true"
+      OPS_UI_ENABLED: "1"
+      # Build stamp (set at build time or runtime)
+      BUILD_TIME: ${BUILD_TIME:-unknown}
+      GIT_SHA: ${GIT_SHA:-unknown}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - rc_network
+
+  # =====================================================================
+  # Dashboard (Frontend)
+  # =====================================================================
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+      args:
+        VITE_API_URL: http://localhost:3001
+        VITE_WS_URL: ws://localhost:3001
+        CACHE_BUST: ${CACHE_BUST:-2024123101}
+    container_name: rc_dashboard
+    ports:
+      - "5173:80"
+    environment:
+      NODE_ENV: production
+    depends_on:
+      server:
+        condition: service_healthy
+    networks:
+      - rc_network
+
+networks:
+  rc_network:
+    driver: bridge
+
+volumes:
+  rc_postgres_data:
+  rc_redis_data:

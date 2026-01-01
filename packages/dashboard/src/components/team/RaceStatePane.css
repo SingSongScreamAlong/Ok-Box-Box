@@ -1,0 +1,145 @@
+/**
+ * Race State Pane Styles
+ */
+
+.race-state-pane {
+    background: linear-gradient(135deg, #1a1f2e 0%, #0f141f 100%);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 180px;
+}
+
+.race-state-pane.loading {
+    justify-content: center;
+    align-items: center;
+    color: #666;
+    min-height: 150px;
+}
+
+/* Flag Indicator */
+.flag-indicator {
+    padding: 8px 12px;
+    border-radius: 6px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1px;
+}
+
+.flag-indicator.green {
+    background: rgba(74, 222, 128, 0.2);
+    color: #4ade80;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+}
+
+.flag-indicator.yellow {
+    background: rgba(250, 204, 21, 0.2);
+    color: #facc15;
+    border: 1px solid rgba(250, 204, 21, 0.3);
+    animation: pulse-yellow 1s ease-in-out infinite;
+}
+
+.flag-indicator.red {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.flag-indicator.white {
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.flag-indicator.checkered {
+    background: linear-gradient(45deg, #000 25%, #fff 25%, #fff 50%, #000 50%, #000 75%, #fff 75%);
+    background-size: 10px 10px;
+    color: #000;
+    text-shadow: 0 0 2px #fff;
+}
+
+@keyframes pulse-yellow {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Session Type */
+.session-type {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+/* Race Progress */
+.race-progress {
+    text-align: center;
+}
+
+.lap-count {
+    font-size: 24px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.time-remaining {
+    font-size: 14px;
+    color: #888;
+    font-family: 'SF Mono', Monaco, monospace;
+}
+
+/* Position */
+.position-display {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
+}
+
+.position-label {
+    font-size: 14px;
+    color: #666;
+}
+
+.position-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: #fff;
+}
+
+.class-position {
+    font-size: 14px;
+    color: #888;
+}
+
+/* Gap */
+.gap-display {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gap-label {
+    font-size: 12px;
+    color: #666;
+}
+
+.gap-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #aaa;
+    font-family: 'SF Mono', Monaco, monospace;
+}

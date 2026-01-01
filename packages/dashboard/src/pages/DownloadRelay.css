@@ -1,0 +1,157 @@
+/**
+ * Download Relay Page Styles
+ */
+
+.download-relay-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+    color: #fff;
+}
+
+.download-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 3rem;
+    max-width: 500px;
+    text-align: center;
+}
+
+.download-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.download-card h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin: 0 0 1rem 0;
+}
+
+.download-description {
+    color: #888;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.platform-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    padding: 12px 20px;
+    background: rgba(0, 212, 255, 0.1);
+    border-radius: 8px;
+}
+
+.platform-icon {
+    font-size: 1.5rem;
+}
+
+.platform-name {
+    font-weight: 600;
+}
+
+.download-actions {
+    margin-bottom: 2rem;
+}
+
+.download-btn {
+    padding: 14px 32px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.download-btn.primary {
+    background: linear-gradient(90deg, #00d4ff 0%, #00ff88 100%);
+    color: #000;
+}
+
+.download-btn.primary:hover:not(:disabled) {
+    transform: scale(1.05);
+}
+
+.download-btn:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.other-platforms {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.other-platforms a {
+    color: #00d4ff;
+    text-decoration: none;
+    margin: 0 0.5rem;
+}
+
+.other-platforms a:hover {
+    text-decoration: underline;
+}
+
+.post-install {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.post-install h3 {
+    font-size: 1rem;
+    margin: 0 0 1rem 0;
+    color: #888;
+}
+
+.post-install ol {
+    text-align: left;
+    margin: 0 0 1.5rem 1.5rem;
+    padding: 0;
+    color: #aaa;
+    font-size: 0.9rem;
+}
+
+.post-install li {
+    margin-bottom: 0.5rem;
+}
+
+.try-again-btn {
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: 2px solid #00d4ff;
+    border-radius: 8px;
+    background: transparent;
+    color: #00d4ff;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.try-again-btn:hover {
+    background: rgba(0, 212, 255, 0.1);
+}
+
+.back-link {
+    background: transparent;
+    border: none;
+    color: #666;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: 1rem;
+}
+
+.back-link:hover {
+    color: #fff;
+}

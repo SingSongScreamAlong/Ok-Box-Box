@@ -1,0 +1,97 @@
+/**
+ * Event Log Styles
+ */
+
+.event-log {
+    background: linear-gradient(135deg, #1a1f2e 0%, #0f141f 100%);
+    border-radius: 12px;
+    padding: 12px;
+}
+
+.event-log.empty {
+    text-align: center;
+    color: #666;
+    padding: 16px;
+}
+
+.log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.log-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.event-count {
+    font-size: 11px;
+    color: #666;
+}
+
+/* Events List */
+.events-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.event-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    border-left: 3px solid transparent;
+    transition: background 0.15s;
+}
+
+.event-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.event-item.info {
+    border-color: #4ade80;
+}
+
+.event-item.warning {
+    border-color: #f59e0b;
+}
+
+.event-item.critical {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.event-time {
+    font-size: 10px;
+    color: #666;
+    font-family: 'SF Mono', Monaco, monospace;
+    min-width: 60px;
+}
+
+.event-icon {
+    font-size: 12px;
+}
+
+.event-message {
+    flex: 1;
+    font-size: 12px;
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.event-item.critical .event-message {
+    color: #ef4444;
+    font-weight: 500;
+}

@@ -1,0 +1,75 @@
+services:
+  backend-engine:
+    build:
+      context: ./local_backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - OPENAI_API_KEY=YOUR_OPENAI_API_KEY_HERE
+      - ELEVENLABS_API_KEY=sk_f92aab2a18dd30b8c5258739d6ff85fc95f4bce6fa1e5fc0
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ./deployment/digitalocean/dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+      - REACT_APP_API_URL=http://64.227.28.10:8080
+      - REACT_APP_WS_URL=ws://64.227.28.10:8080
+    depends_on:
+      - backend-engine
+    restart: unless-stopped
+
+  relay-agent:
+    build:
+      context: ./deployment/digitalocean/relay-agent
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+      - "8765:8765"
+      - "8766:8766"
+    environment:
+      - NODE_ENV=production
+      - PORT=8081
+      - OPENAI_API_KEY=YOUR_OPENAI_API_KEY_HERE
+      - ELEVENLABS_API_KEY=sk_f92aab2a18dd30b8c5258739d6ff85fc95f4bce6fa1e5fc0
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - DATABASE_URL=postgresql://blackbox:blackbox@timescaledb:5432/blackbox
+      - OPENAI_API_KEY=YOUR_OPENAI_API_KEY_HERE
+    depends_on:
+      - redis
+      - timescaledb
+    restart: unless-stopped
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=blackbox
+      - POSTGRES_PASSWORD=blackbox
+      - POSTGRES_DB=blackbox
+    volumes:
+      - ./postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    restart: unless-stopped

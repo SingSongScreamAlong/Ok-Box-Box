@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15
+    container_name: blackbox-postgres
+    environment:
+      POSTGRES_DB: blackbox
+      POSTGRES_USER: blackbox
+      POSTGRES_PASSWORD: blackbox_secure_password_2024
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend-engine/db-init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - blackbox-network
+
+  # Backend API Service
+  backend:
+    build:
+      context: ../..
+      dockerfile: deployment/digitalocean/backend-engine/Dockerfile
+    container_name: blackbox-backend
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://blackbox:blackbox_secure_password_2024@postgres:5432/blackbox
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
+      JWT_SECRET: blackbox-super-secret-jwt-key-2024
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    networks:
+      - blackbox-network
+
+  # Dashboard (React Frontend)
+  dashboard:
+    build:
+      context: ../..
+      dockerfile: deployment/digitalocean/dashboard/Dockerfile
+      args:
+        REACT_APP_API_URL: http://68.183.18.151:3000/api
+        REACT_APP_WS_URL: ws://68.183.18.151:3000/ws
+    container_name: blackbox-dashboard
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - blackbox-network
+
+  # Relay Agent Service
+  relay-agent:
+    build:
+      context: ../..
+      dockerfile: deployment/digitalocean/relay-agent/Dockerfile
+    container_name: blackbox-relay-agent
+    environment:
+      LOG_LEVEL: INFO
+      BACKEND_URL: http://backend:3000
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
+    ports:
+      - "8766:8766"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - blackbox-network
+
+volumes:
+  postgres_data:
+
+networks:
+  blackbox-network:
+    driver: bridge

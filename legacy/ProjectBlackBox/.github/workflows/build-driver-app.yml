@@ -1,0 +1,133 @@
+name: Build Driver App
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: 
+      - 'driver_app/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'driver_app/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: driver_app/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: driver_app
+      run: npm ci
+    
+    - name: Build TypeScript
+      working-directory: driver_app
+      run: npm run build
+    
+    - name: Package application
+      working-directory: driver_app
+      run: npm run make
+    
+    - name: Upload Windows artifacts
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v3
+      with:
+        name: blackbox-driver-app-windows
+        path: driver_app/out/make/**/*
+        retention-days: 30
+    
+    - name: Upload macOS artifacts
+      if: matrix.os == 'macos-latest'
+      uses: actions/upload-artifact@v3
+      with:
+        name: blackbox-driver-app-macos
+        path: driver_app/out/make/**/*
+        retention-days: 30
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Download Windows artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: blackbox-driver-app-windows
+        path: ./windows-build
+    
+    - name: Download macOS artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: blackbox-driver-app-macos
+        path: ./macos-build
+    
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: driver-app-v${{ github.run_number }}
+        release_name: BlackBox Driver App v${{ github.run_number }}
+        body: |
+          Automated build of BlackBox Driver App
+          
+          ## Downloads
+          - **Windows**: Download the .exe installer or .zip file
+          - **macOS**: Download the .dmg file
+          
+          ## Configuration
+          - Cloud server: `64.227.28.10:8765`
+          - Cloud mode: Enabled by default
+          
+          ## Installation
+          1. Download the appropriate file for your OS
+          2. Run the installer or extract the ZIP
+          3. Launch BlackBox Driver App
+          4. The app will automatically connect to the cloud server
+        draft: false
+        prerelease: false
+    
+    - name: Upload Windows Release Assets
+      run: |
+        for file in ./windows-build/**/*; do
+          if [ -f "$file" ]; then
+            echo "Uploading $file"
+            curl -X POST \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary @"$file" \
+              "${{ steps.create_release.outputs.upload_url }}?name=$(basename "$file")"
+          fi
+        done
+    
+    - name: Upload macOS Release Assets
+      run: |
+        for file in ./macos-build/**/*; do
+          if [ -f "$file" ]; then
+            echo "Uploading $file"
+            curl -X POST \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary @"$file" \
+              "${{ steps.create_release.outputs.upload_url }}?name=$(basename "$file")"
+          fi
+        done

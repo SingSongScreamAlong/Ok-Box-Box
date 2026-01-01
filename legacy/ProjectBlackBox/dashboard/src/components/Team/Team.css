@@ -1,0 +1,155 @@
+/* Team Dashboard Styles */
+
+.team-dashboard {
+    padding: 20px;
+}
+
+.team-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: #7d8590;
+}
+
+.team-header {
+    margin-bottom: 24px;
+}
+
+.team-header h2 {
+    margin: 0 0 4px 0;
+    font-size: 24px;
+    color: #e6edf3;
+}
+
+.team-header p {
+    margin: 0;
+    color: #7d8590;
+    font-size: 14px;
+}
+
+.drivers-section,
+.comparison-section {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+
+.drivers-section h3,
+.comparison-section h3 {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    color: #e6edf3;
+}
+
+.drivers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.driver-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.driver-card:hover {
+    border-color: #58a6ff;
+}
+
+.driver-card.selected {
+    border-color: #238636;
+    background: rgba(35, 134, 54, 0.1);
+}
+
+.driver-avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #58a6ff, #238636);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+}
+
+.driver-info {
+    flex: 1;
+}
+
+.driver-name {
+    font-weight: 500;
+    color: #e6edf3;
+    font-size: 14px;
+}
+
+.driver-stats {
+    font-size: 12px;
+    color: #7d8590;
+}
+
+.selected-check {
+    width: 24px;
+    height: 24px;
+    background: #238636;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+}
+
+.comparison-table {
+    font-size: 13px;
+}
+
+.comparison-header,
+.comparison-row {
+    display: grid;
+    grid-template-columns: 2fr repeat(3, 1fr);
+    padding: 10px 12px;
+    border-bottom: 1px solid #21262d;
+}
+
+.comparison-header {
+    background: #0d1117;
+    color: #7d8590;
+    font-weight: 500;
+    border-radius: 6px 6px 0 0;
+}
+
+.comparison-row.leader {
+    background: rgba(35, 134, 54, 0.1);
+}
+
+.driver-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.leader-badge {
+    font-size: 16px;
+}
+
+.no-drivers {
+    text-align: center;
+    padding: 40px;
+    color: #7d8590;
+}
+
+.no-drivers p {
+    margin: 4px 0;
+}

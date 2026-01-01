@@ -1,0 +1,734 @@
+/**
+ * okboxbox.com Squarespace Custom CSS
+ * 
+ * INSTRUCTIONS:
+ * 1. Go to Design > Custom CSS in Squarespace
+ * 2. Paste this entire file
+ * 3. Save
+ * 
+ * FONTS: Add this to Settings > Advanced > Code Injection > Header:
+ * <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+ */
+
+/* ============================================
+   CSS Variables & Theme Tokens
+   ============================================ */
+
+:root {
+    /* Brand Colors */
+    --color-black: #000000;
+    --color-white: #FFFFFF;
+    --color-red: #E10600;
+    --color-blue: #00A2FF;
+
+    /* Gray Scale */
+    --color-gray-900: #0A0A0A;
+    --color-gray-800: #1A1A1A;
+    --color-gray-700: #2B2B2B;
+    --color-gray-400: #888888;
+    --color-gray-300: #CCCCCC;
+
+    /* Typography */
+    --font-heading: 'Orbitron', 'Eurostile', sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+    /* Transitions */
+    --transition-fast: 150ms ease;
+    --transition-base: 250ms ease;
+
+    /* Shadows */
+    --shadow-glow-red: 0 0 40px rgba(225, 6, 0, 0.3);
+    --shadow-glow-blue: 0 0 40px rgba(0, 162, 255, 0.3);
+}
+
+/* ============================================
+   Global Overrides
+   ============================================ */
+
+body {
+    background: var(--color-black) !important;
+    color: var(--color-white) !important;
+    font-family: var(--font-body) !important;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* Hide Squarespace announcement bar if present */
+.sqs-announcement-bar {
+    display: none !important;
+}
+
+/* Remove default link underlines */
+a {
+    text-decoration: none !important;
+}
+
+/* ============================================
+   Header / Navigation
+   ============================================ */
+
+.header {
+    background: rgba(0, 0, 0, 0.8) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid transparent !important;
+    transition: all var(--transition-base) !important;
+}
+
+.header.shrink,
+.header--menu-open {
+    border-color: var(--color-gray-700) !important;
+}
+
+/* Site Title / Logo */
+.header-title-text,
+.site-title {
+    font-family: var(--font-heading) !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
+    color: var(--color-white) !important;
+}
+
+/* Navigation Links */
+.header-nav-item a,
+.header-nav-folder-title,
+.header-menu-nav-item a {
+    font-family: var(--font-body) !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.02em !important;
+    color: var(--color-gray-300) !important;
+    transition: color var(--transition-fast) !important;
+}
+
+.header-nav-item a:hover,
+.header-nav-folder-title:hover,
+.header-menu-nav-item a:hover {
+    color: var(--color-white) !important;
+}
+
+/* Nav Dropdown */
+.header-nav-folder-content {
+    background: var(--color-gray-800) !important;
+    border: 1px solid var(--color-gray-700) !important;
+    border-radius: 8px !important;
+}
+
+.header-nav-folder-item a {
+    color: var(--color-gray-300) !important;
+}
+
+.header-nav-folder-item a:hover {
+    color: var(--color-white) !important;
+    background: var(--color-gray-700) !important;
+}
+
+/* Mobile Menu */
+.header-menu {
+    background: var(--color-black) !important;
+}
+
+.header-menu-nav-item a {
+    color: var(--color-white) !important;
+}
+
+/* Mobile Menu Button */
+.header-burger,
+.header-burger::before,
+.header-burger::after {
+    background: var(--color-white) !important;
+}
+
+/* ============================================
+   Typography
+   ============================================ */
+
+h1,
+h2,
+h3,
+h4 {
+    font-family: var(--font-heading) !important;
+    color: var(--color-white) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+}
+
+h1 {
+    font-size: clamp(2.5rem, 8vw, 5rem) !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+}
+
+h2 {
+    font-size: clamp(1.75rem, 4vw, 2.5rem) !important;
+}
+
+h3 {
+    font-size: clamp(1.25rem, 3vw, 1.5rem) !important;
+}
+
+p,
+li {
+    font-family: var(--font-body) !important;
+    color: var(--color-gray-300) !important;
+    line-height: 1.7 !important;
+}
+
+/* Accent Text */
+.accent-red,
+strong.accent-red {
+    color: var(--color-red) !important;
+}
+
+.accent-blue,
+strong.accent-blue {
+    color: var(--color-blue) !important;
+}
+
+/* Section Eyebrow Labels */
+.sqs-block-html h6,
+.eyebrow {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.1em !important;
+    text-transform: uppercase !important;
+    color: var(--color-red) !important;
+    margin-bottom: 1rem !important;
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+
+/* Primary Button */
+.sqs-block-button-element,
+.header-actions .btn,
+.sqs-button-element--primary {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 1rem 2rem !important;
+    font-family: var(--font-body) !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+    background: var(--color-red) !important;
+    color: var(--color-white) !important;
+    border: 2px solid var(--color-red) !important;
+    border-radius: 6px !important;
+    transition: all var(--transition-base) !important;
+}
+
+.sqs-block-button-element:hover,
+.header-actions .btn:hover,
+.sqs-button-element--primary:hover {
+    background: #ff1a1a !important;
+    border-color: #ff1a1a !important;
+    box-shadow: var(--shadow-glow-red) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Secondary / Outline Button */
+.sqs-button-element--secondary,
+.btn-secondary {
+    background: transparent !important;
+    color: var(--color-white) !important;
+    border: 2px solid var(--color-gray-400) !important;
+}
+
+.sqs-button-element--secondary:hover,
+.btn-secondary:hover {
+    border-color: var(--color-white) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* ============================================
+   Page Sections
+   ============================================ */
+
+.page-section,
+.content-wrapper {
+    background: var(--color-black) !important;
+}
+
+/* Alternate section background */
+.page-section:nth-child(even),
+.section-background {
+    background: var(--color-gray-900) !important;
+}
+
+/* Section Spacing */
+.page-section .content {
+    padding: 6rem 1.5rem !important;
+}
+
+/* Centered Section Headers */
+.section-header {
+    text-align: center !important;
+    margin-bottom: 4rem !important;
+}
+
+/* ============================================
+   Hero Section
+   ============================================ */
+
+.page-section:first-child,
+.Index-page--has-image .Index-page-content {
+    min-height: 100vh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* Hero Background Glow */
+.page-section:first-child::before {
+    content: '';
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    height: 600px;
+    background: radial-gradient(ellipse, rgba(225, 6, 0, 0.15) 0%, transparent 60%);
+    filter: blur(60px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Hero Grid Pattern */
+.page-section:first-child::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.page-section:first-child .content {
+    position: relative;
+    z-index: 1;
+    text-align: center !important;
+}
+
+/* ============================================
+   Cards & Grid
+   ============================================ */
+
+/* Summary Block Cards */
+.sqs-gallery-design-grid .slide,
+.summary-item,
+.sqs-block-summary-v2 .summary-item {
+    background: var(--color-gray-800) !important;
+    border: 1px solid var(--color-gray-700) !important;
+    border-radius: 12px !important;
+    padding: 2rem !important;
+    transition: all var(--transition-base) !important;
+    overflow: hidden !important;
+}
+
+.sqs-gallery-design-grid .slide:hover,
+.summary-item:hover {
+    transform: translateY(-4px) !important;
+    border-color: var(--color-gray-400) !important;
+}
+
+/* Card Top Accent Line */
+.summary-item::before,
+.sqs-gallery-design-grid .slide::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--color-gray-700);
+    transition: background var(--transition-base);
+}
+
+/* BlackBox card hover */
+.summary-item.blackbox:hover::before,
+[data-section-id*="blackbox"] .summary-item:hover::before {
+    background: var(--color-red) !important;
+}
+
+.summary-item.blackbox:hover,
+[data-section-id*="blackbox"] .summary-item:hover {
+    box-shadow: var(--shadow-glow-red) !important;
+}
+
+/* ControlBox card hover */
+.summary-item.controlbox:hover::before,
+[data-section-id*="controlbox"] .summary-item:hover::before {
+    background: var(--color-blue) !important;
+}
+
+.summary-item.controlbox:hover,
+[data-section-id*="controlbox"] .summary-item:hover {
+    box-shadow: var(--shadow-glow-blue) !important;
+}
+
+/* Summary Card Title */
+.summary-title,
+.summary-title a {
+    font-family: var(--font-heading) !important;
+    color: var(--color-white) !important;
+}
+
+/* Summary Card Description */
+.summary-excerpt,
+.summary-excerpt p {
+    color: var(--color-gray-300) !important;
+}
+
+/* ============================================
+   Feature Grid (for pages)
+   ============================================ */
+
+.feature-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)) !important;
+    gap: 2rem !important;
+}
+
+.feature-card {
+    padding: 2rem !important;
+    background: var(--color-gray-800) !important;
+    border: 1px solid var(--color-gray-700) !important;
+    border-radius: 12px !important;
+    transition: all var(--transition-base) !important;
+}
+
+.feature-card:hover {
+    border-color: var(--color-gray-400) !important;
+    transform: translateY(-4px) !important;
+}
+
+/* ============================================
+   CTA Banner
+   ============================================ */
+
+.cta-section,
+[data-section-id*="cta"] {
+    background: linear-gradient(135deg, var(--color-red) 0%, #cc0500 100%) !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.cta-section::before,
+[data-section-id*="cta"]::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+.cta-section h2,
+.cta-section p,
+[data-section-id*="cta"] h2,
+[data-section-id*="cta"] p {
+    color: var(--color-white) !important;
+}
+
+/* White button for CTA sections */
+.cta-section .sqs-block-button-element,
+[data-section-id*="cta"] .sqs-block-button-element {
+    background: var(--color-white) !important;
+    color: var(--color-black) !important;
+    border-color: var(--color-white) !important;
+}
+
+.cta-section .sqs-block-button-element:hover,
+[data-section-id*="cta"] .sqs-block-button-element:hover {
+    background: var(--color-gray-300) !important;
+    box-shadow: none !important;
+}
+
+/* ============================================
+   Timeline (Roadmap Page)
+   ============================================ */
+
+.timeline {
+    max-width: 800px !important;
+    margin: 0 auto !important;
+    position: relative !important;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 24px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--color-gray-700);
+}
+
+.timeline-item {
+    position: relative !important;
+    padding-left: 70px !important;
+    padding-bottom: 3rem !important;
+}
+
+.timeline-marker {
+    position: absolute !important;
+    left: 12px !important;
+    top: 0 !important;
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 50% !important;
+    background: var(--color-gray-700) !important;
+    border: 3px solid var(--color-gray-900) !important;
+}
+
+.timeline-item.active .timeline-marker {
+    background: var(--color-red) !important;
+    box-shadow: 0 0 20px rgba(225, 6, 0, 0.5) !important;
+}
+
+.timeline-phase {
+    font-family: var(--font-heading) !important;
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    color: var(--color-white) !important;
+    margin-bottom: 0.25rem !important;
+}
+
+.timeline-period {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+    color: var(--color-gray-400) !important;
+    margin-bottom: 1rem !important;
+}
+
+.timeline-item.active .timeline-period {
+    color: var(--color-red) !important;
+}
+
+/* ============================================
+   Pricing Cards
+   ============================================ */
+
+.pricing-card {
+    padding: 2rem !important;
+    background: var(--color-gray-800) !important;
+    border: 1px solid var(--color-gray-700) !important;
+    border-radius: 12px !important;
+    transition: all var(--transition-base) !important;
+}
+
+.pricing-card.featured {
+    border-color: var(--color-red) !important;
+    position: relative !important;
+}
+
+.pricing-card.featured::before {
+    content: 'Recommended';
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.25rem 1rem;
+    background: var(--color-red);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-radius: 4px;
+    color: var(--color-white);
+}
+
+.pricing-price {
+    font-family: var(--font-heading) !important;
+    font-size: 2.5rem !important;
+    font-weight: 800 !important;
+    color: var(--color-white) !important;
+}
+
+/* ============================================
+   Forms
+   ============================================ */
+
+.field-element,
+.form-item input,
+.form-item textarea,
+.form-item select {
+    width: 100% !important;
+    padding: 1rem 1.5rem !important;
+    font-family: var(--font-body) !important;
+    font-size: 1rem !important;
+    color: var(--color-white) !important;
+    background: var(--color-gray-800) !important;
+    border: 2px solid var(--color-gray-700) !important;
+    border-radius: 8px !important;
+    transition: all var(--transition-fast) !important;
+}
+
+.field-element:focus,
+.form-item input:focus,
+.form-item textarea:focus,
+.form-item select:focus {
+    outline: none !important;
+    border-color: var(--color-red) !important;
+    box-shadow: 0 0 0 3px rgba(225, 6, 0, 0.2) !important;
+}
+
+.field-element::placeholder,
+.form-item input::placeholder {
+    color: var(--color-gray-400) !important;
+}
+
+.form-item label,
+.field-label {
+    font-family: var(--font-body) !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: var(--color-gray-300) !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* ============================================
+   Footer
+   ============================================ */
+
+.footer,
+.footer-sections {
+    background: var(--color-gray-900) !important;
+    border-top: 1px solid var(--color-gray-700) !important;
+}
+
+.footer-nav-item a,
+.footer-nav a {
+    color: var(--color-gray-300) !important;
+    transition: color var(--transition-fast) !important;
+}
+
+.footer-nav-item a:hover,
+.footer-nav a:hover {
+    color: var(--color-white) !important;
+}
+
+/* Footer Social Icons */
+.social-icons a,
+.sqs-svg-icon--wrapper {
+    color: var(--color-gray-400) !important;
+    transition: color var(--transition-fast) !important;
+}
+
+.social-icons a:hover,
+.sqs-svg-icon--wrapper:hover {
+    color: var(--color-white) !important;
+}
+
+/* Copyright */
+.footer-copyright,
+.site-info {
+    color: var(--color-gray-400) !important;
+    font-size: 0.875rem !important;
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+
+.text-center {
+    text-align: center !important;
+}
+
+.max-width-narrow {
+    max-width: 720px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+/* Hide on mobile */
+@media (max-width: 768px) {
+    .hide-mobile {
+        display: none !important;
+    }
+}
+
+/* ============================================
+   Page-Specific: BlackBox
+   ============================================ */
+
+/* Apply to pages with URL containing "blackbox" */
+[data-page-slug*="blackbox"] .page-section:first-child::before {
+    background: radial-gradient(ellipse, rgba(225, 6, 0, 0.2) 0%, transparent 60%);
+}
+
+[data-page-slug*="blackbox"] .feature-card:hover {
+    box-shadow: var(--shadow-glow-red) !important;
+}
+
+/* ============================================
+   Page-Specific: ControlBox
+   ============================================ */
+
+/* Apply to pages with URL containing "controlbox" */
+[data-page-slug*="controlbox"] .page-section:first-child::before {
+    background: radial-gradient(ellipse, rgba(0, 162, 255, 0.2) 0%, transparent 60%);
+}
+
+[data-page-slug*="controlbox"] .feature-card:hover {
+    box-shadow: var(--shadow-glow-blue) !important;
+}
+
+[data-page-slug*="controlbox"] .eyebrow,
+[data-page-slug*="controlbox"] .sqs-block-html h6 {
+    color: var(--color-blue) !important;
+}
+
+[data-page-slug*="controlbox"] .sqs-block-button-element {
+    background: var(--color-blue) !important;
+    border-color: var(--color-blue) !important;
+}
+
+[data-page-slug*="controlbox"] .sqs-block-button-element:hover {
+    background: #1ab3ff !important;
+    border-color: #1ab3ff !important;
+    box-shadow: var(--shadow-glow-blue) !important;
+}
+
+/* ============================================
+   Responsive Adjustments
+   ============================================ */
+
+@media (max-width: 768px) {
+    h1 {
+        font-size: 2.5rem !important;
+    }
+
+    h2 {
+        font-size: 1.75rem !important;
+    }
+
+    .page-section .content {
+        padding: 4rem 1rem !important;
+    }
+
+    .timeline::before {
+        left: 16px;
+    }
+
+    .timeline-item {
+        padding-left: 50px !important;
+    }
+
+    .timeline-marker {
+        left: 4px !important;
+        width: 20px !important;
+        height: 20px !important;
+    }
+}

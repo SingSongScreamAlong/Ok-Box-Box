@@ -1,0 +1,219 @@
+.tacview-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.tacview-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(13, 17, 23, 0.8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.tacview-btn {
+  background: #1f2a33;
+  color: #d1e5f5;
+  border: 1px solid rgba(255,255,255,0.08);
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tacview-btn:hover { filter: brightness(1.1); }
+.tacview-btn.active { outline: 2px solid #4FC3F7; }
+.tacview-btn.secondary { background: #1b2630; color: #b8cad7; }
+
+.tacview-rate-group { display: flex; gap: 0.25rem; }
+.tacview-spacer { flex: 1; }
+
+.tacview-stage { flex: 1; min-height: 300px; }
+.tacview-canvas { width: 100%; height: 100%; }
+
+.tacview-timeline {
+  padding: 0.5rem 0.75rem 0.75rem;
+  background: rgba(13, 17, 23, 0.8);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Live status badge */
+.tacview-live-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  margin-right: 0.5rem;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1;
+  border: 1px solid transparent;
+}
+
+.tacview-live-badge.state-connected {
+  background: rgba(76, 175, 80, 0.12); /* green */
+  border-color: rgba(76, 175, 80, 0.35);
+  color: #c8f7d2;
+}
+
+.tacview-live-badge.state-connecting {
+  background: rgba(79, 195, 247, 0.08); /* info */
+  border-color: rgba(79, 195, 247, 0.30);
+  color: #b8e7fb;
+}
+
+.tacview-live-badge.state-retrying {
+  background: rgba(255, 193, 7, 0.10); /* amber */
+  border-color: rgba(255, 193, 7, 0.35);
+  color: #ffe8a1;
+}
+
+.tacview-live-badge.state-off {
+  background: rgba(136, 160, 179, 0.08);
+  border-color: rgba(136, 160, 179, 0.25);
+  color: #a9b9c6;
+}
+
+.tacview-timeline input[type="range"] {
+  width: 100%;
+}
+
+.tacview-timeline-ticks {
+  position: relative;
+  height: 12px;
+  margin-top: 4px;
+}
+
+.tacview-timeline-ticks .tick {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  height: 6px;
+  background: rgba(136, 160, 179, 0.6);
+  transform: translateX(-0.5px);
+}
+
+.tacview-timeline-ticks .tick.major {
+  height: 10px;
+  background: rgba(136, 160, 179, 0.95);
+}
+
+.tacview-timeline-ticks .tick-label {
+  position: absolute;
+  top: 12px; /* below the tick track */
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #88a0b3;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.tacview-timeline-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #88a0b3;
+  padding-top: 0.25rem;
+}
+
+/* Session Picker Modal */
+.tacview-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.tacview-modal-content {
+  background: #0e1620;
+  border: 1px solid #1f2a36;
+  border-radius: 8px;
+  padding: 16px;
+  width: 520px;
+  max-width: 90vw;
+  max-height: 70vh;
+  outline: none;
+}
+
+.tacview-session-list {
+  margin-top: 8px;
+  border: 1px solid #1f2a36;
+  border-radius: 6px;
+  overflow: auto;
+  max-height: 45vh;
+}
+
+.tacview-session-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #1a2330;
+  color: #cfe6ff;
+  cursor: pointer;
+}
+
+.tacview-session-item:last-child { border-bottom: none; }
+
+.tacview-session-item .title { font-weight: 600; }
+.tacview-session-item .meta { font-size: 12px; color: #88a0b3; }
+
+.tacview-session-item:hover,
+.tacview-session-item.selected {
+  background: rgba(40, 90, 150, 0.25);
+}
+
+.tacview-modal-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Banners and errors */
+.tacview-banner {
+  margin: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(79, 195, 247, 0.08);
+  border: 1px solid rgba(79, 195, 247, 0.3);
+  color: #b8e7fb;
+  border-radius: 6px;
+}
+
+.tacview-banner.error {
+  background: rgba(244, 67, 54, 0.08);
+  border-color: rgba(244, 67, 54, 0.35);
+  color: #ffb3ad;
+}
+
+/* Warning (e.g., live retry countdown) */
+.tacview-banner.warning {
+  background: rgba(255, 193, 7, 0.08); /* amber */
+  border-color: rgba(255, 193, 7, 0.35);
+  color: #ffe8a1;
+}
+
+/* Session picker */
+.tacview-session-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.tacview-session-picker .tacview-btn.active {
+  outline: 2px solid #4FC3F7;
+  background: #22303b;
+}
+
+/* Disabled state */
+.tacview-btn:disabled,
+.tacview-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

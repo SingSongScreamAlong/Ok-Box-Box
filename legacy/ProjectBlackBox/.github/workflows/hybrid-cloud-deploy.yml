@@ -1,0 +1,236 @@
+name: Hybrid Cloud Deployment
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  test:
+    name: Test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+      
+      - name: Install dependencies
+        run: |
+          cd driver_app
+          npm ci
+      
+      - name: Run tests
+        run: |
+          cd driver_app
+          npm test
+
+  build-driver-app:
+    name: Build Driver App
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'driver_app/package-lock.json'
+      
+      - name: Install dependencies
+        run: |
+          cd driver_app
+          npm ci
+      
+      - name: Build
+        run: |
+          cd driver_app
+          npm run build
+      
+      - name: Package
+        run: |
+          cd driver_app
+          npm run package
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: driver-app-windows
+          path: driver_app/dist/*.exe
+
+  build-and-push-images:
+    name: Build and Push Docker Images
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      
+      - name: Log in to DigitalOcean Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: registry.digitalocean.com
+          username: ${{ secrets.DO_API_TOKEN }}
+          password: ${{ secrets.DO_API_TOKEN }}
+      
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: registry.digitalocean.com/blackbox/backend-engine
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha,format=short
+      
+      - name: Build and push Backend Engine
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./deployment/digitalocean/backend-engine/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+      
+      - name: Build and push Relay Agent
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./deployment/digitalocean/relay-agent/Dockerfile
+          push: true
+          tags: registry.digitalocean.com/blackbox/relay-agent:${{ github.sha }}
+      
+      - name: Build and push AI Agent
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./deployment/digitalocean/ai-agent/Dockerfile
+          push: true
+          tags: registry.digitalocean.com/blackbox/ai-agent:${{ github.sha }}
+      
+      - name: Build and push Dashboard
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./deployment/digitalocean/dashboard/Dockerfile
+          push: true
+          tags: registry.digitalocean.com/blackbox/dashboard:${{ github.sha }}
+
+  deploy:
+    name: Deploy to DigitalOcean
+    needs: build-and-push-images
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    environment:
+      name: ${{ github.event.inputs.environment || 'staging' }}
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DO_API_TOKEN }}
+      
+      - name: Set up environment variables
+        run: |
+          echo "DO_API_TOKEN=${{ secrets.DO_API_TOKEN }}" > .env
+          echo "DO_APP_ID=${{ secrets.DO_APP_ID }}" >> .env
+          echo "DO_REGION=${{ secrets.DO_REGION }}" >> .env
+          echo "DOMAIN=${{ secrets.DOMAIN }}" >> .env
+          echo "SUBDOMAIN=${{ secrets.SUBDOMAIN }}" >> .env
+          echo "REGISTRY=registry.digitalocean.com/blackbox" >> .env
+          echo "GRADIENT_AI_API_KEY=${{ secrets.GRADIENT_AI_API_KEY }}" >> .env
+          echo "ELEVENLABS_API_KEY=${{ secrets.ELEVENLABS_API_KEY }}" >> .env
+          echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
+          echo "DATABASE_URL=${{ secrets.DATABASE_URL }}" >> .env
+      
+      - name: Generate app spec
+        run: |
+          cd deployment/digitalocean
+          envsubst < app-spec.yaml.template > app-spec.yaml
+      
+      - name: Deploy or update app
+        run: |
+          cd deployment/digitalocean
+          if [ -z "${{ secrets.DO_APP_ID }}" ]; then
+            DO_APP_ID=$(doctl apps create --spec app-spec.yaml --format ID --no-header)
+            echo "App created with ID: $DO_APP_ID"
+          else
+            doctl apps update ${{ secrets.DO_APP_ID }} --spec app-spec.yaml
+            echo "App updated with ID: ${{ secrets.DO_APP_ID }}"
+          fi
+      
+      - name: Create deployment
+        run: |
+          if [ -n "${{ secrets.DO_APP_ID }}" ]; then
+            doctl apps create-deployment ${{ secrets.DO_APP_ID }}
+            echo "Deployment created for app ID: ${{ secrets.DO_APP_ID }}"
+          fi
+      
+      - name: Wait for deployment
+        run: |
+          if [ -n "${{ secrets.DO_APP_ID }}" ]; then
+            echo "Waiting for deployment to complete..."
+            sleep 30
+            status="in_progress"
+            while [ "$status" = "in_progress" ]; do
+              sleep 10
+              status=$(doctl apps get-deployment $(doctl apps list-deployments ${{ secrets.DO_APP_ID }} --format ID --no-header | head -n1) --format Progress.Steps.Status --no-header | grep -v "SUCCESS" | wc -l)
+              if [ "$status" -eq 0 ]; then
+                status="complete"
+              else
+                echo "Deployment in progress..."
+              fi
+            done
+            echo "Deployment completed!"
+          fi
+      
+      - name: Get app URL
+        run: |
+          if [ -n "${{ secrets.DO_APP_ID }}" ]; then
+            APP_URL=$(doctl apps get ${{ secrets.DO_APP_ID }} --format DefaultIngress --no-header)
+            echo "App URL: $APP_URL"
+          fi
+
+  release:
+    name: Create Release
+    needs: [build-driver-app, deploy]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: driver-app-windows
+          path: ./artifacts
+      
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ./artifacts/*.exe
+          draft: false
+          prerelease: false
+          generate_release_notes: true

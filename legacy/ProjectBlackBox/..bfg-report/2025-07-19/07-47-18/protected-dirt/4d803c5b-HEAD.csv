@@ -1,0 +1,2 @@
+32ff8f18e55cdbef69de72bc546f3c3d4ef7abd0,MODIFY,regular-file,deployment/digitalocean/app-spec-working.yaml,1664,41;45
+a6c1b4cacff65186d89e07480243a7f0b669b887,MODIFY,regular-file,deployment/digitalocean/console-deploy.sh,4498,12-13

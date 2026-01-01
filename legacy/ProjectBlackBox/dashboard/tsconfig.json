@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/*.test.*.ts",
+    "src/**/*.test.*.tsx",
+    "src/**/__tests__/**",
+    "src/**/__mocks__/**",
+    "src/tests/**",
+    "src/test-utils/**",
+    "src/services/WebSocketService.test.fixed.ts",
+    "src/utils/mockDriverData.ts",
+    "src/components/PerformanceTest/**",
+    "archived/**"
+  ]
+}

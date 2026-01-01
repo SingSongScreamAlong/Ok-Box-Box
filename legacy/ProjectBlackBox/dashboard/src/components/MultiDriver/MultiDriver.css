@@ -1,0 +1,433 @@
+/* Multi-Driver Panel Styles */
+.multi-driver-panel {
+  background-color: rgba(30, 30, 40, 0.8);
+  border-radius: 8px;
+  padding: 15px;
+  color: #e0e0e0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.multi-driver-tabs {
+  display: flex;
+  border-bottom: 1px solid #444;
+  margin-bottom: 15px;
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  color: #aaa;
+  padding: 8px 15px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
+}
+
+.tab-button:hover {
+  color: #fff;
+}
+
+.tab-button.active {
+  color: #00ccff;
+  border-bottom: 2px solid #00ccff;
+}
+
+.multi-driver-content {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+/* Driver Selector Styles */
+.driver-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.driver-card {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background-color: rgba(40, 40, 50, 0.7);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.driver-card:hover {
+  background-color: rgba(50, 50, 60, 0.9);
+}
+
+.driver-card.active {
+  background-color: rgba(0, 120, 200, 0.3);
+  border-left: 3px solid #00ccff;
+}
+
+.driver-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #555;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.driver-info {
+  flex: 1;
+}
+
+.driver-name {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.driver-role {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.driver-status {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  text-transform: capitalize;
+}
+
+.status-active {
+  background-color: rgba(0, 200, 0, 0.2);
+  color: #00ff00;
+}
+
+.status-inactive {
+  background-color: rgba(200, 0, 0, 0.2);
+  color: #ff5555;
+}
+
+.status-standby {
+  background-color: rgba(200, 200, 0, 0.2);
+  color: #ffff00;
+}
+
+/* Driver Comparison Styles */
+.driver-comparison {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.comparison-selector {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.comparison-driver-select {
+  flex: 1;
+  background-color: rgba(40, 40, 50, 0.7);
+  border: 1px solid #444;
+  color: #e0e0e0;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.compare-button {
+  background-color: #00ccff;
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 15px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.compare-button:hover {
+  background-color: #00bbee;
+}
+
+.comparison-results {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.comparison-metric {
+  background-color: rgba(40, 40, 50, 0.7);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.metric-header {
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.metric-values {
+  display: flex;
+  align-items: center;
+}
+
+.driver-value {
+  flex: 1;
+  text-align: center;
+  font-size: 16px;
+}
+
+.comparison-bar {
+  height: 6px;
+  background-color: #444;
+  border-radius: 3px;
+  position: relative;
+  margin-top: 5px;
+}
+
+.driver1-bar, .driver2-bar {
+  position: absolute;
+  height: 6px;
+  border-radius: 3px;
+}
+
+.driver1-bar {
+  background-color: #00ccff;
+  left: 0;
+}
+
+.driver2-bar {
+  background-color: #ff5500;
+  right: 0;
+}
+
+/* Team Messages Styles */
+.team-messages {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.messages-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.message-item {
+  padding: 10px;
+  border-radius: 6px;
+  background-color: rgba(40, 40, 50, 0.7);
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+  font-size: 12px;
+}
+
+.message-sender {
+  font-weight: bold;
+}
+
+.message-time {
+  color: #aaa;
+}
+
+.message-content {
+  font-size: 14px;
+}
+
+.message-priority-high {
+  border-left: 3px solid #ff3333;
+}
+
+.message-compose {
+  display: flex;
+  gap: 10px;
+}
+
+.message-input {
+  flex: 1;
+  background-color: rgba(40, 40, 50, 0.7);
+  border: 1px solid #444;
+  color: #e0e0e0;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.priority-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #aaa;
+}
+
+.send-button {
+  background-color: #00ccff;
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 15px;
+  cursor: pointer;
+}
+
+/* Handoff Manager Styles */
+.handoff-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.handoff-form {
+  background-color: rgba(40, 40, 50, 0.7);
+  border-radius: 6px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-row {
+  display: flex;
+  gap: 10px;
+}
+
+.form-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-label {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.handoff-select {
+  background-color: rgba(30, 30, 40, 0.8);
+  border: 1px solid #444;
+  color: #e0e0e0;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.handoff-textarea {
+  background-color: rgba(30, 30, 40, 0.8);
+  border: 1px solid #444;
+  color: #e0e0e0;
+  padding: 8px;
+  border-radius: 4px;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.handoff-button {
+  background-color: #00ccff;
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  padding: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.handoff-button:hover {
+  background-color: #00bbee;
+}
+
+.handoff-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.handoff-item {
+  background-color: rgba(40, 40, 50, 0.7);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.handoff-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.handoff-drivers {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.handoff-status {
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  text-transform: capitalize;
+}
+
+.status-pending {
+  background-color: rgba(200, 200, 0, 0.2);
+  color: #ffff00;
+}
+
+.status-accepted {
+  background-color: rgba(0, 200, 0, 0.2);
+  color: #00ff00;
+}
+
+.status-rejected {
+  background-color: rgba(200, 0, 0, 0.2);
+  color: #ff5555;
+}
+
+.status-completed {
+  background-color: rgba(0, 0, 200, 0.2);
+  color: #8888ff;
+}
+
+.handoff-notes {
+  font-size: 14px;
+  margin: 10px 0;
+}
+
+.handoff-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.action-button {
+  flex: 1;
+  padding: 5px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.accept-button {
+  background-color: rgba(0, 200, 0, 0.2);
+  color: #00ff00;
+}
+
+.reject-button {
+  background-color: rgba(200, 0, 0, 0.2);
+  color: #ff5555;
+}
+
+.complete-button {
+  background-color: rgba(0, 0, 200, 0.2);
+  color: #8888ff;
+}

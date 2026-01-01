@@ -1,0 +1,1122 @@
+{
+    "site": {
+        "name": "okboxbox",
+        "domain": "okboxbox.com",
+        "tagline": "AI Systems for the Modern Racer.",
+        "version": "1.0.0",
+        "lastUpdated": "2024-12-06"
+    },
+    "navigation": {
+        "main": [
+            {
+                "label": "Home",
+                "path": "/",
+                "id": "home"
+            },
+            {
+                "label": "Products",
+                "path": "/products",
+                "id": "products",
+                "children": [
+                    {
+                        "label": "PitBox",
+                        "path": "/products/pitbox",
+                        "id": "pitbox"
+                    },
+                    {
+                        "label": "ControlBox",
+                        "path": "/products/controlbox",
+                        "id": "controlbox"
+                    }
+                ]
+            },
+            {
+                "label": "Roadmap",
+                "path": "/roadmap",
+                "id": "roadmap"
+            },
+            {
+                "label": "Pricing",
+                "path": "/pricing",
+                "id": "pricing"
+            },
+            {
+                "label": "About",
+                "path": "/about",
+                "id": "about"
+            },
+            {
+                "label": "Join",
+                "path": "/join",
+                "id": "waitlist",
+                "style": "button-primary"
+            }
+        ],
+        "footer": [
+            {
+                "label": "Terms of Service",
+                "path": "/terms",
+                "id": "terms"
+            },
+            {
+                "label": "Privacy Policy",
+                "path": "/privacy",
+                "id": "privacy"
+            },
+            {
+                "label": "Contact",
+                "path": "/contact",
+                "id": "contact"
+            }
+        ],
+        "social": [
+            {
+                "platform": "YouTube",
+                "url": "https://youtube.com/@okboxbox",
+                "icon": "youtube"
+            },
+            {
+                "platform": "Instagram",
+                "url": "https://instagram.com/okboxbox",
+                "icon": "instagram"
+            },
+            {
+                "platform": "TikTok",
+                "url": "https://tiktok.com/@okboxbox",
+                "icon": "tiktok"
+            },
+            {
+                "platform": "Discord",
+                "url": "https://discord.gg/okboxbox",
+                "icon": "discord"
+            }
+        ]
+    },
+    "pages": {
+        "home": {
+            "id": "home",
+            "title": "okboxbox — AI Systems for the Modern Racer",
+            "slug": "/",
+            "meta": {
+                "description": "okboxbox builds advanced AI systems for sim racers, leagues, and competitive teams. PitBox elevates your driving. ControlBox transforms race control.",
+                "keywords": [
+                    "sim racing",
+                    "AI",
+                    "race engineer",
+                    "race control",
+                    "iRacing",
+                    "strategy"
+                ]
+            },
+            "sections": [
+                {
+                    "id": "hero",
+                    "type": "hero-fullscreen",
+                    "blocks": [
+                        {
+                            "type": "headline",
+                            "content": "The Future of Racing Intelligence."
+                        },
+                        {
+                            "type": "subheadline",
+                            "content": "okboxbox builds advanced AI systems for sim racers, leagues, and competitive teams. PitBox elevates your driving. ControlBox transforms race control."
+                        },
+                        {
+                            "type": "button-group",
+                            "buttons": [
+                                {
+                                    "label": "Explore Products",
+                                    "link": "#products",
+                                    "style": "secondary"
+                                },
+                                {
+                                    "label": "Join Pre-Season Testing",
+                                    "link": "/join",
+                                    "style": "primary"
+                                }
+                            ]
+                        }
+                    ],
+                    "background": {
+                        "type": "gradient",
+                        "value": "linear-gradient(180deg, #000000 0%, #1A1A1A 100%)"
+                    }
+                },
+                {
+                    "id": "products",
+                    "type": "card-grid",
+                    "layout": "three-column",
+                    "heading": "Our Products",
+                    "blocks": [
+                        {
+                            "type": "product-card",
+                            "id": "pitbox-card",
+                            "title": "PitBox",
+                            "subtitle": "AI Race Team",
+                            "description": "Real-time strategist, engineer, spotter, and coach for every lap.",
+                            "link": "/products/pitbox",
+                            "icon": "pitbox-logo",
+                            "accentColor": "#E10600"
+                        },
+                        {
+                            "type": "product-card",
+                            "id": "controlbox-card",
+                            "title": "ControlBox",
+                            "subtitle": "Race Control Engine",
+                            "description": "Automated incident review, categorization, rulebook enforcement, and league analytics.",
+                            "link": "/products/controlbox",
+                            "icon": "controlbox-logo",
+                            "accentColor": "#00A2FF"
+                        },
+                        {
+                            "type": "product-card",
+                            "id": "future-card",
+                            "title": "More Coming Soon",
+                            "subtitle": "Future Modules",
+                            "description": "A growing ecosystem of racing intelligence tools.",
+                            "link": "/roadmap",
+                            "icon": "plus-icon",
+                            "accentColor": "#2B2B2B"
+                        }
+                    ]
+                },
+                {
+                    "id": "why",
+                    "type": "text-block",
+                    "layout": "centered",
+                    "blocks": [
+                        {
+                            "type": "eyebrow",
+                            "content": "Why okboxbox Exists"
+                        },
+                        {
+                            "type": "body-text",
+                            "content": "Racing deserves more than silence and guesswork. We build tools that give drivers and leagues the clarity they need — one lap, one decision, one mission at a time."
+                        }
+                    ]
+                },
+                {
+                    "id": "mission",
+                    "type": "quote-block",
+                    "layout": "dark-background",
+                    "blocks": [
+                        {
+                            "type": "quote",
+                            "content": "One lap at a time.",
+                            "attribution": "The okboxbox Mission"
+                        }
+                    ]
+                },
+                {
+                    "id": "cta",
+                    "type": "cta-banner",
+                    "blocks": [
+                        {
+                            "type": "headline",
+                            "content": "Be first. Be faster."
+                        },
+                        {
+                            "type": "button",
+                            "label": "Join Early Access",
+                            "link": "/join",
+                            "style": "primary"
+                        }
+                    ],
+                    "background": {
+                        "type": "solid",
+                        "value": "#E10600"
+                    }
+                }
+            ]
+        },
+        "pitbox": {
+            "id": "pitbox",
+            "title": "PitBox — Your AI Race Team",
+            "slug": "/products/pitbox",
+            "meta": {
+                "description": "PitBox is your AI-powered race team: strategist, engineer, spotter, and coach — all powered by real-time telemetry and voice intelligence.",
+                "keywords": [
+                    "AI race engineer",
+                    "sim racing AI",
+                    "race strategy",
+                    "iRacing engineer",
+                    "voice spotter"
+                ]
+            },
+            "sections": [
+                {
+                    "id": "hero",
+                    "type": "hero-product",
+                    "blocks": [
+                        {
+                            "type": "eyebrow",
+                            "content": "PitBox"
+                        },
+                        {
+                            "type": "headline",
+                            "content": "Your AI Race Team. Every Lap."
+                        },
+                        {
+                            "type": "subheadline",
+                            "content": "Strategist, engineer, spotter, coach — all powered by real-time telemetry and voice intelligence."
+                        },
+                        {
+                            "type": "button-group",
+                            "buttons": [
+                                {
+                                    "label": "Join Pre-Season Testing",
+                                    "link": "/join",
+                                    "style": "primary"
+                                },
+                                {
+                                    "label": "Watch Demo",
+                                    "link": "#demo",
+                                    "style": "secondary"
+                                }
+                            ]
+                        }
+                    ],
+                    "accentColor": "#E10600"
+                },
+                {
+                    "id": "features",
+                    "type": "feature-grid",
+                    "layout": "four-column",
+                    "heading": "Your AI Crew",
+                    "blocks": [
+                        {
+                            "type": "feature-card",
+                            "icon": "strategy",
+                            "title": "Strategist",
+                            "description": "Real-time pit window calculations, tire degradation modeling, and optimal strategy recommendations based on race conditions."
+                        },
+                        {
+                            "type": "feature-card",
+                            "icon": "engineer",
+                            "title": "Engineer",
+                            "description": "Setup advice, car balance feedback, and lap-by-lap adjustments communicated through natural voice interaction."
+                        },
+                        {
+                            "type": "feature-card",
+                            "icon": "spotter",
+                            "title": "Spotter",
+                            "description": "Traffic awareness, gap timing, and positional updates delivered with precision when you need them most."
+                        },
+                        {
+                            "type": "feature-card",
+                            "icon": "coach",
+                            "title": "Coach",
+                            "description": "Post-session analysis, driving technique feedback, and personalized improvement recommendations."
+                        }
+                    ]
+                },
+                {
+                    "id": "how-it-works",
+                    "type": "steps-block",
+                    "heading": "How PitBox Works",
+                    "blocks": [
+                        {
+                            "type": "step",
+                            "number": 1,
+                            "title": "Connect",
+                            "description": "PitBox connects to your sim via the relay agent, streaming real-time telemetry data."
+                        },
+                        {
+                            "type": "step",
+                            "number": 2,
+                            "title": "Analyze",
+                            "description": "Our AI models process your inputs, track position, tire wear, fuel load, and race situation in real time."
+                        },
+                        {
+                            "type": "step",
+                            "number": 3,
+                            "title": "Advise",
+                            "description": "Receive voice-activated guidance from your AI crew — ask questions, get strategy calls, hear warnings."
+                        }
+                    ]
+                },
+                {
+                    "id": "technology",
+                    "type": "text-image-block",
+                    "layout": "image-right",
+                    "blocks": [
+                        {
+                            "type": "eyebrow",
+                            "content": "The Technology"
+                        },
+                        {
+                            "type": "headline",
+                            "content": "Precision Engineering"
+                        },
+                        {
+                            "type": "body-text",
+                            "content": "PitBox combines a high-frequency telemetry pipeline, advanced AI models, and natural voice synthesis to deliver a race engineer experience that feels human. Every response is contextual. Every recommendation is data-driven."
+                        },
+                        {
+                            "type": "feature-list",
+                            "items": [
+                                "Real-time telemetry processing",
+                                "Natural language voice interface",
+                                "Contextual AI reasoning",
+                                "Multi-sim compatibility (iRacing first)"
+                            ]
+                        }
+                    ],
+                    "media": {
+                        "type": "image-placeholder",
+                        "alt": "PitBox technology diagram"
+                    }
+                },
+                {
+                    "id": "demo",
+                    "type": "video-block",
+                    "heading": "See PitBox in Action",
+                    "blocks": [
+                        {
+                            "type": "video-placeholder",
+                            "description": "Demo video showing PitBox voice interaction during a race"
+                        }
+                    ]
+                },
+                {
+                    "id": "roadmap-teaser",
+                    "type": "timeline-teaser",
+                    "heading": "Development Roadmap",
+                    "blocks": [
+                        {
+                            "phase": "Pre-Season",
+                            "status": "active",
+                            "description": "Core systems build-out, early tester onboarding"
+                        },
+                        {
+                            "phase": "FP1",
+                            "status": "upcoming",
+                            "description": "Stable core, dashboard prototypes"
+                        },
+                        {
+                            "phase": "FP2",
+                            "status": "upcoming",
+                            "description": "Advanced strategy, founders early access"
+                        }
+                    ],
+                    "link": "/roadmap"
+                },
+                {
+                    "id": "cta",
+                    "type": "cta-banner",
+                    "blocks": [
+                        {
+                            "type": "headline",
+                            "content": "Get Behind the Wheel"
+                        },
+                        {
+                            "type": "subheadline",
+                            "content": "Join Pre-Season Testing and help shape the future of AI racing."
+                        },
+                        {
+                            "type": "button",
+                            "label": "Join Now — $8",
+                            "link": "/join",
+                            "style": "primary"
+                        }
+                    ],
+                    "accentColor": "#E10600"
+                }
+            ]
+        },
+        "controlbox": {
+            "id": "controlbox",
+            "title": "ControlBox — Race Control Reinvented",
+            "slug": "/products/controlbox",
+            "meta": {
+                "description": "ControlBox automates incident review, fault analysis, rulebook enforcement, and league reporting — all in real time.",
+                "keywords": [
+                    "race control",
+                    "incident review",
+                    "sim racing league",
+                    "stewards",
+                    "rulebook AI"
+                ]
+            },
+            "sections": [
+                {
+                    "id": "hero",
+                    "type": "hero-product",
+                    "blocks": [
+                        {
+                            "type": "eyebrow",
+                            "content": "ControlBox"
+                        },
+                        {
+                            "type": "headline",
+                            "content": "Race Control. Reinvented."
+                        },
+                        {
+                            "type": "subheadline",
+                            "content": "Automated incident review, fault analysis, rulebook enforcement, and league reporting — all in real time."
+                        },
+                        {
+                            "type": "button-group",
+                            "buttons": [
+                                {
+                                    "label": "Apply for Testing",
+                                    "link": "/join",
+                                    "style": "primary"
+                                },
+                                {
+                                    "label": "Learn More",
+                                    "link": "#features",
+                                    "style": "secondary"
+                                }
+                            ]
+                        }
+                    ],
+                    "accentColor": "#00A2FF"
+                },
+                {
+                    "id": "features",
+                    "type": "feature-grid",
+                    "layout": "three-column",
+                    "heading": "Capabilities",
+                    "blocks": [
+                        {
+                            "type": "feature-card",
+                            "icon": "detection",
+                            "title": "Incident Detection",
+                            "description": "Automatic detection and categorization of on-track incidents as they happen."
+                        },
+                        {
+                            "type": "feature-card",
+                            "icon": "fault",
+                            "title": "Fault Attribution",
+                            "description": "Multi-driver fault analysis with confidence scoring and evidence trails."
+                        },
+                        {
+                            "type": "feature-card",
+                            "icon": "rulebook",
+                            "title": "Rulebook Engine",
+                            "description": "Upload your league rules — ControlBox auto-governs based on your specific regulations."
+                        },
+                        {
+                            "type": "feature-card",
+                            "icon": "reports",
+                            "title": "Post-Race Reports",
+                            "description": "Comprehensive, printable reports with incident breakdowns and penalty recommendations."
+                        },
+                        {
+                            "type": "feature-card",
+                            "icon": "analytics",
+                            "title": "Analytics Suite",
+                            "description": "Heatmaps, timelines, and statistical analysis across races and seasons."
+                        },
+                        {
+                            "type": "feature-card",
+                            "icon": "steward",
+                            "title": "Stewards Assistant",
+                            "description": "AI-powered recommendations to help human stewards make faster, fairer decisions."
+                        }
+                    ]
+                },
+                {
+                    "id": "how-it-works",
+                    "type": "steps-block",
+                    "heading": "How ControlBox Works",
+                    "blocks": [
+                        {
+                            "type": "step",
+                            "number": 1,
+                            "title": "Ingest",
+                            "description": "ControlBox ingests telemetry data and replay files from your races."
+                        },
+                        {
+                            "type": "step",
+                            "number": 2,
+                            "title": "Classify",
+                            "description": "The rulebook AI analyzes incidents and classifies outcomes based on your league rules."
+                        },
+                        {
+                            "type": "step",
+                            "number": 3,
+                            "title": "Report",
+                            "description": "Export detailed, shareable reports with visualizations and penalty recommendations."
+                        }
+                    ]
+                },
+                {
+                    "id": "for-leagues",
+                    "type": "text-block",
+                    "layout": "centered",
+                    "blocks": [
+                        {
+                            "type": "eyebrow",
+                            "content": "Built for Leagues"
+                        },
+                        {
+                            "type": "headline",
+                            "content": "Fair. Fast. Consistent."
+                        },
+                        {
+                            "type": "body-text",
+                            "content": "ControlBox gives league administrators the tools they need to run fair competitions without burning out. Reduce protest backlogs. Eliminate bias concerns. Free up your stewards to focus on edge cases."
+                        }
+                    ]
+                },
+                {
+                    "id": "cta",
+                    "type": "cta-banner",
+                    "blocks": [
+                        {
+                            "type": "headline",
+                            "content": "Transform Your League"
+                        },
+                        {
+                            "type": "subheadline",
+                            "content": "Apply for ControlBox testing and bring AI-powered race control to your community."
+                        },
+                        {
+                            "type": "button",
+                            "label": "Apply for ControlBox Testing",
+                            "link": "/join",
+                            "style": "primary"
+                        }
+                    ],
+                    "accentColor": "#00A2FF"
+                }
+            ]
+        },
+        "roadmap": {
+            "id": "roadmap",
+            "title": "Roadmap — okboxbox Development Timeline",
+            "slug": "/roadmap",
+            "meta": {
+                "description": "Track the development progress of PitBox, ControlBox, and the entire okboxbox ecosystem.",
+                "keywords": [
+                    "roadmap",
+                    "development",
+                    "beta",
+                    "early access"
+                ]
+            },
+            "sections": [
+                {
+                    "id": "hero",
+                    "type": "hero-minimal",
+                    "blocks": [
+                        {
+                            "type": "eyebrow",
+                            "content": "Development Timeline"
+                        },
+                        {
+                            "type": "headline",
+                            "content": "The Road Ahead"
+                        },
+                        {
+                            "type": "subheadline",
+                            "content": "From Pre-Season to Race Day — follow our journey building the future of racing intelligence."
+                        }
+                    ]
+                },
+                {
+                    "id": "timeline",
+                    "type": "timeline",
+                    "heading": "Development Phases",
+                    "blocks": [
+                        {
+                            "type": "timeline-item",
+                            "phase": "Pre-Season Testing",
+                            "status": "active",
+                            "period": "Now",
+                            "items": [
+                                "Base systems build-out for PitBox + ControlBox",
+                                "Early tester onboarding",
+                                "Voice + telemetry integration",
+                                "Core feedback loop established"
+                            ]
+                        },
+                        {
+                            "type": "timeline-item",
+                            "phase": "FP1 — Systems Bring-Up",
+                            "status": "upcoming",
+                            "period": "Q1 2025",
+                            "items": [
+                                "Stable PitBox core functionality",
+                                "ControlBox initial incident engine",
+                                "Dashboard prototypes",
+                                "Expanded sim support research"
+                            ]
+                        },
+                        {
+                            "type": "timeline-item",
+                            "phase": "FP2 — Founders Early Access",
+                            "status": "upcoming",
+                            "period": "Q2 2025",
+                            "items": [
+                                "Advanced strategy features in PitBox",
+                                "Rulebook Engine in ControlBox",
+                                "Web telemetry dashboard",
+                                "Team management tools"
+                            ]
+                        },
+                        {
+                            "type": "timeline-item",
+                            "phase": "FP3 — Public Beta",
+                            "status": "upcoming",
+                            "period": "Q3 2025",
+                            "items": [
+                                "Full PitBox team roles",
+                                "Complete ControlBox incident suite",
+                                "Analytics and sponsor tools",
+                                "Community features"
+                            ]
+                        },
+                        {
+                            "type": "timeline-item",
+                            "phase": "Qualifying — Launch Candidate",
+                            "status": "upcoming",
+                            "period": "Q4 2025",
+                            "items": [
+                                "Stability and UX refinement",
+                                "Performance optimization",
+                                "Documentation and onboarding",
+                                "Pricing finalization"
+                            ]
+                        },
+                        {
+                            "type": "timeline-item",
+                            "phase": "Race Day — Full Release",
+                            "status": "upcoming",
+                            "period": "2026",
+                            "items": [
+                                "Subscription model launch",
+                                "League integrations",
+                                "Cross-sim support",
+                                "Enterprise features"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "id": "cta",
+                    "type": "cta-banner",
+                    "blocks": [
+                        {
+                            "type": "headline",
+                            "content": "Shape the Future"
+                        },
+                        {
+                            "type": "subheadline",
+                            "content": "Join Pre-Season Testing and influence the roadmap."
+                        },
+                        {
+                            "type": "button",
+                            "label": "Join Early Access",
+                            "link": "/join",
+                            "style": "primary"
+                        }
+                    ]
+                }
+            ]
+        },
+        "pricing": {
+            "id": "pricing",
+            "title": "Pricing — okboxbox Products",
+            "slug": "/pricing",
+            "meta": {
+                "description": "Early adopter pricing for PitBox and ControlBox. Join now for lifetime benefits.",
+                "keywords": [
+                    "pricing",
+                    "subscription",
+                    "early access",
+                    "founders"
+                ]
+            },
+            "sections": [
+                {
+                    "id": "hero",
+                    "type": "hero-minimal",
+                    "blocks": [
+                        {
+                            "type": "headline",
+                            "content": "Simple, Fair Pricing"
+                        },
+                        {
+                            "type": "subheadline",
+                            "content": "Early adopters get lifetime benefits, predictable access, and influence over the roadmap."
+                        }
+                    ]
+                },
+                {
+                    "id": "pitbox-pricing",
+                    "type": "pricing-table",
+                    "heading": "PitBox",
+                    "subheading": "AI Race Team",
+                    "accentColor": "#E10600",
+                    "blocks": [
+                        {
+                            "type": "pricing-tier",
+                            "name": "Waitlist",
+                            "price": "$0",
+                            "period": "free",
+                            "features": [
+                                "Priority notification",
+                                "Development updates",
+                                "Community access"
+                            ],
+                            "cta": {
+                                "label": "Join Waitlist",
+                                "link": "/join",
+                                "style": "secondary"
+                            }
+                        },
+                        {
+                            "type": "pricing-tier",
+                            "name": "Pre-Season Testing",
+                            "price": "$8",
+                            "period": "one-time",
+                            "featured": true,
+                            "features": [
+                                "Immediate testing access",
+                                "Direct feedback channel",
+                                "Founder recognition",
+                                "Future subscription discount"
+                            ],
+                            "cta": {
+                                "label": "Join Pre-Season",
+                                "link": "/join",
+                                "style": "primary"
+                            }
+                        },
+                        {
+                            "type": "pricing-tier",
+                            "name": "FP1 Early Access",
+                            "price": "$12",
+                            "period": "one-time",
+                            "features": [
+                                "Stable core access",
+                                "Priority support",
+                                "Founder recognition",
+                                "Future subscription discount"
+                            ],
+                            "cta": {
+                                "label": "Coming Soon",
+                                "link": "/join",
+                                "style": "disabled"
+                            }
+                        }
+                    ],
+                    "note": "Future subscription pricing will be announced at launch."
+                },
+                {
+                    "id": "controlbox-pricing",
+                    "type": "pricing-table",
+                    "heading": "ControlBox",
+                    "subheading": "Race Control Engine",
+                    "accentColor": "#00A2FF",
+                    "blocks": [
+                        {
+                            "type": "pricing-tier",
+                            "name": "Waitlist",
+                            "price": "$0",
+                            "period": "free",
+                            "features": [
+                                "Priority notification",
+                                "Development updates",
+                                "League admin community"
+                            ],
+                            "cta": {
+                                "label": "Join Waitlist",
+                                "link": "/join",
+                                "style": "secondary"
+                            }
+                        },
+                        {
+                            "type": "pricing-tier",
+                            "name": "Early Testing",
+                            "price": "TBD",
+                            "period": "",
+                            "featured": true,
+                            "features": [
+                                "Testing access when available",
+                                "Direct feedback channel",
+                                "Founder recognition"
+                            ],
+                            "cta": {
+                                "label": "Join Waitlist",
+                                "link": "/join",
+                                "style": "primary"
+                            }
+                        }
+                    ],
+                    "note": "ControlBox pricing will follow a similar structure to PitBox."
+                },
+                {
+                    "id": "cta",
+                    "type": "cta-simple",
+                    "blocks": [
+                        {
+                            "type": "button",
+                            "label": "Join Early Access",
+                            "link": "/join",
+                            "style": "primary"
+                        }
+                    ]
+                }
+            ]
+        },
+        "about": {
+            "id": "about",
+            "title": "About okboxbox",
+            "slug": "/about",
+            "meta": {
+                "description": "Learn about the mission behind okboxbox and the vision for AI-powered racing tools.",
+                "keywords": [
+                    "about",
+                    "mission",
+                    "founder",
+                    "sim racing"
+                ]
+            },
+            "sections": [
+                {
+                    "id": "hero",
+                    "type": "hero-minimal",
+                    "blocks": [
+                        {
+                            "type": "eyebrow",
+                            "content": "About Us"
+                        },
+                        {
+                            "type": "headline",
+                            "content": "Making Racing More Human"
+                        }
+                    ]
+                },
+                {
+                    "id": "mission",
+                    "type": "text-block",
+                    "layout": "centered",
+                    "blocks": [
+                        {
+                            "type": "headline",
+                            "content": "Our Mission"
+                        },
+                        {
+                            "type": "body-text",
+                            "content": "We build AI systems that make racing more human. Tools that improve clarity, reduce overwhelm, and help drivers and leagues focus on what matters."
+                        },
+                        {
+                            "type": "body-text",
+                            "content": "Racing deserves more than silence and guesswork. Every driver deserves the support of a full team. Every league deserves fair, consistent race control. That's what we're building."
+                        }
+                    ]
+                },
+                {
+                    "id": "founder",
+                    "type": "text-image-block",
+                    "layout": "image-left",
+                    "blocks": [
+                        {
+                            "type": "eyebrow",
+                            "content": "The Founder"
+                        },
+                        {
+                            "type": "headline",
+                            "content": "One Lap at a Time"
+                        },
+                        {
+                            "type": "body-text",
+                            "content": "okboxbox was founded by Conrad, whose journey through PTSD led to an unexpected discovery: sim racing as a tool for focus, presence, and recovery. What started as personal therapy became a mission — Post Traumatic Racing."
+                        },
+                        {
+                            "type": "body-text",
+                            "content": "The 'one lap at a time' philosophy isn't just a tagline. It's a practice of staying present, making clear decisions under pressure, and finding flow in the chaos. okboxbox exists to give every racer the tools to experience that clarity."
+                        }
+                    ],
+                    "media": {
+                        "type": "image-placeholder",
+                        "alt": "Founder portrait"
+                    }
+                },
+                {
+                    "id": "philosophy",
+                    "type": "text-block",
+                    "layout": "centered",
+                    "blocks": [
+                        {
+                            "type": "headline",
+                            "content": "The Ecosystem"
+                        },
+                        {
+                            "type": "body-text",
+                            "content": "Everything in the okboxbox suite is designed to work together seamlessly. PitBox handles the driver experience. ControlBox handles the league experience. Future modules will extend into coaching, telemetry analysis, team management, and beyond."
+                        },
+                        {
+                            "type": "body-text",
+                            "content": "One ecosystem. Many boxes. All racing."
+                        }
+                    ]
+                },
+                {
+                    "id": "cta",
+                    "type": "cta-banner",
+                    "blocks": [
+                        {
+                            "type": "headline",
+                            "content": "Join the Mission"
+                        },
+                        {
+                            "type": "button",
+                            "label": "Get Started",
+                            "link": "/join",
+                            "style": "primary"
+                        }
+                    ]
+                }
+            ]
+        },
+        "waitlist": {
+            "id": "waitlist",
+            "title": "Join okboxbox",
+            "slug": "/join",
+            "meta": {
+                "description": "Join PitBox, ControlBox, or the full okboxbox ecosystem. Start your engines.",
+                "keywords": [
+                    "signup",
+                    "waitlist",
+                    "early access",
+                    "testing"
+                ]
+            },
+            "sections": [
+                {
+                    "id": "hero",
+                    "type": "hero-form",
+                    "blocks": [
+                        {
+                            "type": "headline",
+                            "content": "Start Your Engines."
+                        },
+                        {
+                            "type": "subheadline",
+                            "content": "Join PitBox, ControlBox, or the full okboxbox ecosystem."
+                        }
+                    ]
+                },
+                {
+                    "id": "form",
+                    "type": "form-block",
+                    "formId": "waitlist-signup",
+                    "fields": [
+                        {
+                            "name": "name",
+                            "type": "text",
+                            "label": "Name",
+                            "required": true,
+                            "placeholder": "Your name"
+                        },
+                        {
+                            "name": "email",
+                            "type": "email",
+                            "label": "Email",
+                            "required": true,
+                            "placeholder": "you@example.com"
+                        },
+                        {
+                            "name": "product_interest",
+                            "type": "select",
+                            "label": "Product Interest",
+                            "required": true,
+                            "options": [
+                                {
+                                    "value": "pitbox",
+                                    "label": "PitBox — AI Race Team"
+                                },
+                                {
+                                    "value": "controlbox",
+                                    "label": "ControlBox — Race Control"
+                                },
+                                {
+                                    "value": "both",
+                                    "label": "Both Products"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "experience_level",
+                            "type": "select",
+                            "label": "Experience Level",
+                            "required": true,
+                            "options": [
+                                {
+                                    "value": "beginner",
+                                    "label": "Beginner (< 1 year)"
+                                },
+                                {
+                                    "value": "intermediate",
+                                    "label": "Intermediate (1-3 years)"
+                                },
+                                {
+                                    "value": "advanced",
+                                    "label": "Advanced (3+ years)"
+                                },
+                                {
+                                    "value": "pro",
+                                    "label": "Professional / Semi-Pro"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "iracing",
+                            "type": "radio",
+                            "label": "Do you use iRacing?",
+                            "required": true,
+                            "options": [
+                                {
+                                    "value": "yes",
+                                    "label": "Yes"
+                                },
+                                {
+                                    "value": "no",
+                                    "label": "No"
+                                }
+                            ]
+                        }
+                    ],
+                    "submitButton": {
+                        "label": "Join the Team",
+                        "style": "primary"
+                    },
+                    "successMessage": {
+                        "headline": "Welcome to the team.",
+                        "body": "Check your inbox for next steps. Let's go racing."
+                    }
+                }
+            ]
+        }
+    },
+    "components": {
+        "header": {
+            "type": "fixed-header",
+            "logo": {
+                "text": "okboxbox",
+                "link": "/"
+            },
+            "navigation": "main",
+            "cta": {
+                "label": "Join",
+                "link": "/join",
+                "style": "button-primary"
+            }
+        },
+        "footer": {
+            "type": "standard-footer",
+            "logo": {
+                "text": "okboxbox",
+                "tagline": "AI Systems for the Modern Racer."
+            },
+            "navigation": "footer",
+            "social": "social",
+            "copyright": "© 2024 okboxbox. All rights reserved."
+        }
+    }
+}

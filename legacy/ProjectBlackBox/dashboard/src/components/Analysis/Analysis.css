@@ -1,0 +1,385 @@
+/* Analysis Components Styles */
+
+.analysis-loading,
+.analysis-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: #7d8590;
+    font-size: 14px;
+}
+
+.analysis-error {
+    color: #f85149;
+}
+
+/* Session Report */
+.session-report {
+    padding: 20px;
+}
+
+.report-header {
+    margin-bottom: 24px;
+}
+
+.report-header h2 {
+    margin: 0 0 4px 0;
+    font-size: 24px;
+    color: #e6edf3;
+}
+
+.track-name {
+    color: #7d8590;
+    font-size: 14px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+}
+
+.stat-card.best {
+    border-color: #238636;
+    background: rgba(35, 134, 54, 0.1);
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: #e6edf3;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: #7d8590;
+    margin-top: 4px;
+}
+
+.lap-times-section,
+.recommendations-section {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.lap-times-section h3,
+.recommendations-section h3 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: #e6edf3;
+}
+
+.lap-times-table {
+    font-size: 13px;
+}
+
+.lap-header,
+.lap-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 80px;
+    padding: 8px 0;
+    border-bottom: 1px solid #21262d;
+}
+
+.lap-header {
+    color: #7d8590;
+    font-weight: 500;
+}
+
+.lap-row.best-lap {
+    background: rgba(35, 134, 54, 0.1);
+}
+
+.delta-positive {
+    color: #f85149;
+}
+
+.delta-best {
+    color: #238636;
+    font-weight: 600;
+}
+
+.recommendations-section ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.recommendations-section li {
+    color: #7d8590;
+    margin-bottom: 8px;
+    line-height: 1.5;
+}
+
+/* Corner Analysis */
+.corner-analysis {
+    padding: 20px;
+}
+
+.analysis-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.analysis-header h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #e6edf3;
+}
+
+.lap-badge {
+    background: #238636;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.corners-table {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.corner-header,
+.corner-row {
+    display: grid;
+    grid-template-columns: 80px repeat(4, 1fr);
+    padding: 12px 16px;
+    border-bottom: 1px solid #21262d;
+}
+
+.corner-header {
+    background: #0d1117;
+    color: #7d8590;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.corner-number {
+    font-weight: 600;
+    color: #58a6ff;
+}
+
+.min-speed {
+    color: #f0883e;
+    font-weight: 500;
+}
+
+.high-g {
+    color: #f85149;
+    font-weight: 500;
+}
+
+.corner-summary {
+    display: flex;
+    gap: 16px;
+}
+
+.summary-stat {
+    flex: 1;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+}
+
+.summary-stat .value {
+    display: block;
+    font-size: 20px;
+    font-weight: 600;
+    color: #e6edf3;
+}
+
+.summary-stat .label {
+    font-size: 11px;
+    color: #7d8590;
+}
+
+/* Lap Comparison */
+.lap-comparison {
+    padding: 20px;
+}
+
+.lap-selector {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.selector-group {
+    flex: 1;
+}
+
+.selector-group label {
+    display: block;
+    font-size: 12px;
+    color: #7d8590;
+    margin-bottom: 4px;
+}
+
+.selector-group select {
+    width: 100%;
+    padding: 8px 12px;
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #e6edf3;
+    font-size: 13px;
+}
+
+.vs-label {
+    font-weight: 600;
+    color: #7d8590;
+}
+
+.comparison-chart {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.comparison-chart h3 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: #e6edf3;
+}
+
+.trace-legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+    font-size: 12px;
+}
+
+.lap1-legend {
+    color: #58a6ff;
+}
+
+.lap2-legend {
+    color: #f0883e;
+}
+
+.trace-graph {
+    display: flex;
+    gap: 2px;
+    height: 60px;
+    align-items: flex-end;
+}
+
+.trace-bar {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.trace-bar .bar {
+    width: 100%;
+    background: #30363d;
+    border-radius: 2px 2px 0 0;
+}
+
+.trace-bar .bar.faster {
+    background: #238636;
+}
+
+.trace-bar .bar.slower {
+    background: #f85149;
+}
+
+.trace-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: #7d8590;
+    margin-top: 8px;
+}
+
+.lap-details h3 {
+    margin: 0 0 12px 0;
+    font-size: 14px;
+    color: #e6edf3;
+}
+
+.laps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.lap-card {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.lap-card:hover {
+    border-color: #58a6ff;
+}
+
+.lap-card.selected {
+    border-color: #58a6ff;
+    background: rgba(88, 166, 255, 0.1);
+}
+
+.lap-card.best {
+    border-color: #238636;
+}
+
+.lap-num {
+    font-weight: 600;
+    color: #e6edf3;
+    margin-bottom: 4px;
+}
+
+.lap-time {
+    font-size: 18px;
+    font-weight: 600;
+    color: #e6edf3;
+}
+
+.lap-delta {
+    font-size: 12px;
+    color: #238636;
+    margin: 4px 0;
+}
+
+.lap-delta.positive {
+    color: #f85149;
+}
+
+.lap-speeds {
+    display: flex;
+    gap: 8px;
+    font-size: 11px;
+    color: #7d8590;
+}

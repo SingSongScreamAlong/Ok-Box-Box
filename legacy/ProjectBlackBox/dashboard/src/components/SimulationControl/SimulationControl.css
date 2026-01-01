@@ -1,0 +1,135 @@
+.simulation-control {
+  background: rgba(20, 25, 35, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  color: #fff;
+  min-width: 280px;
+}
+
+.simulation-control.running {
+  border-color: rgba(76, 175, 80, 0.4);
+  background: rgba(20, 30, 25, 0.95);
+}
+
+.simulation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.simulation-title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.simulation-status {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.simulation-status.live {
+  background: rgba(76, 175, 80, 0.2);
+  color: #4caf50;
+}
+
+.simulation-status.offline {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.simulation-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.stat-value {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #00d4ff;
+}
+
+.simulation-actions {
+  margin-bottom: 8px;
+}
+
+.sim-button {
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sim-button.start {
+  background: linear-gradient(135deg, #4caf50, #388e3c);
+  color: white;
+}
+
+.sim-button.start:hover:not(:disabled) {
+  background: linear-gradient(135deg, #66bb6a, #43a047);
+  transform: translateY(-1px);
+}
+
+.sim-button.stop {
+  background: linear-gradient(135deg, #f44336, #d32f2f);
+  color: white;
+}
+
+.sim-button.stop:hover:not(:disabled) {
+  background: linear-gradient(135deg, #ef5350, #e53935);
+  transform: translateY(-1px);
+}
+
+.sim-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.simulation-error {
+  background: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.simulation-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  text-align: center;
+}

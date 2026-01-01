@@ -1,0 +1,112 @@
+/* =====================================================================
+   Battle Box Overlay Styles (Week 8)
+   ===================================================================== */
+
+.battle-box {
+    position: fixed;
+    top: 40px;
+    right: 40px;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    width: 400px;
+}
+
+.battle-box--dark {
+    color: #e0e0e0;
+}
+
+.battle-box--light {
+    color: #1a1a2e;
+}
+
+.battle-box__header {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    text-align: center;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    border-radius: 8px 8px 0 0;
+}
+
+.battle-box__drivers {
+    display: flex;
+    align-items: stretch;
+    background: rgba(10, 10, 15, 0.95);
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+}
+
+.battle-box--light .battle-box__drivers {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.battle-box__gap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    background: rgba(239, 68, 68, 0.2);
+}
+
+.battle-box__gap .gap-value {
+    font-size: 20px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    color: #ef4444;
+}
+
+.battle-box__gap .gap-label {
+    font-size: 10px;
+    color: #888;
+    text-transform: uppercase;
+}
+
+/* Driver Card */
+.driver-card {
+    flex: 1;
+    padding: 12px;
+}
+
+.driver-card--leading {
+    background: rgba(0, 212, 255, 0.1);
+}
+
+.driver-card__pos {
+    font-size: 24px;
+    font-weight: 800;
+    color: #00d4ff;
+    margin-bottom: 4px;
+}
+
+.driver-card__name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.driver-card__stats {
+    display: flex;
+    gap: 12px;
+}
+
+.driver-card__stats .stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.driver-card__stats .stat label {
+    font-size: 9px;
+    color: #888;
+    text-transform: uppercase;
+}
+
+.driver-card__stats .stat value {
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+}

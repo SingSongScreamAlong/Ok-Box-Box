@@ -1,0 +1,168 @@
+.driver-selector {
+  background-color: #1e1e2f;
+  border-radius: 8px;
+  padding: 16px;
+  color: #ffffff;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 320px;
+}
+
+.driver-selector h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  border-bottom: 1px solid #2e2e4f;
+  padding-bottom: 8px;
+}
+
+.driver-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.driver-item {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.driver-item:hover {
+  background-color: #2e2e4f;
+}
+
+.driver-item.active {
+  background-color: #3e3e5f;
+  border-left: 3px solid #00bcd4;
+}
+
+.driver-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-right: 12px;
+  background-color: #2e2e4f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.driver-avatar.small {
+  width: 24px;
+  height: 24px;
+}
+
+.driver-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.driver-info {
+  flex: 1;
+}
+
+.driver-name {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.driver-details {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: #a0a0b0;
+}
+
+.driver-team {
+  color: #00bcd4;
+}
+
+.driver-role {
+  text-transform: capitalize;
+}
+
+.driver-status {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.driver-status.active {
+  background-color: #4caf50;
+  color: #ffffff;
+}
+
+.driver-status.standby {
+  background-color: #ff9800;
+  color: #ffffff;
+}
+
+.driver-status.offline {
+  background-color: #f44336;
+  color: #ffffff;
+}
+
+.no-drivers {
+  color: #a0a0b0;
+  text-align: center;
+  padding: 16px;
+}
+
+/* Compact mode styles */
+.driver-selector.compact {
+  max-width: 200px;
+  padding: 0;
+  position: relative;
+}
+
+.selected-driver {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #2e2e4f;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.selected-driver .driver-name {
+  margin: 0 8px;
+  flex: 1;
+}
+
+.dropdown-arrow {
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.driver-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #1e1e2f;
+  border-radius: 4px;
+  margin-top: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.no-driver {
+  color: #a0a0b0;
+}

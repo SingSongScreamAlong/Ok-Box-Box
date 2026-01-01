@@ -1,0 +1,168 @@
+/**
+ * Opponent Intel Pane Styles
+ */
+
+.opponent-intel-pane {
+    background: linear-gradient(135deg, #1a1f2e 0%, #0f141f 100%);
+    border-radius: 12px;
+    padding: 12px;
+    flex: 1;
+}
+
+.opponent-intel-pane.empty {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #666;
+    min-height: 200px;
+}
+
+.pane-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pane-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.opponent-count {
+    font-size: 11px;
+    color: #666;
+}
+
+/* Opponents Grid */
+.opponents-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+}
+
+/* Opponent Card */
+.opponent-card-wrapper {
+    display: block;
+}
+
+.opponent-card {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 10px;
+    border-left: 3px solid;
+    transition: background 0.15s;
+}
+
+.opponent-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.opponent-card.red {
+    border-color: #ef4444;
+}
+
+.opponent-card.yellow {
+    border-color: #facc15;
+}
+
+.opponent-card.green {
+    border-color: #4ade80;
+}
+
+.opponent-card.gray {
+    border-color: #6b7280;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.car-number {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+.position {
+    font-size: 12px;
+    font-weight: 600;
+    color: #888;
+}
+
+.driver-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 6px;
+}
+
+.gap-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.gap-value {
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'SF Mono', Monaco, monospace;
+    color: #fff;
+}
+
+.gap-trend {
+    font-size: 12px;
+}
+
+.gap-trend.closing {
+    color: #ef4444;
+}
+
+.gap-trend.extending {
+    color: #4ade80;
+}
+
+.gap-trend.stable {
+    color: #888;
+}
+
+/* Intel Rows */
+.intel-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.intel-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.intel-label {
+    font-size: 10px;
+    color: #666;
+}
+
+.intel-value {
+    font-size: 10px;
+    color: #aaa;
+    font-family: 'SF Mono', Monaco, monospace;
+}

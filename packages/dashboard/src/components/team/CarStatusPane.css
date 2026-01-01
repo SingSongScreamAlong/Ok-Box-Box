@@ -1,0 +1,252 @@
+/**
+ * Car Status Pane Styles
+ */
+
+.car-status-pane {
+    background: linear-gradient(135deg, #1a1f2e 0%, #0f141f 100%);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 220px;
+}
+
+.car-status-pane.loading {
+    justify-content: center;
+    align-items: center;
+    color: #666;
+    min-height: 300px;
+}
+
+/* Status Section */
+.status-section {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.section-icon {
+    font-size: 14px;
+}
+
+.section-title {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 600;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tire-compound {
+    font-size: 10px;
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    color: #888;
+}
+
+/* Status Dot */
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.status-dot.green {
+    background: #4ade80;
+}
+
+.status-dot.yellow {
+    background: #facc15;
+}
+
+.status-dot.red {
+    background: #ef4444;
+}
+
+.status-dot.gray {
+    background: #6b7280;
+}
+
+/* Fuel Display */
+.fuel-display {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fuel-bar {
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.fuel-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ef4444 0%, #f59e0b 30%, #4ade80 70%);
+    border-radius: 4px;
+    transition: width 0.3s;
+}
+
+.fuel-values {
+    display: flex;
+    justify-content: space-between;
+}
+
+.fuel-level {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.fuel-pct {
+    font-size: 14px;
+    color: #888;
+}
+
+.fuel-laps {
+    font-size: 11px;
+    color: #666;
+    text-align: center;
+}
+
+/* Tire Grid */
+.tire-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.tire-cell {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 8px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tire-cell.good {
+    border-left: 3px solid #4ade80;
+}
+
+.tire-cell.medium {
+    border-left: 3px solid #f59e0b;
+}
+
+.tire-cell.low {
+    border-left: 3px solid #ef4444;
+}
+
+.tire-corner {
+    font-size: 10px;
+    color: #666;
+    font-weight: 600;
+}
+
+.tire-wear {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.tire-temp {
+    font-size: 10px;
+    color: #888;
+}
+
+/* Damage Display */
+.damage-display {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.damage-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.damage-label {
+    font-size: 11px;
+    color: #888;
+    width: 40px;
+}
+
+.damage-bar-container {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+}
+
+.damage-bar {
+    height: 100%;
+    border-radius: 3px;
+}
+
+.damage-bar.ok {
+    width: 0 !important;
+}
+
+.damage-bar.minor {
+    background: #f59e0b;
+}
+
+.damage-bar.moderate {
+    background: #f97316;
+}
+
+.damage-bar.severe {
+    background: #ef4444;
+}
+
+.damage-value {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 9px;
+    font-weight: 600;
+    color: #fff;
+}
+
+/* Stint Section */
+.stint-display {
+    display: flex;
+    justify-content: space-around;
+}
+
+.stint-stat {
+    text-align: center;
+}
+
+.stat-label {
+    display: block;
+    font-size: 10px;
+    color: #666;
+    margin-bottom: 2px;
+}
+
+.stat-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    font-family: 'SF Mono', Monaco, monospace;
+}

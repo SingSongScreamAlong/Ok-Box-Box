@@ -1,0 +1,144 @@
+/**
+ * Team Dashboard Styles
+ * No scrolling during green flag. Fixed layout.
+ */
+
+.team-dashboard {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background: #0a0d14;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 12px;
+    gap: 12px;
+    overflow: hidden;
+}
+
+.team-dashboard.disconnected {
+    justify-content: center;
+    align-items: center;
+}
+
+.disconnect-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    color: #666;
+}
+
+.disconnect-icon {
+    font-size: 32px;
+}
+
+/* Rows */
+.dashboard-row {
+    display: flex;
+    gap: 12px;
+}
+
+.top-row {
+    flex: 0 0 auto;
+    min-height: 180px;
+}
+
+.middle-row {
+    flex: 1;
+    min-height: 0;
+}
+
+.bottom-row {
+    flex: 0 0 auto;
+    max-height: 180px;
+}
+
+/* Pane Containers */
+.pane {
+    min-width: 0;
+}
+
+.race-state-container {
+    flex: 0 0 200px;
+}
+
+.timeline-container {
+    flex: 1;
+}
+
+.car-status-container {
+    flex: 0 0 240px;
+}
+
+.opponent-container {
+    flex: 1;
+}
+
+.event-log-container {
+    flex: 1;
+}
+
+/* Timeline Placeholder */
+.timeline-placeholder {
+    background: linear-gradient(135deg, #1a1f2e 0%, #0f141f 100%);
+    border-radius: 12px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    color: #666;
+}
+
+.timeline-placeholder span:first-child {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.placeholder-hint {
+    font-size: 11px;
+    color: #444;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .middle-row {
+        flex-direction: column;
+    }
+
+    .car-status-container {
+        flex: 0 0 auto;
+    }
+
+    .opponent-container {
+        flex: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .top-row {
+        flex-direction: column;
+    }
+
+    .race-state-container,
+    .timeline-container {
+        flex: 1;
+    }
+}
+
+/* No Data States */
+.no-data {
+    opacity: 0.6;
+}
+
+/* Visual indicator for empty placeholder elements */
+.empty-slot,
+.placeholder {
+    opacity: 0.5;
+}
+
+.placeholder {
+    border-style: dashed !important;
+    border-color: #333 !important;
+}

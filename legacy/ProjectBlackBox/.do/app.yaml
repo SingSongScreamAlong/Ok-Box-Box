@@ -1,0 +1,60 @@
+# =====================================================================
+# DigitalOcean App Platform Specification
+# BlackBox - AI-Powered iRacing Race Engineer
+# =====================================================================
+
+name: blackbox
+
+region: nyc
+
+# Environment variables shared across services
+envs:
+  - key: NODE_ENV
+    value: production
+
+services:
+  # Backend API + Socket.IO Server
+  - name: api
+    github:
+      repo: SingSongScreamAlong/ProjectBlackBox
+      branch: main
+      deploy_on_push: true
+    source_dir: /blackbox-cloud
+    build_command: npm install && npm run build
+    run_command: npm start
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 10
+      period_seconds: 30
+    routes:
+      - path: /api
+      - path: /health
+      - path: /socket.io
+    envs:
+      - key: OPENAI_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: PORT
+        value: "3000"
+
+  # Frontend Dashboard (Next.js)
+  - name: web
+    github:
+      repo: SingSongScreamAlong/ProjectBlackBox
+      branch: main
+      deploy_on_push: true
+    source_dir: /blackbox-web
+    build_command: npm install && npm run build
+    run_command: npm start
+    http_port: 3000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /
+    envs:
+      - key: NEXT_PUBLIC_CLOUD_URL
+        scope: BUILD_TIME
+        value: "${api.PUBLIC_URL}"

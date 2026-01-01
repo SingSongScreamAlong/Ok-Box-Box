@@ -1,0 +1,59 @@
+{
+  "agent": {
+    "name": "PitBoxRelayAgent",
+    "version": "1.0.0",
+    "log_level": "INFO",
+    "backend_url": "https://pitbox-api.digitalocean.app",
+    "websocket": {
+      "host": "0.0.0.0",
+      "port": 8765,
+      "path": "/ws"
+    },
+    "http": {
+      "host": "0.0.0.0",
+      "port": 8766,
+      "path": "/api"
+    }
+  },
+  "telemetry": {
+    "enabled": true,
+    "sample_rate": 10,
+    "buffer_size": 100,
+    "sources": ["iRacing"]
+  },
+  "video": {
+    "enabled": true,
+    "width": 1280,
+    "height": 720,
+    "fps": 30,
+    "quality": 80,
+    "format": "jpeg"
+  },
+  "storage": {
+    "enabled": true,
+    "path": "/root/PitBoxRelay/data",
+    "max_size_gb": 10,
+    "retention_days": 7
+  },
+  "ai": {
+    "enabled": true,
+    "endpoint": "https://pitbox-ai.digitalocean.app/api/v1",
+    "models": {
+      "driver_coach": "driver-coach-v1",
+      "strategy": "race-strategy-v1",
+      "telemetry": "telemetry-analysis-v1"
+    }
+  },
+  "voice": {
+    "enabled": true,
+    "tts_provider": "elevenlabs",
+    "voice_id": "default",
+    "stt_provider": "whisper",
+    "language": "en-US"
+  },
+  "security": {
+    "api_key_required": true,
+    "jwt_auth": true,
+    "cors_origins": ["https://pitbox-dashboard.digitalocean.app"]
+  }
+}

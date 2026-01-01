@@ -1,0 +1,302 @@
+/* =====================================================================
+   Admin Ops Page Styles
+   ===================================================================== */
+
+.ops-page {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    background: #0a0a0a;
+    color: #e0e0e0;
+    min-height: 100vh;
+}
+
+.ops-page--unauthorized,
+.ops-page--disabled {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    text-align: center;
+}
+
+.ops-page--unauthorized h1,
+.ops-page--disabled h1 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.ops-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #333;
+}
+
+.ops-header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.ops-header__actions button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.ops-header__actions button:hover {
+    background: #1d4ed8;
+}
+
+.ops-notice {
+    background: #451a03;
+    border: 1px solid #92400e;
+    color: #fbbf24;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+    font-size: 0.875rem;
+}
+
+.ops-error {
+    background: #450a0a;
+    border: 1px solid #991b1b;
+    color: #fca5a5;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.ops-section {
+    margin-bottom: 2rem;
+}
+
+.ops-section h2 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #9ca3af;
+}
+
+/* Summary Grid */
+.ops-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+}
+
+.ops-card {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.ops-card h3 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.05em;
+}
+
+.ops-card p {
+    margin: 0.25rem 0;
+}
+
+.ops-card code {
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.75rem;
+    background: #262626;
+    padding: 0.125rem 0.25rem;
+    border-radius: 2px;
+}
+
+.ops-big-number {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #22d3ee;
+}
+
+.ops-card--errors .ops-big-number {
+    color: #f87171;
+}
+
+.ops-detail {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+/* Sessions Table */
+.ops-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.ops-table th,
+.ops-table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #262626;
+}
+
+.ops-table th {
+    background: #1a1a1a;
+    color: #9ca3af;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+.ops-table tr:hover {
+    background: #1a1a1a;
+}
+
+.ops-table tr.selected {
+    background: #1e3a5f;
+}
+
+.ops-table code {
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.75rem;
+}
+
+.ops-table td.warning {
+    color: #fbbf24;
+}
+
+.ops-table button {
+    background: transparent;
+    border: 1px solid #333;
+    color: #9ca3af;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 0.25rem;
+    font-size: 0.75rem;
+}
+
+.ops-table button:hover {
+    background: #262626;
+    color: white;
+}
+
+/* Event Tabs */
+.ops-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.ops-tabs button {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #9ca3af;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    text-transform: capitalize;
+}
+
+.ops-tabs button:hover {
+    background: #262626;
+}
+
+.ops-tabs button.active {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: white;
+}
+
+.ops-filter {
+    margin-left: 1rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ops-filter button {
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    padding: 0;
+    font-size: 0.875rem;
+}
+
+/* Events List */
+.ops-events {
+    background: #0f0f0f;
+    border: 1px solid #262626;
+    border-radius: 4px;
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.75rem;
+}
+
+.ops-event {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #1a1a1a;
+    display: flex;
+    gap: 0.75rem;
+    align-items: baseline;
+    flex-wrap: wrap;
+}
+
+.ops-event:hover {
+    background: #1a1a1a;
+}
+
+.ops-event__time {
+    color: #6b7280;
+    min-width: 70px;
+}
+
+.ops-event__type {
+    color: #22d3ee;
+    min-width: 80px;
+    font-weight: 500;
+}
+
+.ops-event--error .ops-event__type,
+.ops-event--exception .ops-event__type,
+.ops-event--auth_fail .ops-event__type {
+    color: #f87171;
+}
+
+.ops-event--connect .ops-event__type {
+    color: #4ade80;
+}
+
+.ops-event--disconnect .ops-event__type {
+    color: #fbbf24;
+}
+
+.ops-event__session,
+.ops-event__socket {
+    background: #262626;
+    padding: 0.125rem 0.375rem;
+    border-radius: 2px;
+    color: #a78bfa;
+}
+
+.ops-event__reason,
+.ops-event__message {
+    color: #9ca3af;
+    word-break: break-word;
+}

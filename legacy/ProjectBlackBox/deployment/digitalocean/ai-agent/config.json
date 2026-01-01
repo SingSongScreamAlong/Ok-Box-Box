@@ -1,0 +1,53 @@
+{
+  "agent": {
+    "name": "PitBoxAIAgent",
+    "version": "1.0.0",
+    "log_level": "INFO"
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 3000,
+    "cors_origins": ["*"]
+  },
+  "models": {
+    "driver_coach": {
+      "model_id": "driver-coach-v1",
+      "temperature": 0.2,
+      "max_tokens": 1024
+    },
+    "strategy": {
+      "model_id": "race-strategy-v1",
+      "temperature": 0.3,
+      "max_tokens": 2048
+    },
+    "telemetry": {
+      "model_id": "telemetry-analysis-v1",
+      "temperature": 0.1,
+      "max_tokens": 1024
+    }
+  },
+  "relay_agent": {
+    "url": "https://pitbox-api.digitalocean.app/api",
+    "ws_url": "wss://pitbox-api.digitalocean.app/ws",
+    "auth_token": "${RELAY_AGENT_AUTH_TOKEN}"
+  },
+  "voice": {
+    "provider": "elevenlabs",
+    "api_key": "${ELEVENLABS_API_KEY}",
+    "voice_id": "default",
+    "model": "eleven_multilingual_v2"
+  },
+  "cache": {
+    "enabled": true,
+    "ttl_seconds": 300,
+    "max_size_mb": 100
+  },
+  "security": {
+    "api_key_required": true,
+    "rate_limit": {
+      "enabled": true,
+      "max_requests": 100,
+      "window_seconds": 60
+    }
+  }
+}

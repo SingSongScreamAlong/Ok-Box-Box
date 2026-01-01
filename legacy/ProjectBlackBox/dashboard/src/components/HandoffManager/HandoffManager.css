@@ -1,0 +1,310 @@
+.handoff-manager {
+  background-color: #1e1e2f;
+  border-radius: 8px;
+  padding: 16px;
+  color: #ffffff;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 500px;
+}
+
+.handoff-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #2e2e4f;
+  padding-bottom: 8px;
+}
+
+.handoff-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #a0a0b0;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.close-button:hover {
+  background-color: #2e2e4f;
+  color: #ffffff;
+}
+
+.handoff-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.request-handoff {
+  background-color: #262640;
+  border-radius: 4px;
+  padding: 16px;
+}
+
+.request-handoff h4 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: #a0a0b0;
+}
+
+.current-driver {
+  background-color: #2e2e4f;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-weight: 600;
+}
+
+.driver-select {
+  background-color: #2e2e4f;
+  border: 1px solid #3e3e5f;
+  border-radius: 4px;
+  color: #ffffff;
+  padding: 8px 12px;
+  font-size: 14px;
+  width: 100%;
+  cursor: pointer;
+  outline: none;
+}
+
+.driver-select:focus {
+  border-color: #00bcd4;
+}
+
+textarea {
+  background-color: #2e2e4f;
+  border: 1px solid #3e3e5f;
+  border-radius: 4px;
+  color: #ffffff;
+  padding: 8px 12px;
+  font-size: 14px;
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  font-family: inherit;
+  outline: none;
+}
+
+textarea:focus {
+  border-color: #00bcd4;
+}
+
+.request-button {
+  background-color: #00bcd4;
+  border: none;
+  border-radius: 4px;
+  color: #ffffff;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.request-button:hover {
+  background-color: #00a0b4;
+}
+
+.request-button:disabled {
+  background-color: #3e3e5f;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.error-message {
+  background-color: rgba(244, 67, 54, 0.1);
+  border-left: 3px solid #f44336;
+  color: #f44336;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.success-message {
+  background-color: rgba(76, 175, 80, 0.1);
+  border-left: 3px solid #4caf50;
+  color: #4caf50;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.handoff-section {
+  background-color: #262640;
+  border-radius: 4px;
+  padding: 16px;
+}
+
+.handoff-section h4 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.handoff-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.handoff-item {
+  background-color: #2e2e4f;
+  border-radius: 4px;
+  padding: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.handoff-item.incoming {
+  border-left: 3px solid #ff9800;
+}
+
+.handoff-item.outgoing {
+  border-left: 3px solid #00bcd4;
+}
+
+.handoff-info {
+  flex: 1;
+}
+
+.handoff-from span,
+.handoff-to span {
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.handoff-notes {
+  margin: 8px 0;
+  font-style: italic;
+  color: #a0a0b0;
+  font-size: 13px;
+}
+
+.handoff-time {
+  font-size: 12px;
+  color: #a0a0b0;
+  margin-top: 4px;
+}
+
+.handoff-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.accept-button,
+.reject-button {
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.accept-button {
+  background-color: #4caf50;
+  color: #ffffff;
+}
+
+.accept-button:hover {
+  background-color: #3d8b40;
+}
+
+.reject-button {
+  background-color: #f44336;
+  color: #ffffff;
+}
+
+.reject-button:hover {
+  background-color: #d32f2f;
+}
+
+.handoff-status {
+  padding: 4px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.handoff-status.pending {
+  background-color: #ff9800;
+  color: #ffffff;
+}
+
+.handoff-status.confirmed {
+  background-color: #4caf50;
+  color: #ffffff;
+}
+
+.handoff-status.cancelled {
+  background-color: #f44336;
+  color: #ffffff;
+}
+
+.no-active-driver {
+  text-align: center;
+  padding: 20px;
+  color: #a0a0b0;
+  background-color: #262640;
+  border-radius: 4px;
+}
+
+/* Compact mode styles */
+.handoff-manager.compact {
+  max-width: 100%;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.handoff-manager.compact .handoff-section {
+  padding: 12px;
+}
+
+.handoff-manager.compact .handoff-section h4 {
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.handoff-manager.compact .handoff-item {
+  padding: 8px;
+}
+
+.handoff-manager.compact .handoff-notes {
+  max-height: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

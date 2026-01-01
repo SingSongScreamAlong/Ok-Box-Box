@@ -1,0 +1,23 @@
+{
+    "name": "test-harness",
+    "version": "1.0.0",
+    "description": "RC Test Harness for Ok, Box Box",
+    "main": "dist/run-all.js",
+    "type": "module",
+    "scripts": {
+        "build": "tsc",
+        "smoke": "node --loader ts-node/esm src/smoke-test.ts",
+        "replay": "node --loader ts-node/esm src/replay-test.ts",
+        "rate": "node --loader ts-node/esm src/rate-test.ts",
+        "load": "node --loader ts-node/esm src/load-test.ts",
+        "all": "node --loader ts-node/esm src/run-all.ts"
+    },
+    "dependencies": {
+        "socket.io-client": "^4.7.2"
+    },
+    "devDependencies": {
+        "@types/node": "^20.10.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.3.3"
+    }
+}

@@ -1,0 +1,224 @@
+/**
+ * Strategy Recommendation Styles
+ */
+
+.strategy-rec {
+    background: linear-gradient(135deg, #1a1f2e 0%, #0f141f 100%);
+    border-radius: 12px;
+    padding: 16px;
+    color: #e0e0e0;
+    min-width: 320px;
+}
+
+.strategy-rec.disconnected {
+    opacity: 0.6;
+    text-align: center;
+    padding: 24px;
+}
+
+.strategy-rec h3 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+}
+
+/* Recommendation Card */
+.rec-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 16px;
+    border-left: 4px solid;
+}
+
+.rec-card.critical {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: #ef4444;
+}
+
+.rec-card.warning {
+    background: rgba(245, 158, 11, 0.15);
+    border-color: #f59e0b;
+}
+
+.rec-card.caution {
+    background: rgba(250, 204, 21, 0.15);
+    border-color: #facc15;
+}
+
+.rec-card.positive {
+    background: rgba(74, 222, 128, 0.15);
+    border-color: #4ade80;
+}
+
+.rec-card.neutral {
+    border-color: #666;
+}
+
+.rec-action {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.rec-emoji {
+    font-size: 24px;
+}
+
+.rec-label {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.rec-card.critical .rec-label {
+    color: #ef4444;
+}
+
+.rec-card.warning .rec-label {
+    color: #f59e0b;
+}
+
+.rec-card.caution .rec-label {
+    color: #facc15;
+}
+
+.rec-card.positive .rec-label {
+    color: #4ade80;
+}
+
+.rec-reason {
+    font-size: 13px;
+    color: #aaa;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.rec-confidence {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+}
+
+.rec-confidence .label {
+    color: #666;
+}
+
+.confidence-bar {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.confidence-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4ade80, #facc15);
+    transition: width 0.3s ease;
+}
+
+.rec-confidence .value {
+    font-weight: 600;
+    color: #fff;
+}
+
+.rec-alternatives {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.rec-alternatives .label {
+    font-size: 11px;
+    color: #666;
+}
+
+.alt-action {
+    font-size: 10px;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: #999;
+}
+
+.rec-empty {
+    text-align: center;
+    padding: 24px;
+    color: #666;
+}
+
+/* Threats Section */
+.threats-section {
+    margin-top: 16px;
+}
+
+.threats-section h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #fff;
+}
+
+.threats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.threat-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 10px;
+    border-left: 3px solid;
+}
+
+.threat-card.imminent {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.threat-card.high {
+    border-color: #f59e0b;
+}
+
+.threat-card.medium {
+    border-color: #facc15;
+}
+
+.threat-card.low {
+    border-color: #4ade80;
+}
+
+.threat-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.threat-emoji {
+    font-size: 12px;
+}
+
+.threat-name {
+    flex: 1;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.threat-gap {
+    font-size: 12px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.threat-detail {
+    font-size: 10px;
+    color: #888;
+}

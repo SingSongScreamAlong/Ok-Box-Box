@@ -1,0 +1,68 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: |
+          npm install
+          npm install -g electron-builder
+      
+      - name: Build portable executable
+        run: npm run build:portable
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-portable
+          path: dist/PitBox-Portable.exe
+  
+  create-release:
+    needs: build-windows
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: windows-portable
+          path: ./dist
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/PitBox-Portable.exe
+          body: |
+            ## PitBox ${{ github.ref_name }}
+            
+            ### Download
+            - **Windows Driver App**: Download `PitBox-Portable.exe` below
+            - **Relay Agent**: See `relay_agent/` folder for Python GUI
+            
+            ### Installation
+            1. Download the portable executable
+            2. Run it - no installation required!
+            3. Open dashboard in any browser
+            
+            ### What's New
+            See CHANGELOG.md for details
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

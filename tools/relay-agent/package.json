@@ -1,0 +1,11 @@
+{
+    "name": "@controlbox/relay-agent",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "start": "python3 main.py",
+        "setup": "pip3 install -r requirements.txt",
+        "dev": "python3 main.py",
+        "build": "pyinstaller relay-agent.spec"
+    }
+}

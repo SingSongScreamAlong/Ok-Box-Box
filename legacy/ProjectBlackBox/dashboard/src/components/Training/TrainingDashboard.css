@@ -1,0 +1,452 @@
+/* Training Dashboard - B-2 Stealth Theme */
+.training-page {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 50px);
+  background: #050508;
+  color: #e8e8ec;
+}
+
+.training-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: #08090c;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.training-header h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #d1d5db;
+}
+
+.header-stats {
+  display: flex;
+  gap: 24px;
+}
+
+.header-stat {
+  text-align: center;
+}
+
+.header-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #4a9eff;
+}
+
+.header-stat-label {
+  font-size: 10px;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+/* Main Content */
+.training-content {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Left Panel */
+.training-main {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 24px;
+  gap: 24px;
+}
+
+/* Section Headers */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #a8aab0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.section-header .view-all {
+  font-size: 12px;
+  color: #4a9eff;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.section-header .view-all:hover {
+  text-decoration: underline;
+}
+
+/* Goals Grid */
+.goals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.goal-card {
+  background: #0a0c10;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s;
+}
+
+.goal-card:hover {
+  border-color: rgba(74, 158, 255, 0.2);
+}
+
+.goal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.goal-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.goal-icon.speed { background: rgba(74, 158, 255, 0.15); }
+.goal-icon.consistency { background: rgba(61, 214, 140, 0.15); }
+.goal-icon.technique { background: rgba(168, 85, 247, 0.15); }
+.goal-icon.racecraft { background: rgba(230, 180, 34, 0.15); }
+
+.goal-priority {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.goal-priority.high {
+  background: rgba(229, 69, 69, 0.15);
+  color: #e54545;
+}
+
+.goal-priority.medium {
+  background: rgba(230, 180, 34, 0.15);
+  color: #e6b422;
+}
+
+.goal-priority.low {
+  background: rgba(61, 214, 140, 0.15);
+  color: #3dd68c;
+}
+
+.goal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #e8e8ec;
+  margin-bottom: 6px;
+}
+
+.goal-description {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.goal-progress {
+  margin-bottom: 12px;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.progress-label {
+  color: #6b7280;
+}
+
+.progress-value {
+  color: #4a9eff;
+  font-weight: 600;
+}
+
+.progress-bar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.progress-fill.speed { background: linear-gradient(90deg, #4a9eff, #2563eb); }
+.progress-fill.consistency { background: linear-gradient(90deg, #3dd68c, #22c55e); }
+.progress-fill.technique { background: linear-gradient(90deg, #a855f7, #7c3aed); }
+.progress-fill.racecraft { background: linear-gradient(90deg, #e6b422, #ca8a04); }
+
+.goal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #5c5e66;
+}
+
+.goal-deadline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.goal-xp {
+  color: #4a9eff;
+  font-weight: 600;
+}
+
+/* Skills Section */
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.skill-card {
+  background: #0a0c10;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.skill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.skill-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e8e8ec;
+}
+
+.skill-level {
+  font-size: 12px;
+  font-weight: 700;
+  color: #4a9eff;
+}
+
+.skill-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.skill-fill {
+  height: 100%;
+  background: #4a9eff;
+  border-radius: 2px;
+}
+
+.skill-trend {
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.skill-trend.up { color: #3dd68c; }
+.skill-trend.down { color: #e54545; }
+.skill-trend.stable { color: #6b7280; }
+
+/* Sidebar */
+.training-sidebar {
+  background: #08090c;
+  border-left: 1px solid rgba(255, 255, 255, 0.04);
+  overflow-y: auto;
+}
+
+.sidebar-section {
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.sidebar-section h3 {
+  margin: 0 0 16px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Driver Profile */
+.driver-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(74, 158, 255, 0.2), rgba(74, 158, 255, 0.05));
+  border: 2px solid rgba(74, 158, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  margin-bottom: 12px;
+}
+
+.profile-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e8e8ec;
+  margin-bottom: 4px;
+}
+
+.profile-level {
+  font-size: 12px;
+  color: #4a9eff;
+  margin-bottom: 16px;
+}
+
+.xp-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.xp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #4a9eff, #2563eb);
+  border-radius: 4px;
+}
+
+.xp-text {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* Achievements */
+.achievements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.achievement-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+}
+
+.achievement-item.locked {
+  opacity: 0.4;
+}
+
+.achievement-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+
+.achievement-icon.gold { background: rgba(230, 180, 34, 0.15); }
+.achievement-icon.silver { background: rgba(156, 163, 175, 0.15); }
+.achievement-icon.bronze { background: rgba(180, 83, 9, 0.15); }
+
+.achievement-info {
+  flex: 1;
+}
+
+.achievement-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e8e8ec;
+  margin-bottom: 2px;
+}
+
+.achievement-desc {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* Weekly Summary */
+.weekly-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.weekly-stat {
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.weekly-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #e8e8ec;
+  margin-bottom: 4px;
+}
+
+.weekly-stat-label {
+  font-size: 10px;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+/* Scrollbar */
+.training-main::-webkit-scrollbar,
+.training-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.training-main::-webkit-scrollbar-track,
+.training-sidebar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.training-main::-webkit-scrollbar-thumb,
+.training-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(74, 158, 255, 0.3);
+  border-radius: 2px;
+}

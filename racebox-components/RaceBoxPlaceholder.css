@@ -1,0 +1,68 @@
+/* =====================================================================
+   RaceBox Placeholder Styles (Week 7)
+   ===================================================================== */
+
+.racebox-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+    color: #e0e0e0;
+    font-family: 'Inter', -apple-system, sans-serif;
+}
+
+.coming-soon {
+    text-align: center;
+    padding: 3rem;
+}
+
+.coming-soon .icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.coming-soon h1 {
+    font-size: 3rem;
+    margin: 0 0 0.5rem;
+    background: linear-gradient(90deg, #00d4ff, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.coming-soon p {
+    font-size: 1.25rem;
+    color: #888;
+    margin-bottom: 2rem;
+}
+
+.features {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    text-align: left;
+    margin-bottom: 2rem;
+}
+
+.feature {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+    color: #aaa;
+}
+
+.feature .bullet {
+    color: #00d4ff;
+}
+
+.eta {
+    background: rgba(168, 85, 247, 0.15);
+    color: #a855f7;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    display: inline-block;
+}

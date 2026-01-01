@@ -1,0 +1,105 @@
+name: Build Windows Executables
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-relay-agent:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          cd relay_agent
+          pip install -r requirements.txt
+          pip install pyinstaller
+          
+      - name: Build Relay Agent EXE
+        run: |
+          cd relay_agent
+          pyinstaller --onefile --windowed --name "PitBox-Relay-Agent" gui.py
+          
+      - name: Upload Relay Agent
+        uses: actions/upload-artifact@v4
+        with:
+          name: relay-agent-windows
+          path: relay_agent/dist/PitBox-Relay-Agent.exe
+
+  build-driver-app:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: |
+          cd driver_app
+          npm install
+          
+      - name: Build Driver App
+        run: |
+          cd driver_app
+          npm run build
+          npm run package
+          
+      - name: Upload Driver App
+        uses: actions/upload-artifact@v4
+        with:
+          name: driver-app-windows
+          path: driver_app/out/**/*.exe
+
+  create-release:
+    needs: [build-relay-agent, build-driver-app]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download Relay Agent
+        uses: actions/download-artifact@v4
+        with:
+          name: relay-agent-windows
+          path: ./artifacts
+          
+      - name: Download Driver App
+        uses: actions/download-artifact@v4
+        with:
+          name: driver-app-windows
+          path: ./artifacts
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/**/*.exe
+          body: |
+            ## PitBox ${{ github.ref_name }}
+            
+            ### Downloads
+            - **PitBox-Relay-Agent.exe** - Windows relay agent with GUI
+            - **PitBox-Driver-App.exe** - Windows desktop driver app
+            
+            ### Installation
+            1. Download the .exe file
+            2. Run it - no installation required!
+            3. Configure server URL in settings
+            
+            ### Requirements
+            - Windows 10 or later
+            - iRacing installed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
