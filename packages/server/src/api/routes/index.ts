@@ -25,6 +25,10 @@ export const apiRouter = Router();
 // Health check (no auth required)
 apiRouter.use('/health', healthRouter);
 
+// Relay version (for auto-update checks)
+import relayVersionRouter from './relay-version.js';
+apiRouter.use('/relay', relayVersionRouter);
+
 // Auth routes (login/logout, no auth required)
 apiRouter.use('/auth', authRouter);
 
@@ -126,6 +130,4 @@ apiRouter.use('/dev/diagnostics', diagnosticsRouter);
 import voiceRouter from './voice.js';
 apiRouter.use('/voice', voiceRouter);
 
-// Relay version (for auto-update checks)
-import relayVersionRouter from './relay-version.js';
-apiRouter.use('/relay', relayVersionRouter);
+

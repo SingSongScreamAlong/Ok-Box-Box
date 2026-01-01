@@ -44,9 +44,8 @@ export class RelayAdapter {
         const result = TelemetrySnapshotSchema.safeParse(rawData);
 
         if (!result.success) {
-            // Telemetry is high frequency, maybe sample logs or debounce?
-            // For now, log first error per minute logic could be good, but keeping simple.
-            // this.logValidationError('telemetry', result.error);
+            // Start logging once per minute or sample? For now, just log.
+            this.logValidationError('telemetry', result.error);
             return false;
         }
 
