@@ -109,7 +109,8 @@ npm run typecheck
 
 ## Documentation
 
-- [Architecture Overview](docs/architecture.md)
+- **[System Architecture (The Manual)](docs/SYSTEM_ARCHITECTURE.md)** 👈 *Start Here!*
+- [Architecture Overview (Legacy)](docs/architecture.md)
 - [API Specification](docs/api-spec.md)
 - [Rulebook Schema](docs/rulebook-schema.md)
 - [Windsurf Tasks](docs/windsurf-tasks.md)
