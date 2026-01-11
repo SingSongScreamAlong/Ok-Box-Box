@@ -1,0 +1,219 @@
+.telemetry-panel {
+  flex: 1;
+  min-height: 0;
+}
+
+.telemetry-panel .panel-content {
+  padding: 8px;
+}
+
+.telemetry-empty {
+  text-align: center;
+  padding: 20px 10px;
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+.telemetry-primary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.speed-display {
+  text-align: center;
+}
+
+.speed-value {
+  font-size: 42px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--accent-primary);
+  line-height: 1;
+}
+
+.speed-unit {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.gear-display {
+  text-align: center;
+}
+
+.gear-label {
+  display: block;
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.gear-value {
+  font-size: 28px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.rpm-display {
+  text-align: center;
+}
+
+.rpm-value {
+  font-size: 18px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.rpm-unit {
+  display: block;
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.telemetry-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.input-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-label {
+  width: 32px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.input-track {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.input-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.05s ease-out;
+}
+
+.throttle .input-fill {
+  background: var(--accent-success);
+}
+
+.brake .input-fill {
+  background: var(--accent-danger);
+}
+
+.input-value {
+  width: 40px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-align: right;
+  color: var(--text-secondary);
+}
+
+.telemetry-times {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.time-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.time-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.time-value {
+  font-size: 14px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.telemetry-position {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.position-item {
+  text-align: center;
+}
+
+.position-label {
+  display: block;
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.position-value {
+  font-size: 14px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.telemetry-tires {
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.tire-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.tire-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.tire {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.tire-pos {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.tire-temp {
+  font-size: 14px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--accent-warning);
+}

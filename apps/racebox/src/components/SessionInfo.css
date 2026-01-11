@@ -1,0 +1,85 @@
+.session-info {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.session-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.session-track {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.track-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.track-config {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.session-type {
+  display: flex;
+}
+
+.type-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.type-race {
+  background: rgba(255, 68, 68, 0.2);
+  color: var(--accent-red);
+}
+
+.type-qualifying {
+  background: rgba(170, 68, 255, 0.2);
+  color: var(--accent-purple);
+}
+
+.type-practice {
+  background: rgba(68, 136, 255, 0.2);
+  color: var(--accent-blue);
+}
+
+.type-warmup {
+  background: rgba(255, 204, 0, 0.2);
+  color: var(--accent-yellow);
+}
+
+.session-meta {
+  display: flex;
+  gap: 16px;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.meta-value {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+}

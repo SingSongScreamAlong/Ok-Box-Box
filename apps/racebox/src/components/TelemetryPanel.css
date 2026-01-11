@@ -1,0 +1,121 @@
+.telemetry-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.telemetry-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.telemetry-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+.telemetry-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.telemetry-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-primary);
+}
+
+.telemetry-value.large {
+  font-size: 28px;
+}
+
+.telemetry-unit {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.telemetry-timing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+.timing-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.timing-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.timing-value {
+  font-size: 16px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.telemetry-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  width: 28px;
+}
+
+.input-track {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.input-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 50ms ease-out;
+}
+
+.input-fill.throttle {
+  background: var(--accent-green);
+}
+
+.input-fill.brake {
+  background: var(--accent-red);
+}
+
+.input-value {
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text-secondary);
+  width: 36px;
+  text-align: right;
+}

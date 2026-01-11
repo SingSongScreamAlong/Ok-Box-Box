@@ -1,0 +1,48 @@
+name: octopus-app
+region: nyc1
+services:
+  - name: server
+    github:
+      repo: SingSongScreamAlong/Ok-Box-Box
+      branch: main
+      deploy_on_push: true
+    source_dir: services/api
+    dockerfile_path: services/api/Dockerfile
+    http_port: 4000
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    routes:
+      - path: /api
+      - path: /socket.io
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 10
+      period_seconds: 30
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "4000"
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+      - key: JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: CORS_ORIGIN
+        value: "https://octopus-app-qsi3i.ondigitalocean.app"
+
+static_sites:
+  - name: dashboard
+    github:
+      repo: SingSongScreamAlong/Ok-Box-Box
+      branch: main
+      deploy_on_push: true
+    source_dir: apps/blackbox
+    build_command: npm run build
+    output_dir: dist
+    routes:
+      - path: /
+    envs:
+      - key: VITE_API_URL
+        value: "https://octopus-app-qsi3i.ondigitalocean.app"

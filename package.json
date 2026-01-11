@@ -1,0 +1,28 @@
+{
+  "name": "okboxbox",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ok, Box Box - Professional Race Intelligence Platform",
+  "workspaces": [
+    "packages/*",
+    "apps/*",
+    "services/*",
+    "relay/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev:api & npm run dev:racebox",
+    "dev:api": "npm run dev --workspace=services/api",
+    "dev:racebox": "npm run dev --workspace=apps/racebox",
+    "dev:launcher": "npm run dev --workspace=apps/launcher",
+    "build": "npm run build --workspaces --if-present",
+    "build:shared": "npm run build --workspace=packages/shared",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "clean": "rimraf node_modules packages/*/node_modules apps/*/node_modules services/*/node_modules relay/*/node_modules"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "author": "OKBoxBox",
+  "license": "MIT"
+}

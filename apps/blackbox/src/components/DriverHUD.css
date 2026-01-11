@@ -1,0 +1,420 @@
+.driver-hud {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, rgba(10, 10, 15, 0.95) 0%, rgba(5, 5, 10, 0.98) 100%);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: hidden;
+}
+
+/* Top Bar */
+.hud-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.hud-lap-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.lap-current {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.lap-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.lap-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.lap-sector {
+  background: var(--accent-primary);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hud-delta {
+  text-align: center;
+}
+
+.delta-value {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+
+.delta-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.hud-lap-time {
+  text-align: right;
+}
+
+.current-time {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.best-time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.best-label {
+  font-size: 9px;
+  color: var(--accent-success);
+  background: rgba(0, 200, 100, 0.2);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.best-value {
+  font-size: 14px;
+  color: var(--accent-success);
+}
+
+/* Center - Speed and Gear */
+.hud-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  padding: 24px;
+}
+
+.hud-speed {
+  text-align: center;
+}
+
+.speed-value {
+  font-size: 72px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -2px;
+}
+
+.speed-unit {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.hud-gear {
+  font-size: 120px;
+  font-weight: 700;
+  line-height: 1;
+  text-shadow: 0 0 30px currentColor;
+}
+
+.hud-rpm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.rpm-bar {
+  width: 200px;
+  height: 12px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.rpm-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.05s ease;
+}
+
+.rpm-value {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+/* Quick Stats */
+.hud-quick-stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  padding: 12px 20px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+}
+
+.quick-stat {
+  text-align: center;
+  min-width: 80px;
+}
+
+.quick-stat .stat-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.quick-stat .stat-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.stat-unit {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+/* Pedal Inputs */
+.hud-inputs {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 12px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.input-label {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.input-bar {
+  width: 24px;
+  height: 100px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.input-bar .input-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transition: height 0.05s ease;
+}
+
+.input-bar.throttle .input-fill {
+  background: linear-gradient(0deg, #00aa44, #00ff66);
+}
+
+.input-bar.brake .input-fill {
+  background: linear-gradient(0deg, #aa0000, #ff4444);
+}
+
+.input-value {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* Last Lap Delta */
+.hud-last-lap-delta {
+  position: absolute;
+  top: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  font-weight: 600;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 20px;
+  animation: fadeInOut 3s ease forwards;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  10% { opacity: 1; transform: translateX(-50%) translateY(0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Quick Access Buttons */
+.hud-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px;
+}
+
+.hud-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 60px;
+}
+
+.hud-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.hud-button.apex-button {
+  background: linear-gradient(135deg, rgba(0, 200, 255, 0.2), rgba(0, 100, 200, 0.1));
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.hud-button.apex-button:hover {
+  background: linear-gradient(135deg, rgba(0, 200, 255, 0.3), rgba(0, 100, 200, 0.2));
+  box-shadow: 0 0 20px rgba(0, 200, 255, 0.3);
+}
+
+.btn-icon {
+  font-size: 20px;
+}
+
+.btn-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Tire Temps Mini */
+.hud-tires-mini {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.tire-mini {
+  width: 36px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tire-mini.fl, .tire-mini.fr {
+  border-top: 2px solid var(--accent-primary);
+}
+
+.tire-mini.rl, .tire-mini.rr {
+  border-bottom: 2px solid var(--accent-warning);
+}
+
+/* APEX FAB */
+.apex-fab {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, var(--accent-primary), #0066aa);
+  border: none;
+  border-radius: 30px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0, 200, 255, 0.4);
+  transition: all 0.3s;
+}
+
+.apex-fab:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 30px rgba(0, 200, 255, 0.5);
+}
+
+.apex-fab-icon {
+  font-size: 20px;
+}
+
+.apex-fab-label {
+  font-family: var(--font-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hud-center {
+    gap: 20px;
+  }
+  
+  .speed-value {
+    font-size: 48px;
+  }
+  
+  .hud-gear {
+    font-size: 72px;
+  }
+  
+  .rpm-bar {
+    width: 120px;
+  }
+  
+  .hud-inputs,
+  .hud-tires-mini {
+    display: none;
+  }
+  
+  .hud-buttons {
+    gap: 4px;
+  }
+  
+  .hud-button {
+    padding: 8px 12px;
+    min-width: 50px;
+  }
+}

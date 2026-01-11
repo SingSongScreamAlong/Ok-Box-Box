@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'">
+    <title>Ok, Box Box - Launcher</title>
+    <style>
+      :root {
+        --bg-primary: #0a0a0a;
+        --bg-secondary: #141414;
+        --bg-tertiary: #1a1a1a;
+        --border-color: #2a2a2a;
+        --text-primary: #ffffff;
+        --text-secondary: #a0a0a0;
+        --text-muted: #666666;
+        --accent-green: #00ff88;
+        --accent-red: #ff4444;
+        --accent-blue: #4488ff;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        height: 100vh;
+        overflow: hidden;
+        user-select: none;
+      }
+
+      .titlebar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 32px;
+        background: var(--bg-secondary);
+        -webkit-app-region: drag;
+        padding: 0 8px;
+      }
+
+      .titlebar-title {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+
+      .titlebar-controls {
+        display: flex;
+        -webkit-app-region: no-drag;
+      }
+
+      .titlebar-btn {
+        width: 46px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 10px;
+      }
+
+      .titlebar-btn:hover {
+        background: var(--bg-tertiary);
+      }
+
+      .titlebar-btn.close:hover {
+        background: var(--accent-red);
+        color: white;
+      }
+
+      .container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 32px);
+        padding: 24px;
+        gap: 24px;
+      }
+
+      .header {
+        text-align: center;
+      }
+
+      .brand {
+        font-size: 32px;
+        font-weight: 600;
+      }
+
+      .brand-ok {
+        color: var(--text-secondary);
+      }
+
+      .brand-box {
+        color: var(--accent-green);
+      }
+
+      .subtitle {
+        color: var(--text-muted);
+        font-size: 14px;
+        margin-top: 4px;
+      }
+
+      .status-panel {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 16px;
+      }
+
+      .status-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0;
+      }
+
+      .status-row:not(:last-child) {
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .status-label {
+        color: var(--text-secondary);
+      }
+
+      .status-value {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--text-muted);
+      }
+
+      .status-dot.connected {
+        background: var(--accent-green);
+        box-shadow: 0 0 8px var(--accent-green);
+      }
+
+      .status-dot.error {
+        background: var(--accent-red);
+      }
+
+      .modules-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        flex: 1;
+      }
+
+      .module-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .module-card:hover {
+        border-color: var(--accent-green);
+        transform: translateY(-2px);
+      }
+
+      .module-card.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .module-card.disabled:hover {
+        border-color: var(--border-color);
+        transform: none;
+      }
+
+      .module-icon {
+        font-size: 32px;
+      }
+
+      .module-name {
+        font-weight: 600;
+      }
+
+      .module-desc {
+        font-size: 12px;
+        color: var(--text-muted);
+        text-align: center;
+      }
+
+      .module-badge {
+        font-size: 10px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: var(--accent-green);
+        color: black;
+        font-weight: 600;
+      }
+
+      .module-badge.pro {
+        background: var(--accent-blue);
+        color: white;
+      }
+
+      .actions {
+        display: flex;
+        gap: 12px;
+      }
+
+      .btn {
+        flex: 1;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background: var(--accent-green);
+        color: black;
+      }
+
+      .btn-primary:hover {
+        filter: brightness(1.1);
+      }
+
+      .btn-secondary {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+      }
+
+      .btn-secondary:hover {
+        background: var(--bg-secondary);
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="titlebar">
+      <span class="titlebar-title">Ok, Box Box Launcher</span>
+      <div class="titlebar-controls">
+        <button class="titlebar-btn" onclick="window.electronAPI.minimize()">─</button>
+        <button class="titlebar-btn" onclick="window.electronAPI.maximize()">□</button>
+        <button class="titlebar-btn close" onclick="window.electronAPI.close()">✕</button>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="header">
+        <div class="brand">
+          <span class="brand-ok">Ok,</span>
+          <span class="brand-box">Box Box</span>
+        </div>
+        <div class="subtitle">Race Intelligence Platform</div>
+      </div>
+
+      <div class="status-panel">
+        <div class="status-row">
+          <span class="status-label">License</span>
+          <div class="status-value">
+            <span class="status-dot" id="license-dot"></span>
+            <span id="license-status">Checking...</span>
+          </div>
+        </div>
+        <div class="status-row">
+          <span class="status-label">Relay Agent</span>
+          <div class="status-value">
+            <span class="status-dot" id="relay-dot"></span>
+            <span id="relay-status">Not Running</span>
+          </div>
+        </div>
+        <div class="status-row">
+          <span class="status-label">iRacing</span>
+          <div class="status-value">
+            <span class="status-dot" id="iracing-dot"></span>
+            <span id="iracing-status">Not Detected</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modules-grid">
+        <div class="module-card" onclick="openModule('racebox')">
+          <div class="module-icon">📊</div>
+          <div class="module-name">RaceBox</div>
+          <div class="module-desc">Live timing, gaps & telemetry</div>
+          <div class="module-badge">FREE</div>
+        </div>
+        <div class="module-card disabled" onclick="openModule('blackbox')">
+          <div class="module-icon">🧠</div>
+          <div class="module-name">BlackBox</div>
+          <div class="module-desc">Driver intelligence & coaching</div>
+          <div class="module-badge pro">PRO</div>
+        </div>
+        <div class="module-card disabled" onclick="openModule('controlbox')">
+          <div class="module-icon">🏁</div>
+          <div class="module-name">ControlBox</div>
+          <div class="module-desc">Race control & steward tools</div>
+          <div class="module-badge pro">PRO</div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-secondary" id="relay-btn" onclick="toggleRelay()">Start Relay</button>
+        <button class="btn btn-primary" onclick="openModule('racebox')">Launch RaceBox</button>
+      </div>
+    </div>
+
+    <script>
+      let relayRunning = false;
+      let license = null;
+
+      async function init() {
+        // Check license
+        updateLicenseStatus('checking');
+        
+        try {
+          const machineId = await getMachineId();
+          const result = await window.electronAPI.validateLicense({ machineId });
+          
+          if (result.valid) {
+            license = result.license;
+            updateLicenseStatus('valid', result.license.tier);
+          } else {
+            updateLicenseStatus('free');
+          }
+        } catch (e) {
+          updateLicenseStatus('error');
+        }
+
+        // Check relay status
+        const relayStatus = await window.electronAPI.getRelayStatus();
+        updateRelayStatus(relayStatus.running);
+
+        // Listen for relay updates
+        window.electronAPI.onRelayStatus((status) => {
+          updateRelayStatus(status.running);
+        });
+      }
+
+      function updateLicenseStatus(status, tier) {
+        const dot = document.getElementById('license-dot');
+        const text = document.getElementById('license-status');
+        
+        switch (status) {
+          case 'checking':
+            text.textContent = 'Checking...';
+            break;
+          case 'valid':
+            dot.classList.add('connected');
+            text.textContent = tier + ' License';
+            break;
+          case 'free':
+            dot.classList.add('connected');
+            text.textContent = 'Free Tier';
+            break;
+          case 'error':
+            dot.classList.add('error');
+            text.textContent = 'Connection Error';
+            break;
+        }
+      }
+
+      function updateRelayStatus(running) {
+        relayRunning = running;
+        const dot = document.getElementById('relay-dot');
+        const text = document.getElementById('relay-status');
+        const btn = document.getElementById('relay-btn');
+        
+        if (running) {
+          dot.classList.add('connected');
+          text.textContent = 'Running';
+          btn.textContent = 'Stop Relay';
+        } else {
+          dot.classList.remove('connected');
+          text.textContent = 'Not Running';
+          btn.textContent = 'Start Relay';
+        }
+      }
+
+      async function toggleRelay() {
+        if (relayRunning) {
+          await window.electronAPI.stopRelay();
+        } else {
+          const result = await window.electronAPI.startRelay();
+          if (!result.success) {
+            alert(result.error || 'Failed to start relay');
+          }
+        }
+      }
+
+      function openModule(name) {
+        window.electronAPI.openApp(name);
+      }
+
+      async function getMachineId() {
+        // Simple machine ID based on user agent and screen
+        const data = navigator.userAgent + screen.width + screen.height;
+        const encoder = new TextEncoder();
+        const dataBuffer = encoder.encode(data);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+      }
+
+      init();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,367 @@
+.pit-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pit-panel .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(180deg, #1a1a24 0%, #14141c 100%);
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pit-confidence {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.pit-panel .panel-content {
+  padding: 12px;
+}
+
+.pit-window-display {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.window-optimal {
+  flex: 1;
+  background: linear-gradient(135deg, rgba(0, 200, 255, 0.2), rgba(0, 100, 200, 0.1));
+  border: 1px solid var(--accent-primary);
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+}
+
+.optimal-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+  margin-bottom: 4px;
+}
+
+.optimal-value {
+  font-size: 32px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.window-range {
+  flex: 1;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.range-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.range-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pit-reason {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+
+.reason-icon {
+  font-size: 14px;
+}
+
+.no-stop-needed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  background: rgba(0, 200, 100, 0.1);
+  border: 1px solid var(--accent-success);
+  border-radius: 6px;
+  color: var(--accent-success);
+  font-size: 13px;
+}
+
+.check-icon {
+  font-size: 20px;
+}
+
+.no-data {
+  text-align: center;
+  padding: 30px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.undercut-opportunity {
+  background: linear-gradient(135deg, rgba(255, 170, 0, 0.15), rgba(255, 100, 0, 0.1));
+  border: 1px solid var(--accent-warning);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.undercut-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: rgba(255, 170, 0, 0.1);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--accent-warning);
+}
+
+.undercut-icon {
+  font-size: 14px;
+}
+
+.undercut-details {
+  padding: 12px;
+}
+
+.undercut-target {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 12px;
+}
+
+.undercut-target span:first-child {
+  color: var(--text-muted);
+}
+
+.undercut-target span:last-child {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.undercut-stats {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.undercut-stat {
+  flex: 1;
+  text-align: center;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.undercut-stat .stat-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.undercut-stat .stat-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.undercut-action {
+  text-align: center;
+  font-size: 12px;
+  color: var(--accent-warning);
+  font-weight: 500;
+}
+
+.strategy-comparison {
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.comparison-header {
+  padding: 10px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: var(--bg-primary);
+}
+
+.strategy-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.strategy-tab {
+  flex: 1;
+  padding: 10px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+}
+
+.strategy-tab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.strategy-tab.active {
+  color: var(--accent-primary);
+  border-bottom-color: var(--accent-primary);
+}
+
+.strategy-details {
+  padding: 12px;
+}
+
+.strategy-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.strategy-row:last-child {
+  border-bottom: none;
+}
+
+.strategy-row span:first-child {
+  color: var(--text-muted);
+}
+
+.strategy-row span:last-child {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.compounds {
+  display: flex;
+  gap: 4px;
+}
+
+.compound {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.compound.soft {
+  background: #ff4444;
+  color: white;
+}
+
+.compound.medium {
+  background: #ffaa00;
+  color: black;
+}
+
+.compound.hard {
+  background: #ffffff;
+  color: black;
+}
+
+.compound.intermediate {
+  background: #00cc66;
+  color: white;
+}
+
+.compound.wet {
+  background: #0088ff;
+  color: white;
+}
+
+.risk-badge {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+
+.risk-badge.low {
+  background: rgba(0, 200, 100, 0.2);
+  color: var(--accent-success);
+}
+
+.risk-badge.medium {
+  background: rgba(255, 170, 0, 0.2);
+  color: var(--accent-warning);
+}
+
+.risk-badge.high {
+  background: rgba(255, 68, 68, 0.2);
+  color: var(--accent-danger);
+}
+
+/* Compact Mode */
+.pit-panel-compact {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+
+.pit-compact-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pit-icon {
+  font-size: 16px;
+}
+
+.pit-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.pit-status {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.pit-compact-info {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}

@@ -1,0 +1,318 @@
+.weather-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.weather-panel .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(180deg, #1a1a24 0%, #14141c 100%);
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.condition-badge {
+  font-size: 10px;
+  color: var(--text-primary);
+}
+
+.weather-panel .panel-content {
+  padding: 12px;
+}
+
+.weather-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.weather-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-secondary);
+  padding: 10px;
+  border-radius: 4px;
+}
+
+.stat-icon {
+  font-size: 20px;
+}
+
+.stat-info {
+  flex: 1;
+}
+
+.stat-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.stat-value {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.rain-warning {
+  background: rgba(0, 150, 255, 0.1);
+  border: 1px solid rgba(0, 150, 255, 0.3);
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.rain-icon {
+  font-size: 24px;
+}
+
+.rain-info {
+  flex: 1;
+}
+
+.rain-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.rain-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-primary);
+}
+
+.rain-bar {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-secondary);
+}
+
+.grip-section {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.grip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.grip-evolution {
+  font-size: 10px;
+}
+
+.grip-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.grip-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.grip-label {
+  width: 24px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.grip-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.grip-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.grip-value {
+  width: 36px;
+  text-align: right;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.grip-details {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--border-color);
+}
+
+.grip-detail {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.grip-detail span:first-child {
+  color: var(--text-muted);
+}
+
+.grip-detail span:last-child {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.weather-strategy {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.strategy-header {
+  background: var(--bg-primary);
+  padding: 8px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.strategy-content {
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.tire-rec {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tire-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.tire-compound {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+}
+
+.tire-compound.slick {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.tire-compound.intermediate {
+  background: rgba(0, 200, 100, 0.2);
+  color: var(--accent-success);
+}
+
+.tire-compound.wet {
+  background: rgba(0, 150, 255, 0.2);
+  color: var(--accent-primary);
+}
+
+.pace-adjustment {
+  display: flex;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.pace-adjustment span:first-child {
+  color: var(--text-muted);
+}
+
+.risk-level {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin-left: auto;
+}
+
+.risk-level.low {
+  background: rgba(0, 200, 100, 0.2);
+  color: var(--accent-success);
+}
+
+.risk-level.medium {
+  background: rgba(255, 170, 0, 0.2);
+  color: var(--accent-warning);
+}
+
+.risk-level.high {
+  background: rgba(255, 68, 68, 0.2);
+  color: var(--accent-danger);
+}
+
+/* Compact Mode */
+.weather-panel-compact {
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+
+.weather-compact-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.weather-icon {
+  font-size: 18px;
+}
+
+.weather-temp {
+  font-size: 16px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.weather-condition {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.weather-compact-grip {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}

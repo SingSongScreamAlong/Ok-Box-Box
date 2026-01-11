@@ -1,0 +1,184 @@
+.driver-mode {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  /* This would be transparent overlay on top of the game */
+}
+
+/* Settings Toggle - Very minimal */
+.settings-toggle {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0.3;
+}
+
+.settings-toggle:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+}
+
+/* Settings Panel */
+.settings-panel {
+  position: fixed;
+  top: 50px;
+  left: 10px;
+  width: 320px;
+  background: rgba(10, 10, 15, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: white;
+}
+
+.settings-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.setting-group label {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.setting-group input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: white;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.setting-group input:focus {
+  border-color: rgba(0, 200, 255, 0.5);
+}
+
+.setting-group input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.setting-group small {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.ptt-display {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ptt-display span {
+  font-size: 16px;
+  font-weight: 700;
+  color: #00aaff;
+  font-family: monospace;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, #00aaff, #0066aa);
+  border: none;
+  border-radius: 6px;
+  padding: 12px;
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+
+.save-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(0, 170, 255, 0.3);
+}
+
+/* Connection Help */
+.connection-help {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  animation: pulse 2s infinite;
+}
+
+.connection-help p {
+  margin: 0 0 4px 0;
+  font-size: 12px;
+}
+
+.connection-help small {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}

@@ -1,0 +1,554 @@
+.race-intelligence-panel {
+  min-height: 400px;
+}
+
+.race-intelligence-panel .panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.intel-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.intel-tab {
+  padding: 4px 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 9px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.intel-tab:hover {
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+}
+
+.intel-tab.active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #000;
+}
+
+.no-data {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Overview Section */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.overview-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s;
+}
+
+.overview-card.warning {
+  border-color: var(--accent-warning);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.overview-card.critical {
+  border-color: var(--accent-danger);
+  background: rgba(239, 68, 68, 0.1);
+  animation: pulse-critical 1s infinite;
+}
+
+@keyframes pulse-critical {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.card-icon {
+  font-size: 24px;
+}
+
+.card-content {
+  flex: 1;
+}
+
+.card-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.card-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.card-sub {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.quick-insights {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.quick-insights h4 {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin: 0 0 10px 0;
+}
+
+.insight-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px;
+  margin-bottom: 6px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.insight-item.highlight {
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 3px solid var(--accent-primary);
+}
+
+.insight-icon {
+  font-size: 14px;
+}
+
+/* Tire Section */
+.tire-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tire-diagram {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
+}
+
+.tire-car {
+  position: relative;
+  width: 160px;
+  height: 200px;
+}
+
+.car-body {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  height: 120px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 10px 10px 5px 5px;
+}
+
+.tire {
+  position: absolute;
+  width: 40px;
+  height: 60px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+}
+
+.tire.fresh { border-color: var(--accent-success); background: rgba(16, 185, 129, 0.2); }
+.tire.used { border-color: var(--accent-primary); background: rgba(59, 130, 246, 0.2); }
+.tire.worn { border-color: var(--accent-warning); background: rgba(245, 158, 11, 0.2); }
+.tire.critical { border-color: var(--accent-danger); background: rgba(239, 68, 68, 0.2); }
+
+.tire.front-left { top: 10px; left: 0; }
+.tire.front-right { top: 10px; right: 0; }
+.tire.rear-left { bottom: 10px; left: 0; }
+.tire.rear-right { bottom: 10px; right: 0; }
+
+.tire-wear {
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.tire-label {
+  font-size: 8px;
+  color: var(--text-muted);
+}
+
+.tire-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.stat-value {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.stat-value.danger { color: var(--accent-danger); }
+.stat-value.warning { color: var(--accent-warning); }
+.stat-value.cold { color: #60A5FA; }
+.stat-value.optimal { color: var(--accent-success); }
+.stat-value.hot { color: var(--accent-warning); }
+.stat-value.critical { color: var(--accent-danger); }
+
+.tire-recommendation {
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-left: 3px solid var(--accent-primary);
+}
+
+.tire-recommendation.immediate {
+  border-color: var(--accent-danger);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.tire-recommendation.next-lap {
+  border-color: var(--accent-warning);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+/* Competitor Section */
+.competitor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.competitor-card {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 12px;
+  border-left: 3px solid var(--border-color);
+}
+
+.competitor-card.threat-high { border-color: var(--accent-danger); }
+.competitor-card.threat-medium { border-color: var(--accent-warning); }
+.competitor-card.threat-low { border-color: var(--accent-primary); }
+
+.comp-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.comp-position {
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--accent-primary);
+}
+
+.comp-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.threat-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.threat-badge.high { background: var(--accent-danger); color: white; }
+.threat-badge.medium { background: var(--accent-warning); color: #000; }
+.threat-badge.low { background: var(--accent-primary); color: white; }
+.threat-badge.none { background: var(--bg-primary); color: var(--text-muted); }
+
+.comp-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.comp-stat {
+  text-align: center;
+}
+
+.comp-stat .label {
+  display: block;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.comp-stat .value {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.comp-stat .value.improving { color: var(--accent-success); }
+.comp-stat .value.degrading { color: var(--accent-danger); }
+
+.pit-prediction {
+  font-size: 10px;
+  color: var(--accent-warning);
+  margin-bottom: 4px;
+}
+
+.strategy-prediction {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Strategy Section */
+.strategy-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.strategy-card {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+}
+
+.strategy-card.recommended {
+  border-color: var(--accent-success);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.strat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.strat-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.recommended-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  background: var(--accent-success);
+  color: white;
+  border-radius: 3px;
+}
+
+.risk-badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: auto;
+}
+
+.risk-badge.conservative { background: var(--accent-primary); color: white; }
+.risk-badge.balanced { background: var(--accent-warning); color: #000; }
+.risk-badge.aggressive { background: var(--accent-danger); color: white; }
+
+.strat-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 12px 0;
+}
+
+.strat-details {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.strat-details .detail {
+  text-align: center;
+  padding: 6px;
+  background: var(--bg-primary);
+  border-radius: 4px;
+}
+
+.strat-details .label {
+  display: block;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.strat-details .value {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.pros-cons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.pros, .cons {
+  font-size: 11px;
+}
+
+.pros strong { color: var(--accent-success); }
+.cons strong { color: var(--accent-danger); }
+
+.pros ul, .cons ul {
+  margin: 4px 0 0 0;
+  padding-left: 16px;
+  color: var(--text-secondary);
+}
+
+.pros li, .cons li {
+  margin-bottom: 2px;
+}
+
+/* Incident Section */
+.incident-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.no-incidents {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px;
+  color: var(--accent-success);
+  font-size: 14px;
+}
+
+.check-icon {
+  font-size: 24px;
+}
+
+.incident-card {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 12px;
+  border-left: 3px solid var(--accent-warning);
+}
+
+.incident-card.minor { border-color: var(--accent-primary); }
+.incident-card.moderate { border-color: var(--accent-warning); }
+.incident-card.major { border-color: var(--accent-danger); background: rgba(239, 68, 68, 0.1); }
+
+.incident-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.incident-type {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.severity-badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.severity-badge.minor { background: var(--accent-primary); color: white; }
+.severity-badge.moderate { background: var(--accent-warning); color: #000; }
+.severity-badge.major { background: var(--accent-danger); color: white; }
+
+.incident-message {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 8px 0;
+}
+
+.incident-details {
+  display: flex;
+  gap: 12px;
+  font-size: 10px;
+}
+
+.distance {
+  font-weight: 600;
+  font-family: var(--font-mono);
+}
+
+.distance.ahead { color: var(--accent-danger); }
+.distance.behind { color: var(--accent-primary); }
+
+.affected {
+  color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 800px) {
+  .overview-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .comp-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .strat-details {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

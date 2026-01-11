@@ -1,0 +1,43 @@
+{
+  "name": "@okboxbox/launcher",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit",
+    "package": "electron-builder"
+  },
+  "dependencies": {
+    "@okboxbox/shared": "*",
+    "electron-store": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "electron": "^29.0.0",
+    "electron-builder": "^24.13.0",
+    "electron-vite": "^2.1.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.2.0"
+  },
+  "build": {
+    "appId": "com.okboxbox.launcher",
+    "productName": "Ok Box Box",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*"
+    ],
+    "win": {
+      "target": ["nsis"],
+      "icon": "resources/icon.ico"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "resources/icon.icns"
+    }
+  }
+}

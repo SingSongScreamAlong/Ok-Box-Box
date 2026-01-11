@@ -1,0 +1,119 @@
+.competitor-panel {
+  flex: 1;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.competitor-list {
+  margin-bottom: 20px;
+}
+
+.competitor-empty {
+  text-align: center;
+  padding: 30px;
+  color: var(--text-muted);
+}
+
+.competitor-header {
+  display: grid;
+  grid-template-columns: 50px 1fr 80px 80px;
+  gap: 8px;
+  padding: 8px 0;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.competitor-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 80px 80px;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 12px;
+}
+
+.competitor-row.in-pit {
+  opacity: 0.6;
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.position-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.competitor-row:nth-child(2) .position-badge {
+  background: gold;
+  color: black;
+}
+
+.competitor-row:nth-child(3) .position-badge {
+  background: silver;
+  color: black;
+}
+
+.competitor-row:nth-child(4) .position-badge {
+  background: #cd7f32;
+  color: black;
+}
+
+.col-driver {
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.col-gap,
+.col-last {
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.strategy-section {
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.strategy-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  margin-bottom: 12px;
+}
+
+.strategy-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.strategy-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+}
+
+.strategy-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.strategy-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
