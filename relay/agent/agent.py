@@ -50,7 +50,7 @@ load_dotenv()
 API_ENDPOINT = os.getenv('API_ENDPOINT', 'http://localhost:4000')
 RELAY_TOKEN = os.getenv('RELAY_TOKEN', '')
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
-TELEMETRY_RATE = int(os.getenv('TELEMETRY_RATE', '30'))
+TELEMETRY_RATE = int(os.getenv('TELEMETRY_RATE', '60'))  # 60Hz for smooth racing data
 HEARTBEAT_INTERVAL = int(os.getenv('HEARTBEAT_INTERVAL', '5'))
 VIDEO_ENABLED = os.getenv('VIDEO_ENABLED', 'true').lower() == 'true'
 VIDEO_FPS = int(os.getenv('VIDEO_FPS', '60'))  # 60 FPS for smooth racing
