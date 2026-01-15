@@ -130,4 +130,7 @@ apiRouter.use('/dev/diagnostics', diagnosticsRouter);
 import voiceRouter from './voice.js';
 apiRouter.use('/voice', voiceRouter);
 
+// Individual Driver Profile (IDP) - v1 API
+import driversRouter from './drivers.js';
+apiRouter.use('/v1/drivers', driversRouter);
 
