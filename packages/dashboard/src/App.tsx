@@ -91,34 +91,18 @@ export function App() {
                             BLACKBOX SURFACES (Team/Driver)
                             ============================================================ */}
 
-                            {/* Team Session List - BlackBox session selector */}
-                            <Route path="/team" element={
-                                <ProtectedRoute>
-                                    <RequireCapability capability="pitwall_view">
-                                        <TeamSessionList />
-                                    </RequireCapability>
-                                </ProtectedRoute>
-                            } />
+                            {/* Team Session List - BlackBox session selector - NO AUTH FOR TESTING */}
+                            <Route path="/team" element={<TeamSessionList />} />
 
-                            {/* Team Dashboard - BlackBox pit wall surface */}
-                            <Route path="/team/:sessionId" element={
-                                <ProtectedRoute>
-                                    <RequireCapability capability="pitwall_view">
-                                        <TeamDashboardWrapper />
-                                    </RequireCapability>
-                                </ProtectedRoute>
-                            } />
+                            {/* Team Dashboard - BlackBox pit wall surface - NO AUTH FOR TESTING */}
+                            <Route path="/team/:sessionId" element={<TeamDashboardWrapper />} />
 
                             {/* ============================================================
                             CONTROLBOX SURFACES (Race Control)
                             ============================================================ */}
 
-                            {/* Root - Surface selector (launchpad) */}
-                            <Route path="/" element={
-                                <ProtectedRoute>
-                                    <SurfaceHome />
-                                </ProtectedRoute>
-                            } />
+                            {/* Root - Surface selector (launchpad) - NO AUTH FOR TESTING */}
+                            <Route path="/" element={<SurfaceHome />} />
 
                             {/* Protected routes with MainLayout (ControlBox) */}
                             <Route path="/controlbox" element={
