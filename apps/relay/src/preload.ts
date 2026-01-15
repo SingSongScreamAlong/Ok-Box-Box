@@ -30,6 +30,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     onCoachingMessage: (callback: (data: { message: string; type: string }) => void) => {
         ipcRenderer.on('hud:coaching', (_, data) => callback(data));
+    },
+    onStatusUpdate: (callback: (data: { cloudConnected: boolean; simConnected: boolean; sending: boolean }) => void) => {
+        ipcRenderer.on('hud:status', (_, data) => callback(data));
     }
 });
 

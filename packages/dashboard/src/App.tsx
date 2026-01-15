@@ -80,7 +80,7 @@ export function App() {
                                 </ProtectedRoute>
                             } />
 
-                            {/* Launchpad / Home */}
+                            {/* Legacy /home redirect to root */}
                             <Route path="/home" element={
                                 <ProtectedRoute>
                                     <SurfaceHome />
@@ -113,13 +113,20 @@ export function App() {
                             CONTROLBOX SURFACES (Race Control)
                             ============================================================ */}
 
-                            {/* Protected routes with MainLayout */}
+                            {/* Root - Surface selector (launchpad) */}
                             <Route path="/" element={
+                                <ProtectedRoute>
+                                    <SurfaceHome />
+                                </ProtectedRoute>
+                            } />
+
+                            {/* Protected routes with MainLayout (ControlBox) */}
+                            <Route path="/controlbox" element={
                                 <ProtectedRoute>
                                     <MainLayout />
                                 </ProtectedRoute>
                             }>
-                                {/* Home - visible to all authenticated */}
+                                {/* ControlBox Home */}
                                 <Route index element={<Dashboard />} />
 
                                 {/* Session view - ControlBox race control */}

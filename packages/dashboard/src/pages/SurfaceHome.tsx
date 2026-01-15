@@ -18,7 +18,7 @@ const PRICING_URL = '/pricing';
 
 interface SurfaceCard {
     surface: BootstrapSurface;
-    product: 'blackbox' | 'controlbox';
+    product: 'blackbox' | 'controlbox' | 'racebox';
     title: string;
     description: string;
     icon: string;
@@ -41,6 +41,14 @@ const SURFACE_CARDS: SurfaceCard[] = [
         description: 'Strategy timeline, fuel management, and opponent intel',
         icon: '📊',
         color: '#00ff88'
+    },
+    {
+        surface: 'broadcast',
+        product: 'racebox',
+        title: 'Broadcast',
+        description: 'Live timing, leaderboards, and spectator views',
+        icon: '📺',
+        color: '#9b59b6'
     },
     {
         surface: 'racecontrol',
@@ -80,6 +88,20 @@ export function SurfaceHome() {
         setLaunching(surface);
         setError(null);
 
+        // Direct navigation for web-based surfaces
+        const webRoutes: Record<string, string> = {
+            'team': '/team/live',
+            'racecontrol': '/controlbox',
+            'broadcast': '/broadcast',
+        };
+
+        if (webRoutes[surface]) {
+            navigate(webRoutes[surface]);
+            setLaunching(null);
+            return;
+        }
+
+        // For driver surface, try protocol URL (desktop relay app)
         try {
             const token = localStorage.getItem('accessToken');
             const response = await fetch(`${API_URL}/api/launch-token`, {
@@ -166,7 +188,7 @@ export function SurfaceHome() {
                                         className="subscribe-btn"
                                         onClick={handleSubscribe}
                                     >
-                                        Subscribe to {card.product === 'blackbox' ? 'BlackBox' : 'ControlBox'}
+                                        Subscribe to {card.product === 'blackbox' ? 'BlackBox' : card.product === 'controlbox' ? 'ControlBox' : 'RaceBox Plus'}
                                     </button>
                                 </div>
                             )}

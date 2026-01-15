@@ -25,9 +25,9 @@ export interface HUDConfig {
 }
 
 const DEFAULT_CONFIG: HUDConfig = {
-    width: 300,
-    height: 200,
-    opacity: 0.9
+    width: 200,
+    height: 120,
+    opacity: 0.95
 };
 
 /**
@@ -55,8 +55,9 @@ export function createHUDWindow(config: HUDConfig = {}): BrowserWindow {
         transparent: true,
         alwaysOnTop: true,
         skipTaskbar: true,
-        resizable: false,
+        resizable: true,
         hasShadow: false,
+        movable: true,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
@@ -64,8 +65,8 @@ export function createHUDWindow(config: HUDConfig = {}): BrowserWindow {
         }
     });
 
-    // Make click-through when not focused (Windows/Mac)
-    hudWindow.setIgnoreMouseEvents(true, { forward: true });
+    // Allow mouse events for dragging - user can move the HUD
+    hudWindow.setIgnoreMouseEvents(false);
 
     // Load HUD HTML
     hudWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(getHUDHTML())}`);
@@ -118,6 +119,15 @@ export function showCoachingMessage(message: string, type: 'info' | 'warning' | 
     }
 }
 
+/**
+ * Update connection status on HUD
+ */
+export function updateHUDStatus(status: { cloudConnected: boolean; simConnected: boolean; sending: boolean }): void {
+    if (hudWindow && !hudWindow.isDestroyed()) {
+        hudWindow.webContents.send('hud:status', status);
+    }
+}
+
 export interface HUDData {
     speed: number;
     gear: number;
@@ -154,7 +164,7 @@ function getHUDHTML(): string {
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Driver HUD</title>
+    <title>Ok, Box Box Relay</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body {
@@ -162,169 +172,103 @@ function getHUDHTML(): string {
             overflow: hidden;
             user-select: none;
             -webkit-user-select: none;
-            -webkit-app-region: no-drag;
         }
         body {
             font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif;
             color: #fff;
-            padding: 16px;
+            padding: 8px;
         }
         .hud-container {
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.85);
             border-radius: 12px;
-            padding: 16px;
+            padding: 16px 20px;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            -webkit-app-region: drag;
+            cursor: move;
+            min-width: 180px;
         }
-        .main-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
-        .speed-block {
-            display: flex;
-            align-items: baseline;
-        }
-        .speed {
-            font-size: 48px;
-            font-weight: 700;
-            letter-spacing: -2px;
-        }
-        .speed-unit {
-            font-size: 14px;
-            opacity: 0.6;
-            margin-left: 4px;
-        }
-        .gear {
-            font-size: 36px;
-            font-weight: 600;
-            color: #00d9ff;
-            background: rgba(0, 217, 255, 0.1);
-            width: 50px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-        }
-        .info-row {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-        }
-        .info-item {
+        .logo {
             text-align: center;
-        }
-        .info-label {
-            font-size: 10px;
-            text-transform: uppercase;
-            opacity: 0.5;
+            margin-bottom: 12px;
+            font-size: 16px;
+            font-weight: 700;
             letter-spacing: 1px;
         }
-        .info-value {
-            font-size: 18px;
-            font-weight: 600;
-            margin-top: 2px;
+        .logo .ok { color: #fff; }
+        .logo .box { color: #00d9ff; }
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
         }
-        .info-value.positive { color: #4ade80; }
-        .info-value.negative { color: #f87171; }
-        .coaching-message {
-            margin-top: 12px;
-            padding: 10px;
-            border-radius: 8px;
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #666;
+        }
+        .status-dot.connected { background: #4ade80; }
+        .status-dot.disconnected { background: #f87171; }
+        .status-dot.sending { background: #00d9ff; animation: pulse 1s infinite; }
+        .status-label {
             font-size: 13px;
             font-weight: 500;
-            display: none;
-            animation: fadeIn 0.3s ease;
         }
-        .coaching-message.visible { display: block; }
-        .coaching-message.info { background: rgba(0, 150, 255, 0.3); border-left: 3px solid #0096ff; }
-        .coaching-message.warning { background: rgba(255, 180, 0, 0.3); border-left: 3px solid #ffb400; }
-        .coaching-message.success { background: rgba(0, 200, 100, 0.3); border-left: 3px solid #00c864; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-5px); }
-            to { opacity: 1; transform: translateY(0); }
+        .status-value {
+            font-size: 13px;
+            opacity: 0.7;
+            margin-left: auto;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
         }
     </style>
 </head>
 <body>
     <div class="hud-container">
-        <div class="main-row">
-            <div class="speed-block">
-                <span class="speed" id="speed">0</span>
-                <span class="speed-unit">km/h</span>
-            </div>
-            <div class="gear" id="gear">N</div>
+        <div class="logo"><span class="ok">OK,</span> <span class="box">BOX BOX</span></div>
+        <div class="status-row">
+            <div class="status-dot" id="cloudDot"></div>
+            <span class="status-label">Cloud</span>
+            <span class="status-value" id="cloudStatus">Connecting...</span>
         </div>
-        <div class="info-row">
-            <div class="info-item">
-                <div class="info-label">Position</div>
-                <div class="info-value" id="position">P1</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Gap Ahead</div>
-                <div class="info-value" id="gapAhead">--</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Gap Behind</div>
-                <div class="info-value" id="gapBehind">--</div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Fuel Laps</div>
-                <div class="info-value" id="fuelLaps">--</div>
-            </div>
+        <div class="status-row">
+            <div class="status-dot" id="dataDot"></div>
+            <span class="status-label">Data</span>
+            <span class="status-value" id="dataStatus">Waiting...</span>
         </div>
-        <div class="coaching-message" id="coaching"></div>
     </div>
     <script>
-        const speedEl = document.getElementById('speed');
-        const gearEl = document.getElementById('gear');
-        const positionEl = document.getElementById('position');
-        const gapAheadEl = document.getElementById('gapAhead');
-        const gapBehindEl = document.getElementById('gapBehind');
-        const fuelLapsEl = document.getElementById('fuelLaps');
-        const coachingEl = document.getElementById('coaching');
+        const cloudDot = document.getElementById('cloudDot');
+        const cloudStatus = document.getElementById('cloudStatus');
+        const dataDot = document.getElementById('dataDot');
+        const dataStatus = document.getElementById('dataStatus');
         
-        let coachingTimeout = null;
-        
-        // Listen for HUD updates
-        window.electronAPI?.onHUDUpdate?.((data) => {
-            speedEl.textContent = Math.round(data.speed * 3.6); // m/s to km/h
-            gearEl.textContent = data.gear === 0 ? 'N' : data.gear === -1 ? 'R' : data.gear;
-            positionEl.textContent = 'P' + data.position;
-            
-            if (data.gapAhead !== null) {
-                gapAheadEl.textContent = '+' + data.gapAhead.toFixed(1) + 's';
-                gapAheadEl.className = 'info-value';
+        // Listen for status updates
+        window.electronAPI?.onStatusUpdate?.((data) => {
+            // Cloud connection status
+            if (data.cloudConnected) {
+                cloudDot.className = 'status-dot connected';
+                cloudStatus.textContent = 'Connected';
             } else {
-                gapAheadEl.textContent = '--';
+                cloudDot.className = 'status-dot disconnected';
+                cloudStatus.textContent = 'Disconnected';
             }
             
-            if (data.gapBehind !== null) {
-                gapBehindEl.textContent = '-' + data.gapBehind.toFixed(1) + 's';
-                gapBehindEl.className = 'info-value negative';
+            // Data sending status
+            if (data.sending) {
+                dataDot.className = 'status-dot sending';
+                dataStatus.textContent = 'Sending...';
+            } else if (data.simConnected) {
+                dataDot.className = 'status-dot connected';
+                dataStatus.textContent = 'Ready';
             } else {
-                gapBehindEl.textContent = '--';
+                dataDot.className = 'status-dot';
+                dataStatus.textContent = 'Waiting for sim';
             }
-            
-            if (data.fuelLaps !== null) {
-                fuelLapsEl.textContent = data.fuelLaps.toFixed(1);
-                fuelLapsEl.className = 'info-value ' + (data.fuelLaps < 3 ? 'negative' : '');
-            } else {
-                fuelLapsEl.textContent = '--';
-            }
-        });
-        
-        // Listen for coaching messages
-        window.electronAPI?.onCoachingMessage?.((data) => {
-            coachingEl.textContent = data.message;
-            coachingEl.className = 'coaching-message visible ' + data.type;
-            
-            if (coachingTimeout) clearTimeout(coachingTimeout);
-            coachingTimeout = setTimeout(() => {
-                coachingEl.classList.remove('visible');
-            }, 5000);
         });
     </script>
 </body>

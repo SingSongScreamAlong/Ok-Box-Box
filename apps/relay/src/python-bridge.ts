@@ -14,6 +14,7 @@
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import { io, Socket } from 'socket.io-client';
+import { updateHUDStatus } from './hud-window';
 
 const PYTHON_PORT = 9999;
 const LOCAL_WS_URL = `http://127.0.0.1:${PYTHON_PORT}`;
@@ -24,7 +25,9 @@ export class PythonBridge {
     private cloudSocket: Socket | null = null;
     private bootstrap: any = null;
     private connected = false;
+    private cloudConnected = false;
     private simRunning = false;
+    private sending = false;
     private viewerCount = 0;
 
     /**
@@ -40,9 +43,11 @@ export class PythonBridge {
     async start(): Promise<void> {
         console.log('🐍 Starting Python SDK bridge...');
 
-        // TODO: In production, spawn the bundled Python executable
-        // For now, we'll connect to a separately running Python process
-        // this.spawnPython();
+        // Spawn the Python iRacing relay
+        this.spawnPython();
+
+        // Wait a moment for Python to start
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
         // Connect to local Python WebSocket
         this.connectToLocal();
@@ -77,18 +82,36 @@ export class PythonBridge {
     }
 
     /**
-     * Spawn Python process (for production builds)
+     * Spawn Python process
      */
     private spawnPython(): void {
-        // In production, we'd bundle the Python relay as an executable
-        // For development, assume Python is running separately
-        const pythonPath = process.platform === 'win32'
-            ? path.join(__dirname, '../../python-sdk/dist/relay.exe')
-            : path.join(__dirname, '../../python-sdk/relay.py');
+        // Find the Python script - check multiple locations
+        const possiblePaths = [
+            path.join(__dirname, '../python/iracing_relay.py'),  // Dev: relative to dist
+            path.join(__dirname, '../../python/iracing_relay.py'),  // Packaged app
+            path.join(process.resourcesPath || '', 'python/iracing_relay.py'),  // Electron resources
+        ];
 
-        console.log(`Spawning Python: ${pythonPath}`);
+        let pythonScript = '';
+        for (const p of possiblePaths) {
+            try {
+                if (require('fs').existsSync(p)) {
+                    pythonScript = p;
+                    break;
+                }
+            } catch {}
+        }
 
-        this.pythonProcess = spawn(pythonPath, [], {
+        if (!pythonScript) {
+            console.error('❌ Could not find Python relay script');
+            console.log('Searched paths:', possiblePaths);
+            return;
+        }
+
+        console.log(`🐍 Spawning Python: ${pythonScript}`);
+
+        // Use 'python' command to run the script
+        this.pythonProcess = spawn('python', [pythonScript], {
             stdio: ['pipe', 'pipe', 'pipe'],
             env: {
                 ...process.env,
@@ -125,18 +148,23 @@ export class PythonBridge {
         this.localSocket.on('connect', () => {
             console.log('📡 Connected to Python SDK');
             this.connected = true;
+            this.updateStatus();
         });
 
         this.localSocket.on('disconnect', () => {
             console.log('⚠️ Disconnected from Python SDK');
             this.connected = false;
             this.simRunning = false;
+            this.sending = false;
+            this.updateStatus();
         });
 
         // Forward telemetry events from Python to cloud
         this.localSocket.on('telemetry', (data: any) => {
             if (this.cloudSocket?.connected) {
                 this.cloudSocket.emit('telemetry', data);
+                this.sending = true;
+                this.updateStatus();
             }
         });
 
@@ -196,6 +224,8 @@ export class PythonBridge {
 
         this.cloudSocket.on('connect', () => {
             console.log('☁️ Connected to cloud server');
+            this.cloudConnected = true;
+            this.updateStatus();
 
             // Register as relay
             this.cloudSocket?.emit('relay:register', {
@@ -205,6 +235,8 @@ export class PythonBridge {
 
         this.cloudSocket.on('disconnect', () => {
             console.log('⚠️ Disconnected from cloud server');
+            this.cloudConnected = false;
+            this.updateStatus();
         });
 
         // Receive viewer count updates from server
@@ -237,5 +269,16 @@ export class PythonBridge {
      */
     getViewerCount(): number {
         return this.viewerCount;
+    }
+
+    /**
+     * Update HUD with current status
+     */
+    private updateStatus(): void {
+        updateHUDStatus({
+            cloudConnected: this.cloudConnected,
+            simConnected: this.connected,
+            sending: this.sending
+        });
     }
 }
