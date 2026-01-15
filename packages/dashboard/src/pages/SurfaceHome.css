@@ -1,5 +1,5 @@
 /**
- * Surface Home Styles
+ * Surface Home - Professional Racing Software
  */
 
 .surface-home {
@@ -8,247 +8,200 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
-    background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+    padding: 3rem 2rem;
+    background: #000;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.surface-home.loading {
-    gap: 1rem;
-    color: #888;
+/* Header */
+.surface-home-header {
+    text-align: center;
+    margin-bottom: 4rem;
 }
 
-.loading-spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid #333;
-    border-top-color: #00d4ff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
+.logo-mark {
+    font-size: 2.8rem;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    color: #fff;
+    margin-bottom: 0.75rem;
 }
 
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
+.tagline {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.4em;
+    color: #666;
+    margin: 0;
+}
+
+/* Cards Grid */
+.surface-cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    max-width: 1200px;
+    width: 100%;
+    background: #222;
+}
+
+@media (max-width: 1000px) {
+    .surface-cards {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
-.surface-home-header {
-    text-align: center;
-    margin-bottom: 3rem;
+@media (max-width: 600px) {
+    .surface-cards {
+        grid-template-columns: 1fr;
+    }
 }
 
-.surface-home-header h1 {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #fff;
-    margin: 0 0 0.5rem 0;
+/* Card */
+.surface-card {
+    background: #0a0a0a;
+    padding: 2.5rem 2rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-height: 200px;
 }
 
-.surface-home-header p {
-    font-size: 1.2rem;
-    color: #888;
-    margin: 0;
+.surface-card:hover {
+    background: #111;
 }
 
-.surface-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    max-width: 1000px;
+.surface-card:hover .card-accent {
     width: 100%;
 }
 
-.surface-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    padding: 2rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
+.surface-card:hover h2 {
+    color: var(--accent-color);
 }
 
-.surface-card::before {
-    content: '';
+/* Accent bar */
+.card-accent {
     position: absolute;
     top: 0;
     left: 0;
-    right: 0;
-    height: 4px;
+    height: 2px;
+    width: 40px;
     background: var(--accent-color, #00d4ff);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.surface-card.available:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: var(--accent-color, #00d4ff);
-    transform: translateY(-4px);
-}
-
-.surface-card.available:hover::before {
-    opacity: 1;
-}
-
-.surface-card.disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.surface-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
+    transition: width 0.3s ease;
 }
 
 .surface-card h2 {
-    font-size: 1.4rem;
-    font-weight: 600;
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
     color: #fff;
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 1rem 0;
+    transition: color 0.2s ease;
 }
 
 .surface-card p {
-    font-size: 0.9rem;
-    color: #888;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: #666;
     margin: 0;
-    line-height: 1.5;
+    line-height: 1.6;
+    flex: 1;
 }
 
-.locked-badge {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: rgba(255, 100, 100, 0.2);
-    color: #ff6b6b;
-    font-size: 0.7rem;
+/* Card footer */
+.card-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1.5rem;
+}
+
+.status-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-color, #00d4ff);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
+.status-text {
+    font-size: 0.65rem;
     font-weight: 600;
-    padding: 4px 8px;
-    border-radius: 4px;
+    letter-spacing: 0.15em;
+    color: #444;
 }
 
+/* Launching state */
+.surface-card.launching {
+    pointer-events: none;
+}
+
+.surface-card.launching .status-indicator {
+    animation: none;
+    background: #fff;
+}
+
+.surface-card.launching .status-text {
+    color: #fff;
+}
+
+/* Footer */
 .surface-home-footer {
-    margin-top: 3rem;
+    margin-top: 4rem;
     text-align: center;
 }
 
-.user-info {
-    font-size: 0.85rem;
-    color: #666;
-}
-
-.protocol-hint {
-    font-size: 0.85rem;
-    color: #888;
-    margin-top: 1rem;
-}
-
-.protocol-hint a {
-    color: #00d4ff;
+.download-link {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: #333;
     text-decoration: none;
+    padding: 0.75rem 1.5rem;
+    border: 1px solid #222;
+    transition: all 0.2s ease;
 }
 
-.protocol-hint a:hover {
-    text-decoration: underline;
+.download-link:hover {
+    color: #fff;
+    border-color: #444;
 }
 
-/* Launch error */
+/* Error */
 .launch-error {
-    background: rgba(255, 100, 100, 0.15);
-    border: 1px solid rgba(255, 100, 100, 0.3);
-    color: #ff6b6b;
-    padding: 12px 20px;
-    border-radius: 8px;
-    margin-bottom: 1.5rem;
+    background: #1a0a0a;
+    border: 1px solid #331111;
+    color: #ff4444;
+    padding: 1rem 1.5rem;
+    margin-bottom: 2rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
 }
 
 .launch-error button {
     background: transparent;
-    border: 1px solid rgba(255, 100, 100, 0.5);
-    color: #ff6b6b;
-    padding: 4px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-/* Surface card states */
-.surface-card.unlocked {
-    cursor: pointer;
-}
-
-.surface-card.locked {
-    opacity: 0.7;
-}
-
-.surface-card.launching {
-    pointer-events: none;
-    opacity: 0.8;
-}
-
-/* Launch button */
-.launch-btn {
-    margin-top: 1.5rem;
-    padding: 12px 32px;
-    font-size: 1rem;
+    border: 1px solid #331111;
+    color: #ff4444;
+    padding: 0.5rem 1rem;
+    font-size: 0.65rem;
     font-weight: 600;
-    border: none;
-    border-radius: 8px;
-    background: var(--accent-color, #00d4ff);
-    color: #000;
+    letter-spacing: 0.1em;
     cursor: pointer;
     transition: all 0.2s;
 }
 
-.launch-btn:hover:not(:disabled) {
-    transform: scale(1.05);
-    box-shadow: 0 0 20px var(--accent-color, #00d4ff);
-}
-
-.launch-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* Locked overlay */
-.locked-overlay {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    margin-top: 1rem;
-}
-
-.locked-badge {
-    background: rgba(255, 100, 100, 0.15);
-    color: #ff6b6b;
-    font-size: 0.85rem;
-    font-weight: 600;
-    padding: 6px 16px;
-    border-radius: 20px;
-}
-
-/* Subscribe button */
-.subscribe-btn {
-    padding: 10px 20px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    border: 2px solid var(--accent-color, #ff6b00);
-    border-radius: 8px;
-    background: transparent;
-    color: var(--accent-color, #ff6b00);
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.subscribe-btn:hover {
-    background: var(--accent-color, #ff6b00);
+.launch-error button:hover {
+    background: #ff4444;
     color: #000;
 }

@@ -1,9 +1,8 @@
 /**
  * Surface Home Page (Launchpad)
  * 
- * Landing page at /home showing available surfaces.
- * - Unlocked tiles generate launch tokens and open relay
- * - Locked tiles show "Subscribe" CTA
+ * Landing page showing available surfaces.
+ * Professional racing software suite.
  */
 
 import { useState } from 'react';
@@ -16,7 +15,6 @@ interface SurfaceCard {
     product: 'blackbox' | 'controlbox' | 'racebox';
     title: string;
     description: string;
-    icon: string;
     color: string;
 }
 
@@ -24,33 +22,29 @@ const SURFACE_CARDS: SurfaceCard[] = [
     {
         surface: 'driver',
         product: 'blackbox',
-        title: 'Driver HUD',
-        description: 'In-car overlay with AI coaching and spotter alerts',
-        icon: '🏎️',
+        title: 'DRIVER HUD',
+        description: 'Real-time telemetry overlay with AI race engineer',
         color: '#00d4ff'
     },
     {
         surface: 'team',
         product: 'blackbox',
-        title: 'Team Pit Wall',
-        description: 'Strategy timeline, fuel management, and opponent intel',
-        icon: '📊',
+        title: 'PIT WALL',
+        description: 'Strategy management, fuel calculations, live timing',
         color: '#00ff88'
     },
     {
         surface: 'broadcast',
         product: 'racebox',
-        title: 'Broadcast',
-        description: 'Live timing, leaderboards, and spectator views',
-        icon: '📺',
+        title: 'BROADCAST',
+        description: 'Professional timing graphics and spectator views',
         color: '#9b59b6'
     },
     {
         surface: 'racecontrol',
         product: 'controlbox',
-        title: 'Race Control',
-        description: 'Incident review, penalty assignment, and protests',
-        icon: '⚖️',
+        title: 'RACE CONTROL',
+        description: 'Incident review, stewarding, and penalty management',
         color: '#ff6b00'
     }
 ];
@@ -84,14 +78,14 @@ export function SurfaceHome() {
     return (
         <div className="surface-home">
             <header className="surface-home-header">
-                <h1>Ok, Box Box</h1>
-                <p>Choose your surface to get started</p>
+                <div className="logo-mark">OK, BOX BOX</div>
+                <p className="tagline">PROFESSIONAL RACING SOFTWARE</p>
             </header>
 
             {error && (
                 <div className="launch-error">
-                    <span>⚠️ {error}</span>
-                    <button onClick={() => setError(null)}>Dismiss</button>
+                    <span>{error}</span>
+                    <button onClick={() => setError(null)}>DISMISS</button>
                 </div>
             )}
 
@@ -102,29 +96,24 @@ export function SurfaceHome() {
                     return (
                         <div
                             key={card.surface}
-                            className={`surface-card unlocked ${isLaunching ? 'launching' : ''}`}
+                            className={`surface-card ${isLaunching ? 'launching' : ''}`}
                             style={{ '--accent-color': card.color } as React.CSSProperties}
+                            onClick={() => !isLaunching && handleLaunch(card.surface)}
                         >
-                            <span className="surface-icon">{card.icon}</span>
+                            <div className="card-accent" />
                             <h2>{card.title}</h2>
                             <p>{card.description}</p>
-
-                            <button
-                                className="launch-btn"
-                                onClick={() => handleLaunch(card.surface)}
-                                disabled={isLaunching}
-                            >
-                                {isLaunching ? 'Launching...' : 'Launch'}
-                            </button>
+                            <div className="card-footer">
+                                <span className="status-indicator" />
+                                <span className="status-text">{isLaunching ? 'LAUNCHING' : 'READY'}</span>
+                            </div>
                         </div>
                     );
                 })}
             </div>
 
             <footer className="surface-home-footer">
-                <p className="protocol-hint">
-                    💡 First time? <a href="/download-relay">Download the relay agent</a> to use Driver HUD
-                </p>
+                <a href="/download-relay" className="download-link">DOWNLOAD RELAY</a>
             </footer>
         </div>
     );
