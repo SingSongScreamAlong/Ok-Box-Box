@@ -214,7 +214,7 @@ export class PythonBridge {
      * Connect to cloud server
      */
     private connectToCloud(): void {
-        const cloudUrl = 'https://coral-app-x988a.ondigitalocean.app';
+        const cloudUrl = 'https://octopus-app-qsi3i.ondigitalocean.app';
 
         this.cloudSocket = io(cloudUrl, {
             reconnection: true,
