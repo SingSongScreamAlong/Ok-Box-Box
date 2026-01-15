@@ -1,6 +1,6 @@
 {
     "name": "@controlbox/server",
-    "version": "0.1.0-alpha",
+    "version": "1.0.0-rc1",
     "description": "ControlBox backend API server",
     "main": "./dist/index.js",
     "types": "./dist/index.d.ts",
@@ -28,6 +28,7 @@
         "helmet": "^7.1.0",
         "jsonwebtoken": "^9.0.3",
         "morgan": "^1.10.0",
+        "openai": "^6.16.0",
         "pdfkit": "^0.17.2",
         "pg": "^8.11.3",
         "pino": "^10.1.0",
