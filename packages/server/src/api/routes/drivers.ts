@@ -17,8 +17,13 @@ import {
     createAccessGrant,
     revokeGrant,
 } from '../../db/repositories/driver-profile.repo.js';
+import { getMetricsForDriver } from '../../db/repositories/session-metrics.repo.js';
+import { getAllAggregatesForDriver, getGlobalAggregate } from '../../db/repositories/driver-aggregates.repo.js';
+import { getCurrentTraits } from '../../db/repositories/driver-traits.repo.js';
+import { getReportsForDriver } from '../../db/repositories/driver-reports.repo.js';
 import {
     requireOwner,
+    requireTeamStandard,
     allowPublic,
     filterByScope,
 } from '../middleware/idp-access.js';
@@ -301,6 +306,126 @@ router.delete('/:id/access-grants/:grantId', requireOwner, async (req: Request, 
     } catch (error) {
         console.error('[IDP] Error revoking grant:', error);
         res.status(500).json({ error: 'Failed to revoke access grant' });
+    }
+});
+
+// ========================
+// Sessions & Performance
+// ========================
+
+/**
+ * GET /api/v1/drivers/:id/sessions
+ * Get session metrics history for a driver (team access)
+ */
+router.get('/:id/sessions', requireTeamStandard, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const limit = parseInt(req.query.limit as string) || 50;
+        const offset = parseInt(req.query.offset as string) || 0;
+
+        const metrics = await getMetricsForDriver(req.params.id, limit, offset);
+        res.json({
+            driver_profile_id: req.params.id,
+            count: metrics.length,
+            limit,
+            offset,
+            sessions: metrics,
+        });
+    } catch (error) {
+        console.error('[IDP] Error fetching sessions:', error);
+        res.status(500).json({ error: 'Failed to fetch session metrics' });
+    }
+});
+
+/**
+ * GET /api/v1/drivers/:id/performance
+ * Get aggregated performance data for a driver
+ */
+router.get('/:id/performance', allowPublic, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const [globalAggregate, allAggregates, traits] = await Promise.all([
+            getGlobalAggregate(req.params.id, 'all_time'),
+            getAllAggregatesForDriver(req.params.id),
+            getCurrentTraits(req.params.id),
+        ]);
+
+        if (!globalAggregate) {
+            res.status(404).json({ error: 'No performance data available for this driver' });
+            return;
+        }
+
+        res.json({
+            driver_profile_id: req.params.id,
+            global: globalAggregate,
+            by_context: allAggregates.filter(a => a.car_name || a.track_name),
+            traits: traits.map(t => ({
+                key: t.trait_key,
+                label: t.trait_label,
+                category: t.trait_category,
+                confidence: t.confidence,
+            })),
+            computed_at: globalAggregate.computed_at,
+        });
+    } catch (error) {
+        console.error('[IDP] Error fetching performance:', error);
+        res.status(500).json({ error: 'Failed to fetch performance data' });
+    }
+});
+
+/**
+ * GET /api/v1/drivers/:id/traits
+ * Get current characteristic indicators for a driver
+ */
+router.get('/:id/traits', allowPublic, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const traits = await getCurrentTraits(req.params.id);
+        res.json({
+            driver_profile_id: req.params.id,
+            count: traits.length,
+            traits: traits.map(t => ({
+                key: t.trait_key,
+                label: t.trait_label,
+                category: t.trait_category,
+                confidence: t.confidence,
+                evidence: t.evidence_summary,
+                computed_at: t.computed_at,
+            })),
+        });
+    } catch (error) {
+        console.error('[IDP] Error fetching traits:', error);
+        res.status(500).json({ error: 'Failed to fetch driver traits' });
+    }
+});
+
+/**
+ * GET /api/v1/drivers/:id/reports
+ * Get AI-generated reports for a driver (team access)
+ */
+router.get('/:id/reports', requireTeamStandard, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const reportType = req.query.type as string | undefined;
+        const limit = parseInt(req.query.limit as string) || 20;
+
+        const reports = await getReportsForDriver(req.params.id, {
+            reportType: reportType as 'session_debrief' | 'monthly_narrative' | undefined,
+            status: 'published',
+            limit,
+        });
+
+        res.json({
+            driver_profile_id: req.params.id,
+            count: reports.length,
+            reports: reports.map(r => ({
+                id: r.id,
+                type: r.report_type,
+                title: r.title,
+                session_id: r.session_id,
+                content: r.content_json,
+                created_at: r.created_at,
+            })),
+        });
+    } catch (error) {
+        console.error('[IDP] Error fetching reports:', error);
+        res.status(500).json({ error: 'Failed to fetch driver reports' });
     }
 });
 

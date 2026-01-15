@@ -14,7 +14,8 @@ import type {
 } from '@controlbox/common';
 import { config } from '../config/index.js';
 import { RelayAdapter } from '../services/RelayAdapter.js';
-import { recordFrameIn, recordAckSent } from '../observability/parity-tracking.js';
+// Parity tracking removed or unused
+
 
 let io: Server;
 
@@ -499,6 +500,49 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
             } else {
                 socket.emit('ack', { originalType: 'race_event', success: false, error: 'Validation Failed' });
             }
+        });
+
+        // Session End - Trigger IDP Pipeline for all drivers
+        socket.on('session_end', async (data: { sessionId: string }) => {
+            console.log(`🏁 Session ended: ${data.sessionId}`);
+
+            const session = activeSessions.get(data.sessionId);
+            if (!session) {
+                socket.emit('ack', { originalType: 'session_end', success: false, error: 'Session not found' });
+                return;
+            }
+
+            // Notify all clients
+            io.to(`session:${data.sessionId}`).emit('session:ended', {
+                sessionId: data.sessionId,
+                trackName: session.trackName,
+                sessionType: session.sessionType,
+                driverCount: session.drivers.size,
+            });
+
+            // Trigger IDP pipeline for each driver in the session
+            // Import dynamically to avoid circular dependencies
+            try {
+                const { runPostSessionPipeline } = await import('../services/idp/index.js');
+
+                for (const [driverId] of session.drivers) {
+                    // Note: In production, driverId would be resolved to driverProfileId
+                    // via linked_racing_identities. For now, we log the intent.
+                    console.log(`[IDP] Queuing post-session pipeline for driver ${driverId} in session ${data.sessionId}`);
+
+                    // Queue async - don't block the socket
+                    runPostSessionPipeline(data.sessionId, driverId).catch(err => {
+                        console.error(`[IDP] Pipeline failed for driver ${driverId}:`, err);
+                    });
+                }
+            } catch (err) {
+                console.error('[IDP] Failed to load IDP services:', err);
+            }
+
+            // Clean up session from active map
+            activeSessions.delete(data.sessionId);
+
+            socket.emit('ack', { originalType: 'session_end', success: true });
         });
 
         // Video Frame Relay (Phase 8 - Binary 60fps)
