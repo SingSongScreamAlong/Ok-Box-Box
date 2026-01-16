@@ -39,23 +39,23 @@ interface ElevenLabsVoice {
 const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
 
 // Default voice settings - race engineer voice profile
-const DEFAULT_VOICE_ID = 'pNInz6obpgDQGcFmaJgB'; // Adam - clear male voice
+const DEFAULT_VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'; // British Football Announcer
 const DEFAULT_MODEL_ID = 'eleven_turbo_v2'; // Fastest model
 
 // Voice presets for different contexts
 export const VOICE_PRESETS = {
     raceEngineer: {
-        voiceId: 'pNInz6obpgDQGcFmaJgB', // Adam
+        voiceId: 'JBFqnCBsd6RMkjVDRZzb', // British Football Announcer
         stability: 0.5,
         similarityBoost: 0.75,
     },
     urgent: {
-        voiceId: 'pNInz6obpgDQGcFmaJgB',
+        voiceId: 'JBFqnCBsd6RMkjVDRZzb', // British Football Announcer - more intense
         stability: 0.3,
         similarityBoost: 0.8,
     },
     calm: {
-        voiceId: 'EXAVITQu4vr4xnSDxMaL', // Bella - calm female
+        voiceId: 'JBFqnCBsd6RMkjVDRZzb', // British Football Announcer - calmer
         stability: 0.7,
         similarityBoost: 0.6,
     }
