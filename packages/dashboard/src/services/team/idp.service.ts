@@ -5,7 +5,7 @@
  * Falls back to demo data when API unavailable.
  */
 
-import { useAuthStore } from '../stores/auth.store';
+import { useAuthStore } from '../../stores/auth.store';
 
 // Types
 export interface DriverTarget {
@@ -106,7 +106,7 @@ export async function fetchDriverProfile(driverId?: string): Promise<DriverProfi
     }
 
     try {
-        const endpoint = driverId ? `/api/v1/drivers/${driverId}/profile` : '/api/v1/drivers/me/profile';
+        const endpoint = driverId ? `/api/v1/drivers/${driverId}/profile` : '/api/v1/drivers/me';
         const response = await fetch(`${API_BASE}${endpoint}`, {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
@@ -261,4 +261,32 @@ export async function acceptSuggestion(driverId: string, suggestionId: string): 
 export function isDemoMode(): boolean {
     const { accessToken } = useAuthStore.getState();
     return !accessToken;
+}
+
+/**
+ * Trigger iRacing data sync
+ */
+export async function syncIRacingData(): Promise<{ success: boolean; synced_races: number; message: string }> {
+    const { accessToken } = useAuthStore.getState();
+
+    if (!accessToken) {
+        return { success: false, synced_races: 0, message: 'Not authenticated' };
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/v1/drivers/me/sync-iracing`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error || 'Sync failed');
+        }
+
+        return await response.json();
+    } catch (error: any) {
+        console.error('[IDP Service] Sync error:', error);
+        return { success: false, synced_races: 0, message: error.message || 'Failed to sync' };
+    }
 }

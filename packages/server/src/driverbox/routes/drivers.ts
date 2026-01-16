@@ -17,6 +17,7 @@ import {
     createAccessGrant,
     revokeGrant,
 } from '../../db/repositories/driver-profile.repo.js';
+import { backfillDriverHistory } from '../services/idp/iracing-sync.service.js';
 import { getMetricsForDriver } from '../../db/repositories/session-metrics.repo.js';
 import { getAllAggregatesForDriver, getGlobalAggregate } from '../../db/repositories/driver-aggregates.repo.js';
 import { getCurrentTraits } from '../../db/repositories/driver-traits.repo.js';
@@ -88,9 +89,40 @@ router.get('/:id', allowPublic, async (req: Request, res: Response): Promise<voi
 });
 
 /**
- * GET /api/v1/drivers/:id/summary
- * Get public-safe driver summary with headline stats
+ * POST /api/v1/drivers/me/sync-iracing
+ * Trigger manual sync of iRacing data for the current user
  */
+router.post('/me/sync-iracing', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const profile = await getDriverProfileByUserId(req.user!.id);
+        if (!profile) {
+            res.status(404).json({ error: 'Driver profile not found' });
+            return;
+        }
+
+        // Check for linked iRacing identity
+        const identities = await getLinkedIdentities(profile.id);
+        const iracingIdentity = identities.find(i => i.platform === 'iracing');
+
+        if (!iracingIdentity) {
+            res.status(400).json({ error: 'No iRacing account linked to this profile' });
+            return;
+        }
+
+        // Trigger backfill (max 10 races for manual sync to be fast)
+        const result = await backfillDriverHistory(profile.id, parseInt(iracingIdentity.platform_user_id), 10);
+
+        res.json({
+            success: true,
+            synced_races: result.synced,
+            errors: result.errors,
+            message: `Synced ${result.synced} recent races`
+        });
+    } catch (error) {
+        console.error('[IDP] Error syncing iRacing data:', error);
+        res.status(500).json({ error: 'Failed to sync iRacing data' });
+    }
+});
 router.get('/:id/summary', allowPublic, async (req: Request, res: Response): Promise<void> => {
     try {
         const profile = await getDriverProfileById(req.params.id);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useAuthStore } from '../../stores/auth.store';
-import { GoalVisibility, GOAL_VISIBILITY_DISPLAY } from '../../types/team-roles';
+import { useAuthStore } from '../../../stores/auth.store';
+import { GoalVisibility, GOAL_VISIBILITY_DISPLAY } from '../../../types/team-roles';
 import {
     ChevronLeft,
     Target,

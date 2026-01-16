@@ -1,26 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Target,
     Trophy,
     TrendingUp,
-    TrendingDown,
+    Zap,
     Clock,
     Flag,
     Award,
-    ChevronRight,
-    Zap,
     Shield,
     AlertTriangle,
-    CheckCircle,
     Plus,
     Activity,
     BarChart3,
     Car,
     MapPin,
     Calendar,
-    ArrowLeft
+    ArrowLeft,
+    RefreshCw
 } from 'lucide-react';
+import {
+    fetchDriverProfile,
+    fetchDriverTargets,
+    fetchSuggestions,
+    fetchAchievements,
+    syncIRacingData,
+    DriverProfile as IDriverProfile,
+    DriverTarget,
+    SuggestedTarget,
+    Achievement
+} from '../../../services/team/idp.service';
 
 // ============================================================
 // Real iRacing Data for Conrad Weeden (cust_id: 1185150)
@@ -52,79 +61,63 @@ const RECENT_RACES = [
     { date: 'Jan 14', series: 'Toyota GR86 Cup', track: 'Road Atlanta (Short)', start: 9, finish: 9, incidents: 15, points: 25, category: 'sportsCar' }
 ];
 
-const ACTIVE_GOALS = [
-    {
-        id: '1',
-        label: 'Reach C License (Sports Car)',
-        category: 'License',
-        current: 2.52,
-        target: 3.00,
-        deadline: '2025-02-15',
-        icon: Shield,
-        trend: 'up'
-    },
-    {
-        id: '2',
-        label: 'Reduce Incidents per Race',
-        category: 'Safety',
-        current: 7,
-        target: 4,
-        deadline: '2025-02-01',
-        icon: AlertTriangle,
-        trend: 'down'
-    },
-    {
-        id: '3',
-        label: 'First Win in GR86 Cup',
-        category: 'Performance',
-        current: 0,
-        target: 1,
-        deadline: null,
-        icon: Trophy,
-        trend: null
-    },
-    {
-        id: '4',
-        label: 'Break 1100 iRating (Oval)',
-        category: 'Rating',
-        current: 1040,
-        target: 1100,
-        deadline: '2025-03-01',
-        icon: TrendingUp,
-        trend: 'up'
-    }
-];
-
-const ACHIEVEMENTS = [
-    { id: '1', name: 'Oval Specialist', description: '250+ oval starts', icon: '🏁', date: 'Jan 2025', color: '#FFD700' },
-    { id: '2', name: 'Podium Hunter', description: '80+ top-5 finishes', icon: '🥇', date: 'Jan 2025', color: '#C0C0C0' },
-    { id: '3', name: 'Multi-Discipline', description: 'Active in 3+ categories', icon: '🏎️', date: 'Jan 2025', color: '#CD7F32' },
-    { id: '4', name: 'Fast Learner', description: 'B license in first year', icon: '📈', date: 'Jan 2025', color: '#00C853' }
-];
-
-const AI_SUGGESTIONS = [
-    {
-        id: '1',
-        title: 'Focus on Incident Reduction',
-        description: 'Your last 5 races averaged 7x incidents. Try running 10% slower to build consistency.',
-        priority: 'high',
-        basedOn: 'Recent races at Road Atlanta'
-    },
-    {
-        id: '2',
-        title: 'Leverage Oval Strength',
-        description: 'Your oval iRating is 2.9x higher than sports car. Consider focusing on oval to build confidence.',
-        priority: 'medium',
-        basedOn: 'License comparison'
-    }
-];
-
 // ============================================================
 // Component
 // ============================================================
 
 export default function MyIDPPage() {
-    const [activeTab, setActiveTab] = useState<'overview' | 'goals' | 'history'>('overview');
+    const [profile, setProfile] = useState<any>(DRIVER_PROFILE);
+    const [targets, setTargets] = useState<DriverTarget[]>([]);
+    const [suggestions, setSuggestions] = useState<SuggestedTarget[]>([]);
+    const [achievements, setAchievements] = useState<Achievement[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSyncing, setIsSyncing] = useState(false);
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        setIsLoading(true);
+        try {
+            const [p, t, s, a] = await Promise.all([
+                fetchDriverProfile(),
+                fetchDriverTargets('me'),
+                fetchSuggestions('me'),
+                fetchAchievements('me')
+            ]);
+
+            // Merge API profile with demo stats (since API doesn't return full stats yet)
+            setProfile({
+                ...DRIVER_PROFILE,
+                ...p,
+                licenses: DRIVER_PROFILE.licenses, // Keep demo licenses structure for now
+                stats: DRIVER_PROFILE.stats // Keep demo stats for now
+            });
+
+            // Map API targets to UI format if needed, or stick to type
+            setTargets(t);
+            setSuggestions(s);
+            setAchievements(a);
+        } catch (error) {
+            console.error('Failed to load IDP data', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSync = async () => {
+        setIsSyncing(true);
+        try {
+            await syncIRacingData();
+            // Reload data after sync
+            await loadData();
+        } catch (error) {
+            console.error('Sync failed', error);
+        } finally {
+            setIsSyncing(false);
+        }
+    };
 
     const getLicenseColor = (licenseClass: string) => {
         switch (licenseClass) {
@@ -146,6 +139,14 @@ export default function MyIDPPage() {
 
     return (
         <div className="p-6 max-w-7xl mx-auto">
+            {isLoading && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-3">
+                        <RefreshCw size={32} className="animate-spin text-racing-blue" />
+                        <span className="text-white font-medium">Loading Pilot Data...</span>
+                    </div>
+                </div>
+            )}
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
@@ -153,24 +154,34 @@ export default function MyIDPPage() {
                         <ArrowLeft size={20} />
                     </Link>
                     <div>
-                        <h1 className="font-racing text-2xl text-white tracking-wide">{DRIVER_PROFILE.name}</h1>
+                        <h1 className="font-racing text-2xl text-white tracking-wide">{profile.name || profile.display_name}</h1>
                         <p className="text-sm text-zinc-500">
-                            <span className="font-mono">#{DRIVER_PROFILE.custId}</span>
+                            <span className="font-mono">#{profile.custId || '000000'}</span>
                             <span className="mx-2">•</span>
-                            Member since {DRIVER_PROFILE.memberSince}
+                            Member since {profile.memberSince || '2025'}
                         </p>
                     </div>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-racing-blue hover:bg-racing-blue/80 text-white rounded-lg transition-colors text-sm font-medium">
-                    <Plus size={16} />
-                    Add Goal
-                </button>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleSync}
+                        disabled={isSyncing}
+                        className={`flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors text-sm font-medium ${isSyncing ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                        <RefreshCw size={16} className={isSyncing ? 'animate-spin' : ''} />
+                        {isSyncing ? 'Syncing...' : 'Sync iRacing'}
+                    </button>
+                    <button className="flex items-center gap-2 px-4 py-2 bg-racing-blue hover:bg-racing-blue/80 text-white rounded-lg transition-colors text-sm font-medium">
+                        <Plus size={16} />
+                        Add Goal
+                    </button>
+                </div>
             </div>
 
             {/* License Cards - iRacing Style */}
             <div className="grid grid-cols-5 gap-3 mb-6">
-                {Object.entries(DRIVER_PROFILE.licenses).map(([key, license]) => {
-                    const stats = DRIVER_PROFILE.stats[key as keyof typeof DRIVER_PROFILE.stats];
+                {profile.licenses && Object.entries(profile.licenses).map(([key, license]: [string, any]) => {
+                    const stats = profile.stats?.[key];
                     return (
                         <div key={key} className="card p-4 relative overflow-hidden">
                             <div className={`absolute top-0 left-0 w-1 h-full ${getLicenseColor(license.class)}`} />
@@ -267,22 +278,22 @@ export default function MyIDPPage() {
                         <div className="p-5">
                             <div className="grid grid-cols-3 gap-4 text-center mb-4">
                                 <div>
-                                    <div className="text-2xl font-bold text-white">{DRIVER_PROFILE.stats.oval.wins}</div>
+                                    <div className="text-2xl font-bold text-white">{profile.stats?.oval?.wins || 0}</div>
                                     <div className="text-xs text-zinc-500">Wins</div>
                                 </div>
                                 <div>
-                                    <div className="text-2xl font-bold text-racing-green">{DRIVER_PROFILE.stats.oval.top5s}</div>
+                                    <div className="text-2xl font-bold text-racing-green">{profile.stats?.oval?.top5s || 0}</div>
                                     <div className="text-xs text-zinc-500">Top 5s</div>
                                 </div>
                                 <div>
-                                    <div className="text-2xl font-bold text-racing-blue">{DRIVER_PROFILE.stats.oval.poles}</div>
+                                    <div className="text-2xl font-bold text-racing-blue">{profile.stats?.oval?.poles || 0}</div>
                                     <div className="text-xs text-zinc-500">Poles</div>
                                 </div>
                             </div>
                             <div className="flex justify-between text-sm border-t border-white/5 pt-3">
                                 <span className="text-zinc-500">Avg Start → Finish</span>
                                 <span className="font-mono text-white">
-                                    P{DRIVER_PROFILE.stats.oval.avgStart} → P{DRIVER_PROFILE.stats.oval.avgFinish}
+                                    P{profile.stats?.oval?.avgStart || '-'} → P{profile.stats?.oval?.avgFinish || '-'}
                                 </span>
                             </div>
                         </div>
@@ -314,25 +325,31 @@ export default function MyIDPPage() {
                         <Target size={16} className="text-racing-green" />
                         <span className="font-medium text-sm uppercase tracking-wider">Development Goals</span>
                     </div>
-                    <span className="text-xs text-zinc-600">{ACTIVE_GOALS.length} active</span>
+                    <span className="text-xs text-zinc-600">{targets.length} active</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-5">
-                    {ACTIVE_GOALS.map(goal => {
-                        const Icon = goal.icon;
-                        const progress = goal.category === 'Safety'
-                            ? ((goal.target - goal.current) / (goal.target - 15)) * 100 // Inverted for incidents
-                            : (goal.current / goal.target) * 100;
+                    {targets.map(goal => {
+                        // Map category to icon (fallback to Trophy)
+                        let Icon = Trophy;
+                        if (goal.category === 'safety') Icon = AlertTriangle;
+                        if (goal.category === 'irating') Icon = TrendingUp;
+                        if (goal.category === 'lap_time') Icon = Clock;
+                        if (goal.category === 'consistency') Icon = Activity;
+                        if (goal.category === 'License') Icon = Shield; // Handle legacy/demo capital case
+
+                        const current = Number(goal.current_value);
+                        const target = Number(goal.target_value);
+
+                        const progress = (goal.category as string).toLowerCase() === 'safety'
+                            ? ((target - current) / (target - 15)) * 100 // Approximation for safet
+                            : (current / target) * 100;
                         return (
                             <div key={goal.id} className="bg-white/5 rounded-lg p-4 border border-white/5 hover:border-racing-blue/30 transition-colors">
                                 <div className="flex items-start justify-between mb-3">
                                     <div className="w-10 h-10 rounded-lg bg-racing-blue/20 flex items-center justify-center">
                                         <Icon size={20} className="text-racing-blue" />
                                     </div>
-                                    {goal.trend && (
-                                        <div className={`flex items-center gap-1 text-xs ${goal.trend === 'up' ? 'text-racing-green' : 'text-red-400'}`}>
-                                            {goal.trend === 'up' ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                                        </div>
-                                    )}
+                                    {/* Trend not in API yet */}
                                 </div>
                                 <div className="text-sm font-medium text-white mb-1">{goal.label}</div>
                                 <div className="text-xs text-zinc-500 mb-3">{goal.category}</div>
@@ -343,8 +360,8 @@ export default function MyIDPPage() {
                                     />
                                 </div>
                                 <div className="flex justify-between text-xs">
-                                    <span className="text-zinc-400 font-mono">{goal.current}</span>
-                                    <span className="text-racing-blue font-mono">{goal.target}</span>
+                                    <span className="text-zinc-400 font-mono">{goal.current_value}</span>
+                                    <span className="text-racing-blue font-mono">{goal.target_value}</span>
                                 </div>
                                 {goal.deadline && (
                                     <div className="flex items-center gap-1 text-xs text-zinc-600 mt-2">
@@ -369,16 +386,16 @@ export default function MyIDPPage() {
                         </div>
                     </div>
                     <div className="divide-y divide-white/5">
-                        {AI_SUGGESTIONS.map(suggestion => (
+                        {suggestions.map(suggestion => (
                             <div key={suggestion.id} className="p-5">
                                 <div className="flex items-start gap-3">
                                     <div className={`w-2 h-2 rounded-full mt-2 ${suggestion.priority === 'high' ? 'bg-red-400' : 'bg-yellow-400'}`} />
                                     <div className="flex-1">
-                                        <div className="font-medium text-white mb-1">{suggestion.title}</div>
-                                        <div className="text-sm text-zinc-400 mb-2">{suggestion.description}</div>
+                                        <div className="font-medium text-white mb-1">{suggestion.label}</div>
+                                        <div className="text-sm text-zinc-400 mb-2">{suggestion.rationale}</div>
                                         <div className="text-xs text-zinc-600 flex items-center gap-1">
                                             <Activity size={10} />
-                                            Based on: {suggestion.basedOn}
+                                            Target: {suggestion.target_value} ({suggestion.track})
                                         </div>
                                     </div>
                                 </div>
@@ -394,13 +411,13 @@ export default function MyIDPPage() {
                             <Award size={16} className="text-yellow-400" />
                             <span className="font-medium text-sm uppercase tracking-wider">Achievements</span>
                         </div>
-                        <span className="text-xs text-zinc-600">{ACHIEVEMENTS.length} earned</span>
+                        <span className="text-xs text-zinc-600">{achievements.length} earned</span>
                     </div>
                     <div className="grid grid-cols-2 gap-3 p-5">
-                        {ACHIEVEMENTS.map(achievement => (
+                        {achievements.map(achievement => (
                             <div key={achievement.id} className="bg-white/5 rounded-lg p-3 border border-white/5">
                                 <div className="flex items-center gap-3">
-                                    <div className="text-2xl">{achievement.icon}</div>
+                                    <div className="text-2xl">{achievement.badge}</div>
                                     <div>
                                         <div className="text-sm font-medium text-white">{achievement.name}</div>
                                         <div className="text-xs text-zinc-500">{achievement.description}</div>

@@ -132,7 +132,9 @@ apiRouter.use('/voice', voiceRouter);
 
 // Individual Driver Profile (IDP) - v1 API
 import driversRouter from '../../driverbox/routes/drivers.js';
+import driverDevelopmentRouter from './driver-development.js';
 apiRouter.use('/v1/drivers', driversRouter);
+apiRouter.use('/v1/drivers', driverDevelopmentRouter);
 
 // Team System v1 (Permissioned view over IDP)
 import teamsV1Router from '../../driverbox/routes/teams.js';
