@@ -22,9 +22,16 @@ const SURFACE_CARDS: SurfaceCard[] = [
     {
         surface: 'driverbox',
         product: 'blackbox',
-        title: 'MY TEAM',
-        description: 'Development plans, goals, practice & strategy',
+        title: 'MY STATS',
+        description: 'Personal development, goals & achievements',
         color: '#ffd700'
+    },
+    {
+        surface: 'team' as BootstrapSurface,
+        product: 'blackbox',
+        title: 'MY TEAM',
+        description: 'Team roster, practice & strategy',
+        color: '#00ff88'
     },
     {
         surface: 'driver',
@@ -32,13 +39,6 @@ const SURFACE_CARDS: SurfaceCard[] = [
         title: 'DRIVER HUD',
         description: 'Real-time telemetry overlay with AI race engineer',
         color: '#00d4ff'
-    },
-    {
-        surface: 'team',
-        product: 'blackbox',
-        title: 'PIT WALL',
-        description: 'Strategy management, fuel calculations, live timing',
-        color: '#00ff88'
     },
     {
         surface: 'broadcast',
@@ -67,9 +67,9 @@ export function SurfaceHome() {
 
         // Direct navigation for all surfaces
         const webRoutes: Record<string, string> = {
-            'driverbox': '/teams/demo',
+            'driverbox': '/my-idp',
+            'team': '/teams/demo',
             'driver': '/driver',
-            'team': '/team/live',
             'racecontrol': '/controlbox',
             'broadcast': '/broadcast',
         };

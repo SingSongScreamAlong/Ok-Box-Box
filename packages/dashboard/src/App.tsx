@@ -39,6 +39,7 @@ import TeamPlanning from './pages/team/TeamPlanning';
 import TeamSetups from './pages/team/TeamSetups';
 import TeamStrategy from './pages/team/TeamStrategy';
 import TeamPractice from './pages/team/TeamPractice';
+import MyIDPPage from './pages/MyIDPPage';
 
 // Wrapper to extract sessionId from URL for TeamDashboard
 function TeamDashboardWrapper() {
@@ -61,6 +62,9 @@ export function App() {
 
                             {/* Download relay (public) */}
                             <Route path="/download-relay" element={<DownloadRelay />} />
+
+                            {/* My IDP (standalone, works without login) */}
+                            <Route path="/my-idp" element={<MyIDPPage />} />
 
                             {/* ============================================================
                             RACEBOX SURFACES (Broadcast/Spectator) - FREE
