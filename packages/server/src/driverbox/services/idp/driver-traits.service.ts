@@ -13,8 +13,8 @@
  * - Recalculated periodically (not cached indefinitely)
  */
 
-import { getGlobalAggregate } from '../../db/repositories/driver-aggregates.repo.js';
-import { upsertDriverTrait, expireAllTraits, CreateDriverTraitDTO } from '../../db/repositories/driver-traits.repo.js';
+import { getGlobalAggregate } from '../../../db/repositories/driver-aggregates.repo.js';
+import { upsertDriverTrait, expireAllTraits, CreateDriverTraitDTO } from '../../../db/repositories/driver-traits.repo.js';
 import { TRAIT_KEYS } from '../../types/idp.types.js';
 
 // ========================
@@ -254,7 +254,7 @@ export async function deriveDriverTraits(driverProfileId: string): Promise<void>
 
 export async function deriveTraitsForAllDrivers(): Promise<void> {
     // Get all driver profiles with sufficient data
-    const { pool: dbPool } = await import('../../db/client.js');
+    const { pool: dbPool } = await import('../../../db/client.js');
     const result = await dbPool.query<{ id: string }>(
         `SELECT DISTINCT driver_profile_id as id FROM session_metrics 
      GROUP BY driver_profile_id 

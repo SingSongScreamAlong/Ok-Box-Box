@@ -119,7 +119,7 @@ class RelayAgent:
         self.overlay.start()
         
         print("╔════════════════════════════════════════════════════════════╗")
-        print("║         PitBox Relay Agent v1.0.0                        ║")
+        print("║         PitBox Relay Agent v1.0.0-rc1                    ║")
         print("║         iRacing → PitBox AI Coaching Bridge              ║")
         print("╚════════════════════════════════════════════════════════════╝")
         print(f"Connecting to: {self.cloud_client.url}")

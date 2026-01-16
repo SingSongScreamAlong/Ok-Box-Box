@@ -27,6 +27,18 @@ import { Broadcast } from './pages/Broadcast';
 import { Watch } from './pages/Watch';
 import { DriverHUD } from './components/DriverHUD';
 import { TeamSessionList } from './pages/TeamSessionList';
+import { TeamLayout } from './layouts/TeamLayout';
+import TeamRoster from './pages/team/TeamRoster';
+import TeamHome from './pages/team/TeamHome';
+import TeamEvents from './pages/team/TeamEvents';
+import TeamEventDetail from './pages/team/TeamEventDetail';
+import TeamReports from './pages/team/TeamReports';
+import DriverProfilePage from './pages/team/DriverProfilePage';
+import DriverIDPPage from './pages/team/DriverIDPPage';
+import TeamPlanning from './pages/team/TeamPlanning';
+import TeamSetups from './pages/team/TeamSetups';
+import TeamStrategy from './pages/team/TeamStrategy';
+import TeamPractice from './pages/team/TeamPractice';
 
 // Wrapper to extract sessionId from URL for TeamDashboard
 function TeamDashboardWrapper() {
@@ -96,6 +108,28 @@ export function App() {
 
                             {/* Team Dashboard - BlackBox pit wall surface - NO AUTH FOR TESTING */}
                             <Route path="/team/:sessionId" element={<TeamDashboardWrapper />} />
+
+                            {/* ============================================================
+                            TEAM SYSTEM V1 (IDP Powered) 
+                            ============================================================ */}
+
+                            <Route path="/teams/:teamId" element={
+                                <ProtectedRoute>
+                                    <TeamLayout />
+                                </ProtectedRoute>
+                            }>
+                                <Route index element={<TeamHome />} />
+                                <Route path="roster" element={<TeamRoster />} />
+                                <Route path="events" element={<TeamEvents />} />
+                                <Route path="events/:eventId" element={<TeamEventDetail />} />
+                                <Route path="planning" element={<TeamPlanning />} />
+                                <Route path="setups" element={<TeamSetups />} />
+                                <Route path="strategy" element={<TeamStrategy />} />
+                                <Route path="practice" element={<TeamPractice />} />
+                                <Route path="reports" element={<TeamReports />} />
+                                <Route path="driver/:driverId" element={<DriverProfilePage />} />
+                                <Route path="driver/:driverId/idp" element={<DriverIDPPage />} />
+                            </Route>
 
                             {/* ============================================================
                             CONTROLBOX SURFACES (Race Control)

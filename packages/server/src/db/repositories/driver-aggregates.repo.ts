@@ -4,7 +4,7 @@
  */
 
 import { pool } from '../client.js';
-import { DriverAggregate, WindowType } from '../../types/idp.types.js';
+import { DriverAggregate, WindowType } from '../../driverbox/types/idp.types.js';
 
 // ========================
 // Aggregate CRUD

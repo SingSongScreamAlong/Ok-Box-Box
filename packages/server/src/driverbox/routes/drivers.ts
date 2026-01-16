@@ -26,15 +26,15 @@ import {
     requireTeamStandard,
     allowPublic,
     filterByScope,
-} from '../middleware/idp-access.js';
-import { requireAuth } from '../middleware/auth.js';
+} from '../../api/middleware/idp-access.js';
+import { requireAuth } from '../../api/middleware/auth.js';
 import {
     DriverSummary,
     CreateDriverProfileDTO,
     UpdateDriverProfileDTO,
     LinkIdentityDTO,
     CreateAccessGrantDTO,
-} from '../../types/idp.types.js';
+} from '../types/idp.types.js';
 
 const router = Router();
 

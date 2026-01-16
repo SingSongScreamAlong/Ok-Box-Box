@@ -9,7 +9,7 @@ import { Router, Request, Response } from 'express';
 const router = Router();
 
 // Current relay version
-const RELAY_VERSION = '1.0.0';
+const RELAY_VERSION = '1.0.0-rc1';
 const DOWNLOAD_URL = 'https://okboxbox.com/download-relay';
 
 interface VersionResponse {

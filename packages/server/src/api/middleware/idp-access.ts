@@ -5,7 +5,7 @@
 
 import { Request, Response, NextFunction } from 'express';
 import { resolveAccessScope } from '../../db/repositories/driver-profile.repo.js';
-import { ResolvedScope } from '../../types/idp.types.js';
+import { ResolvedScope } from '../../driverbox/types/idp.types.js';
 
 // Extend Express Request to include IDP context
 declare global {

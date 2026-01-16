@@ -206,7 +206,7 @@ export interface DriverAccessGrant {
     notes: string | null;
 }
 
-export type GranteeType = 'league' | 'user';
+export type GranteeType = 'league' | 'user' | 'team';
 export type AccessScope = 'public' | 'team_standard' | 'team_deep';
 
 // ========================

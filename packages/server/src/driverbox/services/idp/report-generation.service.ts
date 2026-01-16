@@ -9,14 +9,14 @@
  */
 
 import OpenAI from 'openai';
-import { createDriverReport, CreateDriverReportDTO } from '../../db/repositories/driver-reports.repo.js';
-import { getSessionMetrics } from '../../db/repositories/session-metrics.repo.js';
-import { getGlobalAggregate } from '../../db/repositories/driver-aggregates.repo.js';
-import { getCurrentTraits } from '../../db/repositories/driver-traits.repo.js';
-import { getDriverProfileById } from '../../db/repositories/driver-profile.repo.js';
-import { pool } from '../../db/client.js';
+import { createDriverReport, CreateDriverReportDTO } from '../../../db/repositories/driver-reports.repo.js';
+import { getSessionMetrics } from '../../../db/repositories/session-metrics.repo.js';
+import { getGlobalAggregate } from '../../../db/repositories/driver-aggregates.repo.js';
+import { getCurrentTraits } from '../../../db/repositories/driver-traits.repo.js';
+import { getDriverProfileById } from '../../../db/repositories/driver-profile.repo.js';
+import { pool } from '../../../db/client.js';
 import { DriverReport, SessionMetrics, DriverTrait, DriverAggregate } from '../../types/idp.types.js';
-import { config } from '../../config/index.js';
+import { config } from '../../../config/index.js';
 
 // ========================
 // OpenAI Client

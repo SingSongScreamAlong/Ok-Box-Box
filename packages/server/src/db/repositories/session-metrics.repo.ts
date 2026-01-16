@@ -4,7 +4,7 @@
  */
 
 import { pool } from '../client.js';
-import { SessionMetrics } from '../../types/idp.types.js';
+import { SessionMetrics } from '../../driverbox/types/idp.types.js';
 
 // ========================
 // Session Metrics CRUD

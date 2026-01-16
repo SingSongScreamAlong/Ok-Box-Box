@@ -3,8 +3,8 @@
  * Computes rolling statistics across sessions for a driver
  */
 
-import { pool } from '../../db/client.js';
-import { upsertDriverAggregate, CreateDriverAggregateDTO } from '../../db/repositories/driver-aggregates.repo.js';
+import { pool } from '../../../db/client.js';
+import { upsertDriverAggregate, CreateDriverAggregateDTO } from '../../../db/repositories/driver-aggregates.repo.js';
 import { SessionMetrics, WindowType } from '../../types/idp.types.js';
 
 // ========================

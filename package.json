@@ -1,6 +1,6 @@
 {
     "name": "controlbox",
-    "version": "0.1.0-alpha",
+    "version": "1.0.0-rc1",
     "description": "Autonomous Race Control System for Online Leagues",
     "private": true,
     "workspaces": [

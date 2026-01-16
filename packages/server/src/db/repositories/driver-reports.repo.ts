@@ -4,7 +4,7 @@
  */
 
 import { pool } from '../client.js';
-import { DriverReport, ReportType, ReportStatus } from '../../types/idp.types.js';
+import { DriverReport, ReportType, ReportStatus } from '../../driverbox/types/idp.types.js';
 
 // ========================
 // Report CRUD

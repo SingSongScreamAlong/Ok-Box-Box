@@ -14,7 +14,7 @@
  * API Documentation: https://members-ng.iracing.com/data/doc
  */
 
-import { pool } from '../../db/client.js';
+import { pool } from '../../../db/client.js';
 import { computeSessionMetrics, ComputeMetricsInput } from './session-metrics.service.js';
 
 // ========================

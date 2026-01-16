@@ -14,7 +14,7 @@ import {
     CreateAccessGrantDTO,
     AccessScope,
     ResolvedScope,
-} from '../../types/idp.types.js';
+} from '../../driverbox/types/idp.types.js';
 
 // ========================
 // Driver Profile Operations

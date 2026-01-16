@@ -523,7 +523,7 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
             // Trigger IDP pipeline for each driver in the session
             // Import dynamically to avoid circular dependencies
             try {
-                const { runPostSessionPipeline } = await import('../services/idp/index.js');
+                const { runPostSessionPipeline } = await import('../driverbox/services/idp/index.js');
 
                 for (const [driverId] of session.drivers) {
                     // Note: In production, driverId would be resolved to driverProfileId

@@ -3,9 +3,9 @@
  * Computes per-session driver performance metrics from lap data
  */
 
-import { createSessionMetrics, CreateSessionMetricsDTO } from '../../db/repositories/session-metrics.repo.js';
-import { incrementProfileStats, getDriverProfileByPlatformId } from '../../db/repositories/driver-profile.repo.js';
-import { pool } from '../../db/client.js';
+import { createSessionMetrics, CreateSessionMetricsDTO } from '../../../db/repositories/session-metrics.repo.js';
+import { incrementProfileStats, getDriverProfileByPlatformId } from '../../../db/repositories/driver-profile.repo.js';
+import { pool } from '../../../db/client.js';
 
 // ========================
 // Types

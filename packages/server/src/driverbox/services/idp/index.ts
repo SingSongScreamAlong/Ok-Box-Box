@@ -70,7 +70,7 @@ export async function runPostSessionPipeline(
  * Run nightly aggregation job for all drivers
  */
 export async function runNightlyAggregationJob(): Promise<void> {
-    const { pool } = await import('../../db/client.js');
+    const { pool } = await import('../../../db/client.js');
     const { computeDriverAggregates } = await import('./driver-aggregates.service.js');
     const { deriveDriverTraits } = await import('./driver-traits.service.js');
 

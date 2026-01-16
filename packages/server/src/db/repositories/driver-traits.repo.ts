@@ -4,7 +4,7 @@
  */
 
 import { pool } from '../client.js';
-import { DriverTrait } from '../../types/idp.types.js';
+import { DriverTrait } from '../../driverbox/types/idp.types.js';
 
 // ========================
 // Trait CRUD
