@@ -116,13 +116,9 @@ export function App() {
                                 </ProtectedRoute>
                             } />
 
-                            {/* Team Dashboard - BlackBox pit wall surface */}
+                            {/* Team Dashboard - BlackBox pit wall surface (auth disabled for alpha testing) */}
                             <Route path="/team/:sessionId" element={
-                                <ProtectedRoute>
-                                    <RequireCapability capability="pitwall_view">
-                                        <TeamDashboardWrapper />
-                                    </RequireCapability>
-                                </ProtectedRoute>
+                                <TeamDashboardWrapper />
                             } />
 
                             {/* ============================================================
