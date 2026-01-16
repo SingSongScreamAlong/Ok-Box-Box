@@ -84,7 +84,7 @@ export type CapabilityKey = keyof BootstrapCapabilities;
 // SURFACES & UI
 // ============================================================================
 
-export type BootstrapSurface = 'driver' | 'team' | 'racecontrol' | 'broadcast';
+export type BootstrapSurface = 'driver' | 'team' | 'racecontrol' | 'broadcast' | 'driverbox';
 
 export interface BootstrapUI {
     /** Default landing page after login */
@@ -135,4 +135,5 @@ export const SURFACE_CAPABILITIES: Record<BootstrapSurface, CapabilityKey> = {
     team: 'pitwall_view',
     racecontrol: 'incident_review',
     broadcast: 'racebox_access',
+    driverbox: 'personal_telemetry', // Team IDP uses personal telemetry capability
 } as const;

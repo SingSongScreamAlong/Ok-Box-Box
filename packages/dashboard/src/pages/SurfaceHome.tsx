@@ -20,6 +20,13 @@ interface SurfaceCard {
 
 const SURFACE_CARDS: SurfaceCard[] = [
     {
+        surface: 'driverbox',
+        product: 'blackbox',
+        title: 'MY TEAM',
+        description: 'Development plans, goals, practice & strategy',
+        color: '#ffd700'
+    },
+    {
         surface: 'driver',
         product: 'blackbox',
         title: 'DRIVER HUD',
@@ -60,6 +67,7 @@ export function SurfaceHome() {
 
         // Direct navigation for all surfaces
         const webRoutes: Record<string, string> = {
+            'driverbox': '/teams/demo',
             'driver': '/driver',
             'team': '/team/live',
             'racecontrol': '/controlbox',
