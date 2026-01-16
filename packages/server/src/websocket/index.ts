@@ -14,6 +14,7 @@ import type {
 } from '@controlbox/common';
 import { config } from '../config/index.js';
 import { RelayAdapter } from '../services/RelayAdapter.js';
+import { getSituationalAwarenessService } from '../services/ai/situational-awareness.js';
 // Parity tracking removed or unused
 
 
@@ -413,6 +414,57 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
                 }));
 
                 io.to(`session:${data.sessionId}`).emit('opponent:intel', { opponents });
+            }
+
+            // SITUATIONAL AWARENESS: Generate race engineer intel (async, non-blocking)
+            const awarenessService = getSituationalAwarenessService();
+            if (awarenessService.isAvailable() && data.cars && data.cars.length > 0) {
+                const primaryCar = data.cars[0];
+                
+                // Build context for AI analysis
+                const raceContext = {
+                    sessionType: session.sessionType as 'practice' | 'qualifying' | 'race',
+                    trackName: session.trackName,
+                    currentLap: primaryCar.lap || 0,
+                    totalLaps: undefined,
+                    sessionTimeRemaining: undefined
+                };
+
+                const driverState = {
+                    position: primaryCar.position || 1,
+                    totalCars: session.drivers.size || 1,
+                    gapAhead: primaryCar.gapAhead || null,
+                    gapBehind: primaryCar.gapBehind || null,
+                    fuelLaps: primaryCar.fuel?.lapsRemaining || (primaryCar.fuel?.level / (primaryCar.fuel?.perLap || 1)) || 99,
+                    fuelLevel: primaryCar.fuel?.level || 0,
+                    tireCondition: primaryCar.tires || { fl: 1, fr: 1, rl: 1, rr: 1 },
+                    lastLapTime: primaryCar.lastLapTime || null,
+                    bestLapTime: primaryCar.bestLapTime || null,
+                    onPitRoad: primaryCar.pit?.inLane || false,
+                    incidentCount: primaryCar.incidents || 0
+                };
+
+                const trafficInfo = {
+                    carAhead: undefined,
+                    carBehind: undefined,
+                    blueFlags: false,
+                    yellowFlags: false
+                };
+
+                // Fire and forget - don't block telemetry
+                awarenessService.analyzeRaceSituation(raceContext, driverState, trafficInfo)
+                    .then(updates => {
+                        if (updates.length > 0) {
+                            // Send to driver's relay
+                            io.to(`session:${data.sessionId}`).emit('engineer:update', {
+                                sessionId: data.sessionId,
+                                updates
+                            });
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Situational awareness error:', err);
+                    });
             }
         });
 

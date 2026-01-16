@@ -295,6 +295,35 @@ export class PythonBridge {
                 this.localSocket.emit('relay:viewers', data);
             }
         });
+
+        // Receive situational awareness updates from server (race engineer intel)
+        this.cloudSocket.on('engineer:update', (data: { sessionId: string; updates: any[] }) => {
+            if (data.updates && data.updates.length > 0) {
+                // Import dynamically to avoid circular deps
+                import('./hud-window.js').then(({ showCoachingMessage }) => {
+                    for (const update of data.updates) {
+                        // Map priority to type for HUD display
+                        const type = update.priority === 'critical' ? 'warning' 
+                            : update.priority === 'high' ? 'warning'
+                            : 'info';
+                        
+                        showCoachingMessage(update.spokenMessage || update.message, type);
+                        
+                        // Also speak it via voice engineer
+                        import('./voice-engineer.js').then(({ speak, callout }) => {
+                            if (update.type === 'caution') {
+                                callout('caution', update.spokenMessage || update.message);
+                            } else if (update.type === 'opportunity') {
+                                callout('clear', update.spokenMessage || update.message);
+                            } else {
+                                speak(update.spokenMessage || update.message, 
+                                    update.priority === 'critical' ? 'high' : 'normal');
+                            }
+                        }).catch(() => {});
+                    }
+                }).catch(() => {});
+            }
+        });
     }
 
     /**
