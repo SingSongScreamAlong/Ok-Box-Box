@@ -40,13 +40,13 @@ describe('Header', () => {
     it('should render logout button', () => {
         renderWithRouter(<Header />);
 
-        expect(screen.getByText('Logout')).toBeInTheDocument();
+        expect(screen.getByText('Sign Out')).toBeInTheDocument();
     });
 
     it('should call logout when logout button clicked', () => {
         renderWithRouter(<Header />);
 
-        const logoutButton = screen.getByText('Logout');
+        const logoutButton = screen.getByText('Sign Out');
         fireEvent.click(logoutButton);
 
         expect(mockLogout).toHaveBeenCalledTimes(1);

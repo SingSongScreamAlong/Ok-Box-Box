@@ -70,6 +70,10 @@ export class TrayManager {
             },
             { type: 'separator' },
             {
+                label: '🎙️ Race Engineer...',
+                click: () => this.openEngineerSettings()
+            },
+            {
                 label: '⚙️ Settings',
                 click: () => this.openSettings()
             },
@@ -275,6 +279,17 @@ export class TrayManager {
 
         this.loginWindow.on('closed', () => {
             this.loginWindow = null;
+        });
+    }
+
+    /**
+     * Open engineer settings window
+     */
+    private openEngineerSettings(): void {
+        import('./engineer-settings.js').then(({ showEngineerSettings }) => {
+            showEngineerSettings();
+        }).catch(err => {
+            console.error('Failed to open engineer settings:', err);
         });
     }
 

@@ -37,7 +37,9 @@ export const RaceEngineerFeed: React.FC = () => {
     }, [isMuted]);
 
     useEffect(() => {
-        endRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (endRef.current && typeof endRef.current.scrollIntoView === 'function') {
+            endRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
     }, [events]);
 
     const playAudio = (base64Audio: string) => {

@@ -1,11 +1,31 @@
 /**
  * Voice Engineer - Text-to-Speech Service
  * 
- * Uses system speech synthesis or external TTS to speak coaching messages.
+ * Uses system speech synthesis or external TTS to speak race engineer messages.
  * This is the "race engineer voice" that communicates with the driver.
+ * 
+ * OFF by default - user must explicitly enable via settings.
  */
 
 import { BrowserWindow } from 'electron';
+import Store from 'electron-store';
+
+// Settings persistence
+const store = new Store({
+    name: 'voice-engineer-settings',
+    defaults: {
+        enabled: false,
+        rate: 1.1,
+        pitch: 1.0,
+        volume: 1.0,
+        // What types of messages to speak
+        speakGaps: false,
+        speakFuel: true,
+        speakCautions: true,
+        speakOpportunities: false,
+        speakPitCalls: true
+    }
+});
 
 // TTS Configuration
 interface TTSConfig {
@@ -16,11 +36,24 @@ interface TTSConfig {
     enabled?: boolean;
 }
 
+// Message type settings
+export interface VoiceSettings {
+    enabled: boolean;
+    rate: number;
+    pitch: number;
+    volume: number;
+    speakGaps: boolean;
+    speakFuel: boolean;
+    speakCautions: boolean;
+    speakOpportunities: boolean;
+    speakPitCalls: boolean;
+}
+
 const DEFAULT_CONFIG: TTSConfig = {
-    rate: 1.1,    // Slightly fast (race engineer style)
-    pitch: 1.0,
-    volume: 1.0,
-    enabled: true
+    rate: store.get('rate') as number,
+    pitch: store.get('pitch') as number,
+    volume: store.get('volume') as number,
+    enabled: store.get('enabled') as boolean
 };
 
 let currentConfig: TTSConfig = { ...DEFAULT_CONFIG };
@@ -55,8 +88,21 @@ export function speak(message: string, priority: 'normal' | 'high' = 'normal'): 
 /**
  * Speak a race engineer style message
  * Formats with appropriate callouts
+ * Respects message type settings
  */
 export function callout(type: 'gap' | 'pit' | 'caution' | 'clear' | 'info', message: string): void {
+    // Map callout types to setting types
+    const typeMap: Record<string, 'gap' | 'fuel' | 'caution' | 'opportunity' | 'pit' | 'info'> = {
+        gap: 'gap',
+        pit: 'pit',
+        caution: 'caution',
+        clear: 'opportunity',
+        info: 'info'
+    };
+
+    // Check if this type should be spoken
+    if (!shouldSpeak(typeMap[type])) return;
+
     const prefixes: Record<string, string> = {
         gap: '',
         pit: 'Box, box. ',
@@ -196,5 +242,66 @@ export function setEnabled(enabled: boolean): void {
  * Check if voice is enabled
  */
 export function isEnabled(): boolean {
-    return currentConfig.enabled ?? true;
+    return currentConfig.enabled ?? false;
+}
+
+/**
+ * Get all voice settings
+ */
+export function getSettings(): VoiceSettings {
+    return {
+        enabled: store.get('enabled') as boolean,
+        rate: store.get('rate') as number,
+        pitch: store.get('pitch') as number,
+        volume: store.get('volume') as number,
+        speakGaps: store.get('speakGaps') as boolean,
+        speakFuel: store.get('speakFuel') as boolean,
+        speakCautions: store.get('speakCautions') as boolean,
+        speakOpportunities: store.get('speakOpportunities') as boolean,
+        speakPitCalls: store.get('speakPitCalls') as boolean
+    };
+}
+
+/**
+ * Update voice settings
+ */
+export function updateSettings(settings: Partial<VoiceSettings>): void {
+    if (settings.enabled !== undefined) {
+        store.set('enabled', settings.enabled);
+        currentConfig.enabled = settings.enabled;
+    }
+    if (settings.rate !== undefined) {
+        store.set('rate', settings.rate);
+        currentConfig.rate = settings.rate;
+    }
+    if (settings.pitch !== undefined) {
+        store.set('pitch', settings.pitch);
+        currentConfig.pitch = settings.pitch;
+    }
+    if (settings.volume !== undefined) {
+        store.set('volume', settings.volume);
+        currentConfig.volume = settings.volume;
+    }
+    if (settings.speakGaps !== undefined) store.set('speakGaps', settings.speakGaps);
+    if (settings.speakFuel !== undefined) store.set('speakFuel', settings.speakFuel);
+    if (settings.speakCautions !== undefined) store.set('speakCautions', settings.speakCautions);
+    if (settings.speakOpportunities !== undefined) store.set('speakOpportunities', settings.speakOpportunities);
+    if (settings.speakPitCalls !== undefined) store.set('speakPitCalls', settings.speakPitCalls);
+}
+
+/**
+ * Check if a specific message type should be spoken
+ */
+export function shouldSpeak(type: 'gap' | 'fuel' | 'caution' | 'opportunity' | 'pit' | 'info'): boolean {
+    if (!currentConfig.enabled) return false;
+    
+    switch (type) {
+        case 'gap': return store.get('speakGaps') as boolean;
+        case 'fuel': return store.get('speakFuel') as boolean;
+        case 'caution': return store.get('speakCautions') as boolean;
+        case 'opportunity': return store.get('speakOpportunities') as boolean;
+        case 'pit': return store.get('speakPitCalls') as boolean;
+        case 'info': return true; // Always speak info if enabled
+        default: return true;
+    }
 }
