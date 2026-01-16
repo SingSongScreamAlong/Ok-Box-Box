@@ -34,12 +34,12 @@ import TeamEvents from './pages/team/TeamEvents';
 import TeamEventDetail from './pages/team/TeamEventDetail';
 import TeamReports from './pages/team/TeamReports';
 import DriverProfilePage from './pages/team/DriverProfilePage';
-import DriverIDPPage from './pages/team/DriverIDPPage';
+import DriverIDPPage from './pages/team/idp/DriverIDPPage';
 import TeamPlanning from './pages/team/TeamPlanning';
 import TeamSetups from './pages/team/TeamSetups';
 import TeamStrategy from './pages/team/TeamStrategy';
 import TeamPractice from './pages/team/TeamPractice';
-import MyIDPPage from './pages/MyIDPPage';
+import MyIDPPage from './pages/team/idp/MyIDPPage';
 
 // Wrapper to extract sessionId from URL for TeamDashboard
 function TeamDashboardWrapper() {
