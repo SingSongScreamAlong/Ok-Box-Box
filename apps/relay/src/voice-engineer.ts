@@ -18,6 +18,7 @@ const store = new Store({
         rate: 1.1,
         pitch: 1.0,
         volume: 1.0,
+        voiceName: '', // Empty = auto-select best voice
         // What types of messages to speak
         speakGaps: false,
         speakFuel: true,
@@ -42,6 +43,7 @@ export interface VoiceSettings {
     rate: number;
     pitch: number;
     volume: number;
+    voiceName: string;
     speakGaps: boolean;
     speakFuel: boolean;
     speakCautions: boolean;
@@ -137,6 +139,8 @@ async function processQueue(): Promise<void> {
  * Speak using a hidden BrowserWindow with Web Speech API
  */
 function speakInWindow(text: string): Promise<void> {
+    const selectedVoice = store.get('voiceName') as string;
+    
     return new Promise((resolve) => {
         // Create a tiny hidden window for TTS
         const ttsWindow = new BrowserWindow({
@@ -158,18 +162,37 @@ function speakInWindow(text: string): Promise<void> {
                 utterance.rate = ${currentConfig.rate};
                 utterance.pitch = ${currentConfig.pitch};
                 utterance.volume = ${currentConfig.volume};
+                const selectedVoiceName = "${escapeText(selectedVoice)}";
                 
-                // Try to use a natural sounding voice
-                window.speechSynthesis.onvoiceschanged = () => {
+                function selectVoice() {
                     const voices = speechSynthesis.getVoices();
+                    if (voices.length === 0) return false;
+                    
+                    // If user selected a specific voice, use it
+                    if (selectedVoiceName) {
+                        const selected = voices.find(v => v.name === selectedVoiceName);
+                        if (selected) {
+                            utterance.voice = selected;
+                            return true;
+                        }
+                    }
+                    
+                    // Auto-select: prefer natural sounding male voices
                     const preferred = voices.find(v => 
                         v.name.includes('Daniel') || 
                         v.name.includes('Alex') || 
-                        v.name.includes('Google UK English Male')
+                        v.name.includes('Google UK English Male') ||
+                        v.name.includes('Microsoft David')
                     );
                     if (preferred) utterance.voice = preferred;
-                    
-                    speechSynthesis.speak(utterance);
+                    return true;
+                }
+                
+                // Try to select voice and speak
+                window.speechSynthesis.onvoiceschanged = () => {
+                    if (selectVoice()) {
+                        speechSynthesis.speak(utterance);
+                    }
                 };
                 
                 utterance.onend = () => window.close();
@@ -177,14 +200,9 @@ function speakInWindow(text: string): Promise<void> {
                 
                 // Trigger immediately if voices already loaded
                 if (speechSynthesis.getVoices().length > 0) {
-                    const voices = speechSynthesis.getVoices();
-                    const preferred = voices.find(v => 
-                        v.name.includes('Daniel') || 
-                        v.name.includes('Alex') || 
-                        v.name.includes('Google UK English Male')
-                    );
-                    if (preferred) utterance.voice = preferred;
-                    speechSynthesis.speak(utterance);
+                    if (selectVoice()) {
+                        speechSynthesis.speak(utterance);
+                    }
                 }
             </script>
             </body>
@@ -211,6 +229,76 @@ function escapeText(text: string): string {
         .replace(/\\/g, '\\\\')
         .replace(/"/g, '\\"')
         .replace(/\n/g, ' ');
+}
+
+/**
+ * Get available system voices
+ * Returns a promise that resolves with voice names
+ */
+export function getAvailableVoices(): Promise<string[]> {
+    return new Promise((resolve) => {
+        const voiceWindow = new BrowserWindow({
+            width: 1,
+            height: 1,
+            show: false,
+            webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true
+            }
+        });
+
+        const html = `
+            <!DOCTYPE html>
+            <html>
+            <body>
+            <script>
+                function getVoices() {
+                    const voices = speechSynthesis.getVoices();
+                    if (voices.length > 0) {
+                        // Filter to English voices and sort
+                        const englishVoices = voices
+                            .filter(v => v.lang.startsWith('en'))
+                            .map(v => v.name)
+                            .sort();
+                        console.log(JSON.stringify(englishVoices));
+                        window.close();
+                    }
+                }
+                
+                speechSynthesis.onvoiceschanged = getVoices;
+                
+                // Try immediately
+                if (speechSynthesis.getVoices().length > 0) {
+                    getVoices();
+                }
+            </script>
+            </body>
+            </html>
+        `;
+
+        let voices: string[] = [];
+
+        voiceWindow.webContents.on('console-message', (_event, _level, message) => {
+            try {
+                voices = JSON.parse(message);
+            } catch {
+                // Not JSON
+            }
+        });
+
+        voiceWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+
+        // Timeout
+        const timeout = setTimeout(() => {
+            if (!voiceWindow.isDestroyed()) voiceWindow.close();
+            resolve(voices);
+        }, 3000);
+
+        voiceWindow.on('closed', () => {
+            clearTimeout(timeout);
+            resolve(voices);
+        });
+    });
 }
 
 /**
@@ -254,6 +342,7 @@ export function getSettings(): VoiceSettings {
         rate: store.get('rate') as number,
         pitch: store.get('pitch') as number,
         volume: store.get('volume') as number,
+        voiceName: store.get('voiceName') as string,
         speakGaps: store.get('speakGaps') as boolean,
         speakFuel: store.get('speakFuel') as boolean,
         speakCautions: store.get('speakCautions') as boolean,
@@ -281,6 +370,10 @@ export function updateSettings(settings: Partial<VoiceSettings>): void {
     if (settings.volume !== undefined) {
         store.set('volume', settings.volume);
         currentConfig.volume = settings.volume;
+    }
+    if (settings.voiceName !== undefined) {
+        store.set('voiceName', settings.voiceName);
+        currentConfig.voice = settings.voiceName;
     }
     if (settings.speakGaps !== undefined) store.set('speakGaps', settings.speakGaps);
     if (settings.speakFuel !== undefined) store.set('speakFuel', settings.speakFuel);

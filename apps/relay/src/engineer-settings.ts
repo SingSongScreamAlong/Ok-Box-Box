@@ -6,7 +6,7 @@
  */
 
 import { BrowserWindow, ipcMain } from 'electron';
-import { getSettings, updateSettings, VoiceSettings, speak } from './voice-engineer.js';
+import { getSettings, updateSettings, VoiceSettings, speak, getAvailableVoices } from './voice-engineer.js';
 
 let settingsWindow: BrowserWindow | null = null;
 
@@ -21,7 +21,7 @@ export function showEngineerSettings(): void {
 
     settingsWindow = new BrowserWindow({
         width: 400,
-        height: 520,
+        height: 600,
         title: 'Race Engineer Settings',
         resizable: false,
         minimizable: false,
@@ -162,6 +162,18 @@ export function showEngineerSettings(): void {
         .master-toggle.disabled {
             background: linear-gradient(135deg, #333 0%, #2a2a2a 100%);
         }
+        .voice-select {
+            width: 100%;
+            padding: 10px;
+            background: #333;
+            border: 1px solid #444;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+        }
+        .voice-select:focus { border-color: #4CAF50; }
         .test-btn {
             width: 100%;
             padding: 12px;
@@ -259,6 +271,15 @@ export function showEngineerSettings(): void {
         
         <div class="slider-row">
             <div class="slider-header">
+                <span class="slider-label">Voice</span>
+            </div>
+            <select id="voiceName" class="voice-select">
+                <option value="">Auto (best available)</option>
+            </select>
+        </div>
+
+        <div class="slider-row">
+            <div class="slider-header">
                 <span class="slider-label">Speed</span>
                 <span class="slider-value" id="rateValue">${settings.rate.toFixed(1)}x</span>
             </div>
@@ -308,6 +329,11 @@ export function showEngineerSettings(): void {
             sendUpdate('volume', parseFloat(e.target.value));
         });
 
+        // Voice selector
+        document.getElementById('voiceName').addEventListener('change', (e) => {
+            sendUpdate('voiceName', e.target.value);
+        });
+
         // Test button
         document.getElementById('testBtn').addEventListener('click', () => {
             sendUpdate('test', true);
@@ -318,6 +344,28 @@ export function showEngineerSettings(): void {
     `;
 
     settingsWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+
+    // Populate voice dropdown after page loads
+    settingsWindow.webContents.on('did-finish-load', async () => {
+        try {
+            const voices = await getAvailableVoices();
+            const currentVoice = settings.voiceName;
+            
+            // Build options HTML
+            const optionsHtml = voices.map(v => 
+                `<option value="${v}" ${v === currentVoice ? 'selected' : ''}>${v}</option>`
+            ).join('');
+            
+            // Inject into select
+            settingsWindow?.webContents.executeJavaScript(`
+                const select = document.getElementById('voiceName');
+                select.innerHTML = '<option value="">Auto (best available)</option>${optionsHtml}';
+                ${currentVoice ? `select.value = "${currentVoice}";` : ''}
+            `);
+        } catch (err) {
+            console.error('Failed to load voices:', err);
+        }
+    });
 
     // Handle settings updates from the window
     settingsWindow.webContents.on('console-message', (_event, _level, message) => {
