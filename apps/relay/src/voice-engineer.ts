@@ -19,6 +19,8 @@ const store = new Store({
         pitch: 1.0,
         volume: 1.0,
         voiceName: '', // Empty = auto-select best voice
+        useElevenLabs: true, // Use ElevenLabs when available, fallback to system TTS
+        elevenLabsVoiceId: '', // Empty = use server default (Adam)
         // What types of messages to speak
         speakGaps: false,
         speakFuel: true,
@@ -27,6 +29,9 @@ const store = new Store({
         speakPitCalls: true
     }
 });
+
+// Cloud socket reference for ElevenLabs requests
+let cloudSocket: any = null;
 
 // TTS Configuration
 interface TTSConfig {
@@ -44,6 +49,8 @@ export interface VoiceSettings {
     pitch: number;
     volume: number;
     voiceName: string;
+    useElevenLabs: boolean;
+    elevenLabsVoiceId: string;
     speakGaps: boolean;
     speakFuel: boolean;
     speakCautions: boolean;
@@ -71,19 +78,39 @@ export function initVoiceEngineer(config: Partial<TTSConfig> = {}): void {
 }
 
 /**
- * Speak a message using system TTS
- * Uses Web Speech API via BrowserWindow
+ * Speak a message - uses ElevenLabs if available, falls back to system TTS
  */
 export function speak(message: string, priority: 'normal' | 'high' = 'normal'): void {
     if (!currentConfig.enabled) return;
 
+    const useElevenLabs = store.get('useElevenLabs') as boolean;
+    
+    // Try ElevenLabs if enabled and connected
+    if (useElevenLabs && cloudSocket?.connected) {
+        const voiceId = store.get('elevenLabsVoiceId') as string;
+        cloudSocket.emit('voice:generate', {
+            text: message,
+            preset: priority === 'high' ? 'urgent' : 'raceEngineer',
+            voiceId: voiceId || undefined
+        });
+        return;
+    }
+
+    // Fallback to system TTS
     if (priority === 'high') {
-        // High priority: clear queue and speak immediately
         speakQueue = [message];
     } else {
         speakQueue.push(message);
     }
 
+    processQueue();
+}
+
+/**
+ * Speak using system TTS (fallback when ElevenLabs unavailable)
+ */
+function speakWithSystemTTS(message: string): void {
+    speakQueue.push(message);
     processQueue();
 }
 
@@ -343,6 +370,8 @@ export function getSettings(): VoiceSettings {
         pitch: store.get('pitch') as number,
         volume: store.get('volume') as number,
         voiceName: store.get('voiceName') as string,
+        useElevenLabs: store.get('useElevenLabs') as boolean,
+        elevenLabsVoiceId: store.get('elevenLabsVoiceId') as string,
         speakGaps: store.get('speakGaps') as boolean,
         speakFuel: store.get('speakFuel') as boolean,
         speakCautions: store.get('speakCautions') as boolean,
@@ -375,11 +404,70 @@ export function updateSettings(settings: Partial<VoiceSettings>): void {
         store.set('voiceName', settings.voiceName);
         currentConfig.voice = settings.voiceName;
     }
+    if (settings.useElevenLabs !== undefined) store.set('useElevenLabs', settings.useElevenLabs);
+    if (settings.elevenLabsVoiceId !== undefined) store.set('elevenLabsVoiceId', settings.elevenLabsVoiceId);
     if (settings.speakGaps !== undefined) store.set('speakGaps', settings.speakGaps);
     if (settings.speakFuel !== undefined) store.set('speakFuel', settings.speakFuel);
     if (settings.speakCautions !== undefined) store.set('speakCautions', settings.speakCautions);
     if (settings.speakOpportunities !== undefined) store.set('speakOpportunities', settings.speakOpportunities);
     if (settings.speakPitCalls !== undefined) store.set('speakPitCalls', settings.speakPitCalls);
+}
+
+/**
+ * Set the cloud socket for ElevenLabs requests
+ */
+export function setCloudSocket(socket: any): void {
+    cloudSocket = socket;
+    
+    // Listen for voice audio responses
+    if (cloudSocket) {
+        cloudSocket.on('voice:audio', (data: { success: boolean; audioBase64?: string; text: string; error?: string }) => {
+            if (data.success && data.audioBase64) {
+                playBase64Audio(data.audioBase64);
+            } else {
+                // Fallback to system TTS if ElevenLabs fails
+                console.warn('ElevenLabs failed, falling back to system TTS:', data.error);
+                speakWithSystemTTS(data.text);
+            }
+        });
+    }
+}
+
+/**
+ * Play base64 encoded audio (from ElevenLabs)
+ */
+function playBase64Audio(base64Audio: string): void {
+    const audioWindow = new BrowserWindow({
+        width: 1,
+        height: 1,
+        show: false,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true
+        }
+    });
+
+    const html = `
+        <!DOCTYPE html>
+        <html>
+        <body>
+        <script>
+            const audio = new Audio('data:audio/mpeg;base64,${base64Audio}');
+            audio.volume = ${currentConfig.volume};
+            audio.onended = () => window.close();
+            audio.onerror = () => window.close();
+            audio.play().catch(() => window.close());
+        </script>
+        </body>
+        </html>
+    `;
+
+    audioWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+
+    // Timeout fallback
+    setTimeout(() => {
+        if (!audioWindow.isDestroyed()) audioWindow.close();
+    }, 30000);
 }
 
 /**

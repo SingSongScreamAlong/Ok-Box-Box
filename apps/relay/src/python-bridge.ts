@@ -278,6 +278,11 @@ export class PythonBridge {
 
             // Start metrics reporting
             this.startMetricsReporting();
+
+            // Wire up voice engineer to use ElevenLabs via cloud
+            import('./voice-engineer.js').then(({ setCloudSocket }) => {
+                setCloudSocket(this.cloudSocket);
+            }).catch(() => {});
         });
 
         this.cloudSocket.on('disconnect', () => {

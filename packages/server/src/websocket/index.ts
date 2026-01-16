@@ -15,6 +15,7 @@ import type {
 import { config } from '../config/index.js';
 import { RelayAdapter } from '../services/RelayAdapter.js';
 import { getSituationalAwarenessService } from '../services/ai/situational-awareness.js';
+import { getVoiceService, VOICE_PRESETS } from '../services/voice/voice-service.js';
 // Parity tracking removed or unused
 
 
@@ -515,6 +516,72 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
             } else {
                 socket.emit('ack', { originalType: 'incident', success: false, error: 'Validation Failed' });
             }
+        });
+
+        // Voice generation request from relay (ElevenLabs TTS)
+        socket.on('voice:generate', async (data: { text: string; preset?: string; voiceId?: string }) => {
+            const voiceService = getVoiceService();
+            
+            if (!voiceService.isServiceAvailable()) {
+                socket.emit('voice:audio', { 
+                    success: false, 
+                    error: 'ElevenLabs not configured',
+                    text: data.text 
+                });
+                return;
+            }
+
+            try {
+                // Get preset settings or use defaults
+                const presetKey = data.preset as keyof typeof VOICE_PRESETS;
+                const preset = presetKey ? VOICE_PRESETS[presetKey] : undefined;
+                
+                const result = await voiceService.textToSpeech({
+                    text: data.text,
+                    voiceId: data.voiceId || preset?.voiceId,
+                    stability: preset?.stability,
+                    similarityBoost: preset?.similarityBoost
+                });
+
+                if (result.success && result.audioBuffer) {
+                    // Send audio as base64
+                    socket.emit('voice:audio', {
+                        success: true,
+                        audioBase64: result.audioBuffer.toString('base64'),
+                        text: data.text,
+                        durationMs: result.durationMs
+                    });
+                } else {
+                    socket.emit('voice:audio', {
+                        success: false,
+                        error: result.error,
+                        text: data.text
+                    });
+                }
+            } catch (err) {
+                console.error('Voice generation error:', err);
+                socket.emit('voice:audio', {
+                    success: false,
+                    error: 'Voice generation failed',
+                    text: data.text
+                });
+            }
+        });
+
+        // Get available ElevenLabs voices
+        socket.on('voice:list', async () => {
+            const voiceService = getVoiceService();
+            
+            if (!voiceService.isServiceAvailable()) {
+                socket.emit('voice:voices', { success: false, voices: [] });
+                return;
+            }
+
+            const voices = await voiceService.getVoices();
+            socket.emit('voice:voices', { 
+                success: true, 
+                voices: voices.map(v => ({ id: v.voice_id, name: v.name }))
+            });
         });
 
         // Race event from relay (flags, etc.)
