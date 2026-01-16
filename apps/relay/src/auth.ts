@@ -3,15 +3,14 @@
  * 
  * Handles authentication flow for the relay agent:
  * - Login with email/password
- * - Token storage (keychain)
+ * - Token storage (electron-store)
  * - Bootstrap fetch
  * - Token refresh
  */
 
-import * as keytar from 'keytar';
+import Store from 'electron-store';
 
-const SERVICE_NAME = 'okboxbox-relay';
-const ACCOUNT_NAME = 'accessToken';
+const store = new Store({ name: 'okboxbox-auth' });
 
 // API response types
 interface ApiResponse<T> {
@@ -68,13 +67,13 @@ export class AuthManager {
      */
     async loadSavedToken(): Promise<boolean> {
         try {
-            const token = await keytar.getPassword(SERVICE_NAME, ACCOUNT_NAME);
+            const token = store.get('accessToken') as string | undefined;
             if (token) {
                 this.accessToken = token;
                 return true;
             }
         } catch (error) {
-            console.error('Failed to load token from keychain:', error);
+            console.error('Failed to load token:', error);
         }
         return false;
     }
@@ -84,9 +83,9 @@ export class AuthManager {
      */
     private async saveToken(token: string): Promise<void> {
         try {
-            await keytar.setPassword(SERVICE_NAME, ACCOUNT_NAME, token);
+            store.set('accessToken', token);
         } catch (error) {
-            console.error('Failed to save token to keychain:', error);
+            console.error('Failed to save token:', error);
         }
     }
 
@@ -95,9 +94,9 @@ export class AuthManager {
      */
     private async clearToken(): Promise<void> {
         try {
-            await keytar.deletePassword(SERVICE_NAME, ACCOUNT_NAME);
+            store.delete('accessToken');
         } catch (error) {
-            console.error('Failed to clear token from keychain:', error);
+            console.error('Failed to clear token:', error);
         }
         this.accessToken = null;
         this.bootstrap = null;

@@ -58,6 +58,8 @@ venv/
 # Relay agent artifacts
 *.zip
 !controlbox-relay-*.zip
+apps/relay/release/
+apps/relay/python-embed/
 
 # Docker volumes (if local)
 postgres_data/

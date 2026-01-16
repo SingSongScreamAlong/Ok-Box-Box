@@ -85,17 +85,19 @@ export class PythonBridge {
      * Spawn Python process
      */
     private spawnPython(): void {
+        const fs = require('fs');
+        
         // Find the Python script - check multiple locations
-        const possiblePaths = [
+        const scriptPaths = [
             path.join(__dirname, '../python/iracing_relay.py'),  // Dev: relative to dist
             path.join(__dirname, '../../python/iracing_relay.py'),  // Packaged app
             path.join(process.resourcesPath || '', 'python/iracing_relay.py'),  // Electron resources
         ];
 
         let pythonScript = '';
-        for (const p of possiblePaths) {
+        for (const p of scriptPaths) {
             try {
-                if (require('fs').existsSync(p)) {
+                if (fs.existsSync(p)) {
                     pythonScript = p;
                     break;
                 }
@@ -104,14 +106,35 @@ export class PythonBridge {
 
         if (!pythonScript) {
             console.error('❌ Could not find Python relay script');
-            console.log('Searched paths:', possiblePaths);
+            console.log('Searched paths:', scriptPaths);
             return;
+        }
+
+        // Find Python executable - prefer embedded, fall back to system
+        const embeddedPythonPaths = [
+            path.join(process.resourcesPath || '', 'python-embed/python.exe'),  // Packaged
+            path.join(__dirname, '../../python-embed/python.exe'),  // Dev
+            path.join(__dirname, '../python-embed/python.exe'),
+        ];
+
+        let pythonExe = 'python';  // Default to system Python
+        for (const p of embeddedPythonPaths) {
+            try {
+                if (fs.existsSync(p)) {
+                    pythonExe = p;
+                    console.log(`📦 Using embedded Python: ${p}`);
+                    break;
+                }
+            } catch {}
+        }
+
+        if (pythonExe === 'python') {
+            console.log('⚠️ Embedded Python not found, using system Python');
         }
 
         console.log(`🐍 Spawning Python: ${pythonScript}`);
 
-        // Use 'python' command to run the script
-        this.pythonProcess = spawn('python', [pythonScript], {
+        this.pythonProcess = spawn(pythonExe, [pythonScript], {
             stdio: ['pipe', 'pipe', 'pipe'],
             env: {
                 ...process.env,
@@ -231,6 +254,9 @@ export class PythonBridge {
             this.cloudSocket?.emit('relay:register', {
                 sessionId: 'live' // TODO: Get from Python
             });
+
+            // Start metrics reporting
+            this.startMetricsReporting();
         });
 
         this.cloudSocket.on('disconnect', () => {
@@ -280,5 +306,35 @@ export class PythonBridge {
             simConnected: this.connected,
             sending: this.sending
         });
+    }
+
+    /**
+     * Start periodic performance metrics reporting
+     */
+    private startMetricsReporting(): void {
+        // Report every 30 seconds
+        setInterval(() => {
+            if (!this.cloudSocket?.connected) return;
+
+            const memUsage = process.memoryUsage();
+            const cpuUsage = process.cpuUsage();
+
+            this.cloudSocket.emit('relay:metrics', {
+                timestamp: Date.now(),
+                memory: {
+                    heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024), // MB
+                    heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+                    rss: Math.round(memUsage.rss / 1024 / 1024) // Total memory footprint
+                },
+                cpu: {
+                    user: cpuUsage.user, // microseconds
+                    system: cpuUsage.system
+                },
+                platform: process.platform,
+                arch: process.arch,
+                nodeVersion: process.version,
+                uptime: Math.round(process.uptime()) // seconds
+            });
+        }, 30000);
     }
 }

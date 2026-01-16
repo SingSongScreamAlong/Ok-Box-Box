@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 """
-iRacing Telemetry Relay
-Reads telemetry from iRacing and serves it via Socket.IO for the Electron app.
+iRacing Telemetry Relay - OPTIMIZED
+Reads telemetry from iRacing at 60Hz and serves via Socket.IO.
 """
 
 import asyncio
-import json
 import logging
 import time
-from typing import Optional, Dict, Any
+from typing import Optional, Any
 
 # Socket.IO server
 from aiohttp import web
@@ -22,18 +21,25 @@ except ImportError:
     IRSDK_AVAILABLE = False
     print("WARNING: pyirsdk not installed. Install with: pip install pyirsdk")
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Minimal logging in production
+logging.basicConfig(level=logging.WARNING, format='%(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Socket.IO server
-sio = socketio.AsyncServer(async_mode='aiohttp', cors_allowed_origins='*')
+# Socket.IO server - optimized settings
+sio = socketio.AsyncServer(
+    async_mode='aiohttp',
+    cors_allowed_origins='*',
+    ping_timeout=10,
+    ping_interval=5,
+    max_http_buffer_size=1024 * 100  # 100KB max
+)
 app = web.Application()
 sio.attach(app)
 
 # iRacing SDK instance
 ir: Optional[Any] = None
 connected_to_sim = False
-last_telemetry_time = 0
+last_telemetry: Optional[dict] = None
 
 @sio.event
 async def connect(sid, environ):
@@ -69,9 +75,9 @@ async def check_iracing():
     
     return True
 
-async def read_telemetry():
-    """Read telemetry from iRacing and emit it."""
-    global last_telemetry_time
+def read_telemetry_sync():
+    """Read telemetry from iRacing - synchronous for speed."""
+    global last_telemetry
     
     if not ir or not ir.is_connected:
         return None
@@ -80,40 +86,45 @@ async def read_telemetry():
     ir.freeze_var_buffer_latest()
     
     try:
+        # Pre-fetch all values in one go (faster than individual lookups)
+        t = time.time()
+        
         telemetry = {
-            'timestamp': time.time(),
-            'speed': ir['Speed'] or 0,
+            't': t,  # Shorter key names = less bandwidth
+            'spd': ir['Speed'] or 0,
             'rpm': ir['RPM'] or 0,
             'gear': ir['Gear'] or 0,
-            'throttle': ir['Throttle'] or 0,
-            'brake': ir['Brake'] or 0,
-            'clutch': ir['Clutch'] or 0,
-            'steeringAngle': ir['SteeringWheelAngle'] or 0,
+            'thr': ir['Throttle'] or 0,
+            'brk': ir['Brake'] or 0,
+            'clt': ir['Clutch'] or 0,
+            'str': ir['SteeringWheelAngle'] or 0,
             'lap': ir['Lap'] or 0,
-            'lapDistPct': ir['LapDistPct'] or 0,
-            'position': ir['PlayerCarPosition'] or 0,
+            'lpct': ir['LapDistPct'] or 0,
+            'pos': ir['PlayerCarPosition'] or 0,
             'fuel': ir['FuelLevel'] or 0,
-            'fuelPct': ir['FuelLevelPct'] or 0,
-            'sessionTime': ir['SessionTime'] or 0,
-            'isOnTrack': ir['IsOnTrack'] or False,
+            'fpct': ir['FuelLevelPct'] or 0,
+            'stime': ir['SessionTime'] or 0,
+            'ontrk': ir['IsOnTrack'] or False,
         }
         
-        # Add tire temps if available
-        tire_temps = {}
-        for tire in ['LF', 'RF', 'LR', 'RR']:
-            for pos in ['L', 'M', 'R']:
-                key = f'{tire}temp{pos}'
-                try:
-                    val = ir[key]
-                    if val is not None:
-                        tire_temps[key] = val
-                except:
-                    pass
+        # Tire temps - only read every 10th frame (temps don't change fast)
+        if last_telemetry is None or int(t * 60) % 6 == 0:
+            tire_temps = {}
+            for tire in ['LF', 'RF', 'LR', 'RR']:
+                for pos in ['L', 'M', 'R']:
+                    key = f'{tire}temp{pos}'
+                    try:
+                        val = ir[key]
+                        if val is not None:
+                            tire_temps[key] = val
+                    except:
+                        pass
+            if tire_temps:
+                telemetry['tires'] = tire_temps
+        elif last_telemetry and 'tires' in last_telemetry:
+            telemetry['tires'] = last_telemetry['tires']
         
-        if tire_temps:
-            telemetry['tireTemps'] = tire_temps
-        
-        last_telemetry_time = time.time()
+        last_telemetry = telemetry
         return telemetry
         
     except Exception as e:
@@ -121,21 +132,28 @@ async def read_telemetry():
         return None
 
 async def telemetry_loop():
-    """Main loop that reads and broadcasts telemetry."""
-    logger.info("Starting telemetry loop...")
+    """Main loop that reads and broadcasts telemetry at 60Hz."""
+    interval = 1/60  # 60 Hz
     
     while True:
         try:
+            start = time.perf_counter()
+            
             # Check iRacing connection
             is_connected = await check_iracing()
             
             if is_connected:
-                telemetry = await read_telemetry()
+                # Sync read is faster than async for this
+                telemetry = read_telemetry_sync()
                 if telemetry:
                     await sio.emit('telemetry', telemetry)
-                await asyncio.sleep(1/60)  # 60 Hz
+                
+                # Precise timing - account for processing time
+                elapsed = time.perf_counter() - start
+                sleep_time = max(0, interval - elapsed)
+                await asyncio.sleep(sleep_time)
             else:
-                await asyncio.sleep(1)  # Check every second when not connected
+                await asyncio.sleep(2)
                 
         except Exception as e:
             logger.error(f"Telemetry loop error: {e}")

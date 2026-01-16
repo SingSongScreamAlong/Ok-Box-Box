@@ -15,6 +15,7 @@
  */
 
 import { app, BrowserWindow, ipcMain } from 'electron';
+import * as path from 'path';
 import { AuthManager, BootstrapResponse } from './auth';
 import { TrayManager } from './tray';
 import { PythonBridge } from './python-bridge';
@@ -39,9 +40,12 @@ import {
 // CONSTANTS
 // ============================================================================
 
-const API_URL = process.env.OKBOXBOX_API_URL || 'https://coral-app-x988a.ondigitalocean.app';
+const API_URL = process.env.OKBOXBOX_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
 const APP_NAME = 'Ok, Box Box Relay';
 const PROTOCOL_NAME = 'okboxbox';
+
+// Demo mode - skip login for testing
+const DEMO_MODE = process.env.OKBOXBOX_DEMO === '1' || true; // Enable by default for testing
 
 // ============================================================================
 // STATE
@@ -85,6 +89,9 @@ if (!gotTheLock) {
 app.whenReady().then(async () => {
     console.log(`🏎️ ${APP_NAME} starting...`);
 
+    // Auto-start on Windows boot
+    setupAutoStart();
+
     // Initialize auth manager
     authManager = new AuthManager(API_URL);
 
@@ -93,6 +100,41 @@ app.whenReady().then(async () => {
 
     // Setup protocol handlers (macOS open-url, Windows/Linux via second-instance)
     setupProtocolHandlers();
+
+    // Demo mode - skip login entirely
+    if (DEMO_MODE) {
+        console.log('🎮 DEMO MODE - Skipping login');
+        const demoBootstrap: BootstrapResponse = {
+            user: {
+                id: 'demo-user',
+                email: 'demo@okboxbox.com',
+                displayName: 'Demo Driver'
+            },
+            licenses: {
+                blackbox: true,
+                controlbox: true
+            },
+            roles: ['driver'],
+            capabilities: {
+                driver_hud: true,
+                ai_coaching: true,
+                voice_engineer: true,
+                personal_telemetry: true,
+                pitwall_view: false,
+                multi_car_monitor: false,
+                strategy_timeline: false,
+                incident_review: false,
+                penalty_assign: false,
+                protest_review: false,
+                rulebook_manage: false,
+                session_authority: false
+            },
+            defaultSurface: 'driver'
+        };
+        tray.setLoggedIn('Demo Driver');
+        await startRelay(demoBootstrap);
+        return;
+    }
 
     // Check for saved token
     const hasToken = await authManager.loadSavedToken();
@@ -175,12 +217,11 @@ async function startRelay(bootstrap: BootstrapResponse) {
         console.log('🖥️ Launching Driver HUD...');
         hudWindow = createHUDWindow();
 
-        // Initialize voice engineer for driver mode
-        const { initVoiceEngineer, speak } = await import('./voice-engineer.js');
-        initVoiceEngineer({ rate: 1.1, pitch: 1.0 });
-
-        // Announce ready
-        speak('Ok, Box Box connected. Standing by.');
+        // Voice engineer disabled for testing
+        // const { initVoiceEngineer, speak } = await import('./voice-engineer.js');
+        // initVoiceEngineer({ rate: 1.1, pitch: 1.0 });
+        // speak('Ok, Box Box connected. Standing by.');
+        console.log('🔇 Voice engineer disabled for testing');
     } else {
         // Open web surface in browser
         openSurface(currentMode);
@@ -268,3 +309,27 @@ ipcMain.handle('relay:getAvailableModes', () => {
     if (!bootstrap) return [];
     return getAvailableModes(bootstrap.capabilities);
 });
+
+// ============================================================================
+// AUTO-START ON WINDOWS BOOT
+// ============================================================================
+
+function setupAutoStart(): void {
+    // Only on Windows, and only in packaged app
+    if (process.platform !== 'win32' || !app.isPackaged) {
+        return;
+    }
+
+    const exePath = process.execPath;
+    const appName = 'OkBoxBoxRelay';
+
+    // Set to run on login
+    app.setLoginItemSettings({
+        openAtLogin: true,
+        openAsHidden: true,
+        path: exePath,
+        args: ['--hidden']
+    });
+
+    console.log('✅ Auto-start enabled - will run on Windows boot');
+}

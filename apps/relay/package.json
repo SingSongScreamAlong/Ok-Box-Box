@@ -43,9 +43,9 @@
         "win": {
             "icon": "assets/icon.ico",
             "target": [
-                "nsis",
                 "portable"
-            ]
+            ],
+            "signAndEditExecutable": false
         },
         "linux": {
             "icon": "assets/icon.png",
@@ -55,15 +55,27 @@
             ]
         },
         "nsis": {
-            "oneClick": false,
-            "allowToChangeInstallationDirectory": true,
+            "oneClick": true,
+            "allowToChangeInstallationDirectory": false,
             "createDesktopShortcut": true,
-            "createStartMenuShortcut": true
-        }
+            "createStartMenuShortcut": true,
+            "runAfterFinish": true,
+            "installerIcon": "assets/icon.ico",
+            "uninstallerIcon": "assets/icon.ico"
+        },
+        "extraResources": [
+            {
+                "from": "python",
+                "to": "python"
+            },
+            {
+                "from": "python-embed",
+                "to": "python-embed"
+            }
+        ]
     },
     "dependencies": {
         "electron-store": "^8.2.0",
-        "keytar": "^7.9.0",
         "node-fetch": "^3.3.2",
         "socket.io-client": "^4.8.1"
     },
