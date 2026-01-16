@@ -128,6 +128,23 @@ export function updateHUDStatus(status: { cloudConnected: boolean; simConnected:
     }
 }
 
+/**
+ * Send telemetry data to HUD for display
+ */
+export function updateHUDTelemetry(data: {
+    speed: number;
+    gear: number;
+    rpm: number;
+    lap: number;
+    position: number;
+    fuelPct: number;
+    fuelLaps?: number;
+}): void {
+    if (hudWindow && !hudWindow.isDestroyed()) {
+        hudWindow.webContents.send('hud:telemetry', data);
+    }
+}
+
 export interface HUDData {
     speed: number;
     gear: number;
@@ -156,7 +173,7 @@ ipcMain.on('hud:move', (_, delta: { x: number; y: number }) => {
 });
 
 /**
- * HUD HTML
+ * HUD HTML - Full Driver HUD with telemetry display
  */
 function getHUDHTML(): string {
     return `
@@ -164,7 +181,7 @@ function getHUDHTML(): string {
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Ok, Box Box Relay</title>
+    <title>Ok, Box Box Driver HUD</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body {
@@ -179,96 +196,251 @@ function getHUDHTML(): string {
             padding: 8px;
         }
         .hud-container {
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0, 0, 0, 0.9);
             border-radius: 12px;
-            padding: 16px 20px;
+            padding: 12px 16px;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             -webkit-app-region: drag;
             cursor: move;
-            min-width: 180px;
+            min-width: 220px;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
         }
         .logo {
-            text-align: center;
-            margin-bottom: 12px;
-            font-size: 16px;
+            font-size: 12px;
             font-weight: 700;
             letter-spacing: 1px;
         }
         .logo .ok { color: #fff; }
         .logo .box { color: #00d9ff; }
-        .status-row {
+        .status-dots {
             display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
+            gap: 6px;
         }
         .status-dot {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background: #666;
+            background: #444;
         }
         .status-dot.connected { background: #4ade80; }
-        .status-dot.disconnected { background: #f87171; }
         .status-dot.sending { background: #00d9ff; animation: pulse 1s infinite; }
-        .status-label {
-            font-size: 13px;
-            font-weight: 500;
+        
+        /* Main telemetry display */
+        .telemetry-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
         }
-        .status-value {
-            font-size: 13px;
-            opacity: 0.7;
-            margin-left: auto;
+        .telemetry-item {
+            text-align: center;
         }
+        .telemetry-value {
+            font-size: 24px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+        }
+        .telemetry-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.5;
+            margin-top: 2px;
+        }
+        
+        /* Gear display - larger */
+        .gear-display {
+            grid-column: span 2;
+            text-align: center;
+            margin: 8px 0;
+        }
+        .gear-value {
+            font-size: 48px;
+            font-weight: 800;
+            line-height: 1;
+            color: #00d9ff;
+        }
+        .gear-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.5;
+        }
+        
+        /* Fuel bar */
+        .fuel-bar-container {
+            grid-column: span 2;
+            margin-top: 8px;
+        }
+        .fuel-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            margin-bottom: 4px;
+        }
+        .fuel-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .fuel-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f87171, #fbbf24, #4ade80);
+            transition: width 0.3s;
+        }
+        
+        /* Position badge */
+        .position-badge {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #00d9ff;
+            color: #000;
+            font-size: 14px;
+            font-weight: 800;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Coaching message */
+        .coaching-message {
+            display: none;
+            grid-column: span 2;
+            margin-top: 8px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            text-align: center;
+        }
+        .coaching-message.visible { display: block; }
+        .coaching-message.info { background: rgba(0, 217, 255, 0.2); border: 1px solid rgba(0, 217, 255, 0.3); }
+        .coaching-message.warning { background: rgba(251, 191, 36, 0.2); border: 1px solid rgba(251, 191, 36, 0.3); }
+        .coaching-message.success { background: rgba(74, 222, 128, 0.2); border: 1px solid rgba(74, 222, 128, 0.3); }
+        
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.4; }
         }
+        
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <div class="hud-container">
-        <div class="logo"><span class="ok">OK,</span> <span class="box">BOX BOX</span></div>
-        <div class="status-row">
-            <div class="status-dot" id="cloudDot"></div>
-            <span class="status-label">Cloud</span>
-            <span class="status-value" id="cloudStatus">Connecting...</span>
+    <div class="hud-container" style="position: relative;">
+        <div class="position-badge" id="position">-</div>
+        
+        <div class="header">
+            <div class="logo"><span class="ok">OK,</span> <span class="box">BOX BOX</span></div>
+            <div class="status-dots">
+                <div class="status-dot" id="cloudDot" title="Cloud"></div>
+                <div class="status-dot" id="dataDot" title="Data"></div>
+            </div>
         </div>
-        <div class="status-row">
-            <div class="status-dot" id="dataDot"></div>
-            <span class="status-label">Data</span>
-            <span class="status-value" id="dataStatus">Waiting...</span>
+        
+        <div class="gear-display">
+            <div class="gear-value" id="gear">N</div>
+            <div class="gear-label">Gear</div>
+        </div>
+        
+        <div class="telemetry-grid">
+            <div class="telemetry-item">
+                <div class="telemetry-value" id="speed">0</div>
+                <div class="telemetry-label">KM/H</div>
+            </div>
+            <div class="telemetry-item">
+                <div class="telemetry-value" id="rpm">0</div>
+                <div class="telemetry-label">RPM</div>
+            </div>
+            <div class="telemetry-item">
+                <div class="telemetry-value" id="lap">0</div>
+                <div class="telemetry-label">Lap</div>
+            </div>
+            <div class="telemetry-item">
+                <div class="telemetry-value" id="fuelLaps">--</div>
+                <div class="telemetry-label">Fuel Laps</div>
+            </div>
+            
+            <div class="fuel-bar-container">
+                <div class="fuel-bar-label">
+                    <span>FUEL</span>
+                    <span id="fuelPct">0%</span>
+                </div>
+                <div class="fuel-bar">
+                    <div class="fuel-bar-fill" id="fuelBar" style="width: 0%"></div>
+                </div>
+            </div>
+            
+            <div class="coaching-message" id="coaching"></div>
         </div>
     </div>
     <script>
         const cloudDot = document.getElementById('cloudDot');
-        const cloudStatus = document.getElementById('cloudStatus');
         const dataDot = document.getElementById('dataDot');
-        const dataStatus = document.getElementById('dataStatus');
+        const gearEl = document.getElementById('gear');
+        const speedEl = document.getElementById('speed');
+        const rpmEl = document.getElementById('rpm');
+        const lapEl = document.getElementById('lap');
+        const positionEl = document.getElementById('position');
+        const fuelLapsEl = document.getElementById('fuelLaps');
+        const fuelPctEl = document.getElementById('fuelPct');
+        const fuelBarEl = document.getElementById('fuelBar');
+        const coachingEl = document.getElementById('coaching');
         
         // Listen for status updates
         window.electronAPI?.onStatusUpdate?.((data) => {
-            // Cloud connection status
-            if (data.cloudConnected) {
-                cloudDot.className = 'status-dot connected';
-                cloudStatus.textContent = 'Connected';
-            } else {
-                cloudDot.className = 'status-dot disconnected';
-                cloudStatus.textContent = 'Disconnected';
-            }
+            cloudDot.className = data.cloudConnected ? 'status-dot connected' : 'status-dot';
+            dataDot.className = data.sending ? 'status-dot sending' : (data.simConnected ? 'status-dot connected' : 'status-dot');
+        });
+        
+        // Listen for telemetry updates
+        window.electronAPI?.onTelemetryUpdate?.((data) => {
+            // Gear
+            const gear = data.gear;
+            gearEl.textContent = gear === -1 ? 'R' : gear === 0 ? 'N' : gear.toString();
             
-            // Data sending status
-            if (data.sending) {
-                dataDot.className = 'status-dot sending';
-                dataStatus.textContent = 'Sending...';
-            } else if (data.simConnected) {
-                dataDot.className = 'status-dot connected';
-                dataStatus.textContent = 'Ready';
-            } else {
-                dataDot.className = 'status-dot';
-                dataStatus.textContent = 'Waiting for sim';
+            // Speed (m/s to km/h)
+            speedEl.textContent = Math.round(data.speed * 3.6);
+            
+            // RPM (divide by 1000 for display)
+            rpmEl.textContent = (data.rpm / 1000).toFixed(1) + 'k';
+            
+            // Lap
+            lapEl.textContent = data.lap || 0;
+            
+            // Position
+            positionEl.textContent = data.position || '-';
+            
+            // Fuel
+            if (data.fuelLaps !== null && data.fuelLaps !== undefined) {
+                fuelLapsEl.textContent = data.fuelLaps.toFixed(1);
             }
+            const fuelPct = Math.round((data.fuelPct || 0) * 100);
+            fuelPctEl.textContent = fuelPct + '%';
+            fuelBarEl.style.width = fuelPct + '%';
+        });
+        
+        // Listen for coaching messages
+        window.electronAPI?.onCoachingMessage?.((data) => {
+            coachingEl.textContent = data.message;
+            coachingEl.className = 'coaching-message visible ' + data.type;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                coachingEl.className = 'coaching-message';
+            }, 5000);
         });
     </script>
 </body>

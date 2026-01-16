@@ -14,7 +14,7 @@
 import { spawn, ChildProcess } from 'child_process';
 import * as path from 'path';
 import { io, Socket } from 'socket.io-client';
-import { updateHUDStatus } from './hud-window';
+import { updateHUDStatus, updateHUDTelemetry } from './hud-window';
 
 const PYTHON_PORT = 9999;
 const LOCAL_WS_URL = `http://127.0.0.1:${PYTHON_PORT}`;
@@ -182,12 +182,26 @@ export class PythonBridge {
             this.updateStatus();
         });
 
-        // Forward telemetry events from Python to cloud
+        // Forward telemetry events from Python to cloud AND to HUD
         this.localSocket.on('telemetry', (data: any) => {
             if (this.cloudSocket?.connected) {
                 this.cloudSocket.emit('telemetry', data);
                 this.sending = true;
                 this.updateStatus();
+            }
+            
+            // Also send to local HUD display
+            if (data.cars && data.cars[0]) {
+                const car = data.cars[0];
+                updateHUDTelemetry({
+                    speed: car.speed || 0,
+                    gear: car.gear || 0,
+                    rpm: car.rpm || 0,
+                    lap: car.lap || 0,
+                    position: car.position || 0,
+                    fuelPct: car.fuelPct || 0,
+                    fuelLaps: car.fuelLaps
+                });
             }
         });
 
@@ -224,6 +238,13 @@ export class PythonBridge {
         this.localSocket.on('incident', (data: any) => {
             if (this.cloudSocket?.connected) {
                 this.cloudSocket.emit('incident', data);
+            }
+        });
+
+        // Strategy update (1Hz - fuel, tires, damage for pit wall)
+        this.localSocket.on('strategy_update', (data: any) => {
+            if (this.cloudSocket?.connected) {
+                this.cloudSocket.emit('strategy_update', data);
             }
         });
 

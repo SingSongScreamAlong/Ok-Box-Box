@@ -217,11 +217,11 @@ async function startRelay(bootstrap: BootstrapResponse) {
         console.log('🖥️ Launching Driver HUD...');
         hudWindow = createHUDWindow();
 
-        // Voice engineer disabled for testing
-        // const { initVoiceEngineer, speak } = await import('./voice-engineer.js');
-        // initVoiceEngineer({ rate: 1.1, pitch: 1.0 });
-        // speak('Ok, Box Box connected. Standing by.');
-        console.log('🔇 Voice engineer disabled for testing');
+        // Initialize Voice Engineer for race engineer callouts
+        const { initVoiceEngineer, speak } = await import('./voice-engineer.js');
+        initVoiceEngineer({ rate: 1.1, pitch: 1.0 });
+        speak('Ok, Box Box connected. Standing by.');
+        console.log('🎙️ Voice engineer enabled');
     } else {
         // Open web surface in browser
         openSurface(currentMode);

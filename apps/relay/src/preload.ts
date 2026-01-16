@@ -33,6 +33,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     onStatusUpdate: (callback: (data: { cloudConnected: boolean; simConnected: boolean; sending: boolean }) => void) => {
         ipcRenderer.on('hud:status', (_, data) => callback(data));
+    },
+    onTelemetryUpdate: (callback: (data: any) => void) => {
+        ipcRenderer.on('hud:telemetry', (_, data) => callback(data));
     }
 });
 
