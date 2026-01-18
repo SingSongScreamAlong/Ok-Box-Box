@@ -4,6 +4,7 @@
 // =====================================================================
 
 import React, { useState, useEffect } from 'react';
+import { useToast } from '../contexts/ToastContext';
 import './IRacingConnectBanner.css';
 
 interface IRacingConnectBannerProps {
@@ -28,18 +29,27 @@ export const IRacingConnectBanner: React.FC<IRacingConnectBannerProps> = ({
     const [loading, setLoading] = useState(true);
     const [connecting, setConnecting] = useState(false);
     const [dismissed, setDismissed] = useState(false);
+    const toast = useToast();
 
     // Check link status on mount
     useEffect(() => {
         checkLinkStatus();
 
-        // Also check for successful return from OAuth
+        // Check for return from OAuth flow
         const params = new URLSearchParams(window.location.search);
+
         if (params.get('iracing_linked') === 'true') {
-            // Refresh status and notify parent
+            // Success! Refresh status and notify
             checkLinkStatus().then(() => {
+                toast.success('iRacing account linked successfully! Your stats will sync automatically.');
                 onLinked?.();
             });
+            // Clean up URL
+            window.history.replaceState({}, '', window.location.pathname);
+        } else if (params.get('iracing_error')) {
+            // Error during OAuth
+            const errorMsg = params.get('iracing_error');
+            toast.error(`Failed to link iRacing: ${errorMsg || 'Unknown error'}`);
             // Clean up URL
             window.history.replaceState({}, '', window.location.pathname);
         }

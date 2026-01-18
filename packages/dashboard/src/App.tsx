@@ -5,6 +5,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { BootstrapProvider } from './hooks/useBootstrap';
 import { RequireCapability } from './components/RequireCapability';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ToastProvider } from './contexts/ToastContext';
+import { ToastContainer } from './components/ui/Toast';
 import { Dashboard } from './pages/Dashboard';
 import { SessionView } from './pages/SessionView';
 import { IncidentsPage } from './pages/IncidentsPage';
@@ -52,191 +54,194 @@ function TeamDashboardWrapper() {
 export function App() {
     return (
         <ErrorBoundary>
-            <AppInitializer>
-                <BrowserRouter>
-                    <BootstrapProvider>
-                        <Routes>
-                            {/* Public route */}
-                            <Route path="/login" element={<LoginPage />} />
+            <ToastProvider>
+                <AppInitializer>
+                    <BrowserRouter>
+                        <BootstrapProvider>
+                            <Routes>
+                                {/* Public route */}
+                                <Route path="/login" element={<LoginPage />} />
 
-                            {/* Pricing (public) */}
-                            <Route path="/pricing" element={<Pricing />} />
+                                {/* Pricing (public) */}
+                                <Route path="/pricing" element={<Pricing />} />
 
-                            {/* Download relay (public) */}
-                            <Route path="/download-relay" element={<DownloadRelay />} />
+                                {/* Download relay (public) */}
+                                <Route path="/download-relay" element={<DownloadRelay />} />
 
-                            {/* My IDP (standalone, works without login) */}
-                            <Route path="/my-idp" element={<MyIDPPage />} />
+                                {/* My IDP (standalone, works without login) */}
+                                <Route path="/my-idp" element={<MyIDPPage />} />
 
-                            {/* Track Intel - selector and individual maps */}
-                            <Route path="/track-intel" element={<TrackSelectorPage />} />
-                            <Route path="/track-intel/:trackId" element={<TrackMapPage />} />
+                                {/* Track Intel - selector and individual maps */}
+                                <Route path="/track-intel" element={<TrackSelectorPage />} />
+                                <Route path="/track-intel/:trackId" element={<TrackMapPage />} />
 
-                            {/* ============================================================
+                                {/* ============================================================
                             RACEBOX SURFACES (Broadcast/Spectator) - FREE
                             ============================================================ */}
 
-                            {/* Broadcast Director - basic access is FREE, Plus features gated in component */}
-                            <Route path="/broadcast" element={
-                                <ProtectedRoute>
-                                    <Broadcast />
-                                </ProtectedRoute>
-                            } />
+                                {/* Broadcast Director - basic access is FREE, Plus features gated in component */}
+                                <Route path="/broadcast" element={
+                                    <ProtectedRoute>
+                                        <Broadcast />
+                                    </ProtectedRoute>
+                                } />
 
-                            {/* Public Watch Page - no auth required */}
-                            <Route path="/watch/:sessionId" element={<Watch />} />
+                                {/* Public Watch Page - no auth required */}
+                                <Route path="/watch/:sessionId" element={<Watch />} />
 
-                            {/* Driver HUD - requires BlackBox */}
-                            <Route path="/driver" element={
-                                <ProtectedRoute>
-                                    <RequireCapability capability="driver_hud">
-                                        <DriverHUD />
-                                    </RequireCapability>
-                                </ProtectedRoute>
-                            } />
+                                {/* Driver HUD - requires BlackBox */}
+                                <Route path="/driver" element={
+                                    <ProtectedRoute>
+                                        <RequireCapability capability="driver_hud">
+                                            <DriverHUD />
+                                        </RequireCapability>
+                                    </ProtectedRoute>
+                                } />
 
-                            {/* Billing return (after checkout) */}
-                            <Route path="/billing/return" element={
-                                <ProtectedRoute>
-                                    <BillingReturn />
-                                </ProtectedRoute>
-                            } />
+                                {/* Billing return (after checkout) */}
+                                <Route path="/billing/return" element={
+                                    <ProtectedRoute>
+                                        <BillingReturn />
+                                    </ProtectedRoute>
+                                } />
 
-                            {/* Legacy /home redirect to root */}
-                            <Route path="/home" element={
-                                <ProtectedRoute>
-                                    <SurfaceHome />
-                                </ProtectedRoute>
-                            } />
+                                {/* Legacy /home redirect to root */}
+                                <Route path="/home" element={
+                                    <ProtectedRoute>
+                                        <SurfaceHome />
+                                    </ProtectedRoute>
+                                } />
 
-                            {/* ============================================================
+                                {/* ============================================================
                             BLACKBOX SURFACES (Team/Driver)
                             ============================================================ */}
 
-                            {/* Team Session List - BlackBox session selector */}
-                            <Route path="/team" element={
-                                <ProtectedRoute>
-                                    <RequireCapability capability="pitwall_view">
-                                        <TeamSessionList />
-                                    </RequireCapability>
-                                </ProtectedRoute>
-                            } />
+                                {/* Team Session List - BlackBox session selector */}
+                                <Route path="/team" element={
+                                    <ProtectedRoute>
+                                        <RequireCapability capability="pitwall_view">
+                                            <TeamSessionList />
+                                        </RequireCapability>
+                                    </ProtectedRoute>
+                                } />
 
-                            {/* Team Dashboard - BlackBox pit wall surface (auth disabled for alpha testing) */}
-                            <Route path="/team/:sessionId" element={
-                                <TeamDashboardWrapper />
-                            } />
+                                {/* Team Dashboard - BlackBox pit wall surface (auth disabled for alpha testing) */}
+                                <Route path="/team/:sessionId" element={
+                                    <TeamDashboardWrapper />
+                                } />
 
-                            {/* ============================================================
+                                {/* ============================================================
                             TEAM SYSTEM V1 (IDP Powered) 
                             ============================================================ */}
 
-                            <Route path="/teams/:teamId" element={
-                                <ProtectedRoute>
-                                    <TeamLayout />
-                                </ProtectedRoute>
-                            }>
-                                <Route index element={<TeamHome />} />
-                                <Route path="roster" element={<TeamRoster />} />
-                                <Route path="events" element={<TeamEvents />} />
-                                <Route path="events/:eventId" element={<TeamEventDetail />} />
-                                <Route path="planning" element={<TeamPlanning />} />
-                                <Route path="setups" element={<TeamSetups />} />
-                                <Route path="strategy" element={<TeamStrategy />} />
-                                <Route path="practice" element={<TeamPractice />} />
-                                <Route path="reports" element={<TeamReports />} />
-                                <Route path="driver/:driverId" element={<DriverProfilePage />} />
-                                <Route path="driver/:driverId/idp" element={<DriverIDPPage />} />
-                            </Route>
+                                <Route path="/teams/:teamId" element={
+                                    <ProtectedRoute>
+                                        <TeamLayout />
+                                    </ProtectedRoute>
+                                }>
+                                    <Route index element={<TeamHome />} />
+                                    <Route path="roster" element={<TeamRoster />} />
+                                    <Route path="events" element={<TeamEvents />} />
+                                    <Route path="events/:eventId" element={<TeamEventDetail />} />
+                                    <Route path="planning" element={<TeamPlanning />} />
+                                    <Route path="setups" element={<TeamSetups />} />
+                                    <Route path="strategy" element={<TeamStrategy />} />
+                                    <Route path="practice" element={<TeamPractice />} />
+                                    <Route path="reports" element={<TeamReports />} />
+                                    <Route path="driver/:driverId" element={<DriverProfilePage />} />
+                                    <Route path="driver/:driverId/idp" element={<DriverIDPPage />} />
+                                </Route>
 
-                            {/* ============================================================
+                                {/* ============================================================
                             CONTROLBOX SURFACES (Race Control)
                             ============================================================ */}
 
-                            {/* Root - Surface selector (launchpad) */}
-                            <Route path="/" element={
-                                <ProtectedRoute>
-                                    <SurfaceHome />
-                                </ProtectedRoute>
-                            } />
-
-                            {/* Protected routes with MainLayout (ControlBox) */}
-                            <Route path="/controlbox" element={
-                                <ProtectedRoute>
-                                    <MainLayout />
-                                </ProtectedRoute>
-                            }>
-                                {/* ControlBox Home */}
-                                <Route index element={<Dashboard />} />
-
-                                {/* Session view - ControlBox race control */}
-                                <Route path="session/:sessionId" element={
-                                    <RequireCapability capability="incident_review">
-                                        <SessionView />
-                                    </RequireCapability>
+                                {/* Root - Surface selector (launchpad) */}
+                                <Route path="/" element={
+                                    <ProtectedRoute>
+                                        <SurfaceHome />
+                                    </ProtectedRoute>
                                 } />
 
-                                {/* Incidents - ControlBox */}
-                                <Route path="incidents" element={
-                                    <RequireCapability capability="incident_review">
-                                        <IncidentsPage />
-                                    </RequireCapability>
-                                } />
+                                {/* Protected routes with MainLayout (ControlBox) */}
+                                <Route path="/controlbox" element={
+                                    <ProtectedRoute>
+                                        <MainLayout />
+                                    </ProtectedRoute>
+                                }>
+                                    {/* ControlBox Home */}
+                                    <Route index element={<Dashboard />} />
 
-                                {/* Rulebooks - ControlBox admin */}
-                                <Route path="rulebooks" element={
-                                    <RequireCapability capability="rulebook_manage">
-                                        <RulebookEditor />
-                                    </RequireCapability>
-                                } />
+                                    {/* Session view - ControlBox race control */}
+                                    <Route path="session/:sessionId" element={
+                                        <RequireCapability capability="incident_review">
+                                            <SessionView />
+                                        </RequireCapability>
+                                    } />
 
-                                {/* Reports - ControlBox */}
-                                <Route path="reports" element={
-                                    <RequireCapability capability="incident_review">
-                                        <ReportsPage />
-                                    </RequireCapability>
-                                } />
+                                    {/* Incidents - ControlBox */}
+                                    <Route path="incidents" element={
+                                        <RequireCapability capability="incident_review">
+                                            <IncidentsPage />
+                                        </RequireCapability>
+                                    } />
 
-                                {/* Events - shared */}
-                                <Route path="events" element={<EventsPage />} />
-                                <Route path="seasons/:seasonId/events" element={<EventsPage />} />
-                                <Route path="events/:eventId" element={<EventDetailPage />} />
+                                    {/* Rulebooks - ControlBox admin */}
+                                    <Route path="rulebooks" element={
+                                        <RequireCapability capability="rulebook_manage">
+                                            <RulebookEditor />
+                                        </RequireCapability>
+                                    } />
 
-                                {/* Teams - BlackBox team view */}
-                                <Route path="teams" element={
-                                    <RequireCapability capability="multi_car_monitor">
-                                        <TeamsPage />
-                                    </RequireCapability>
-                                } />
+                                    {/* Reports - ControlBox */}
+                                    <Route path="reports" element={
+                                        <RequireCapability capability="incident_review">
+                                            <ReportsPage />
+                                        </RequireCapability>
+                                    } />
 
-                                {/* Discord Settings */}
-                                <Route path="leagues/:leagueId/discord" element={<DiscordSettingsPage />} />
+                                    {/* Events - shared */}
+                                    <Route path="events" element={<EventsPage />} />
+                                    <Route path="seasons/:seasonId/events" element={<EventsPage />} />
+                                    <Route path="events/:eventId" element={<EventDetailPage />} />
 
-                                {/* Protests - ControlBox */}
-                                <Route path="protests" element={
-                                    <RequireCapability capability="protest_review">
-                                        <ProtestsPage />
-                                    </RequireCapability>
-                                } />
+                                    {/* Teams - BlackBox team view */}
+                                    <Route path="teams" element={
+                                        <RequireCapability capability="multi_car_monitor">
+                                            <TeamsPage />
+                                        </RequireCapability>
+                                    } />
 
-                                {/* Audit Log - admin only */}
-                                <Route path="audit" element={
-                                    <RequireCapability capability="session_authority">
-                                        <AuditLogPage />
-                                    </RequireCapability>
-                                } />
+                                    {/* Discord Settings */}
+                                    <Route path="leagues/:leagueId/discord" element={<DiscordSettingsPage />} />
 
-                                {/* DEV Diagnostics - admin only */}
-                                <Route path="admin/diagnostics" element={
-                                    <RequireCapability capability="session_authority">
-                                        <DiagnosticsPage />
-                                    </RequireCapability>
-                                } />
-                            </Route>
-                        </Routes>
-                    </BootstrapProvider>
-                </BrowserRouter>
-            </AppInitializer>
+                                    {/* Protests - ControlBox */}
+                                    <Route path="protests" element={
+                                        <RequireCapability capability="protest_review">
+                                            <ProtestsPage />
+                                        </RequireCapability>
+                                    } />
+
+                                    {/* Audit Log - admin only */}
+                                    <Route path="audit" element={
+                                        <RequireCapability capability="session_authority">
+                                            <AuditLogPage />
+                                        </RequireCapability>
+                                    } />
+
+                                    {/* DEV Diagnostics - admin only */}
+                                    <Route path="admin/diagnostics" element={
+                                        <RequireCapability capability="session_authority">
+                                            <DiagnosticsPage />
+                                        </RequireCapability>
+                                    } />
+                                </Route>
+                            </Routes>
+                            <ToastContainer />
+                        </BootstrapProvider>
+                    </BrowserRouter>
+                </AppInitializer>
+            </ToastProvider>
         </ErrorBoundary>
     );
 }
