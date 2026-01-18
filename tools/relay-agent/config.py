@@ -24,6 +24,10 @@ AI_AGENT_URL = os.getenv('AI_AGENT_URL', 'http://localhost:3001')
 RELAY_ID = os.getenv('RELAY_ID', 'pitbox-relay-1')
 RELAY_VERSION = '1.0.0'
 
+# User ID (for iRacing profile sync on session end)
+# This should be set to the Ok,Box Box user ID when launching the relay
+USER_ID = os.getenv('OKBOXBOX_USER_ID', None)
+
 # Telemetry
 TELEMETRY_RATE_HZ = int(os.getenv('TELEMETRY_RATE_HZ', '10'))
 

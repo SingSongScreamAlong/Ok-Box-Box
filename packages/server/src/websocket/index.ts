@@ -421,7 +421,7 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
             const awarenessService = getSituationalAwarenessService();
             if (awarenessService.isAvailable() && data.cars && data.cars.length > 0) {
                 const primaryCar = data.cars[0];
-                
+
                 // Build context for AI analysis
                 const raceContext = {
                     sessionType: session.sessionType as 'practice' | 'qualifying' | 'race',
@@ -521,12 +521,12 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
         // Voice generation request from relay (ElevenLabs TTS)
         socket.on('voice:generate', async (data: { text: string; preset?: string; voiceId?: string }) => {
             const voiceService = getVoiceService();
-            
+
             if (!voiceService.isServiceAvailable()) {
-                socket.emit('voice:audio', { 
-                    success: false, 
+                socket.emit('voice:audio', {
+                    success: false,
                     error: 'ElevenLabs not configured',
-                    text: data.text 
+                    text: data.text
                 });
                 return;
             }
@@ -535,7 +535,7 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
                 // Get preset settings or use defaults
                 const presetKey = data.preset as keyof typeof VOICE_PRESETS;
                 const preset = presetKey ? VOICE_PRESETS[presetKey] : undefined;
-                
+
                 const result = await voiceService.textToSpeech({
                     text: data.text,
                     voiceId: data.voiceId || preset?.voiceId,
@@ -571,15 +571,15 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
         // Get available ElevenLabs voices
         socket.on('voice:list', async () => {
             const voiceService = getVoiceService();
-            
+
             if (!voiceService.isServiceAvailable()) {
                 socket.emit('voice:voices', { success: false, voices: [] });
                 return;
             }
 
             const voices = await voiceService.getVoices();
-            socket.emit('voice:voices', { 
-                success: true, 
+            socket.emit('voice:voices', {
+                success: true,
                 voices: voices.map(v => ({ id: v.voice_id, name: v.name }))
             });
         });
@@ -622,7 +622,7 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
         });
 
         // Session End - Trigger IDP Pipeline for all drivers
-        socket.on('session_end', async (data: { sessionId: string }) => {
+        socket.on('session_end', async (data: { sessionId: string; userId?: string }) => {
             console.log(`🏁 Session ended: ${data.sessionId}`);
 
             const session = activeSessions.get(data.sessionId);
@@ -656,6 +656,24 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
                 }
             } catch (err) {
                 console.error('[IDP] Failed to load IDP services:', err);
+            }
+
+            // Trigger iRacing profile sync if userId is provided
+            // This fetches latest race results from iRacing Data API
+            if (data.userId) {
+                try {
+                    const { getIRacingProfileSyncService } = await import('../services/iracing-oauth/index.js');
+                    const syncService = getIRacingProfileSyncService();
+
+                    console.log(`[iRacing Sync] Triggering post-session sync for user ${data.userId}`);
+
+                    // Non-blocking sync
+                    syncService.syncProfile(data.userId).catch(err => {
+                        console.error(`[iRacing Sync] Post-session sync failed for user ${data.userId}:`, err);
+                    });
+                } catch (err) {
+                    console.error('[iRacing Sync] Failed to load sync service:', err);
+                }
             }
 
             // Clean up session from active map

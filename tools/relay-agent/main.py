@@ -132,6 +132,11 @@ class RelayAgent:
         self.running = False
         self.video_encoder.stop()
         self.overlay.stop()
+        
+        # Notify server that session is ending (triggers iRacing profile sync)
+        if self.session_id:
+            self.cloud_client.send_session_end(user_id=config.USER_ID)
+        
         self.ir_reader.disconnect()
         self.cloud_client.disconnect()
         
@@ -329,6 +334,12 @@ class RelayAgent:
                 self.ir_reader.get_session_time()
             )
             self.cloud_client.send_race_event(event)
+            
+            # Trigger session_end on checkered flag (triggers iRacing profile sync)
+            if flag_state == 'checkered':
+                logger.info("🏁 Checkered flag! Triggering session end...")
+                self.cloud_client.send_session_end(user_id=config.USER_ID)
+            
             self.last_flag_state = flag_state
     
     def _check_incidents(self):

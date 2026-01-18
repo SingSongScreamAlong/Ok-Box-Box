@@ -394,6 +394,27 @@ class PitBoxClient:
     def should_send_controls(self) -> bool:
         """Check if controls stream should be active (viewers present)."""
         return self.controls_requested
+    
+    def send_session_end(self, user_id: Optional[str] = None) -> bool:
+        """
+        Notify server that the session has ended.
+        This triggers post-session processing including iRacing profile sync.
+        
+        Args:
+            user_id: Optional Ok,Box Box user ID for profile sync
+        """
+        if not self.connected or not self.session_id:
+            return False
+        
+        payload = {
+            'sessionId': self.session_id
+        }
+        
+        if user_id:
+            payload['userId'] = user_id
+        
+        logger.info(f"🏁 Sending session_end for {self.session_id}")
+        return self.emit('session_end', payload)
 
     def wait(self, seconds: float = 0.1):
         """
