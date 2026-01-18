@@ -9,6 +9,7 @@ import { initializeWebSocket } from './websocket/index.js';
 import { initializeDatabase } from './db/client.js';
 import { runMigrations, seedAdminUser } from './db/migrations.js';
 import { config } from './config/index.js';
+import { startSyncScheduler, stopSyncScheduler } from './services/iracing-oauth/index.js';
 
 async function main() {
     console.log('🏎️  ControlBox Server Starting...');
@@ -27,6 +28,9 @@ async function main() {
 
         // Seed default admin if needed
         await seedAdminUser();
+
+        // Start iRacing background sync scheduler
+        startSyncScheduler();
     } catch (error) {
         console.error('❌ Database setup failed:', error);
         process.exit(1);
@@ -48,6 +52,10 @@ async function main() {
     // Graceful shutdown
     const shutdown = async () => {
         console.log('\n🛑 Shutting down gracefully...');
+
+        // Stop background jobs
+        stopSyncScheduler();
+
         httpServer.close(() => {
             console.log('   HTTP server closed');
             process.exit(0);

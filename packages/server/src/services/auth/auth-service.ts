@@ -194,12 +194,34 @@ export class AuthService {
 
         console.log(`✅ User logged in: ${user.email}`);
 
+        // Trigger non-blocking iRacing profile sync (if linked)
+        this.triggerIRacingSyncOnLogin(user.id);
+
         return {
             user,
             accessToken,
             refreshToken,
             expiresAt
         };
+    }
+
+    /**
+     * Trigger non-blocking iRacing profile sync on login
+     * Runs in background, doesn't affect login response time
+     */
+    private triggerIRacingSyncOnLogin(userId: string): void {
+        // Use setImmediate to not block the login response
+        setImmediate(async () => {
+            try {
+                // Dynamic import to avoid circular dependency
+                const { getIRacingProfileSyncService } = await import('../iracing-oauth/index.js');
+                const syncService = getIRacingProfileSyncService();
+                await syncService.syncProfile(userId);
+            } catch (error) {
+                // Non-critical - log but don't fail login
+                console.log(`[Auth] iRacing sync on login skipped or failed for user ${userId}`);
+            }
+        });
     }
 
     /**

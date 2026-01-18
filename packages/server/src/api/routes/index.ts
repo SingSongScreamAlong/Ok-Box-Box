@@ -25,6 +25,10 @@ export const apiRouter = Router();
 // Health check (no auth required)
 apiRouter.use('/health', healthRouter);
 
+// Track Intelligence (Public)
+import trackIntelRouter from '../../track-intel/routes.js';
+apiRouter.use('/v1/tracks', trackIntelRouter);
+
 // Relay version (for auto-update checks)
 import relayVersionRouter from './relay-version.js';
 apiRouter.use('/relay', relayVersionRouter);
@@ -130,13 +134,14 @@ apiRouter.use('/dev/diagnostics', diagnosticsRouter);
 import voiceRouter from './voice.js';
 apiRouter.use('/voice', voiceRouter);
 
+// iRacing OAuth (protected routes - start, status, revoke)
+import iracingOAuthRouter from './oauth/iracing.js';
+apiRouter.use('/oauth/iracing', iracingOAuthRouter);
+
 // Individual Driver Profile (IDP) - v1 API
 import driversRouter from '../../driverbox/routes/drivers.js';
-import driverDevelopmentRouter from './driver-development.js';
-apiRouter.use('/v1/drivers', driversRouter);
-apiRouter.use('/v1/drivers', driverDevelopmentRouter);
+
 
 // Team System v1 (Permissioned view over IDP)
 import teamsV1Router from '../../driverbox/routes/teams.js';
 apiRouter.use('/v1/teams', teamsV1Router);
-

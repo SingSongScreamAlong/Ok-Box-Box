@@ -53,6 +53,11 @@ if (config.metricsEnabled) {
     console.log('📊 Prometheus metrics enabled at /metrics');
 }
 
+// iRacing OAuth callback (public route - must match registered redirect URI exactly)
+// Route: GET /oauth/iracing/callback
+import iracingCallbackRouter from './api/routes/oauth/iracing-callback.js';
+app.use('/oauth/iracing', iracingCallbackRouter);
+
 // API routes
 app.use('/api', apiRouter);
 
