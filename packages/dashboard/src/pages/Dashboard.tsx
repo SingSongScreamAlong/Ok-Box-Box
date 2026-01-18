@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { useSessionStore } from '../stores/session.store';
 import { useIncidentStore } from '../stores/incident.store';
 import { TrackMap } from '../components/session/TrackMap';
+import { IRacingConnectBanner } from '../components/IRacingConnectBanner';
 
 export function Dashboard() {
     const { currentSession, connectionStatus, connect } = useSessionStore();
@@ -38,6 +39,9 @@ export function Dashboard() {
                     </Link>
                 </div>
             </div>
+
+            {/* iRacing Connect Banner - One-click account linking */}
+            <IRacingConnectBanner />
 
             {/* Stats grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -1,0 +1,40 @@
+{
+    "id": "daytona",
+    "name": "Daytona International Speedway",
+    "config": "Road Course",
+    "length": 3.56,
+    "lengthUnit": "miles",
+    "turns": [
+        {
+            "number": "5",
+            "name": "Kink",
+            "description": "The Kink is a high-speed, gentle right-hand bend that requires smooth steering input and commitment. It's crucial for setting up the approach to the Bus Stop chicane.",
+            "idealLine": "Stay to the left on approach, turn in late, and apex late to maximize exit speed.",
+            "brakingPoint": "No braking required, just a slight lift depending on the car.",
+            "gear": 6,
+            "speed": 180,
+            "images": [],
+            "telemetry": {
+                "idealSpeed": [
+                    178,
+                    180,
+                    182
+                ],
+                "idealThrottle": [
+                    100,
+                    95,
+                    100
+                ],
+                "idealBrake": [
+                    0,
+                    0,
+                    0
+                ]
+            }
+        }
+    ],
+    "metadata": {
+        "lastUpdated": "2023-10-27T10:00:00Z",
+        "author": "System"
+    }
+}

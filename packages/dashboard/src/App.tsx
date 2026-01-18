@@ -35,6 +35,8 @@ import TeamEventDetail from './pages/team/TeamEventDetail';
 import TeamReports from './pages/team/TeamReports';
 import DriverProfilePage from './pages/team/DriverProfilePage';
 import DriverIDPPage from './pages/team/idp/DriverIDPPage';
+import { TrackMapPage } from './pages/track-intel/TrackMapPage';
+import { TrackSelectorPage } from './pages/track-intel/TrackSelectorPage';
 import TeamPlanning from './pages/team/TeamPlanning';
 import TeamSetups from './pages/team/TeamSetups';
 import TeamStrategy from './pages/team/TeamStrategy';
@@ -65,6 +67,10 @@ export function App() {
 
                             {/* My IDP (standalone, works without login) */}
                             <Route path="/my-idp" element={<MyIDPPage />} />
+
+                            {/* Track Intel - selector and individual maps */}
+                            <Route path="/track-intel" element={<TrackSelectorPage />} />
+                            <Route path="/track-intel/:trackId" element={<TrackMapPage />} />
 
                             {/* ============================================================
                             RACEBOX SURFACES (Broadcast/Spectator) - FREE

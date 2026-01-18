@@ -9,7 +9,8 @@ import {
     ClipboardList,
     Wrench,
     Target,
-    Timer
+    Timer,
+    Map
 } from 'lucide-react';
 
 export function TeamLayout() {
@@ -137,6 +138,22 @@ export function TeamLayout() {
                         >
                             <FileText size={18} />
                             <span>Reports</span>
+                        </NavLink>
+
+                        {/* Separator */}
+                        <div className="my-3 border-t border-white/5" />
+
+                        <NavLink
+                            to="/track-intel"
+                            className={({ isActive }) =>
+                                `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive
+                                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
+                                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                                }`
+                            }
+                        >
+                            <Map size={18} />
+                            <span>Track Intel</span>
                         </NavLink>
                     </nav>
                 </div>
