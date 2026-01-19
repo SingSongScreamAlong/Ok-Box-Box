@@ -97,8 +97,10 @@ io.on('connection', (socket: Socket) => {
                 driverCount: telemetryData.cars?.length || 0
             });
         }
-        // Broadcast to all dashboard clients (don't log - too noisy)
+        // Broadcast to all dashboard clients
+        // Emit both event names for compatibility with different dashboard versions
         socket.broadcast.emit('telemetry:update', data);
+        socket.broadcast.emit('telemetry_update', data);  // Legacy dashboard format
     });
 
     // v2: Baseline stream (4Hz)
