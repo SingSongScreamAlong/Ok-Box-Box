@@ -13,6 +13,7 @@ const HOST = process.env.HOST || 'localhost';
 console.log('🏎️  ControlBox Standalone Server Starting...');
 console.log(`   Mode: Standalone (no database)`);
 console.log(`   Port: ${PORT}`);
+console.log(`   Build: 2026-01-19-v2`);
 
 // Track active sessions for diagnostics
 const activeSessions = new Map<string, { lastUpdate: number; driverCount: number }>();
