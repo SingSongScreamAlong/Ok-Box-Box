@@ -17,7 +17,7 @@ import { pool as defaultPool } from '../../db/client.js';
 
 export type Product = 'blackbox' | 'controlbox' | 'racebox_plus' | 'bundle';
 export type EntitlementStatus = 'active' | 'trial' | 'past_due' | 'canceled' | 'expired' | 'pending';
-export type EntitlementSource = 'squarespace' | 'manual' | 'promo';
+export type EntitlementSource = 'squarespace' | 'stripe' | 'manual' | 'promo';
 export type EntitlementScope = 'user' | 'org';
 export type BillingPeriod = 'monthly' | 'annual';
 

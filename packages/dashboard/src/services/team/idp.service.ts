@@ -191,7 +191,9 @@ export async function fetchAchievements(driverId: string): Promise<Achievement[]
         return DEMO_ACHIEVEMENTS;
     }
 
-    // TODO: Implement when achievements API is ready
+    // DEFERRED: Backend API endpoint GET /drivers/:id/achievements does not exist yet.
+    // See packages/server/src/api/routes/driver-development.ts
+    console.debug('[IDP Service] fetchAchievements DEFERRED - API missing');
     return DEMO_ACHIEVEMENTS;
 }
 

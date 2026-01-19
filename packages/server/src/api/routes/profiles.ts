@@ -4,12 +4,14 @@
 // =====================================================================
 
 import { Router, Request, Response } from 'express';
+import { requireAuth } from '../middleware/auth.js';
 import { getProfileService } from '../../services/discipline/profile-service.js';
 import type {
     DisciplineCategory,
     CreateProfileRequest,
     UpdateProfileRequest
 } from '@controlbox/common';
+import { getDriverRacecraftStats } from '../../driverbox/services/idp/index.js';
 
 const router = Router();
 
@@ -101,6 +103,34 @@ router.get('/category/:category', async (req: Request, res: Response): Promise<v
 });
 
 /**
+ * Get detailed driver racecraft stats
+ * GET /api/profiles/:id/stats
+ */
+router.get('/:id/stats', async (req: Request, res: Response): Promise<void | Response> => {
+    try {
+        const stats = await getDriverRacecraftStats(req.params.id);
+
+        if (!stats) {
+            return res.status(404).json({
+                success: false,
+                error: { code: 'NOT_FOUND', message: 'Stats not found for user' }
+            });
+        }
+
+        res.json({
+            success: true,
+            data: stats
+        });
+    } catch (error) {
+        console.error('Error fetching driver stats:', error);
+        res.status(500).json({
+            success: false,
+            error: { code: 'FETCH_ERROR', message: 'Failed to fetch driver stats' }
+        });
+    }
+});
+
+/**
  * Get profile by ID
  * GET /api/profiles/:id
  */
@@ -132,8 +162,9 @@ router.get('/:id', async (req: Request, res: Response): Promise<void | Response>
 /**
  * Create a new profile
  * POST /api/profiles
+ * Protected: Requires authentication
  */
-router.post('/', async (req: Request, res: Response): Promise<void | Response> => {
+router.post('/', requireAuth, async (req: Request, res: Response): Promise<void | Response> => {
     try {
         const service = getProfileService();
         const request = req.body as CreateProfileRequest;
@@ -168,8 +199,9 @@ router.post('/', async (req: Request, res: Response): Promise<void | Response> =
 /**
  * Update a profile
  * PUT /api/profiles/:id
+ * Protected: Requires authentication
  */
-router.put('/:id', async (req: Request, res: Response): Promise<void | Response> => {
+router.put('/:id', requireAuth, async (req: Request, res: Response): Promise<void | Response> => {
     try {
         const service = getProfileService();
         const updates = req.body as UpdateProfileRequest;
@@ -199,8 +231,9 @@ router.put('/:id', async (req: Request, res: Response): Promise<void | Response>
 /**
  * Delete a profile
  * DELETE /api/profiles/:id
+ * Protected: Requires authentication
  */
-router.delete('/:id', async (req: Request, res: Response): Promise<void | Response> => {
+router.delete('/:id', requireAuth, async (req: Request, res: Response): Promise<void | Response> => {
     try {
         const service = getProfileService();
         const deleted = await service.delete(req.params.id);
@@ -228,8 +261,9 @@ router.delete('/:id', async (req: Request, res: Response): Promise<void | Respon
 /**
  * Set profile as default for its category
  * POST /api/profiles/:id/set-default
+ * Protected: Requires authentication
  */
-router.post('/:id/set-default', async (req: Request, res: Response): Promise<void | Response> => {
+router.post('/:id/set-default', requireAuth, async (req: Request, res: Response): Promise<void | Response> => {
     try {
         const service = getProfileService();
         const profile = await service.setAsDefault(req.params.id);
@@ -257,8 +291,9 @@ router.post('/:id/set-default', async (req: Request, res: Response): Promise<voi
 /**
  * Duplicate a profile
  * POST /api/profiles/:id/duplicate
+ * Protected: Requires authentication
  */
-router.post('/:id/duplicate', async (req: Request, res: Response): Promise<void | Response> => {
+router.post('/:id/duplicate', requireAuth, async (req: Request, res: Response): Promise<void | Response> => {
     try {
         const service = getProfileService();
         const { name } = req.body;

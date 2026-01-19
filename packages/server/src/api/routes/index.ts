@@ -122,6 +122,14 @@ apiRouter.use('/', launchRouter);
 import billingSquarespaceRouter from './billing-squarespace.js';
 apiRouter.use('/billing/squarespace', billingSquarespaceRouter);
 
+// Billing / Stripe (Subscriptions)
+import billingStripeRouter from './billing-stripe.js';
+apiRouter.use('/billing/stripe', billingStripeRouter);
+
+// Stripe Webhooks (separate from billing routes, needs raw body)
+import webhooksStripeRouter from './webhooks-stripe.js';
+apiRouter.use('/webhooks/stripe', webhooksStripeRouter);
+
 // Admin Entitlements (manual grants for alpha/testing)
 import adminEntitlementsRouter from './admin-entitlements.js';
 apiRouter.use('/admin', adminEntitlementsRouter);
@@ -139,7 +147,7 @@ import iracingOAuthRouter from './oauth/iracing.js';
 apiRouter.use('/oauth/iracing', iracingOAuthRouter);
 
 // Individual Driver Profile (IDP) - v1 API
-import driversRouter from '../../driverbox/routes/drivers.js';
+// import driversRouter from '../../driverbox/routes/drivers.js';
 
 
 // Team System v1 (Permissioned view over IDP)

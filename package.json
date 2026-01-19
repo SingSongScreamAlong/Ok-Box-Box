@@ -5,7 +5,8 @@
     "private": true,
     "workspaces": [
         "packages/*",
-        "tools/*"
+        "tools/*",
+        "apps/*"
     ],
     "scripts": {
         "build": "npm run build --workspaces",
@@ -16,7 +17,9 @@
         "lint": "npm run lint --workspaces --if-present",
         "typecheck": "npm run typecheck --workspaces --if-present",
         "db:migrate": "npm run migrate --workspace=packages/server",
-        "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist tools/*/node_modules tools/*/dist"
+        "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist tools/*/node_modules tools/*/dist",
+        "export:reference": "npx tsx tools/export-reference.ts",
+        "export:reference:watch": "npx tsx tools/export-reference.ts --watch"
     },
     "engines": {
         "node": ">=20.0.0"

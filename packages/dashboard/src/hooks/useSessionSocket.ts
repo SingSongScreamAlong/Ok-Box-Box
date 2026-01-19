@@ -19,8 +19,12 @@ export function useSessionSocket(sessionId: string | null) {
         }
 
         // Create socket connection
+        const token = localStorage.getItem('accessToken');
         const socket = io(SERVER_URL, {
-            transports: ['websocket', 'polling']
+            transports: ['websocket', 'polling'],
+            auth: {
+                token
+            }
         });
 
         socketRef.current = socket;

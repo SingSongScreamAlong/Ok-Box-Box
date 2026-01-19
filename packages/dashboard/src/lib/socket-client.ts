@@ -47,11 +47,16 @@ class SocketClient {
 
         this.status = 'connecting';
 
+        const token = localStorage.getItem('accessToken');
+
         this.socket = io(url || window.location.origin, {
             transports: ['websocket', 'polling'],
             reconnection: true,
             reconnectionDelay: 1000,
             reconnectionDelayMax: 5000,
+            auth: {
+                token
+            }
         });
 
         this.socket.on('connect', () => {

@@ -1,96 +1,46 @@
-/**
- * Individual Driver Profile (IDP) Services
- * Re-exports all IDP-related services for convenient imports
- */
+// Re-export services
+export * from './driver-aggregates.service.js';
+export * from './driver-traits.service.js';
+export * from './iracing-sync.service.js';
+export * from './session-metrics.service.js';
+export * from './report-generation.service.js';
+export * from './pipeline.service.js';
 
-// Session Metrics
-export {
-    computeSessionMetrics,
-    recomputeMetricsForSession,
-    type ComputeMetricsInput
-} from './session-metrics.service.js';
+import { getGlobalAggregate } from '../../../db/repositories/driver-aggregates.repo.js';
+import { getCurrentTraits } from '../../../db/repositories/driver-traits.repo.js';
 
-// Driver Aggregates
-export {
-    computeDriverAggregates,
-    recomputeAllAggregates
-} from './driver-aggregates.service.js';
+// Facade for public consumption (e.g. Dashboard/PC Build)
+export async function getDriverRacecraftStats(driverId: string) {
+    // Parallel fetch from Repositories
+    const [stats, traitProfile] = await Promise.all([
+        getGlobalAggregate(driverId, 'all_time'),
+        getCurrentTraits(driverId)
+    ]);
 
-// Driver Traits
-export {
-    deriveDriverTraits,
-    deriveTraitsForAllDrivers
-} from './driver-traits.service.js';
-
-// Report Generation
-export {
-    generateSessionDebrief,
-    generateMonthlyNarrative
-} from './report-generation.service.js';
-
-// ========================
-// Orchestration Functions
-// ========================
-
-/**
- * Run complete IDP pipeline for a driver after session completion
- */
-export async function runPostSessionPipeline(
-    sessionId: string,
-    driverProfileId: string
-): Promise<void> {
-    const { recomputeMetricsForSession } = await import('./session-metrics.service.js');
-    const { computeDriverAggregates } = await import('./driver-aggregates.service.js');
-    const { deriveDriverTraits } = await import('./driver-traits.service.js');
-    const { generateSessionDebrief } = await import('./report-generation.service.js');
-
-    console.log(`[IDP Pipeline] Starting for driver ${driverProfileId}, session ${sessionId}`);
-
-    // 1. Compute session metrics
-    await recomputeMetricsForSession(sessionId);
-
-    // 2. Update aggregates
-    await computeDriverAggregates(driverProfileId, 'all_time');
-    await computeDriverAggregates(driverProfileId, 'rolling_30d');
-
-    // 3. Re-derive traits
-    await deriveDriverTraits(driverProfileId);
-
-    // 4. Generate session debrief
-    try {
-        await generateSessionDebrief(sessionId, driverProfileId);
-    } catch (error) {
-        console.warn(`[IDP Pipeline] Debrief generation failed:`, error);
-    }
-
-    console.log(`[IDP Pipeline] Complete for driver ${driverProfileId}`);
-}
-
-/**
- * Run nightly aggregation job for all drivers
- */
-export async function runNightlyAggregationJob(): Promise<void> {
-    const { pool } = await import('../../../db/client.js');
-    const { computeDriverAggregates } = await import('./driver-aggregates.service.js');
-    const { deriveDriverTraits } = await import('./driver-traits.service.js');
-
-    console.log('[IDP Nightly] Starting aggregation job');
-
-    // Get all driver profiles with metrics
-    const result = await pool.query<{ id: string }>(
-        'SELECT DISTINCT driver_profile_id as id FROM session_metrics'
-    );
-
-    for (const row of result.rows) {
-        try {
-            await computeDriverAggregates(row.id, 'all_time');
-            await computeDriverAggregates(row.id, 'rolling_30d');
-            await computeDriverAggregates(row.id, 'rolling_90d');
-            await deriveDriverTraits(row.id);
-        } catch (error) {
-            console.error(`[IDP Nightly] Failed for driver ${row.id}:`, error);
-        }
-    }
-
-    console.log(`[IDP Nightly] Processed ${result.rows.length} drivers`);
+    return {
+        driverId,
+        // Core Ratings (0-100)
+        ratings: {
+            // Map consistent naming or fallbacks
+            overall: stats?.consistency_index || 50, // Placeholder mapping if 'overall' not computed, using consistency as proxy for now or 50
+            // Actually 'overallScore' was in my previous (imagined) service. 
+            // The DB Aggregate has: consistency_index, risk_index, endurance_fitness_index, start_performance_index.
+            // I'll map them as best as I can.
+            safety: stats?.risk_index ? (100 - stats.risk_index) : 50, // Risk is 0-100 (high risk), so invert for safety?
+            // "0 incidents = 0 risk, 10+ incidents... = 100 risk" -> So Safety = 100 - Risk.
+            pace: stats?.avg_pace_percentile || 50, // This is percentile, so maybe okay as 0-100 score? 
+            racecraft: stats?.start_performance_index ? (stats.start_performance_index + 1) * 50 : 50, // -1 to 1 -> 0 to 100
+            consistency: stats?.consistency_index || 50
+        },
+        // Detailed traits
+        traits: traitProfile,
+        // Progression
+        experience: {
+            totalRaces: stats?.session_count || 0,
+            podiums: 0, // Not in aggregate, need advanced query or separate stats
+            wins: 0,
+            cleanRaces: 0 // Not in aggregate
+        },
+        generatedAt: new Date()
+    };
 }

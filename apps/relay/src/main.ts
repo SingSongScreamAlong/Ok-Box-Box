@@ -205,7 +205,8 @@ async function startRelay(bootstrap: BootstrapResponse) {
     // =========================================================================
     // STEP 3: Start telemetry uplink (ALWAYS, regardless of mode)
     // =========================================================================
-    pythonBridge = new PythonBridge();
+    // Pass a provider so bridge can get fresh tokens on reconnect
+    pythonBridge = new PythonBridge(() => authManager.getAccessToken());
     pythonBridge.setBootstrap(bootstrap);
     await pythonBridge.start();
     console.log('📡 Telemetry uplink started');

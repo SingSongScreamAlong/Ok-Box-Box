@@ -10,6 +10,7 @@ import { config } from './config/index.js';
 import { apiRouter } from './api/routes/index.js';
 import { errorHandler } from './api/middleware/error-handler.js';
 import { tieredRateLimiter } from './api/middleware/rate-limit-tiers.js';
+import { optionalAuth } from './api/middleware/auth.js';
 import { correlationMiddleware, getMetricsText } from './observability/index.js';
 
 export const app: Express = express();
@@ -22,6 +23,8 @@ app.use(helmet());
 
 // Tiered Rate Limiting (based on user entitlements)
 // Tiers: anonymous (50/15m), blackbox (200/15m), controlbox (500/15m), bundle (1000/15m), admin (2000/15m)
+// Must attempt auth first to determine tier
+app.use('/api', optionalAuth);
 app.use('/api', tieredRateLimiter);
 
 // CORS configuration

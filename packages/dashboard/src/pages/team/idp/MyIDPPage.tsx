@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
 import {
     Target,
     Trophy,
@@ -73,6 +74,9 @@ export default function MyIDPPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSyncing, setIsSyncing] = useState(false);
 
+    // Billing State
+    const [entitlement, setEntitlement] = useState<'free' | 'pro'>('free'); // Default to free for demo
+
     useEffect(() => {
         loadData();
     }, []);
@@ -94,6 +98,9 @@ export default function MyIDPPage() {
                 licenses: DRIVER_PROFILE.licenses, // Keep demo licenses structure for now
                 stats: DRIVER_PROFILE.stats // Keep demo stats for now
             });
+
+            // Demo entitlement logic (randomize or mock)
+            setEntitlement('free'); // Can change to 'pro' to test
 
             // Map API targets to UI format if needed, or stick to type
             setTargets(t);
@@ -118,6 +125,37 @@ export default function MyIDPPage() {
             setIsSyncing(false);
         }
     };
+
+    // Billing Handlers
+    const handleUpgrade = async () => {
+        try {
+            // Fake price ID for dev; in prod this comes from env/config
+            const priceId = 'price_1Qfake';
+            await import('../../../services/billing.service').then(m => m.billingService.startCheckout(priceId));
+        } catch (err) {
+            alert('Failed to start checkout. Check console.');
+            console.error(err);
+        }
+    };
+
+    const handleManageSubscription = async () => {
+        try {
+            await import('../../../services/billing.service').then(m => m.billingService.openCustomerPortal());
+        } catch (err) {
+            alert('Failed to open portal. Check console.');
+            console.error(err);
+        }
+    };
+
+    // Chart Data
+    const radarData = [
+        { subject: 'Pace', A: 85, fullMark: 100 },
+        { subject: 'Consistency', A: 92, fullMark: 100 },
+        { subject: 'Racecraft', A: 78, fullMark: 100 },
+        { subject: 'Safety', A: 88, fullMark: 100 },
+        { subject: 'Endurance', A: 65, fullMark: 100 },
+        { subject: 'Style', A: 70, fullMark: 100 },
+    ];
 
     const getLicenseColor = (licenseClass: string) => {
         switch (licenseClass) {
@@ -266,6 +304,73 @@ export default function MyIDPPage() {
 
                 {/* Right: Stats Summary */}
                 <div className="space-y-6">
+
+                    {/* IDP Radar Chart */}
+                    <div className="card">
+                        <div className="card-header">
+                            <div className="flex items-center gap-2">
+                                <Activity size={16} className="text-racing-blue" />
+                                <span className="font-medium text-sm uppercase tracking-wider">Driver DNA</span>
+                            </div>
+                        </div>
+                        <div className="h-[250px] w-full p-2">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+                                    <PolarGrid stroke="#3f3f46" />
+                                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 12 }} />
+                                    <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                                    <Radar
+                                        name="Skills"
+                                        dataKey="A"
+                                        stroke="#3b82f6"
+                                        fill="#3b82f6"
+                                        fillOpacity={0.3}
+                                    />
+                                </RadarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    {/* Subscription Status */}
+                    <div className="card bg-gradient-to-br from-zinc-900 to-black border border-racing-blue/20">
+                        <div className="card-header border-b border-white/10">
+                            <div className="flex items-center gap-2">
+                                <Shield size={16} className="text-racing-blue" />
+                                <span className="font-medium text-sm uppercase tracking-wider text-white">Driver Entitlement</span>
+                            </div>
+                            <span className={`text-xs px-2 py-0.5 rounded font-bold ${entitlement === 'pro' ? 'bg-racing-blue text-white' : 'bg-zinc-700 text-zinc-300'}`}>
+                                {entitlement === 'pro' ? 'PRO' : 'FREE'}
+                            </span>
+                        </div>
+                        <div className="p-5">
+                            <div className="mb-4">
+                                <div className="text-sm text-zinc-400 mb-1">Current Plan</div>
+                                <div className="text-xl font-bold text-white">
+                                    {entitlement === 'pro' ? 'ControlBox Pro' : 'ControlBox Free'}
+                                </div>
+                                {entitlement === 'pro' && <div className="text-xs text-zinc-500 mt-1">Renews on Feb 14, 2026</div>}
+                            </div>
+
+                            <div className="space-y-2">
+                                {entitlement === 'pro' ? (
+                                    <button
+                                        onClick={handleManageSubscription}
+                                        className="w-full py-2 px-4 bg-zinc-800 hover:bg-zinc-700 text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        Manage Subscription
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={handleUpgrade}
+                                        className="w-full py-2 px-4 bg-racing-blue hover:bg-racing-blue/80 text-white rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        Upgrade to Pro
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Oval Stats (Primary) */}
                     <div className="card">
                         <div className="card-header">
@@ -335,7 +440,7 @@ export default function MyIDPPage() {
                         if (goal.category === 'irating') Icon = TrendingUp;
                         if (goal.category === 'lap_time') Icon = Clock;
                         if (goal.category === 'consistency') Icon = Activity;
-                        if (goal.category === 'License') Icon = Shield; // Handle legacy/demo capital case
+                        if ((goal.category as string) === 'License') Icon = Shield; // Handle legacy/demo capital case
 
                         const current = Number(goal.current_value);
                         const target = Number(goal.target_value);

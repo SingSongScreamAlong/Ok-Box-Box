@@ -29,6 +29,12 @@ export class PythonBridge {
     private simRunning = false;
     private sending = false;
     private viewerCount = 0;
+    private currentSessionId: string | null = null;
+    private tokenProvider: () => string | null;
+
+    constructor(tokenProvider: () => string | null) {
+        this.tokenProvider = tokenProvider;
+    }
 
     /**
      * Set bootstrap data for capability checks
@@ -86,7 +92,7 @@ export class PythonBridge {
      */
     private spawnPython(): void {
         const fs = require('fs');
-        
+
         // Find the Python script - check multiple locations
         const scriptPaths = [
             path.join(__dirname, '../python/iracing_relay.py'),  // Dev: relative to dist
@@ -101,7 +107,7 @@ export class PythonBridge {
                     pythonScript = p;
                     break;
                 }
-            } catch {}
+            } catch { }
         }
 
         if (!pythonScript) {
@@ -125,7 +131,7 @@ export class PythonBridge {
                     console.log(`📦 Using embedded Python: ${p}`);
                     break;
                 }
-            } catch {}
+            } catch { }
         }
 
         if (pythonExe === 'python') {
@@ -189,7 +195,7 @@ export class PythonBridge {
                 this.sending = true;
                 this.updateStatus();
             }
-            
+
             // Also send to local HUD display
             if (data.cars && data.cars[0]) {
                 const car = data.cars[0];
@@ -229,6 +235,19 @@ export class PythonBridge {
         // Session metadata
         this.localSocket.on('session_metadata', (data: any) => {
             this.simRunning = true;
+
+            // Capture session ID dynamically
+            if (data?.sessionId) {
+                this.currentSessionId = data.sessionId;
+
+                // If cloud connected, register specifically for this session
+                if (this.cloudSocket?.connected) {
+                    this.cloudSocket.emit('relay:register', {
+                        sessionId: this.currentSessionId
+                    });
+                }
+            }
+
             if (this.cloudSocket?.connected) {
                 this.cloudSocket.emit('session_metadata', data);
             }
@@ -263,7 +282,11 @@ export class PythonBridge {
         this.cloudSocket = io(cloudUrl, {
             reconnection: true,
             reconnectionDelay: 1000,
-            transports: ['websocket']
+            transports: ['websocket'],
+            auth: (cb) => {
+                const token = this.tokenProvider() || process.env.RELAY_AUTH_TOKEN;
+                cb({ token });
+            }
         });
 
         this.cloudSocket.on('connect', () => {
@@ -271,10 +294,12 @@ export class PythonBridge {
             this.cloudConnected = true;
             this.updateStatus();
 
-            // Register as relay
-            this.cloudSocket?.emit('relay:register', {
-                sessionId: 'live' // TODO: Get from Python
-            });
+            // Register as relay if we already have a session ID
+            if (this.currentSessionId) {
+                this.cloudSocket?.emit('relay:register', {
+                    sessionId: this.currentSessionId
+                });
+            }
 
             // Start metrics reporting
             this.startMetricsReporting();
@@ -282,7 +307,7 @@ export class PythonBridge {
             // Wire up voice engineer to use ElevenLabs via cloud
             import('./voice-engineer.js').then(({ setCloudSocket }) => {
                 setCloudSocket(this.cloudSocket);
-            }).catch(() => {});
+            }).catch(() => { });
         });
 
         this.cloudSocket.on('disconnect', () => {
@@ -308,12 +333,12 @@ export class PythonBridge {
                 import('./hud-window.js').then(({ showCoachingMessage }) => {
                     for (const update of data.updates) {
                         // Map priority to type for HUD display
-                        const type = update.priority === 'critical' ? 'warning' 
+                        const type = update.priority === 'critical' ? 'warning'
                             : update.priority === 'high' ? 'warning'
-                            : 'info';
-                        
+                                : 'info';
+
                         showCoachingMessage(update.spokenMessage || update.message, type);
-                        
+
                         // Also speak it via voice engineer
                         import('./voice-engineer.js').then(({ speak, callout }) => {
                             if (update.type === 'caution') {
@@ -321,12 +346,12 @@ export class PythonBridge {
                             } else if (update.type === 'opportunity') {
                                 callout('clear', update.spokenMessage || update.message);
                             } else {
-                                speak(update.spokenMessage || update.message, 
+                                speak(update.spokenMessage || update.message,
                                     update.priority === 'critical' ? 'high' : 'normal');
                             }
-                        }).catch(() => {});
+                        }).catch(() => { });
                     }
-                }).catch(() => {});
+                }).catch(() => { });
             }
         });
     }

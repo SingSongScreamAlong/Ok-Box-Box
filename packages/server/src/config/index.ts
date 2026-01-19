@@ -52,4 +52,17 @@ if (config.nodeEnv === 'production') {
     if (config.jwtSecret.length < 32) {
         throw new Error('JWT_SECRET must be at least 32 characters long for production security');
     }
+
+    // Validate Database URL (Prevent localhost in production unless explicitly allowed)
+    if (!process.env.ALLOW_LOCAL_DB && (
+        config.databaseUrl.includes('localhost') ||
+        config.databaseUrl.includes('127.0.0.1')
+    )) {
+        throw new Error('Production DATABASE_URL cannot be localhost. Set ALLOW_LOCAL_DB=true to bypass.');
+    }
+
+    // Validate Redis URL
+    if (!process.env.REDIS_URL) {
+        throw new Error('REDIS_URL must be explicitly set in production');
+    }
 }
