@@ -43,7 +43,7 @@ services:
       # Database (from DO managed database)
       - key: DATABASE_URL
         scope: RUN_TIME
-        type: SECRET
+        value: ${db.DATABASE_URL}
       
       # Redis (from DO managed redis or external)
       - key: REDIS_URL
@@ -146,11 +146,11 @@ static_sites:
         value: "/blackbox"
 
 # =====================================================================
-# Databases (Optional - can use external)
+# Databases
 # =====================================================================
-# databases:
-#   - name: db
-#     engine: PG
-#     version: "15"
-#     size: db-s-dev-database
-#     num_nodes: 1
+databases:
+  - name: db
+    engine: PG
+    version: "16"
+    size: db-s-dev-database
+    num_nodes: 1

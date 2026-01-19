@@ -69,5 +69,6 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/health || exit 1
 
-# Start server - use standalone for relay telemetry (no DB required)
-CMD ["node", "dist/standalone.js"]
+# Start server - full mode with database, auth, and all features
+# Falls back gracefully if DB not available
+CMD ["node", "dist/index.js"]
