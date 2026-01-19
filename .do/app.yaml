@@ -123,6 +123,28 @@ static_sites:
       - key: VITE_WS_URL
         value: "wss://octopus-app-qsi3i.ondigitalocean.app"
 
+  # =====================================================================
+  # Live Race Operations Console (BlackBox Race Engineer)
+  # =====================================================================
+  - name: ops-console
+    github:
+      repo: SingSongScreamAlong/Ok-Box-Box
+      branch: main
+      deploy_on_push: true
+    build_command: cd legacy/ProjectBlackBox/dashboard && npm ci && npm run build
+    output_dir: legacy/ProjectBlackBox/dashboard/build
+    index_document: index.html
+    error_document: index.html
+    
+    # Environment for build
+    envs:
+      - key: REACT_APP_BACKEND_URL
+        value: "https://octopus-app-qsi3i.ondigitalocean.app"
+      - key: REACT_APP_WS_URL
+        value: "wss://octopus-app-qsi3i.ondigitalocean.app"
+      - key: PUBLIC_URL
+        value: "/blackbox"
+
 # =====================================================================
 # Databases (Optional - can use external)
 # =====================================================================
