@@ -68,9 +68,11 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({ sessionId }) => {
             }
         });
 
-        // Auto-redirect if we are on "live" and receive an active session ID
+        // Auto-redirect if we are on "live" and receive a different active session ID
         socket.on('session:active', (data: { sessionId: string }) => {
-            if (sessionId === 'live' && data.sessionId) {
+            console.log('[TeamDashboard] session:active received:', data.sessionId);
+            // Only redirect if we're on 'live' and the active session is something else
+            if (sessionId === 'live' && data.sessionId && data.sessionId !== 'live') {
                 console.log('Redirecting to active session:', data.sessionId);
                 navigate(`/team/${data.sessionId}`, { replace: true });
             }
