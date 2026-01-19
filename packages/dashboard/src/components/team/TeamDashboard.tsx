@@ -51,6 +51,23 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({ sessionId }) => {
             setRaceState(data);
         });
 
+        // Timing updates from relay telemetry
+        socket.on('timing:update', (data: any) => {
+            console.log('[TeamDashboard] timing:update received', data);
+            // Map timing data to race state format
+            if (data.timing?.entries?.length > 0) {
+                const entry = data.timing.entries[0];
+                setRaceState(prev => ({
+                    ...prev,
+                    sessionTime: data.sessionTimeMs ? `${Math.floor(data.sessionTimeMs / 60000)}:${String(Math.floor((data.sessionTimeMs % 60000) / 1000)).padStart(2, '0')}` : prev?.sessionTime || '0:00',
+                    position: entry.position || prev?.position || 0,
+                    lap: entry.lapNumber || prev?.lap || 0,
+                    gap: prev?.gap || '+0.0s',
+                    status: 'green',
+                }));
+            }
+        });
+
         // Auto-redirect if we are on "live" and receive an active session ID
         socket.on('session:active', (data: { sessionId: string }) => {
             if (sessionId === 'live' && data.sessionId) {
