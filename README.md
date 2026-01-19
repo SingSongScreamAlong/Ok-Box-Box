@@ -67,6 +67,7 @@ npm run dev
 |---------|-----|
 | API Server | http://localhost:3001 |
 | Dashboard | http://localhost:5173 |
+| Ops Console | http://localhost:3005 |
 | PostgreSQL | localhost:5432 |
 | Redis | localhost:6379 |
 
@@ -97,6 +98,9 @@ npm run dev:server
 
 # Run frontend only
 npm run dev:dashboard
+
+# Run Live Race Ops Console (Legacy)
+npm run ops:console
 
 # Run tests
 npm run test

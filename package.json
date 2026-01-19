@@ -13,6 +13,8 @@
         "dev": "npm run dev --workspace=packages/server & npm run dev --workspace=packages/dashboard",
         "dev:server": "npm run dev --workspace=packages/server",
         "dev:dashboard": "npm run dev --workspace=packages/dashboard",
+        "legacy:dashboard": "cd legacy/ProjectBlackBox/dashboard && PORT=3005 REACT_APP_BACKEND_URL=http://localhost:3001 npm start",
+        "ops:console": "cd legacy/ProjectBlackBox/dashboard && PORT=3005 REACT_APP_BACKEND_URL=http://localhost:3001 npm start",
         "test": "npm run test --workspaces --if-present",
         "lint": "npm run lint --workspaces --if-present",
         "typecheck": "npm run typecheck --workspaces --if-present",

@@ -133,7 +133,7 @@ const VoiceEngineerPage: React.FC = () => {
   return (
     <div className="voice-engineer-page">
       <div className="voice-header">
-        <h1>🎙️ Race Engineer</h1>
+        <h1>🎙️ Live Race Operations Console</h1>
         <div className="voice-status">
           <div className={`status-badge ${isListening ? 'listening' : isProcessing ? 'processing' : ''}`}>
             <span className="indicator"></span>
@@ -175,7 +175,7 @@ const VoiceEngineerPage: React.FC = () => {
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
               />
-              <button 
+              <button
                 className={`voice-btn mic ${isListening ? 'listening' : ''}`}
                 onClick={handleVoiceToggle}
               >
@@ -204,8 +204,8 @@ const VoiceEngineerPage: React.FC = () => {
             <h3>Quick Commands</h3>
             <div className="quick-commands">
               {quickCommands.map((cmd) => (
-                <button 
-                  key={cmd} 
+                <button
+                  key={cmd}
                   className="quick-cmd"
                   onClick={() => handleQuickCommand(cmd)}
                 >

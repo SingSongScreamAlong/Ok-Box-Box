@@ -191,7 +191,7 @@ export function showEngineerSettings(): void {
     </style>
 </head>
 <body>
-    <h1>🎙️ Race Engineer</h1>
+    <h1>🎙️ Live Race Operations Console</h1>
     <p class="subtitle">Configure your race engineer voice assistant</p>
 
     <div class="master-toggle ${settings.enabled ? '' : 'disabled'}" id="masterSection">
@@ -350,12 +350,12 @@ export function showEngineerSettings(): void {
         try {
             const voices = await getAvailableVoices();
             const currentVoice = settings.voiceName;
-            
+
             // Build options HTML
-            const optionsHtml = voices.map(v => 
+            const optionsHtml = voices.map(v =>
                 `<option value="${v}" ${v === currentVoice ? 'selected' : ''}>${v}</option>`
             ).join('');
-            
+
             // Inject into select
             settingsWindow?.webContents.executeJavaScript(`
                 const select = document.getElementById('voiceName');

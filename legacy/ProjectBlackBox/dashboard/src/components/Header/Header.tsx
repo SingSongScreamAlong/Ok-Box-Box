@@ -70,10 +70,10 @@ const Header: React.FC<HeaderProps> = ({
 
       <div className="header-center">
         <div className="header-logo">
-          <span className="logo-tagline">OK, Box Box</span>
-          <span className="logo-main">Project: <span>PitBox</span></span>
+          <span className="logo-tagline">Ok, Box Box</span>
+          <span className="logo-main">Live Race <span>Ops Console</span></span>
         </div>
-        
+
         {/* Quick Action Buttons */}
         <div className="header-quick-actions">
           {onChatClick && (
