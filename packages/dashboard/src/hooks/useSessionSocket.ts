@@ -30,18 +30,27 @@ export function useSessionSocket(sessionId: string | null) {
         socketRef.current = socket;
 
         socket.on('connect', () => {
-            console.log('[useSessionSocket] Connected, joining session:', sessionId);
+            console.log('[useSessionSocket] Connected to server, socket.id:', socket.id);
+            console.log('[useSessionSocket] Joining session:', sessionId);
             socket.emit('room:join', { sessionId });
             setIsConnected(true);
         });
 
-        socket.on('disconnect', () => {
-            console.log('[useSessionSocket] Disconnected');
+        socket.on('connect_error', (err) => {
+            console.error('[useSessionSocket] Connection error:', err.message);
+        });
+
+        socket.on('disconnect', (reason) => {
+            console.log('[useSessionSocket] Disconnected:', reason);
             setIsConnected(false);
         });
 
         socket.on('room:joined', (data: { sessionId: string }) => {
-            console.log('[useSessionSocket] Joined room:', data.sessionId);
+            console.log('[useSessionSocket] Successfully joined room:', data.sessionId);
+        });
+
+        socket.on('session:state', (data: any) => {
+            console.log('[useSessionSocket] Session state received:', data);
         });
 
         return () => {
