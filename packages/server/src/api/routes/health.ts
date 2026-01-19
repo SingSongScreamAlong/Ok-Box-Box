@@ -55,3 +55,23 @@ healthRouter.get('/ready', async (_req: Request, res: Response) => {
         res.status(503).json({ ready: false });
     }
 });
+
+// Telemetry diagnostic endpoint
+import { activeSessions } from '../../websocket/SessionHandler.js';
+healthRouter.get('/telemetry', (_req: Request, res: Response) => {
+    const sessions: any[] = [];
+    activeSessions.forEach((session, sessionId) => {
+        sessions.push({
+            sessionId,
+            trackName: session.trackName,
+            sessionType: session.sessionType,
+            driverCount: session.drivers.size,
+            lastUpdate: session.lastUpdate,
+            ageMs: Date.now() - session.lastUpdate
+        });
+    });
+    res.json({
+        activeSessions: sessions.length,
+        sessions
+    });
+});
