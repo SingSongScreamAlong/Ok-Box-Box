@@ -29,12 +29,6 @@ export class PythonBridge {
     private simRunning = false;
     private sending = false;
     private viewerCount = 0;
-    private currentSessionId: string | null = null;
-    private tokenProvider: () => string | null;
-
-    constructor(tokenProvider: () => string | null) {
-        this.tokenProvider = tokenProvider;
-    }
 
     /**
      * Set bootstrap data for capability checks
@@ -92,22 +86,44 @@ export class PythonBridge {
      */
     private spawnPython(): void {
         const fs = require('fs');
-
+        const { app } = require('electron');
+        
+        // Get paths for packaged apps - portable exe extracts to temp folder
+        const exePath = app.getPath('exe');
+        const exeDir = path.dirname(exePath);
+        const resourcesPath = process.resourcesPath || path.join(exeDir, 'resources');
+        const appAsarPath = app.getAppPath();  // Points to app.asar or app folder
+        const appAsarDir = path.dirname(appAsarPath);  // Parent of app.asar = resources folder
+        
+        console.log('🔍 Python bridge paths:');
+        console.log('   exePath:', exePath);
+        console.log('   exeDir:', exeDir);
+        console.log('   resourcesPath:', resourcesPath);
+        console.log('   appAsarPath:', appAsarPath);
+        console.log('   appAsarDir:', appAsarDir);
+        console.log('   app.isPackaged:', app.isPackaged);
+        
         // Find the Python script - check multiple locations
         const scriptPaths = [
+            path.join(appAsarDir, 'python/iracing_relay.py'),  // Next to app.asar in resources
+            path.join(resourcesPath, 'python/iracing_relay.py'),  // Packaged: resources folder
+            path.join(exeDir, 'resources/python/iracing_relay.py'),  // Portable exe
             path.join(__dirname, '../python/iracing_relay.py'),  // Dev: relative to dist
-            path.join(__dirname, '../../python/iracing_relay.py'),  // Packaged app
-            path.join(process.resourcesPath || '', 'python/iracing_relay.py'),  // Electron resources
+            path.join(__dirname, '../../python/iracing_relay.py'),  // Alt dev path
         ];
 
         let pythonScript = '';
         for (const p of scriptPaths) {
+            console.log(`   Checking script: ${p}`);
             try {
                 if (fs.existsSync(p)) {
                     pythonScript = p;
+                    console.log(`   ✅ Found script at: ${p}`);
                     break;
                 }
-            } catch { }
+            } catch (e) {
+                console.log(`   ❌ Error checking: ${e}`);
+            }
         }
 
         if (!pythonScript) {
@@ -118,27 +134,32 @@ export class PythonBridge {
 
         // Find Python executable - prefer embedded, fall back to system
         const embeddedPythonPaths = [
-            path.join(process.resourcesPath || '', 'python-embed/python.exe'),  // Packaged
+            path.join(appAsarDir, 'python-embed/python.exe'),  // Next to app.asar in resources
+            path.join(resourcesPath, 'python-embed/python.exe'),  // Packaged: resources folder
+            path.join(exeDir, 'resources/python-embed/python.exe'),  // Portable exe
             path.join(__dirname, '../../python-embed/python.exe'),  // Dev
             path.join(__dirname, '../python-embed/python.exe'),
         ];
 
         let pythonExe = 'python';  // Default to system Python
         for (const p of embeddedPythonPaths) {
+            console.log(`   Checking python: ${p}`);
             try {
                 if (fs.existsSync(p)) {
                     pythonExe = p;
-                    console.log(`📦 Using embedded Python: ${p}`);
+                    console.log(`   ✅ Found Python at: ${p}`);
                     break;
                 }
-            } catch { }
+            } catch (e) {
+                console.log(`   ❌ Error checking: ${e}`);
+            }
         }
 
         if (pythonExe === 'python') {
-            console.log('⚠️ Embedded Python not found, using system Python');
+            console.log('⚠️ Embedded Python not found, trying system Python');
         }
 
-        console.log(`🐍 Spawning Python: ${pythonScript}`);
+        console.log(`🐍 Spawning: ${pythonExe} ${pythonScript}`);
 
         this.pythonProcess = spawn(pythonExe, [pythonScript], {
             stdio: ['pipe', 'pipe', 'pipe'],
@@ -195,7 +216,7 @@ export class PythonBridge {
                 this.sending = true;
                 this.updateStatus();
             }
-
+            
             // Also send to local HUD display
             if (data.cars && data.cars[0]) {
                 const car = data.cars[0];
@@ -235,19 +256,6 @@ export class PythonBridge {
         // Session metadata
         this.localSocket.on('session_metadata', (data: any) => {
             this.simRunning = true;
-
-            // Capture session ID dynamically
-            if (data?.sessionId) {
-                this.currentSessionId = data.sessionId;
-
-                // If cloud connected, register specifically for this session
-                if (this.cloudSocket?.connected) {
-                    this.cloudSocket.emit('relay:register', {
-                        sessionId: this.currentSessionId
-                    });
-                }
-            }
-
             if (this.cloudSocket?.connected) {
                 this.cloudSocket.emit('session_metadata', data);
             }
@@ -282,11 +290,7 @@ export class PythonBridge {
         this.cloudSocket = io(cloudUrl, {
             reconnection: true,
             reconnectionDelay: 1000,
-            transports: ['websocket'],
-            auth: (cb) => {
-                const token = this.tokenProvider() || process.env.RELAY_AUTH_TOKEN;
-                cb({ token });
-            }
+            transports: ['websocket']
         });
 
         this.cloudSocket.on('connect', () => {
@@ -294,12 +298,10 @@ export class PythonBridge {
             this.cloudConnected = true;
             this.updateStatus();
 
-            // Register as relay if we already have a session ID
-            if (this.currentSessionId) {
-                this.cloudSocket?.emit('relay:register', {
-                    sessionId: this.currentSessionId
-                });
-            }
+            // Register as relay
+            this.cloudSocket?.emit('relay:register', {
+                sessionId: 'live' // TODO: Get from Python
+            });
 
             // Start metrics reporting
             this.startMetricsReporting();
@@ -307,7 +309,7 @@ export class PythonBridge {
             // Wire up voice engineer to use ElevenLabs via cloud
             import('./voice-engineer.js').then(({ setCloudSocket }) => {
                 setCloudSocket(this.cloudSocket);
-            }).catch(() => { });
+            }).catch(() => {});
         });
 
         this.cloudSocket.on('disconnect', () => {
@@ -333,12 +335,12 @@ export class PythonBridge {
                 import('./hud-window.js').then(({ showCoachingMessage }) => {
                     for (const update of data.updates) {
                         // Map priority to type for HUD display
-                        const type = update.priority === 'critical' ? 'warning'
+                        const type = update.priority === 'critical' ? 'warning' 
                             : update.priority === 'high' ? 'warning'
-                                : 'info';
-
+                            : 'info';
+                        
                         showCoachingMessage(update.spokenMessage || update.message, type);
-
+                        
                         // Also speak it via voice engineer
                         import('./voice-engineer.js').then(({ speak, callout }) => {
                             if (update.type === 'caution') {
@@ -346,12 +348,12 @@ export class PythonBridge {
                             } else if (update.type === 'opportunity') {
                                 callout('clear', update.spokenMessage || update.message);
                             } else {
-                                speak(update.spokenMessage || update.message,
+                                speak(update.spokenMessage || update.message, 
                                     update.priority === 'critical' ? 'high' : 'normal');
                             }
-                        }).catch(() => { });
+                        }).catch(() => {});
                     }
-                }).catch(() => { });
+                }).catch(() => {});
             }
         });
     }

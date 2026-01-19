@@ -62,12 +62,20 @@ export class TelemetryHandler {
             };
 
             const delay = session.broadcastDelayMs;
+            const roomName = `session:${validData.sessionId}`;
+            const roomSize = this.io.sockets.adapter.rooms.get(roomName)?.size || 0;
+            
+            // Log every 60th frame (~1 per second at 60Hz)
+            if (Math.random() < 0.017) {
+                console.log(`📡 Broadcasting timing:update to ${roomName} (${roomSize} clients)`);
+            }
+            
             if (delay > 0) {
                 setTimeout(() => {
-                    this.io.volatile.to(`session:${validData.sessionId}`).emit('timing:update', payload);
+                    this.io.volatile.to(roomName).emit('timing:update', payload);
                 }, delay);
             } else {
-                this.io.volatile.to(`session:${validData.sessionId}`).emit('timing:update', payload);
+                this.io.volatile.to(roomName).emit('timing:update', payload);
             }
         });
 

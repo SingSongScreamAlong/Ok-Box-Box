@@ -222,8 +222,8 @@ function speakInWindow(text: string): Promise<void> {
                     }
                 };
                 
-                utterance.onend = () => window.close();
-                utterance.onerror = () => window.close();
+                utterance.onend = () => { console.log('TTS_DONE'); };
+                utterance.onerror = () => { console.log('TTS_DONE'); };
                 
                 // Trigger immediately if voices already loaded
                 if (speechSynthesis.getVoices().length > 0) {
@@ -237,6 +237,13 @@ function speakInWindow(text: string): Promise<void> {
         `;
 
         ttsWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+
+        // Close from main process when renderer signals done
+        ttsWindow.webContents.on('console-message', (_event, _level, message) => {
+            if (message === 'TTS_DONE') {
+                if (!ttsWindow.isDestroyed()) ttsWindow.close();
+            }
+        });
 
         // Timeout fallback
         const timeout = setTimeout(() => {
@@ -454,15 +461,22 @@ function playBase64Audio(base64Audio: string): void {
         <script>
             const audio = new Audio('data:audio/mpeg;base64,${base64Audio}');
             audio.volume = ${currentConfig.volume};
-            audio.onended = () => window.close();
-            audio.onerror = () => window.close();
-            audio.play().catch(() => window.close());
+            audio.onended = () => { console.log('AUDIO_DONE'); };
+            audio.onerror = () => { console.log('AUDIO_DONE'); };
+            audio.play().catch(() => { console.log('AUDIO_DONE'); });
         </script>
         </body>
         </html>
     `;
 
     audioWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+
+    // Close from main process when renderer signals done
+    audioWindow.webContents.on('console-message', (_event, _level, message) => {
+        if (message === 'AUDIO_DONE') {
+            if (!audioWindow.isDestroyed()) audioWindow.close();
+        }
+    });
 
     // Timeout fallback
     setTimeout(() => {

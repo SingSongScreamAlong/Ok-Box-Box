@@ -78,8 +78,8 @@ if (!gotTheLock) {
             handleLaunchUrl(protocolUrl);
         }
 
-        // Focus window if exists
-        if (hudWindow) {
+        // Focus window if exists and not destroyed
+        if (hudWindow && !hudWindow.isDestroyed()) {
             if (hudWindow.isMinimized()) hudWindow.restore();
             hudWindow.focus();
         }

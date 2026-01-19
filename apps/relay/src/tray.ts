@@ -36,6 +36,18 @@ export class TrayManager {
 
         // Start with logged out state
         this.setLoggedOut();
+
+        // Handle tray destruction
+        this.tray.on('click', () => {
+            // Prevent errors if tray is destroyed
+        });
+    }
+
+    /**
+     * Check if tray is still valid
+     */
+    private isValid(): boolean {
+        return this.tray && !this.tray.isDestroyed();
     }
 
     /**
@@ -50,6 +62,7 @@ export class TrayManager {
      * Set tray menu for logged in state
      */
     setLoggedIn(displayName: string): void {
+        if (!this.isValid()) return;
         const menu = Menu.buildFromTemplate([
             {
                 label: `✅ ${displayName}`,
@@ -65,7 +78,7 @@ export class TrayManager {
             {
                 label: '📊 Open Dashboard',
                 click: () => {
-                    shell.openExternal('https://coral-app-x988a.ondigitalocean.app/team/live');
+                    shell.openExternal('https://octopus-app-qsi3i.ondigitalocean.app/team/live');
                 }
             },
             { type: 'separator' },
@@ -98,6 +111,7 @@ export class TrayManager {
      * Set tray menu for logged out state
      */
     setLoggedOut(): void {
+        if (!this.isValid()) return;
         const menu = Menu.buildFromTemplate([
             {
                 label: '🔐 Not Logged In',
@@ -122,6 +136,7 @@ export class TrayManager {
      * Update relay status in menu
      */
     updateStatus(status: { connected: boolean; simRunning: boolean; viewers: number }): void {
+        if (!this.isValid()) return;
         const bootstrap = this.authManager.getBootstrap();
         if (!bootstrap) return;
 
@@ -144,7 +159,7 @@ export class TrayManager {
             {
                 label: '📊 Open Dashboard',
                 click: () => {
-                    shell.openExternal('https://coral-app-x988a.ondigitalocean.app/team/live');
+                    shell.openExternal('https://octopus-app-qsi3i.ondigitalocean.app/team/live');
                 }
             },
             { type: 'separator' },
@@ -173,6 +188,7 @@ export class TrayManager {
      * Set current mode and update tray menu
      */
     setMode(mode: 'driver' | 'team' | 'racecontrol'): void {
+        if (!this.isValid()) return;
         const bootstrap = this.authManager.getBootstrap();
         if (!bootstrap) return;
 
@@ -219,7 +235,7 @@ export class TrayManager {
             {
                 label: '📊 Open Dashboard',
                 click: () => {
-                    shell.openExternal('https://coral-app-x988a.ondigitalocean.app/home');
+                    shell.openExternal('https://octopus-app-qsi3i.ondigitalocean.app/home');
                 }
             },
             {
