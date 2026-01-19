@@ -13,9 +13,11 @@ export class AuthGate {
         this.io.use(async (socket, next) => {
             const token = socket.handshake.auth.token || socket.handshake.headers['authorization']?.split(' ')[1];
 
+            // ALPHA TESTING: Allow unauthenticated connections
             if (!token) {
-                console.log(`🔌 Connection rejected: No token provided (${socket.id})`);
-                return next(new Error('Authentication error: Token required'));
+                console.log(`🔌 Allowing unauthenticated connection for alpha testing (${socket.id})`);
+                socket.data.user = { sub: 'anonymous', entitlements: [] };
+                return next();
             }
 
             try {
