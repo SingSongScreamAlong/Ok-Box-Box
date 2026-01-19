@@ -31,10 +31,10 @@ function loadDashboardConfig(): DashboardConfig {
     const env = process.env;
 
     return {
-        // Backend Services
-        BACKEND_URL: env.REACT_APP_BACKEND_URL || 'http://localhost:3000',
+        // Backend Services - Use current origin in production
+        BACKEND_URL: env.REACT_APP_BACKEND_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? window.location.origin : 'http://localhost:3000'),
         RELAY_AGENT_URL: env.REACT_APP_RELAY_AGENT_URL || 'ws://localhost:8765',
-        WEBSOCKET_URL: env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:8765',
+        WEBSOCKET_URL: env.REACT_APP_WEBSOCKET_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? window.location.origin : 'ws://localhost:8765'),
 
         // Feature Flags
         ENABLE_AI_COACHING: env.REACT_APP_ENABLE_AI_COACHING !== 'false',

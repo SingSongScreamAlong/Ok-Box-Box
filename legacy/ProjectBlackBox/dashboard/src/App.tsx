@@ -17,19 +17,9 @@ import { store } from './redux/store';
 import { initializeMockDriverData } from './utils/mockDriverData';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Protected Route Component
+// Protected Route Component - BYPASSED FOR ALPHA TESTING
 const PrivateRoute = ({ children }: { children: React.ReactElement }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  const location = useLocation();
-
-  if (isLoading) {
-    return <div style={{ color: '#fff', textAlign: 'center', marginTop: '50px' }}>Loading...</div>;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/landing" state={{ from: location }} replace />;
-  }
-
+  // ALPHA: Skip auth check
   return children;
 };
 
