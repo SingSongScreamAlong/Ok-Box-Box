@@ -238,7 +238,7 @@ export class StripeService {
 
         // Determine product from price ID
         const priceId = sub.items.data[0]?.price?.id;
-        const product: Product = priceId ? (resolveProductFromPriceId(priceId) || 'blackbox') : 'blackbox';
+        const product: Product = priceId ? (resolveProductFromPriceId(priceId) || 'driver') : 'driver';
 
         // Map Stripe status to our entitlement status
         let status: EntitlementStatus;

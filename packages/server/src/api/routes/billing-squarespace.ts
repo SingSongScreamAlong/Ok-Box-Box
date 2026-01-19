@@ -72,21 +72,27 @@ interface SquarespaceOrder {
 const SQUARESPACE_WEBHOOK_SECRET = process.env.SQUARESPACE_WEBHOOK_SECRET || '';
 const SQUARESPACE_API_KEY = process.env.SQUARESPACE_API_KEY || '';
 
-// Product SKU → Product mapping
+// Product SKU → Product mapping (maps Squarespace SKUs to new tier names)
 const SKU_TO_PRODUCT: Record<string, Product> = {
-    // BlackBox (user-scoped)
-    'BLACKBOX': 'blackbox',
-    'BB-MONTHLY': 'blackbox',
-    'BB-ANNUAL': 'blackbox',
-    // ControlBox (org-scoped)
-    'CONTROLBOX': 'controlbox',
-    'CB-MONTHLY': 'controlbox',
-    'CB-ANNUAL': 'controlbox',
-    // RaceBox Plus (org-scoped) - NEW
-    'RBX-PLUS-MONTHLY': 'racebox_plus',
-    'RBX-PLUS-ANNUAL': 'racebox_plus',
-    'RACEBOX-PLUS': 'racebox_plus',
-    // Bundle (user + org)
+    // Driver tier ($14/mo) - old BlackBox SKUs
+    'BLACKBOX': 'driver',
+    'BB-MONTHLY': 'driver',
+    'BB-ANNUAL': 'driver',
+    'DRIVER': 'driver',
+    'DRIVER-MONTHLY': 'driver',
+    'DRIVER-ANNUAL': 'driver',
+    // Team tier ($26/mo)
+    'TEAM': 'team',
+    'TEAM-MONTHLY': 'team',
+    'TEAM-ANNUAL': 'team',
+    // League tier ($48/mo) - old ControlBox SKUs
+    'CONTROLBOX': 'league',
+    'CB-MONTHLY': 'league',
+    'CB-ANNUAL': 'league',
+    'LEAGUE': 'league',
+    'LEAGUE-MONTHLY': 'league',
+    'LEAGUE-ANNUAL': 'league',
+    // Bundle (all tiers)
     'BUNDLE': 'bundle',
     'BUNDLE-MONTHLY': 'bundle',
     'BUNDLE-ANNUAL': 'bundle'
@@ -124,8 +130,8 @@ const SKU_TO_BILLING_PERIOD: Record<string, BillingPeriod> = {
 
 // Series add-on SKUs (quantity-aware)
 const SERIES_ADDON_SKUS: Record<string, Product> = {
-    'CB-SERIES-ADDON': 'controlbox',
-    'RBX-SERIES-ADDON': 'racebox_plus'
+    'CB-SERIES-ADDON': 'league',
+    'LEAGUE-SERIES-ADDON': 'league'
 };
 
 // ============================================================================
@@ -306,10 +312,10 @@ function determineProductFromOrder(order: SquarespaceOrder): Product | null {
             return SKU_TO_PRODUCT[sku];
         }
 
-        // Fallback to product name matching
-        if (productName.includes('BLACKBOX')) return 'blackbox';
-        if (productName.includes('CONTROLBOX')) return 'controlbox';
-        if (productName.includes('RACEBOX') && productName.includes('PLUS')) return 'racebox_plus';
+        // Fallback to product name matching (maps old names to new tiers)
+        if (productName.includes('BLACKBOX') || productName.includes('DRIVER')) return 'driver';
+        if (productName.includes('TEAM')) return 'team';
+        if (productName.includes('CONTROLBOX') || productName.includes('LEAGUE')) return 'league';
         if (productName.includes('BUNDLE')) return 'bundle';
     }
 

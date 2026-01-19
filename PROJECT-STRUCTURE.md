@@ -135,12 +135,12 @@ npm run db:migrate
 
 | Tier | Price | Features |
 |------|-------|----------|
-| **RaceBox Free** | Free | Public timing, basic overlays |
-| **RaceBox Plus** | $15/month + $2/series | Director controls, league branding |
-| **BlackBox Driver** | $16/month | Driver HUD, voice engineer, personal telemetry |
-| **BlackBox Team** | $16/month | Pit wall view, multi-car monitoring, strategy |
-| **ControlBox** | $18/month + $2/series | Race control, incident review, penalties |
-| **Bundle** | Contact | All features combined |
+| **Free Account** | Free | Relay download + auth only |
+| **BlackBox** (Driver) | $14/month | Driver HUD, voice engineer, personal telemetry, Pit Wall Lite |
+| **TeamBox** (Team) | $26/month | Full Pit Wall, multi-car, strategy tools |
+| **LeagueBox** (League) | $48/month | Seasons, scoring, rules, Steward Console (optional) |
+
+> **Note:** "ControlBox" is deprecated. Use "LeagueBox" for league tier.
 
 ---
 

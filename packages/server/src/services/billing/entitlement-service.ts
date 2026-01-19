@@ -1,11 +1,11 @@
 /**
  * Entitlement Service
  * 
- * Manages entitlements (paid access) derived from Squarespace purchases.
+ * Manages entitlements (paid access) derived from Stripe/Squarespace purchases.
  * Maps entitlements → capabilities deterministically.
  * 
- * RULE: Squarespace is source of truth. Never grant entitlements manually
- * without an admin override with audit logging.
+ * PRODUCTS: BlackBox (driver), TeamBox (team), LeagueBox (league)
+ * NOTE: "ControlBox" is deprecated. Use "LeagueBox".
  */
 
 import { Pool } from 'pg';
@@ -15,7 +15,7 @@ import { pool as defaultPool } from '../../db/client.js';
 // TYPES
 // ============================================================================
 
-export type Product = 'blackbox' | 'controlbox' | 'racebox_plus' | 'bundle';
+export type Product = 'driver' | 'team' | 'league' | 'bundle';
 export type EntitlementStatus = 'active' | 'trial' | 'past_due' | 'canceled' | 'expired' | 'pending';
 export type EntitlementSource = 'squarespace' | 'stripe' | 'manual' | 'promo';
 export type EntitlementScope = 'user' | 'org';
@@ -75,25 +75,29 @@ export interface PendingEntitlement {
 // ============================================================================
 
 export interface Capabilities {
-    // BlackBox - Driver (Live Race Execution)
+    // Free tier - always granted to authenticated users
+    relay_auth: boolean;
+
+    // BlackBox (Driver) — $14/mo
     driver_hud: boolean;
-    situational_awareness: boolean;  // NOT "ai_coaching"
+    situational_awareness: boolean;
     voice_engineer: boolean;
     personal_telemetry: boolean;
+    livespotter_access: boolean;      // Read-only, single-driver, shareable view
 
-    // BlackBox - Team
-    pitwall_view: boolean;
+    // TeamBox (Team) — $26/mo
+    pitwall_view: boolean;            // Full Pit Wall (multi-car, interactive)
     multi_car_monitor: boolean;
     strategy_timeline: boolean;
 
-    // ControlBox - Race Control
+    // LeagueBox (League) — $48/mo
     incident_review: boolean;
     penalty_assign: boolean;
     protest_review: boolean;
     rulebook_manage: boolean;
     session_authority: boolean;
 
-    // RaceBox Plus - Broadcast
+    // Broadcast (included with higher tiers)
     racebox_access: boolean;
     broadcast_overlays: boolean;
     director_controls: boolean;
@@ -104,21 +108,24 @@ export interface Capabilities {
  * CRITICAL: Single source of truth for entitlement → capabilities mapping.
  * 
  * Rules:
- * - Only 'active' or 'trial' entitlements grant capabilities
- * - 'bundle' grants both blackbox + controlbox capabilities
+ * - Free tier: ONLY relay_auth is true
+ * - 'active' or 'trial' entitlements grant paid capabilities
  * - Roles modify certain capabilities (penalty_assign, etc.)
  */
 export function deriveCapabilitiesFromEntitlements(
     entitlements: Entitlement[],
     roles: string[] = []
 ): Capabilities {
-    // Start with FREE RaceBox capabilities (always granted)
+    // FREE TIER: Only relay_auth is granted
+    // All other capabilities require a paid subscription
     const caps: Capabilities = {
+        relay_auth: true,             // Always true for authenticated users
         driver_hud: false,
         situational_awareness: false,
         voice_engineer: false,
         personal_telemetry: false,
-        pitwall_view: false,
+        livespotter_access: false,    // BlackBox: read-only spotter view
+        pitwall_view: false,          // TeamBox: full pit wall (multi-car)
         multi_car_monitor: false,
         strategy_timeline: false,
         incident_review: false,
@@ -126,11 +133,10 @@ export function deriveCapabilitiesFromEntitlements(
         protest_review: false,
         rulebook_manage: false,
         session_authority: false,
-        // FREE RaceBox baseline - always available
-        racebox_access: true,       // Public viewer access
-        broadcast_overlays: false,  // Basic overlays only
-        director_controls: false,   // Requires Plus
-        public_timing: true         // Public timing board
+        racebox_access: false,
+        broadcast_overlays: false,
+        director_controls: false,
+        public_timing: false
     };
 
     // Filter to active entitlements only
@@ -139,27 +145,41 @@ export function deriveCapabilitiesFromEntitlements(
     );
 
     for (const ent of activeEntitlements) {
-        if (ent.product === 'blackbox' || ent.product === 'bundle') {
-            // BlackBox capabilities - Live Race Execution
+        // BlackBox (Driver) — $14/mo
+        // Personal driving tools + LiveSpotter (read-only, single-driver)
+        if (ent.product === 'driver' || ent.product === 'bundle') {
             caps.driver_hud = true;
             caps.situational_awareness = true;
             caps.voice_engineer = true;
             caps.personal_telemetry = true;
-            caps.pitwall_view = true;
-            caps.multi_car_monitor = true;
-            caps.strategy_timeline = true;
+            caps.livespotter_access = true;   // Read-only spotter view (NOT Pit Wall)
         }
 
-        if (ent.product === 'racebox_plus' || ent.product === 'bundle') {
-            // RaceBox Plus capabilities - Full Broadcast
+        // TeamBox (Team) — $26/mo
+        // Full Pit Wall system (multi-car, interactive)
+        if (ent.product === 'team' || ent.product === 'bundle') {
+            // Team includes all Driver capabilities
+            caps.driver_hud = true;
+            caps.situational_awareness = true;
+            caps.voice_engineer = true;
+            caps.personal_telemetry = true;
+            caps.livespotter_access = true;
+            // Plus team-specific: Full Pit Wall (NOT LiveSpotter)
+            caps.pitwall_view = true;         // Multi-car, interactive, NOT shareable
+            caps.multi_car_monitor = true;
+            caps.strategy_timeline = true;
+            caps.racebox_access = true;
+            caps.public_timing = true;
+        }
+
+        // League tier ($48/mo) - Race control
+        if (ent.product === 'league' || ent.product === 'bundle') {
+            // League includes timing/broadcast
             caps.racebox_access = true;
             caps.broadcast_overlays = true;
             caps.director_controls = true;
             caps.public_timing = true;
-        }
-
-        if (ent.product === 'controlbox' || ent.product === 'bundle') {
-            // ControlBox capabilities
+            // Race control capabilities
             caps.incident_review = true;
 
             // Role-gated capabilities

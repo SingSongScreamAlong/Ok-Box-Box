@@ -55,6 +55,98 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 });
 
 /**
+ * Register (create free account)
+ * POST /api/auth/register
+ * 
+ * Creates a FREE Ok, Box Box account.
+ * No payment required. All users must have an account.
+ */
+router.post('/register', async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { email, password, displayName } = req.body as {
+            email?: string;
+            password?: string;
+            displayName?: string;
+        };
+
+        // Validate required fields
+        if (!email || !password) {
+            res.status(400).json({
+                success: false,
+                error: { code: 'VALIDATION_ERROR', message: 'Email and password are required' }
+            });
+            return;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            res.status(400).json({
+                success: false,
+                error: { code: 'VALIDATION_ERROR', message: 'Invalid email format' }
+            });
+            return;
+        }
+
+        // Validate password length
+        if (password.length < 8) {
+            res.status(400).json({
+                success: false,
+                error: { code: 'VALIDATION_ERROR', message: 'Password must be at least 8 characters' }
+            });
+            return;
+        }
+
+        const authService = getAuthService();
+
+        // Check if user already exists
+        const existingUser = await authService.getUserByEmail(email.toLowerCase());
+        if (existingUser) {
+            res.status(409).json({
+                success: false,
+                error: { code: 'EMAIL_EXISTS', message: 'An account with this email already exists' }
+            });
+            return;
+        }
+
+        // Create the user (NOT super admin)
+        const user = await authService.createUser(
+            email.toLowerCase(),
+            password,
+            displayName || email.split('@')[0],
+            false // Not super admin
+        );
+
+        console.log(`[Auth] New account created: ${user.email}`);
+
+        // Auto-login the new user
+        const loginResult = await authService.login(
+            { email: email.toLowerCase(), password },
+            req.headers['user-agent'],
+            req.ip
+        );
+
+        res.status(201).json({
+            success: true,
+            data: {
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    displayName: user.displayName
+                },
+                ...loginResult
+            }
+        });
+    } catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({
+            success: false,
+            error: { code: 'REGISTRATION_ERROR', message: 'Registration failed' }
+        });
+    }
+});
+
+/**
  * Logout (revoke refresh token)
  * POST /api/auth/logout
  */
@@ -227,28 +319,35 @@ router.get('/me/bootstrap', requireAuth, async (req: Request, res: Response): Pr
             e.status === 'active' || e.status === 'trial'
         );
         const licenses = {
-            blackbox: activeEntitlements.some(e =>
-                e.product === 'blackbox' || e.product === 'bundle'
+            driver: activeEntitlements.some(e =>
+                e.product === 'driver' || e.product === 'bundle'
             ),
-            controlbox: activeEntitlements.some(e =>
-                e.product === 'controlbox' || e.product === 'bundle'
+            team: activeEntitlements.some(e =>
+                e.product === 'team' || e.product === 'bundle'
+            ),
+            league: activeEntitlements.some(e =>
+                e.product === 'league' || e.product === 'bundle'
             )
         };
 
         // Super admin always has all access (dev/support override)
         if (user.isSuperAdmin) {
-            licenses.blackbox = true;
-            licenses.controlbox = true;
+            licenses.driver = true;
+            licenses.team = true;
+            licenses.league = true;
         }
 
         // =====================================================
         // ROLES (derived from licenses + membership roles)
         // =====================================================
         const roles: ('driver' | 'team' | 'racecontrol' | 'admin')[] = [];
-        if (licenses.blackbox) {
-            roles.push('driver', 'team');
+        if (licenses.driver) {
+            roles.push('driver');
         }
-        if (licenses.controlbox) {
+        if (licenses.team) {
+            roles.push('team');
+        }
+        if (licenses.league) {
             roles.push('racecontrol');
         }
         if (user.isSuperAdmin) {
