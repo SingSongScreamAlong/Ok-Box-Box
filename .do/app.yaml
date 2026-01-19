@@ -1,0 +1,134 @@
+# =====================================================================
+# DigitalOcean App Platform Specification
+# FULL API MODE - Database, Routes, WebSocket, Everything
+# =====================================================================
+#
+# Deploy with: doctl apps create --spec .do/app.yaml
+# Update with: doctl apps update $APP_ID --spec .do/app.yaml
+
+name: controlbox
+region: nyc
+
+# =====================================================================
+# Services
+# =====================================================================
+services:
+  # =====================================================================
+  # API Server (Full Mode - NOT Standalone)
+  # =====================================================================
+  - name: api
+    github:
+      repo: SingSongScreamAlong/Ok-Box-Box
+      branch: main
+      deploy_on_push: true
+    dockerfile_path: Dockerfile.server
+    http_port: 8080
+    instance_size_slug: basic-xxs
+    instance_count: 1
+    
+    # Health check
+    health_check:
+      http_path: /api/health
+      initial_delay_seconds: 30
+      period_seconds: 30
+    
+    # Environment variables
+    envs:
+      # Runtime
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "8080"
+      
+      # Database (from DO managed database)
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+      
+      # Redis (from DO managed redis or external)
+      - key: REDIS_URL
+        scope: RUN_TIME
+        type: SECRET
+      
+      # Auth
+      - key: JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      
+      # CORS - Allow dashboard and relay origins
+      - key: CORS_ORIGINS
+        value: "https://controlbox.app,https://www.controlbox.app,https://dashboard.controlbox.app,*"
+      
+      # Stripe Billing
+      - key: STRIPE_SECRET_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: STRIPE_WEBHOOK_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: STRIPE_PRICE_DRIVER
+        scope: RUN_TIME
+        type: SECRET
+      - key: STRIPE_PRICE_TEAM
+        scope: RUN_TIME
+        type: SECRET
+      - key: STRIPE_PRICE_LEAGUE
+        scope: RUN_TIME
+        type: SECRET
+      
+      # iRacing OAuth
+      - key: IRACING_CLIENT_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: IRACING_CLIENT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: IRACING_TOKEN_ENCRYPTION_KEY
+        scope: RUN_TIME
+        type: SECRET
+      
+      # OpenAI (optional, for AI features)
+      - key: OPENAI_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      
+      # Dashboard URL for billing redirects
+      - key: DASHBOARD_URL
+        value: "https://controlbox.app"
+    
+    # Logs and alerts
+    log_destinations:
+      - name: papertrail
+        papertrail:
+          endpoint: logs.papertrailapp.com:12345
+
+# =====================================================================
+# Static Site (Dashboard)
+# =====================================================================
+static_sites:
+  - name: dashboard
+    github:
+      repo: SingSongScreamAlong/Ok-Box-Box
+      branch: main
+      deploy_on_push: true
+    build_command: npm ci && npm run build -w packages/dashboard
+    output_dir: packages/dashboard/dist
+    index_document: index.html
+    error_document: index.html
+    
+    # Environment for build
+    envs:
+      - key: VITE_API_URL
+        value: "https://api.controlbox.app"
+      - key: VITE_WS_URL
+        value: "wss://api.controlbox.app"
+
+# =====================================================================
+# Databases (Optional - can use external)
+# =====================================================================
+# databases:
+#   - name: db
+#     engine: PG
+#     version: "15"
+#     size: db-s-dev-database
+#     num_nodes: 1
