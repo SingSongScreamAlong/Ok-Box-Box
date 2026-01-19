@@ -57,7 +57,7 @@ services:
       
       # CORS - Allow dashboard and relay origins
       - key: CORS_ORIGINS
-        value: "https://controlbox.app,https://www.controlbox.app,https://dashboard.controlbox.app,*"
+        value: "https://okboxbox.com,https://www.okboxbox.com,*"
       
       # Stripe Billing
       - key: STRIPE_SECRET_KEY
@@ -94,7 +94,7 @@ services:
       
       # Dashboard URL for billing redirects
       - key: DASHBOARD_URL
-        value: "https://controlbox.app"
+        value: "https://okboxbox.com"
     
     # Logs and alerts
     log_destinations:
@@ -119,9 +119,9 @@ static_sites:
     # Environment for build
     envs:
       - key: VITE_API_URL
-        value: "https://api.controlbox.app"
+        value: "https://octopus-app-qsi3i.ondigitalocean.app"
       - key: VITE_WS_URL
-        value: "wss://api.controlbox.app"
+        value: "wss://octopus-app-qsi3i.ondigitalocean.app"
 
 # =====================================================================
 # Databases (Optional - can use external)
