@@ -18,7 +18,7 @@ COPY packages/dashboard/package*.json ./packages/dashboard/
 RUN npm ci
 
 # Cache bust argument - change this value to force fresh source copy
-ARG CACHE_BUST=2026011902
+ARG CACHE_BUST=2026011903
 
 # Copy source code
 COPY tsconfig.base.json ./
@@ -47,6 +47,9 @@ COPY --from=builder /app/packages/protocol/package*.json ./packages/protocol/
 COPY --from=builder /app/packages/server/dist ./packages/server/dist
 COPY --from=builder /app/packages/common/dist ./packages/common/dist
 COPY --from=builder /app/packages/protocol/dist ./packages/protocol/dist
+
+# Copy public folder (BlackBox dashboard)
+COPY --from=builder /app/packages/server/public ./packages/server/public
 
 # Copy migrations
 COPY --from=builder /app/packages/server/src/db/migrations ./packages/server/src/db/migrations

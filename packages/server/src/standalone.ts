@@ -5,6 +5,10 @@
 
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
+import express from 'express';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import cors from 'cors';
 import { getViewerTracker } from './services/telemetry/viewer-tracker.js';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
@@ -18,34 +22,43 @@ console.log(`   Build: 2026-01-19-v2`);
 // Track active sessions for diagnostics
 const activeSessions = new Map<string, { lastUpdate: number; driverCount: number }>();
 
-// Create HTTP server
-const httpServer = createServer((req, res) => {
-    // Simple health check endpoint
-    if (req.url === '/api/health' || req.url === '/health') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'ok', mode: 'standalone' }));
-        return;
-    }
+// Create Express app for static file serving
+const app = express();
+app.use(cors({ origin: '*' }));
 
-    // Telemetry diagnostic endpoint
-    if (req.url === '/api/health/telemetry') {
-        const sessions: any[] = [];
-        activeSessions.forEach((session, sessionId) => {
-            sessions.push({
-                sessionId,
-                driverCount: session.driverCount,
-                lastUpdate: session.lastUpdate,
-                ageMs: Date.now() - session.lastUpdate
-            });
+// Health check endpoints
+app.get('/api/health', (_req, res) => {
+    res.json({ status: 'ok', mode: 'standalone' });
+});
+
+app.get('/health', (_req, res) => {
+    res.json({ status: 'ok', mode: 'standalone' });
+});
+
+app.get('/api/health/telemetry', (_req, res) => {
+    const sessions: any[] = [];
+    activeSessions.forEach((session, sessionId) => {
+        sessions.push({
+            sessionId,
+            driverCount: session.driverCount,
+            lastUpdate: session.lastUpdate,
+            ageMs: Date.now() - session.lastUpdate
         });
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ activeSessions: sessions.length, sessions, dashboardClients: dashboardClients.size }));
-        return;
-    }
+    });
+    res.json({ activeSessions: sessions.length, sessions, dashboardClients: dashboardClients.size });
+});
 
-    // Default response
-    res.writeHead(200, { 'Content-Type': 'text/html' });
-    res.end(`
+// Serve legacy BlackBox dashboard at /blackbox
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const blackboxPath = join(currentDir, '../public/blackbox');
+app.use('/blackbox', express.static(blackboxPath));
+app.get('/blackbox/*', (_req, res) => {
+    res.sendFile(join(blackboxPath, 'index.html'));
+});
+
+// Default route
+app.get('/', (_req, res) => {
+    res.send(`
         <html>
             <head><title>ControlBox Server</title></head>
             <body style="font-family: Arial, sans-serif; padding: 40px; background: #1a1a2e; color: #eee;">
@@ -53,10 +66,14 @@ const httpServer = createServer((req, res) => {
                 <p>Socket.IO server is running and ready for connections.</p>
                 <p>Mode: <strong>Standalone</strong></p>
                 <p>Port: <strong>${PORT}</strong></p>
+                <p><a href="/blackbox" style="color: #4ecdc4;">Open BlackBox Dashboard</a></p>
             </body>
         </html>
     `);
 });
+
+// Create HTTP server from Express app
+const httpServer = createServer(app);
 
 // Initialize Socket.IO
 const io = new Server(httpServer, {
@@ -87,6 +104,17 @@ io.on('connection', (socket: Socket) => {
         relayClient = socket;
         // Broadcast to all dashboard clients
         socket.broadcast.emit('session:metadata', data);
+        
+        // Also emit session:active for dashboard auto-redirect
+        const metadata = data as any;
+        if (metadata?.sessionId) {
+            socket.broadcast.emit('session:active', {
+                sessionId: metadata.sessionId,
+                trackName: metadata.trackName || 'Unknown Track',
+                sessionType: metadata.sessionType || 'practice'
+            });
+            console.log(`📡 Broadcasting session:active for ${metadata.sessionId}`);
+        }
     });
 
     socket.on('telemetry', (data: unknown) => {
