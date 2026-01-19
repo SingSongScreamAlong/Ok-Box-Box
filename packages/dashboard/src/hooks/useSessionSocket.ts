@@ -6,12 +6,18 @@
 import { useEffect, useState, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-// Get base URL without any path - socket.io needs just the origin
+// Socket.io connects to the same origin as the page in production
+// In development, use VITE_API_URL or localhost
 const getSocketUrl = () => {
+    // In production (served from same origin), use window.location.origin
+    if (import.meta.env.PROD) {
+        return window.location.origin;
+    }
+    // In development, use env var or localhost
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
     try {
         const url = new URL(apiUrl);
-        return url.origin; // Just protocol + host + port, no path
+        return url.origin;
     } catch {
         return apiUrl;
     }
