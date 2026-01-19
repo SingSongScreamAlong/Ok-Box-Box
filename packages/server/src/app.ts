@@ -3,6 +3,8 @@
 // =====================================================================
 
 import express, { type Express, type Request, type Response } from 'express';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
@@ -63,6 +65,15 @@ app.use('/oauth/iracing', iracingCallbackRouter);
 
 // API routes
 app.use('/api', apiRouter);
+
+// Serve legacy BlackBox dashboard at /blackbox
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const blackboxPath = join(currentDir, '../public/blackbox');
+app.use('/blackbox', express.static(blackboxPath));
+// SPA fallback for /blackbox routes
+app.get('/blackbox/*', (_req: Request, res: Response) => {
+    res.sendFile(join(blackboxPath, 'index.html'));
+});
 
 // Error handling
 app.use(errorHandler);
