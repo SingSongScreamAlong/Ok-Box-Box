@@ -14,12 +14,31 @@ console.log('🏎️  ControlBox Standalone Server Starting...');
 console.log(`   Mode: Standalone (no database)`);
 console.log(`   Port: ${PORT}`);
 
+// Track active sessions for diagnostics
+const activeSessions = new Map<string, { lastUpdate: number; driverCount: number }>();
+
 // Create HTTP server
 const httpServer = createServer((req, res) => {
     // Simple health check endpoint
     if (req.url === '/api/health' || req.url === '/health') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ status: 'ok', mode: 'standalone' }));
+        return;
+    }
+
+    // Telemetry diagnostic endpoint
+    if (req.url === '/api/health/telemetry') {
+        const sessions: any[] = [];
+        activeSessions.forEach((session, sessionId) => {
+            sessions.push({
+                sessionId,
+                driverCount: session.driverCount,
+                lastUpdate: session.lastUpdate,
+                ageMs: Date.now() - session.lastUpdate
+            });
+        });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ activeSessions: sessions.length, sessions, dashboardClients: dashboardClients.size }));
         return;
     }
 
@@ -70,6 +89,14 @@ io.on('connection', (socket: Socket) => {
     });
 
     socket.on('telemetry', (data: unknown) => {
+        // Track session for diagnostics
+        const telemetryData = data as any;
+        if (telemetryData?.sessionId) {
+            activeSessions.set(telemetryData.sessionId, {
+                lastUpdate: Date.now(),
+                driverCount: telemetryData.cars?.length || 0
+            });
+        }
         // Broadcast to all dashboard clients (don't log - too noisy)
         socket.broadcast.emit('telemetry:update', data);
     });
