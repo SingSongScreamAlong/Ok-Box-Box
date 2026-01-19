@@ -178,6 +178,7 @@ export class TelemetryHandler {
 
         // Strategy Update Handler (Phase 11 - 1Hz)
         socket.on('strategy_update', (data: any) => {
+            console.log('[TelemetryHandler] strategy_update received:', data?.sessionId);
             if (!data || !data.sessionId || !data.cars) return;
 
             const session = activeSessions.get(data.sessionId);
