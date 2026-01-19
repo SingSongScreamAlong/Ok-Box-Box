@@ -127,7 +127,7 @@ export function App() {
 
                                 {/* Team Dashboard - BlackBox pit wall surface (auth disabled for alpha testing) */}
                                 <Route path="/team/:sessionId" element={
-                                    <TeamDashboardWrapper />
+                                    <SessionView />
                                 } />
 
                                 {/* ============================================================
