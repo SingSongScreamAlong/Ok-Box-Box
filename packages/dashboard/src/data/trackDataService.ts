@@ -176,4 +176,4 @@ export function searchTracks(query: string): TrackData[] {
 // Export number of tracks loaded
 export const TRACK_COUNT = new Set(Array.from(trackDataMap.values()).map(t => t.trackId)).size;
 
-console.log(`[TrackData] Loaded ${TRACK_COUNT} tracks from lovely-track-data`);
+console.log(`[TrackData] Loaded ${TRACK_COUNT} tracks`);

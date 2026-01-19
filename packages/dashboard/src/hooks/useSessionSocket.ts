@@ -6,7 +6,18 @@
 import { useEffect, useState, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-const SERVER_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Get base URL without any path - socket.io needs just the origin
+const getSocketUrl = () => {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    try {
+        const url = new URL(apiUrl);
+        return url.origin; // Just protocol + host + port, no path
+    } catch {
+        return apiUrl;
+    }
+};
+
+const SERVER_URL = getSocketUrl();
 
 export function useSessionSocket(sessionId: string | null) {
     const [isConnected, setIsConnected] = useState(false);
@@ -17,6 +28,8 @@ export function useSessionSocket(sessionId: string | null) {
             setIsConnected(false);
             return;
         }
+
+        console.log('[useSessionSocket] Connecting to:', SERVER_URL);
 
         // Create socket connection
         const token = localStorage.getItem('accessToken');
