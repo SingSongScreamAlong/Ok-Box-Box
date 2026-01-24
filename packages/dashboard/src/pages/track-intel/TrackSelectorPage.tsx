@@ -19,38 +19,38 @@ const availableTracks: Track[] = [
 
 export const TrackSelectorPage: React.FC = () => {
     return (
-        <div className="min-h-screen bg-gray-900 text-white p-8">
+        <div className="min-h-screen bg-[#F5F5F5] text-[#0E0E0E] p-8">
             <div className="max-w-4xl mx-auto">
-                <h1 className="text-4xl font-bold mb-2">Track Intelligence</h1>
-                <p className="text-gray-400 mb-8">Select a track to view detailed turn-by-turn analysis, strategy notes, and coaching tips.</p>
+                <h1 className="text-sm font-semibold text-[#0E0E0E] uppercase tracking-wider mb-2">Track Intelligence</h1>
+                <p className="text-xs text-[#0E0E0E]/50 mb-8">Select a track to view detailed turn-by-turn analysis, strategy notes, and coaching tips.</p>
 
                 <div className="grid gap-4">
                     {availableTracks.map((track) => (
                         <Link
                             key={track.id}
                             to={`/track-intel/${track.id}`}
-                            className="block bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-blue-500 rounded-lg p-5 transition-all duration-200 group"
+                            className="block bg-white hover:bg-[#F5F5F5] border border-[#0E0E0E]/20 hover:border-[#2F5BFF] p-5 transition-all duration-200 group"
                         >
                             <div className="flex items-center justify-between">
                                 <div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-2xl">{track.country}</span>
-                                        <h2 className="text-xl font-semibold group-hover:text-blue-400 transition-colors">{track.name}</h2>
+                                        <span className="text-xs font-semibold text-[#0E0E0E]/50 uppercase">{track.country}</span>
+                                        <h2 className="text-base font-semibold text-[#0E0E0E] group-hover:text-[#2F5BFF] transition-colors">{track.name}</h2>
                                     </div>
-                                    <div className="flex gap-4 mt-2 text-sm text-gray-400">
+                                    <div className="flex gap-4 mt-2 text-xs text-[#0E0E0E]/50">
                                         <span>Length: {track.length}</span>
                                         <span>Turns: {track.turns}</span>
                                     </div>
                                 </div>
-                                <span className="text-gray-500 group-hover:text-blue-400 text-2xl transition-colors">→</span>
+                                <span className="text-[#0E0E0E]/30 group-hover:text-[#2F5BFF] text-xl transition-colors">→</span>
                             </div>
                         </Link>
                     ))}
                 </div>
 
-                <div className="mt-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700">
-                    <p className="text-sm text-gray-400">
-                        <strong className="text-yellow-400">Note:</strong> Currently only Daytona has full map data. Other tracks are coming soon.
+                <div className="mt-8 p-4 bg-white border border-[#0E0E0E]/20">
+                    <p className="text-xs text-[#0E0E0E]/70">
+                        <strong className="text-[#FF7A18]">Note:</strong> Currently only Daytona has full map data. Other tracks are coming soon.
                     </p>
                 </div>
             </div>

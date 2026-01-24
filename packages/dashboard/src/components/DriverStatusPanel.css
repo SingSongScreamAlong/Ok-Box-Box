@@ -1,0 +1,236 @@
+/**
+ * Driver Status Panel Styles
+ * 
+ * Minimal, low-distraction design per ROADMAP-30-60-90.md §1.1
+ * - Annunciator-style status indicators
+ * - No graphs, charts, or telemetry data
+ * - Voice-first interaction emphasis
+ */
+
+.driver-status-panel {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 32px;
+    background: rgba(10, 10, 10, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-width: 400px;
+    z-index: 1000;
+}
+
+/* Status Indicators Row */
+.status-indicators {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+}
+
+.status-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    min-width: 70px;
+}
+
+.status-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+}
+
+.status-dot.status-green {
+    background: #22c55e;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+}
+
+.status-dot.status-yellow {
+    background: #eab308;
+    box-shadow: 0 0 8px rgba(234, 179, 8, 0.5);
+    animation: pulse 1s infinite;
+}
+
+.status-dot.status-blue {
+    background: #3b82f6;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+    animation: pulse 0.5s infinite;
+}
+
+.status-dot.status-red {
+    background: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.status-dot.status-gray {
+    background: #666;
+}
+
+.status-value {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.8);
+    letter-spacing: 0.3px;
+}
+
+.status-value.session-type {
+    font-weight: 600;
+    color: #fff;
+}
+
+/* AI Message Display */
+.ai-message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: rgba(168, 85, 247, 0.1);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: 8px;
+    max-width: 100%;
+    animation: fadeIn 0.3s ease;
+}
+
+.ai-icon {
+    font-size: 18px;
+}
+
+.ai-text {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+    font-style: italic;
+}
+
+/* Error Display */
+.error-message {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    animation: fadeIn 0.3s ease;
+}
+
+.error-icon {
+    font-size: 16px;
+}
+
+.error-text {
+    font-size: 13px;
+    color: #ef4444;
+}
+
+.error-dismiss {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    padding: 4px;
+    font-size: 14px;
+    line-height: 1;
+}
+
+.error-dismiss:hover {
+    color: #fff;
+}
+
+/* PTT Button */
+.ptt-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 40px;
+    background: rgba(168, 85, 247, 0.1);
+    border: 2px solid rgba(168, 85, 247, 0.5);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 200px;
+}
+
+.ptt-button:hover:not(:disabled) {
+    background: rgba(168, 85, 247, 0.2);
+    border-color: rgba(168, 85, 247, 0.7);
+}
+
+.ptt-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ptt-button.active {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    animation: recording 1s infinite;
+}
+
+.ptt-button.processing {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: #3b82f6;
+}
+
+.ptt-icon {
+    font-size: 24px;
+}
+
+.ptt-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.5px;
+}
+
+.ptt-hint {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.3px;
+}
+
+/* Animations */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes recording {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    }
+}

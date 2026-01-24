@@ -1,0 +1,13 @@
+{
+  "name": "@okboxbox/contracts",
+  "version": "0.1.0",
+  "description": "Shared data contracts for Ok, Box Box platform",
+  "main": "index.ts",
+  "types": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": ["okboxbox", "contracts", "types"],
+  "license": "UNLICENSED"
+}

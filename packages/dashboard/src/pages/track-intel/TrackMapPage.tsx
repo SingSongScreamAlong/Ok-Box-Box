@@ -40,33 +40,33 @@ export const TrackMapPage: React.FC = () => {
         }
     }, [trackId]);
 
-    if (loading) return <div className="text-white">Loading track data...</div>;
-    if (!track) return <div className="text-white">Track not found</div>;
+    if (loading) return <div className="text-[#0E0E0E]/50 p-8">Loading track data...</div>;
+    if (!track) return <div className="text-[#0E0E0E]/50 p-8">Track not found</div>;
 
     const currentTurnData = track.turns.find(t => t.number === selectedTurn);
 
     return (
-        <div className="flex h-screen bg-gray-900 text-white overflow-hidden">
+        <div className="flex h-screen bg-[#F5F5F5] text-[#0E0E0E] overflow-hidden">
             <div className="flex-1 relative">
                 <div className="absolute top-4 left-4 z-10 flex items-center gap-4">
-                    <h1 className="text-3xl font-bold drop-shadow-md">{track.name}</h1>
+                    <h1 className="text-sm font-semibold text-[#0E0E0E] uppercase tracking-wider bg-white px-3 py-2 border border-[#0E0E0E]/20">{track.name}</h1>
 
                     {/* View Mode Toggle */}
-                    <div className="flex bg-gray-800/80 backdrop-blur-sm rounded-lg p-1 border border-gray-700">
+                    <div className="flex bg-white p-1 border border-[#0E0E0E]/20">
                         <button
                             onClick={() => setViewMode('live')}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'live'
-                                    ? 'bg-red-600 text-white shadow-lg'
-                                    : 'text-gray-400 hover:text-white'
+                            className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium transition-all ${viewMode === 'live'
+                                    ? 'bg-[#FF7A18] text-white'
+                                    : 'text-[#0E0E0E]/50 hover:text-[#0E0E0E]'
                                 }`}
                         >
                             <Activity className="w-4 h-4" /> Live
                         </button>
                         <button
                             onClick={() => setViewMode('prep')}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${viewMode === 'prep'
-                                    ? 'bg-blue-600 text-white shadow-lg'
-                                    : 'text-gray-400 hover:text-white'
+                            className={`flex items-center gap-2 px-3 py-1.5 text-sm font-medium transition-all ${viewMode === 'prep'
+                                    ? 'bg-[#2F5BFF] text-white'
+                                    : 'text-[#0E0E0E]/50 hover:text-[#0E0E0E]'
                                 }`}
                         >
                             <ClipboardList className="w-4 h-4" /> Prep
@@ -87,7 +87,7 @@ export const TrackMapPage: React.FC = () => {
 
             {/* Right Side Panel Area */}
             {(selectedTurn && viewMode === 'live') || viewMode === 'prep' ? (
-                <div className="w-96 border-l border-gray-700 bg-gray-800 shadow-2xl relative z-20">
+                <div className="w-96 border-l border-[#0E0E0E]/20 bg-white shadow-2xl relative z-20">
                     {viewMode === 'live' && selectedTurn && currentTurnData && (
                         <TurnDetailPanel turn={currentTurnData} onClose={() => setSelectedTurn(null)} />
                     )}

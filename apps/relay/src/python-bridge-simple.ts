@@ -240,7 +240,15 @@ export class PythonBridge extends EventEmitter {
             }, 200);
         });
 
-        // Session metadata
+        // Session metadata (Python sends as session_metadata)
+        this.localSocket.on('session_metadata', (data: any) => {
+            console.log('Session metadata received:', data?.trackName);
+            if (this.cloudSocket?.connected) {
+                this.cloudSocket.emit('session_metadata', data);
+            }
+        });
+
+        // Session info (alternative event name)
         this.localSocket.on('session_info', (data: any) => {
             console.log('Session info received');
             if (this.cloudSocket?.connected) {

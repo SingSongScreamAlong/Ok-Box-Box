@@ -12,8 +12,8 @@ interface HeaderSessionInfo {
   weather: string;
 }
 
-// Define available Dashboard Modes - 4 distinct modes with unique functionality
-export type DashboardMode = 'RACE' | 'TRACK' | 'STRATEGY' | 'ANALYSIS';
+// Define available Dashboard Modes - 7 distinct modes with unique functionality
+export type DashboardMode = 'LIVE' | 'RACE' | 'COMMS' | 'TRACK' | 'STRATEGY' | 'SETUP' | 'ANALYSIS';
 
 interface HeaderProps {
   connected: boolean;
@@ -48,13 +48,16 @@ const Header: React.FC<HeaderProps> = ({
           {connected ? 'LIVE' : 'OFFLINE'}
         </div>
 
-        {/* Mode Switcher - 4 Distinct Modes */}
+        {/* Mode Switcher - 7 Distinct Modes */}
         <div className="mode-switcher">
           {([
-            { id: 'RACE', label: '🏎️ RACE', desc: 'Live telemetry' },
-            { id: 'TRACK', label: '🗺️ TRACK', desc: 'Track & positions' },
-            { id: 'STRATEGY', label: '📊 STRATEGY', desc: 'Pit planner' },
-            { id: 'ANALYSIS', label: '📈 ANALYSIS', desc: 'Session review' }
+            { id: 'LIVE', label: 'LIVE', desc: 'Live telemetry & video' },
+            { id: 'RACE', label: 'RACE', desc: 'Race telemetry' },
+            { id: 'COMMS', label: 'COMMS', desc: 'Team communications' },
+            { id: 'TRACK', label: 'TRACK', desc: 'Track & positions' },
+            { id: 'STRATEGY', label: 'STRATEGY', desc: 'Pit planner' },
+            { id: 'SETUP', label: 'SETUP', desc: 'Car setup' },
+            { id: 'ANALYSIS', label: 'ANALYSIS', desc: 'Session review' }
           ] as { id: DashboardMode; label: string; desc: string }[]).map((mode) => (
             <button
               key={mode.id}
@@ -69,9 +72,15 @@ const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="header-center">
-        <div className="header-logo">
-          <span className="logo-tagline">Ok, Box Box</span>
-          <span className="logo-main">Live Race <span>Ops Console</span></span>
+        <div className="header-logo blackbox-branding">
+          <span className="logo-main">BlackBox</span>
+          <span className="logo-badge">RACE ENGINEER</span>
+        </div>
+
+        {/* Demo & Status */}
+        <div className="header-status-area">
+          <button className="demo-button">DEMO</button>
+          <span className="session-status">{connected ? 'Session Active' : 'Waiting for session...'}</span>
         </div>
 
         {/* Quick Action Buttons */}

@@ -12,6 +12,8 @@ import {
 import { z } from 'zod';
 
 export class RelayAdapter {
+    private static firstTelemetryLogged = false;
+    
     constructor(
         _sessionManager: any,
         _socket: any
@@ -41,6 +43,12 @@ export class RelayAdapter {
      * Handle incoming telemetry
      */
     public handleTelemetry(rawData: unknown): boolean {
+        // Log first packet for debugging
+        if (!RelayAdapter.firstTelemetryLogged) {
+            RelayAdapter.firstTelemetryLogged = true;
+            console.log('📊 RAW TELEMETRY DATA:', JSON.stringify(rawData).substring(0, 500));
+        }
+        
         const result = TelemetrySnapshotSchema.safeParse(rawData);
 
         if (!result.success) {

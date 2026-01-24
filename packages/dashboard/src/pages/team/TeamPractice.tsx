@@ -3,11 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useAuthStore } from '../../stores/auth.store';
 import {
     Timer,
-    Users,
-    TrendingUp,
-    Target,
     Clock,
-    AlertTriangle,
     CheckCircle
 } from 'lucide-react';
 
@@ -71,8 +67,8 @@ const mockStints: DriverStint[] = [
 
 const statusStyles: Record<string, { bg: string; text: string; icon: any }> = {
     planned: { bg: 'bg-zinc-500/10', text: 'text-zinc-400', icon: Clock },
-    in_progress: { bg: 'bg-racing-yellow/10', text: 'text-racing-yellow', icon: Timer },
-    completed: { bg: 'bg-racing-green/10', text: 'text-racing-green', icon: CheckCircle }
+    in_progress: { bg: 'bg-orange-500/10', text: 'text-orange-400', icon: Timer },
+    completed: { bg: 'bg-zinc-500/10', text: 'text-zinc-400', icon: CheckCircle }
 };
 
 export default function TeamPractice() {
@@ -116,62 +112,50 @@ export default function TeamPractice() {
     }, '');
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+        <div className="p-4 max-w-7xl mx-auto">
+            {/* Header - Structural white band */}
+            <div className="flex items-center justify-between mb-4 pb-3 border-b-2 border-black/20">
                 <div>
-                    <h1 className="font-racing text-2xl text-white tracking-wide">Practice</h1>
-                    <p className="text-sm text-zinc-500">Session analysis & driver comparisons</p>
+                    <h1 className="text-sm font-semibold text-[#0E0E0E] uppercase tracking-wider">Practice Session</h1>
+                    <p className="text-xs text-[#0E0E0E]/50 mt-0.5">Session analysis & driver comparisons</p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Run Plans */}
                 <div className="lg:col-span-2">
                     <div className="card">
                         <div className="card-header">
-                            <div className="flex items-center gap-2">
-                                <Target size={16} className="text-racing-blue" />
-                                <span className="font-medium text-sm uppercase tracking-wider">Run Plans</span>
-                            </div>
-                            <button className="btn btn-secondary text-xs py-1 px-3">
+                            <span>Run Plans</span>
+                            <button className="btn btn-secondary">
                                 Add Plan
                             </button>
                         </div>
-                        <div className="divide-y divide-white/5">
+                        <div className="divide-y divide-[#0E0E0E]/10">
                             {runPlans.map(plan => {
                                 const status = statusStyles[plan.status];
                                 const StatusIcon = status.icon;
-                                const progress = plan.target_laps > 0 ? (plan.completed_laps / plan.target_laps) * 100 : 0;
 
                                 return (
-                                    <div key={plan.id} className="p-4 hover:bg-white/5 transition-colors cursor-pointer">
+                                    <div key={plan.id} className="p-4 hover:bg-black/5 transition-colors cursor-pointer">
                                         <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-3">
                                                 <StatusIcon size={16} className={status.text} />
-                                                <span className="font-medium text-white">{plan.name}</span>
+                                                <span className="font-medium text-[#0E0E0E]">{plan.name}</span>
                                             </div>
-                                            <span className={`text-xs px-2 py-0.5 rounded ${status.bg} ${status.text}`}>
+                                            <span className={`text-[0.6rem] px-2 py-0.5 font-semibold uppercase ${status.bg} ${status.text}`}>
                                                 {plan.status.replace('_', ' ')}
                                             </span>
                                         </div>
 
-                                        <div className="flex items-center gap-4 mb-3 text-xs text-zinc-500">
-                                            <span>{plan.completed_laps}/{plan.target_laps} laps</span>
+                                        <div className="flex items-center gap-4 mb-3 text-xs text-[#0E0E0E]/50">
+                                            <span>{plan.completed_laps} / {plan.target_laps} laps</span>
                                             {plan.target_time && <span>Target: {plan.target_time}</span>}
-                                        </div>
-
-                                        {/* Progress bar */}
-                                        <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-3">
-                                            <div
-                                                className={`h-full rounded-full transition-all ${plan.status === 'completed' ? 'bg-racing-green' : 'bg-racing-blue'}`}
-                                                style={{ width: `${progress}%` }}
-                                            />
                                         </div>
 
                                         <div className="flex gap-2 flex-wrap">
                                             {plan.focus.map((f, i) => (
-                                                <span key={i} className="text-xs px-2 py-0.5 rounded bg-slate-800 text-zinc-400">
+                                                <span key={i} className="text-[0.6rem] px-2 py-0.5 bg-[#0E0E0E]/10 border border-[#0E0E0E]/20 text-[#0E0E0E]/70">
                                                     {f}
                                                 </span>
                                             ))}
@@ -186,28 +170,25 @@ export default function TeamPractice() {
                 {/* Session Summary */}
                 <div className="card">
                     <div className="card-header">
-                        <div className="flex items-center gap-2">
-                            <TrendingUp size={16} className="text-racing-green" />
-                            <span className="font-medium text-sm uppercase tracking-wider">Session</span>
-                        </div>
+                        <span>Session Totals</span>
                     </div>
                     <div className="p-4 space-y-4">
-                        <div className="text-center p-4 bg-slate-800/50 rounded-lg">
-                            <div className="text-xs text-zinc-500 mb-1">Best Overall Lap</div>
-                            <div className="text-2xl font-bold text-racing-green font-mono">{bestOverall}</div>
+                        <div className="stat-card text-center">
+                            <div className="text-xs text-[#0E0E0E]/50 mb-1">Best Overall Lap</div>
+                            <div className="text-lg font-bold text-[#0E0E0E] font-mono">{bestOverall}</div>
                         </div>
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="text-center p-3 bg-slate-800/50 rounded-lg">
-                                <div className="text-lg font-bold text-white font-mono">
+                        <div className="grid grid-cols-2 gap-px bg-[#0E0E0E]">
+                            <div className="stat-card">
+                                <div className="stat-label">Total Laps</div>
+                                <div className="stat-value">
                                     {stints.reduce((sum, s) => sum + s.laps, 0)}
                                 </div>
-                                <div className="text-xs text-zinc-500">Total Laps</div>
                             </div>
-                            <div className="text-center p-3 bg-slate-800/50 rounded-lg">
-                                <div className="text-lg font-bold text-white font-mono">
+                            <div className="stat-card">
+                                <div className="stat-label">Incidents</div>
+                                <div className="stat-value">
                                     {stints.reduce((sum, s) => sum + s.incidents, 0)}
                                 </div>
-                                <div className="text-xs text-zinc-500">Incidents</div>
                             </div>
                         </div>
                     </div>
@@ -217,14 +198,11 @@ export default function TeamPractice() {
             {/* Driver Comparison */}
             <div className="card mt-6">
                 <div className="card-header">
-                    <div className="flex items-center gap-2">
-                        <Users size={16} className="text-racing-blue" />
-                        <span className="font-medium text-sm uppercase tracking-wider">Driver Stints</span>
-                    </div>
+                    <span>Driver Stints</span>
                 </div>
                 <table className="w-full text-sm">
                     <thead>
-                        <tr className="border-b border-white/10 text-zinc-500 text-xs uppercase tracking-wider">
+                        <tr className="bg-[#1f2937] border-b-2 border-black text-white text-[0.6rem] font-semibold uppercase tracking-widest">
                             <th className="text-left py-3 px-5">Driver</th>
                             <th className="text-right py-3 px-3">Laps</th>
                             <th className="text-right py-3 px-3">Best Lap</th>
@@ -238,33 +216,25 @@ export default function TeamPractice() {
                             <tr key={stint.driver_id} className="table-row">
                                 <td className="py-3 px-5">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-xs font-bold">
+                                        <div className="w-7 h-7 bg-[#0E0E0E] flex items-center justify-center text-[0.6rem] font-semibold text-white">
                                             {stint.driver_name.split(' ').map(n => n[0]).join('')}
                                         </div>
-                                        <span className="font-medium text-white">{stint.driver_name}</span>
-                                        {stint.best_lap === bestOverall && (
-                                            <span className="text-xs text-racing-green">⚡</span>
-                                        )}
+                                        <span className="font-medium text-[#0E0E0E]">{stint.driver_name}</span>
                                     </div>
                                 </td>
-                                <td className="py-3 px-3 text-right font-mono text-zinc-300">{stint.laps}</td>
-                                <td className={`py-3 px-3 text-right font-mono ${stint.best_lap === bestOverall ? 'text-racing-green' : 'text-zinc-300'}`}>
+                                <td className="py-3 px-3 text-right font-mono text-[#0E0E0E]">{stint.laps}</td>
+                                <td className={`py-3 px-3 text-right font-mono ${stint.best_lap === bestOverall ? 'text-[#0E0E0E] font-bold' : 'text-[#0E0E0E]/70'}`}>
                                     {stint.best_lap}
                                 </td>
-                                <td className="py-3 px-3 text-right font-mono text-zinc-400">{stint.avg_lap}</td>
-                                <td className="py-3 px-3 text-right font-mono">
-                                    <span className={stint.consistency >= 90 ? 'text-racing-green' : stint.consistency >= 80 ? 'text-racing-yellow' : 'text-racing-red'}>
-                                        {stint.consistency}%
-                                    </span>
+                                <td className="py-3 px-3 text-right font-mono text-[#0E0E0E]/70">{stint.avg_lap}</td>
+                                <td className="py-3 px-3 text-right font-mono text-[#0E0E0E]">
+                                    {stint.consistency}%
                                 </td>
                                 <td className="py-3 px-5 text-right font-mono">
                                     {stint.incidents > 0 ? (
-                                        <span className="text-racing-red flex items-center justify-end gap-1">
-                                            <AlertTriangle size={12} />
-                                            {stint.incidents}
-                                        </span>
+                                        <span className="text-racing-red">{stint.incidents}</span>
                                     ) : (
-                                        <span className="text-racing-green">0</span>
+                                        <span className="text-[#0E0E0E]/40">0</span>
                                     )}
                                 </td>
                             </tr>

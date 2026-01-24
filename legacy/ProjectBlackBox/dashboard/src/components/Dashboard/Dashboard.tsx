@@ -32,7 +32,7 @@ import { DashboardMode } from '../Header/Header';
 const Dashboard: React.FC = () => {
   // State for all dashboard data
   const [telemetryData, setTelemetryData] = useState<TelemetryData | null>(null);
-  const [focusMode, setFocusMode] = useState<DashboardMode>('RACE');
+  const [focusMode, setFocusMode] = useState<DashboardMode>('LIVE');
   const [coachingInsights, setCoachingInsights] = useState<CoachingInsight[] | null>(null);
   const [skillAnalysis, setSkillAnalysis] = useState<DriverSkillAnalysis | null>(null);
   const [competitorData, setCompetitorData] = useState<CompetitorData[] | null>(null);
@@ -233,6 +233,45 @@ const Dashboard: React.FC = () => {
 
   const renderDashboardContent = () => {
     switch (focusMode) {
+      case 'LIVE':
+        // LIVE MODE: Live telemetry + video feed + track map + competitor analysis
+        return (
+          <>
+            <div className="dashboard-left" style={{ flex: 1 }}>
+              <Telemetry telemetryData={telemetryData} />
+            </div>
+            <div className="dashboard-center" style={{ flex: 2 }}>
+              {/* Video Feed Panel */}
+              <div className="video-feed-panel">
+                <div className="video-feed-header">
+                  <span className="live-indicator">● LIVE</span>
+                  <span>iRACING FEED</span>
+                </div>
+                <div className="video-feed-content">
+                  <div className="video-placeholder">
+                    <span>Video feed will appear when iRacing is running</span>
+                  </div>
+                </div>
+              </div>
+              {/* Race Insights */}
+              <div className="race-insights-panel">
+                <h3>RACE INSIGHTS</h3>
+                <AICoaching insights={coachingInsights} skillAnalysis={skillAnalysis} />
+              </div>
+            </div>
+            <div className="dashboard-right" style={{ flex: 1 }}>
+              <div className="track-map-panel">
+                <h3>TRACK MAP</h3>
+                <TrackMap telemetryData={telemetryData} trackName={sessionInfo.track || 'Unknown Track'} />
+              </div>
+              <div className="competitor-panel">
+                <h3>COMPETITOR ANALYSIS</h3>
+                <CompetitorPositions competitorData={competitorData} />
+              </div>
+            </div>
+          </>
+        );
+
       case 'RACE':
         // RACE MODE: Essential live telemetry + coaching + positions
         return (
@@ -252,6 +291,43 @@ const Dashboard: React.FC = () => {
               <CompetitorPositions competitorData={competitorData} />
             </div>
           </>
+        );
+
+      case 'COMMS':
+        // COMMS MODE: Team communications and voice interface
+        return (
+          <div style={{ gridColumn: '1 / -1', height: '100%' }}>
+            <TeamChat onClose={() => setFocusMode('LIVE')} />
+          </div>
+        );
+
+      case 'SETUP':
+        // SETUP MODE: Car setup and configuration
+        return (
+          <div style={{ gridColumn: '1 / -1', height: '100%', padding: '20px' }}>
+            <div className="setup-page">
+              <h2>Car Setup</h2>
+              <p>Setup configuration coming soon...</p>
+              <div className="setup-grid">
+                <div className="setup-section">
+                  <h3>Suspension</h3>
+                  <p>Front/Rear spring rates, dampers, anti-roll bars</p>
+                </div>
+                <div className="setup-section">
+                  <h3>Aero</h3>
+                  <p>Wing angles, ride height, rake</p>
+                </div>
+                <div className="setup-section">
+                  <h3>Tires</h3>
+                  <p>Pressures, camber, toe</p>
+                </div>
+                <div className="setup-section">
+                  <h3>Differential</h3>
+                  <p>Preload, power/coast settings</p>
+                </div>
+              </div>
+            </div>
+          </div>
         );
       
       case 'TRACK':

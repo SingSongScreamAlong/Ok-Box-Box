@@ -30,6 +30,7 @@ interface AuthState {
     refreshAccessToken: () => Promise<boolean>;
     checkAuth: () => boolean;
     clearError: () => void;
+    setDevUser: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -165,7 +166,25 @@ export const useAuthStore = create<AuthState>()(
                 return true;
             },
 
-            clearError: () => set({ error: null })
+            clearError: () => set({ error: null }),
+
+            // Dev bypass - set mock user without server auth
+            setDevUser: () => {
+                set({
+                    user: {
+                        id: 'dev-user-001',
+                        email: 'dev@okboxbox.local',
+                        displayName: 'Dev User',
+                        isSuperAdmin: true,
+                        isActive: true
+                    },
+                    accessToken: 'dev-token-bypass',
+                    refreshToken: 'dev-refresh-bypass',
+                    expiresAt: Math.floor(Date.now() / 1000) + 86400, // 24 hours
+                    isLoading: false,
+                    error: null
+                });
+            }
         }),
         {
             name: 'controlbox-auth',

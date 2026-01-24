@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+
+@import '../../../../packages/dashboard/src/styles/theme.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: var(--font-ui);
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-6 py-3 font-semibold uppercase tracking-wider text-sm;
+    transition: background-color 150ms ease-out, border-color 150ms ease-out, color 150ms ease-out;
+  }
+  
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background: #ea580c;
+  }
+  
+  .btn-outline {
+    border: 1px solid var(--border-hard);
+    color: var(--text);
+    background: transparent;
+  }
+  
+  .btn-outline:hover {
+    border-color: var(--text);
+    background: rgba(0, 0, 0, 0.03);
+  }
+  
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border-medium);
+    transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+  }
+  
+  .panel:hover {
+    border-color: var(--border-hard);
+  }
+}

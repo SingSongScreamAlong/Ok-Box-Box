@@ -285,7 +285,9 @@ export class PythonBridge {
      * Connect to cloud server
      */
     private connectToCloud(): void {
-        const cloudUrl = 'https://octopus-app-qsi3i.ondigitalocean.app';
+        // Use local server for development testing
+        const cloudUrl = process.env.OKBOXBOX_API_URL || 'http://localhost:3001';
+        console.log(`☁️ Connecting to cloud: ${cloudUrl}`);
 
         this.cloudSocket = io(cloudUrl, {
             reconnection: true,

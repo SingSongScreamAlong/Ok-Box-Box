@@ -57,14 +57,25 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({ sessionId }) => {
             // Map timing data to race state format
             if (data.timing?.entries?.length > 0) {
                 const entry = data.timing.entries[0];
-                setRaceState(prev => ({
-                    ...prev,
-                    sessionTime: data.sessionTimeMs ? `${Math.floor(data.sessionTimeMs / 60000)}:${String(Math.floor((data.sessionTimeMs % 60000) / 1000)).padStart(2, '0')}` : prev?.sessionTime || '0:00',
-                    position: entry.position || prev?.position || 0,
-                    lap: entry.lapNumber || prev?.lap || 0,
-                    gap: prev?.gap || '+0.0s',
-                    status: 'green',
-                }));
+                setRaceState((prev) => {
+                    const base: RaceStateData = prev ?? {
+                        sessionType: 'Race',
+                        currentLap: 0,
+                        totalLaps: null,
+                        timeRemaining: null,
+                        flagState: 'green',
+                        position: 0,
+                        gap: '+0.0s',
+                    };
+
+                    return {
+                        ...base,
+                        position: entry.position || base.position || 0,
+                        currentLap: entry.lapNumber || base.currentLap || 0,
+                        gap: base.gap || '+0.0s',
+                        flagState: 'green',
+                    };
+                });
             }
         });
 

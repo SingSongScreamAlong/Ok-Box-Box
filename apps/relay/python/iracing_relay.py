@@ -140,27 +140,168 @@ def read_telemetry_sync() -> Optional[Dict]:
         t = time.time()
         player_car_idx = ir['PlayerCarIdx'] or 0
         
-        # Build car data for player (includes HUD display fields)
+        # Build comprehensive car data for player
+        driver_info = ir['DriverInfo']['Drivers'][player_car_idx] if ir['DriverInfo'] else {}
+        
         car_data = {
             'carId': player_car_idx,
             'driverId': str(player_car_idx),
-            'driverName': ir['DriverInfo']['Drivers'][player_car_idx]['UserName'] if ir['DriverInfo'] else 'Driver',
+            'driverName': driver_info.get('UserName', 'Driver'),
+            'carName': driver_info.get('CarScreenName', 'Unknown Car'),
+            'carClass': driver_info.get('CarClassShortName', ''),
+            'iRating': driver_info.get('IRating', 0),
+            'licenseLevel': driver_info.get('LicString', ''),
+            
+            # Position & Lap
             'position': ir['PlayerCarPosition'] or 0,
+            'classPosition': ir['PlayerCarClassPosition'] or 0,
             'lap': ir['Lap'] or 0,
-            'pos': {'s': ir['LapDistPct'] or 0},
-            'speed': ir['Speed'] or 0,
-            # HUD display fields
+            'lapsCompleted': ir['LapCompleted'] or 0,
+            'lapDistPct': ir['LapDistPct'] or 0,
+            
+            # Speed & Motion
+            'speed': ir['Speed'] or 0,  # m/s
             'gear': ir['Gear'] or 0,
             'rpm': ir['RPM'] or 0,
+            'throttle': ir['Throttle'] or 0,
+            'brake': ir['Brake'] or 0,
+            'clutch': ir['Clutch'] or 0,
+            'steeringAngle': ir['SteeringWheelAngle'] or 0,
+            
+            # Lap Times
+            'lastLapTime': ir['LapLastLapTime'] or 0,
+            'bestLapTime': ir['LapBestLapTime'] or 0,
+            'deltaToSessionBest': ir['LapDeltaToSessionBestLap'] or 0,
+            'deltaToOptimalLap': ir['LapDeltaToOptimalLap'] or 0,
+            
+            # Fuel
+            'fuelLevel': ir['FuelLevel'] or 0,  # liters
             'fuelPct': ir['FuelLevelPct'] or 0,
-            'fuelLevel': ir['FuelLevel'] or 0,
+            'fuelUsePerHour': ir['FuelUsePerHour'] or 0,
+            
+            # Tires
+            'tireLFwear': ir['LFwearL'] if ir['LFwearL'] else 0,
+            'tireRFwear': ir['RFwearL'] if ir['RFwearL'] else 0,
+            'tireLRwear': ir['LRwearL'] if ir['LRwearL'] else 0,
+            'tireRRwear': ir['RRwearL'] if ir['RRwearL'] else 0,
+            
+            # Temperatures
+            'oilTemp': ir['OilTemp'] or 0,
+            'waterTemp': ir['WaterTemp'] or 0,
+            
+            # Flags & Status
+            'onPitRoad': ir['OnPitRoad'] or False,
+            'isOnTrack': ir['IsOnTrack'] or False,
+            'enterExitReset': ir['EnterExitReset'] or 0,
+            'incidentCount': ir['PlayerCarMyIncidentCount'] or 0,
+            
+            # Session gaps (if available)
+            'gapToLeader': ir['PlayerCarTowTime'] or 0,  # Placeholder - need proper gap calc
         }
         
-        # Server-expected format
+        # Get track and session info
+        track_name = 'Unknown Track'
+        track_length = 0
+        session_type = 'practice'
+        session_laps = 0
+        session_time_remain = 0
+        try:
+            session_info = ir['WeekendInfo']
+            if session_info:
+                track_name = session_info.get('TrackName', 'Unknown Track')
+                track_length = session_info.get('TrackLength', '0 km')
+            session_num = ir['SessionNum'] or 0
+            sessions = ir['SessionInfo']['Sessions'] if ir['SessionInfo'] else []
+            if sessions and len(sessions) > session_num:
+                session_type = sessions[session_num].get('SessionType', 'practice').lower()
+                session_laps = sessions[session_num].get('SessionLaps', 0)
+            session_time_remain = ir['SessionTimeRemain'] or 0
+        except:
+            pass
+        
+        # Get flags
+        session_flags = ir['SessionFlags'] or 0
+        flag_status = 'green'
+        if session_flags & 0x0001: flag_status = 'checkered'
+        elif session_flags & 0x0002: flag_status = 'white'
+        elif session_flags & 0x0004: flag_status = 'green'
+        elif session_flags & 0x0008: flag_status = 'yellow'
+        elif session_flags & 0x0010: flag_status = 'red'
+        elif session_flags & 0x0020: flag_status = 'blue'
+        elif session_flags & 0x0040: flag_status = 'debris'
+        elif session_flags & 0x0080: flag_status = 'crossed'
+        elif session_flags & 0x0100: flag_status = 'yellow_waving'
+        elif session_flags & 0x0200: flag_status = 'one_to_green'
+        elif session_flags & 0x0400: flag_status = 'green_held'
+        elif session_flags & 0x0800: flag_status = 'ten_to_go'
+        elif session_flags & 0x1000: flag_status = 'five_to_go'
+        elif session_flags & 0x4000: flag_status = 'caution'
+        elif session_flags & 0x8000: flag_status = 'caution_waving'
+        
+        # Get weather/track conditions
+        track_temp = ir['TrackTemp'] or 0  # Celsius
+        air_temp = ir['AirTemp'] or 0
+        humidity = ir['RelativeHumidity'] or 0
+        wind_speed = ir['WindVel'] or 0
+        wind_dir = ir['WindDir'] or 0
+        skies = ir['Skies'] or 0  # 0=clear, 1=partly cloudy, 2=mostly cloudy, 3=overcast
+        sky_names = ['Clear', 'Partly Cloudy', 'Mostly Cloudy', 'Overcast']
+        sky_condition = sky_names[skies] if skies < len(sky_names) else 'Unknown'
+        
+        # Get all cars on track (not just player)
+        all_cars = []
+        try:
+            drivers = ir['DriverInfo']['Drivers'] if ir['DriverInfo'] else []
+            car_positions = ir['CarIdxPosition'] or []
+            car_laps = ir['CarIdxLap'] or []
+            car_lap_pcts = ir['CarIdxLapDistPct'] or []
+            car_on_track = ir['CarIdxOnPitRoad'] or []
+            car_class_positions = ir['CarIdxClassPosition'] or []
+            car_last_lap_times = ir['CarIdxLastLapTime'] or []
+            car_best_lap_times = ir['CarIdxBestLapTime'] or []
+            
+            for i, driver in enumerate(drivers):
+                if i >= len(car_positions) or car_positions[i] <= 0:
+                    continue  # Skip cars not in session
+                all_cars.append({
+                    'carIdx': i,
+                    'driverName': driver.get('UserName', f'Car {i}'),
+                    'carName': driver.get('CarScreenName', 'Unknown'),
+                    'carClass': driver.get('CarClassShortName', ''),
+                    'iRating': driver.get('IRating', 0),
+                    'position': car_positions[i] if i < len(car_positions) else 0,
+                    'classPosition': car_class_positions[i] if i < len(car_class_positions) else 0,
+                    'lap': car_laps[i] if i < len(car_laps) else 0,
+                    'lapDistPct': car_lap_pcts[i] if i < len(car_lap_pcts) else 0,
+                    'onPitRoad': car_on_track[i] if i < len(car_on_track) else False,
+                    'lastLapTime': car_last_lap_times[i] if i < len(car_last_lap_times) else 0,
+                    'bestLapTime': car_best_lap_times[i] if i < len(car_best_lap_times) else 0,
+                    'isPlayer': i == player_car_idx
+                })
+            # Sort by position
+            all_cars.sort(key=lambda x: x['position'])
+        except Exception as e:
+            logger.error(f"Error getting all cars: {e}")
+        
+        # Server-expected format (include full track awareness for voice AI)
         telemetry = {
             'sessionId': current_session_id,
             'sessionTimeMs': int((ir['SessionTime'] or 0) * 1000),
-            'cars': [car_data]
+            'trackName': track_name,
+            'trackLength': track_length,
+            'sessionType': session_type,
+            'sessionLaps': session_laps,
+            'sessionTimeRemain': session_time_remain,
+            'flagStatus': flag_status,
+            'trackTemp': track_temp,
+            'airTemp': air_temp,
+            'humidity': humidity,
+            'windSpeed': wind_speed,
+            'windDir': wind_dir,
+            'skyCondition': sky_condition,
+            'totalCars': len(all_cars),
+            'cars': [car_data],  # Player car detailed data
+            'standings': all_cars[:20]  # Top 20 cars for context
         }
         
         last_telemetry = telemetry

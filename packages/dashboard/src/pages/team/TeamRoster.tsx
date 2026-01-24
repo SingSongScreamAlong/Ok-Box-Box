@@ -169,7 +169,7 @@ export default function TeamRoster() {
     if (loading) {
         return (
             <div className="p-6 flex items-center justify-center min-h-[400px]">
-                <div className="text-zinc-500">Loading roster...</div>
+                <div className="text-[#0E0E0E]/50">Loading roster...</div>
             </div>
         );
     }
@@ -190,8 +190,8 @@ export default function TeamRoster() {
             {/* Header */}
             <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
                 <div>
-                    <h1 className="font-racing text-2xl text-white tracking-wide">Team Roster</h1>
-                    <p className="text-sm text-zinc-500">{roster.team_name} • {roster.member_count} Drivers</p>
+                    <h1 className="text-sm font-semibold text-[#0E0E0E] uppercase tracking-wider">Team Roster</h1>
+                    <p className="text-xs text-[#0E0E0E]/50">{roster.team_name} • {roster.member_count} Drivers</p>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
                     <div className="relative flex-1 md:w-64">
@@ -245,7 +245,7 @@ export default function TeamRoster() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b border-white/10 text-zinc-500 text-xs uppercase tracking-wider">
+                            <tr className="bg-[#0E0E0E] text-white text-[0.6rem] font-semibold uppercase tracking-widest">
                                 <th className="text-left py-3 px-5">Driver</th>
                                 <th className="text-left py-3 px-3">Role</th>
                                 <th className="text-right py-3 px-3">iRating</th>
@@ -266,10 +266,10 @@ export default function TeamRoster() {
                                     >
                                         <td className="py-3 px-5">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-300">
+                                                <div className="w-8 h-8 bg-[#0E0E0E] flex items-center justify-center text-xs font-bold text-white">
                                                     {m.display_name.split(' ').map(n => n[0]).join('')}
                                                 </div>
-                                                <span className="font-medium text-white">{m.display_name}</span>
+                                                <span className="font-medium text-[#0E0E0E]">{m.display_name}</span>
                                             </div>
                                         </td>
                                         <td className="py-3 px-3">
@@ -278,11 +278,11 @@ export default function TeamRoster() {
                                                 {roleLabels[m.role] || m.role}
                                             </span>
                                         </td>
-                                        <td className="py-3 px-3 text-right font-mono text-zinc-300">
+                                        <td className="py-3 px-3 text-right font-mono text-[#0E0E0E]">
                                             {m.irating?.toLocaleString() || '—'}
                                         </td>
-                                        <td className="py-3 px-3 text-right font-mono text-zinc-300">{m.total_sessions || 0}</td>
-                                        <td className="py-3 px-3 text-right font-mono text-zinc-300">{(m.total_laps || 0).toLocaleString()}</td>
+                                        <td className="py-3 px-3 text-right font-mono text-[#0E0E0E]">{m.total_sessions || 0}</td>
+                                        <td className="py-3 px-3 text-right font-mono text-[#0E0E0E]">{(m.total_laps || 0).toLocaleString()}</td>
                                         <td className="py-3 px-3 text-right font-mono">
                                             <span className={`${(m.avg_incident_rate || 0) < 2 ? 'text-racing-green' : (m.avg_incident_rate || 0) < 3 ? 'text-racing-yellow' : 'text-racing-red'}`}>
                                                 {m.avg_incident_rate?.toFixed(1) || '—'}
@@ -291,10 +291,10 @@ export default function TeamRoster() {
                                         <td className="py-3 px-5">
                                             <div className="flex gap-1 flex-wrap">
                                                 {(m.traits || []).slice(0, 2).map((t, i) => (
-                                                    <span key={i} className="text-xs px-2 py-0.5 rounded bg-zinc-800 text-zinc-400">{t}</span>
+                                                    <span key={i} className="text-xs px-2 py-0.5 bg-[#0E0E0E]/10 border border-[#0E0E0E]/20 text-[#0E0E0E]/70">{t}</span>
                                                 ))}
                                                 {(m.traits?.length || 0) > 2 && (
-                                                    <span className="text-xs text-zinc-600">+{(m.traits?.length || 0) - 2}</span>
+                                                    <span className="text-xs text-[#0E0E0E]/50">+{(m.traits?.length || 0) - 2}</span>
                                                 )}
                                             </div>
                                         </td>

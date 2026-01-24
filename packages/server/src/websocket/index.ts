@@ -13,6 +13,9 @@ import { AuthGate } from './AuthGate.js';
 import { RoomManager } from './RoomManager.js';
 import { TelemetryHandler } from './TelemetryHandler.js';
 import { BroadcastHandler, setIO } from './BroadcastHandler.js';
+import { getWhisperService, getVoiceService, VOICE_PRESETS } from '../services/voice/index.js';
+import { getTelemetryForVoice } from './telemetry-cache.js';
+import { getCachedDriverContext, formatDriverContextForAI } from '../services/voice/driver-context.service.js';
 
 let io: Server;
 
@@ -56,6 +59,93 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
         sessionHandler.setup(socket);
         telemetryHandler.setup(socket);
         broadcastHandler.setup(socket);
+
+        // 4. Voice Query Handler
+        socket.on('voice:query', async (data: { audio: string; format?: string }) => {
+            try {
+                const whisperService = getWhisperService();
+                const voiceService = getVoiceService();
+
+                if (!whisperService.isServiceAvailable()) {
+                    socket.emit('voice:response', {
+                        success: false,
+                        error: 'Speech-to-text service unavailable'
+                    });
+                    return;
+                }
+
+                // Decode base64 audio
+                const audioBuffer = Buffer.from(data.audio, 'base64');
+
+                // Get current telemetry for context
+                const telemetry = getTelemetryForVoice('live');
+                
+                // Get driver's iRacing ID from telemetry (if available)
+                const iRacingId = telemetry?.driverName ? String(telemetry.driverName) : undefined;
+                
+                // Fetch driver context (IDP profile, traits, goals, team strategy)
+                let driverContext: string | undefined;
+                if (iRacingId) {
+                    try {
+                        const ctx = await getCachedDriverContext(iRacingId);
+                        if (ctx) {
+                            driverContext = formatDriverContextForAI(ctx);
+                            console.log('🎤 Voice query - driver context loaded for:', ctx.driverName);
+                        }
+                    } catch (err) {
+                        console.warn('Could not load driver context:', err);
+                    }
+                }
+
+                // Process voice query (STT + AI response)
+                const conversation = await whisperService.processDriverQuery(
+                    audioBuffer,
+                    {
+                        sessionId: 'live',
+                        driverId: socket.id,
+                        iRacingId,
+                        recentMessages: [],
+                        telemetry,
+                        driverContext
+                    }
+                );
+
+                if (!conversation) {
+                    socket.emit('voice:response', {
+                        success: false,
+                        error: 'Failed to process voice query'
+                    });
+                    return;
+                }
+
+                // Generate TTS audio if available
+                let audioBase64: string | undefined;
+                if (voiceService.isServiceAvailable()) {
+                    const ttsResult = await voiceService.textToSpeech({
+                        text: conversation.response,
+                        ...VOICE_PRESETS.raceEngineer
+                    });
+
+                    if (ttsResult.success && ttsResult.audioBuffer) {
+                        audioBase64 = ttsResult.audioBuffer.toString('base64');
+                    }
+                }
+
+                socket.emit('voice:response', {
+                    success: true,
+                    query: conversation.query,
+                    response: conversation.response,
+                    audioBase64
+                });
+
+            } catch (error) {
+                console.error('Voice query error:', error);
+                socket.emit('voice:response', {
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Voice query failed'
+                });
+            }
+        });
 
         socket.on('disconnect', () => {
             console.log(`🔌 Client disconnected: ${socket.id}`);

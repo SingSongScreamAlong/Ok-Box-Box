@@ -26,7 +26,6 @@ import {
     fetchSuggestions,
     fetchAchievements,
     syncIRacingData,
-    DriverProfile as IDriverProfile,
     DriverTarget,
     SuggestedTarget,
     Achievement
@@ -188,12 +187,12 @@ export default function MyIDPPage() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
-                    <Link to="/" className="p-2 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-white transition-colors">
+                    <Link to="/" className="p-2 rounded-lg hover:bg-[#0E0E0E]/5 text-[#0E0E0E]/50 hover:text-[#0E0E0E] transition-colors">
                         <ArrowLeft size={20} />
                     </Link>
                     <div>
-                        <h1 className="font-racing text-2xl text-white tracking-wide">{profile.name || profile.display_name}</h1>
-                        <p className="text-sm text-zinc-500">
+                        <h1 className="font-racing text-2xl text-[#0E0E0E] tracking-wide">{profile.name || profile.display_name}</h1>
+                        <p className="text-sm text-[#0E0E0E]/50">
                             <span className="font-mono">#{profile.custId || '000000'}</span>
                             <span className="mx-2">•</span>
                             Member since {profile.memberSince || '2025'}
@@ -224,7 +223,7 @@ export default function MyIDPPage() {
                         <div key={key} className="card p-4 relative overflow-hidden">
                             <div className={`absolute top-0 left-0 w-1 h-full ${getLicenseColor(license.class)}`} />
                             <div className="pl-2">
-                                <div className="text-xs text-zinc-500 uppercase tracking-wider mb-1">
+                                <div className="text-xs text-[#0E0E0E]/50 uppercase tracking-wider mb-1">
                                     {key === 'sportsCar' ? 'Sports Car' :
                                         key === 'dirtOval' ? 'Dirt Oval' :
                                             key === 'dirtRoad' ? 'Dirt Road' :
@@ -234,15 +233,15 @@ export default function MyIDPPage() {
                                     <span className={`text-2xl font-bold ${getLicenseColor(license.class).replace('bg-', 'text-')}`}>
                                         {license.class}
                                     </span>
-                                    <span className="text-lg font-mono text-zinc-300">{license.sr.toFixed(2)}</span>
+                                    <span className="text-lg font-mono text-[#0E0E0E]">{license.sr.toFixed(2)}</span>
                                 </div>
                                 {license.iRating ? (
-                                    <div className="text-sm font-mono text-white">{license.iRating} iR</div>
+                                    <div className="text-sm font-mono text-[#0E0E0E]">{license.iRating} iR</div>
                                 ) : (
-                                    <div className="text-sm text-zinc-600">No iRating</div>
+                                    <div className="text-sm text-[#0E0E0E]/40">No iRating</div>
                                 )}
                                 {stats && (
-                                    <div className="text-xs text-zinc-500 mt-2">{stats.starts} starts</div>
+                                    <div className="text-xs text-[#0E0E0E]/50 mt-2">{stats.starts} starts</div>
                                 )}
                             </div>
                         </div>
@@ -259,12 +258,12 @@ export default function MyIDPPage() {
                             <Flag size={16} className="text-racing-blue" />
                             <span className="font-medium text-sm uppercase tracking-wider">Recent Races</span>
                         </div>
-                        <span className="text-xs text-zinc-600">Last 5 official races</span>
+                        <span className="text-xs text-[#0E0E0E]/50">Last 5 official races</span>
                     </div>
                     <div className="overflow-hidden">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="border-b border-white/10 text-zinc-500 text-xs uppercase tracking-wider">
+                                <tr className="border-b border-[#0E0E0E]/10 text-[#0E0E0E]/50 text-xs uppercase tracking-wider">
                                     <th className="text-left py-3 px-5">Series / Track</th>
                                     <th className="text-center py-3 px-3">Start</th>
                                     <th className="text-center py-3 px-3">Finish</th>
@@ -279,14 +278,14 @@ export default function MyIDPPage() {
                                     return (
                                         <tr key={i} className="table-row">
                                             <td className="py-3 px-5">
-                                                <div className="font-medium text-white">{race.series}</div>
-                                                <div className="text-xs text-zinc-500 flex items-center gap-1">
+                                                <div className="font-medium text-[#0E0E0E]">{race.series}</div>
+                                                <div className="text-xs text-[#0E0E0E]/50 flex items-center gap-1">
                                                     <MapPin size={10} />
                                                     {race.track}
                                                 </div>
                                             </td>
-                                            <td className="py-3 px-3 text-center font-mono text-zinc-400">P{race.start}</td>
-                                            <td className={`py-3 px-3 text-center font-mono font-bold ${race.finish <= 3 ? 'text-racing-green' : race.finish <= 10 ? 'text-white' : 'text-zinc-400'}`}>
+                                            <td className="py-3 px-3 text-center font-mono text-[#0E0E0E]/60">P{race.start}</td>
+                                            <td className={`py-3 px-3 text-center font-mono font-bold ${race.finish <= 3 ? 'text-racing-green' : race.finish <= 10 ? 'text-[#0E0E0E]' : 'text-[#0E0E0E]/60'}`}>
                                                 P{race.finish}
                                             </td>
                                             <td className={`py-3 px-3 text-center font-mono ${change.color}`}>{change.text}</td>
@@ -316,8 +315,8 @@ export default function MyIDPPage() {
                         <div className="h-[250px] w-full p-2">
                             <ResponsiveContainer width="100%" height="100%">
                                 <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                                    <PolarGrid stroke="#3f3f46" />
-                                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#a1a1aa', fontSize: 12 }} />
+                                    <PolarGrid stroke="#0E0E0E20" />
+                                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#0E0E0E', fontSize: 12 }} />
                                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
                                     <Radar
                                         name="Skills"
@@ -332,7 +331,7 @@ export default function MyIDPPage() {
                     </div>
 
                     {/* Subscription Status */}
-                    <div className="card bg-gradient-to-br from-zinc-900 to-black border border-racing-blue/20">
+                    <div className="card bg-gradient-to-br from-[#0E0E0E] to-[#1a1a1a] border border-racing-blue/20">
                         <div className="card-header border-b border-white/10">
                             <div className="flex items-center gap-2">
                                 <Shield size={16} className="text-racing-blue" />
@@ -383,21 +382,21 @@ export default function MyIDPPage() {
                         <div className="p-5">
                             <div className="grid grid-cols-3 gap-4 text-center mb-4">
                                 <div>
-                                    <div className="text-2xl font-bold text-white">{profile.stats?.oval?.wins || 0}</div>
-                                    <div className="text-xs text-zinc-500">Wins</div>
+                                    <div className="text-2xl font-bold text-[#0E0E0E]">{profile.stats?.oval?.wins || 0}</div>
+                                    <div className="text-xs text-[#0E0E0E]/50">Wins</div>
                                 </div>
                                 <div>
                                     <div className="text-2xl font-bold text-racing-green">{profile.stats?.oval?.top5s || 0}</div>
-                                    <div className="text-xs text-zinc-500">Top 5s</div>
+                                    <div className="text-xs text-[#0E0E0E]/50">Top 5s</div>
                                 </div>
                                 <div>
                                     <div className="text-2xl font-bold text-racing-blue">{profile.stats?.oval?.poles || 0}</div>
-                                    <div className="text-xs text-zinc-500">Poles</div>
+                                    <div className="text-xs text-[#0E0E0E]/50">Poles</div>
                                 </div>
                             </div>
-                            <div className="flex justify-between text-sm border-t border-white/5 pt-3">
-                                <span className="text-zinc-500">Avg Start → Finish</span>
-                                <span className="font-mono text-white">
+                            <div className="flex justify-between text-sm border-t border-[#0E0E0E]/10 pt-3">
+                                <span className="text-[#0E0E0E]/50">Avg Start → Finish</span>
+                                <span className="font-mono text-[#0E0E0E]">
                                     P{profile.stats?.oval?.avgStart || '-'} → P{profile.stats?.oval?.avgFinish || '-'}
                                 </span>
                             </div>
@@ -407,14 +406,14 @@ export default function MyIDPPage() {
                     {/* Quick Links */}
                     <div className="card">
                         <div className="card-header">
-                            <span className="font-medium text-sm uppercase tracking-wider text-zinc-400">Quick Links</span>
+                            <span className="font-medium text-sm uppercase tracking-wider text-[#0E0E0E]/50">Quick Links</span>
                         </div>
                         <div className="p-2">
-                            <Link to="/teams/demo" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-zinc-300 hover:text-white transition-colors">
+                            <Link to="/teams/demo" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#0E0E0E]/5 text-[#0E0E0E]/70 hover:text-[#0E0E0E] transition-colors">
                                 <Car size={16} className="text-racing-blue" />
                                 <span className="text-sm">My Team</span>
                             </Link>
-                            <Link to="/" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-zinc-300 hover:text-white transition-colors">
+                            <Link to="/" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#0E0E0E]/5 text-[#0E0E0E]/70 hover:text-[#0E0E0E] transition-colors">
                                 <BarChart3 size={16} className="text-racing-blue" />
                                 <span className="text-sm">All Surfaces</span>
                             </Link>
@@ -430,7 +429,7 @@ export default function MyIDPPage() {
                         <Target size={16} className="text-racing-green" />
                         <span className="font-medium text-sm uppercase tracking-wider">Development Goals</span>
                     </div>
-                    <span className="text-xs text-zinc-600">{targets.length} active</span>
+                    <span className="text-xs text-[#0E0E0E]/50">{targets.length} active</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-5">
                     {targets.map(goal => {
@@ -449,27 +448,27 @@ export default function MyIDPPage() {
                             ? ((target - current) / (target - 15)) * 100 // Approximation for safet
                             : (current / target) * 100;
                         return (
-                            <div key={goal.id} className="bg-white/5 rounded-lg p-4 border border-white/5 hover:border-racing-blue/30 transition-colors">
+                            <div key={goal.id} className="bg-[#0E0E0E]/5 rounded-lg p-4 border border-[#0E0E0E]/10 hover:border-racing-blue/30 transition-colors">
                                 <div className="flex items-start justify-between mb-3">
                                     <div className="w-10 h-10 rounded-lg bg-racing-blue/20 flex items-center justify-center">
                                         <Icon size={20} className="text-racing-blue" />
                                     </div>
                                     {/* Trend not in API yet */}
                                 </div>
-                                <div className="text-sm font-medium text-white mb-1">{goal.label}</div>
-                                <div className="text-xs text-zinc-500 mb-3">{goal.category}</div>
-                                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden mb-2">
+                                <div className="text-sm font-medium text-[#0E0E0E] mb-1">{goal.label}</div>
+                                <div className="text-xs text-[#0E0E0E]/50 mb-3">{goal.category}</div>
+                                <div className="h-1.5 bg-[#0E0E0E]/10 rounded-full overflow-hidden mb-2">
                                     <div
                                         className="h-full bg-racing-blue transition-all duration-300"
                                         style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
                                     />
                                 </div>
                                 <div className="flex justify-between text-xs">
-                                    <span className="text-zinc-400 font-mono">{goal.current_value}</span>
+                                    <span className="text-[#0E0E0E]/60 font-mono">{goal.current_value}</span>
                                     <span className="text-racing-blue font-mono">{goal.target_value}</span>
                                 </div>
                                 {goal.deadline && (
-                                    <div className="flex items-center gap-1 text-xs text-zinc-600 mt-2">
+                                    <div className="flex items-center gap-1 text-xs text-[#0E0E0E]/50 mt-2">
                                         <Calendar size={10} />
                                         {new Date(goal.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                     </div>
@@ -490,15 +489,15 @@ export default function MyIDPPage() {
                             <span className="font-medium text-sm uppercase tracking-wider">AI Coach Suggestions</span>
                         </div>
                     </div>
-                    <div className="divide-y divide-white/5">
+                    <div className="divide-y divide-[#0E0E0E]/10">
                         {suggestions.map(suggestion => (
                             <div key={suggestion.id} className="p-5">
                                 <div className="flex items-start gap-3">
                                     <div className={`w-2 h-2 rounded-full mt-2 ${suggestion.priority === 'high' ? 'bg-red-400' : 'bg-yellow-400'}`} />
                                     <div className="flex-1">
-                                        <div className="font-medium text-white mb-1">{suggestion.label}</div>
-                                        <div className="text-sm text-zinc-400 mb-2">{suggestion.rationale}</div>
-                                        <div className="text-xs text-zinc-600 flex items-center gap-1">
+                                        <div className="font-medium text-[#0E0E0E] mb-1">{suggestion.label}</div>
+                                        <div className="text-sm text-[#0E0E0E]/60 mb-2">{suggestion.rationale}</div>
+                                        <div className="text-xs text-[#0E0E0E]/50 flex items-center gap-1">
                                             <Activity size={10} />
                                             Target: {suggestion.target_value} ({suggestion.track})
                                         </div>
@@ -516,16 +515,16 @@ export default function MyIDPPage() {
                             <Award size={16} className="text-yellow-400" />
                             <span className="font-medium text-sm uppercase tracking-wider">Achievements</span>
                         </div>
-                        <span className="text-xs text-zinc-600">{achievements.length} earned</span>
+                        <span className="text-xs text-[#0E0E0E]/50">{achievements.length} earned</span>
                     </div>
                     <div className="grid grid-cols-2 gap-3 p-5">
                         {achievements.map(achievement => (
-                            <div key={achievement.id} className="bg-white/5 rounded-lg p-3 border border-white/5">
+                            <div key={achievement.id} className="bg-[#0E0E0E]/5 rounded-lg p-3 border border-[#0E0E0E]/10">
                                 <div className="flex items-center gap-3">
                                     <div className="text-2xl">{achievement.badge}</div>
                                     <div>
-                                        <div className="text-sm font-medium text-white">{achievement.name}</div>
-                                        <div className="text-xs text-zinc-500">{achievement.description}</div>
+                                        <div className="text-sm font-medium text-[#0E0E0E]">{achievement.name}</div>
+                                        <div className="text-xs text-[#0E0E0E]/50">{achievement.description}</div>
                                     </div>
                                 </div>
                             </div>

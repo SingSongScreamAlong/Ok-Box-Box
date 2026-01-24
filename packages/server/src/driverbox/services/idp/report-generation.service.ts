@@ -19,12 +19,21 @@ import { DriverReport, SessionMetrics, DriverTrait, DriverAggregate } from '../.
 import { config } from '../../../config/index.js';
 
 // ========================
-// OpenAI Client
+// OpenAI Client (Lazy-loaded)
 // ========================
 
-const openai = new OpenAI({
-    apiKey: config.openaiApiKey || process.env.OPENAI_API_KEY,
-});
+let _openai: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+    if (!_openai) {
+        const apiKey = config.openaiApiKey || process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            throw new Error('OpenAI API key not configured. Set OPENAI_API_KEY environment variable.');
+        }
+        _openai = new OpenAI({ apiKey });
+    }
+    return _openai;
+}
 
 const AI_MODEL = 'gpt-4o-mini'; // Cost-effective for structured analysis
 const PROMPT_VERSION = '2.0';
@@ -178,7 +187,7 @@ async function callOpenAI<T>(
     }
 
     try {
-        const completion = await openai.chat.completions.create({
+        const completion = await getOpenAIClient().chat.completions.create({
             model: AI_MODEL,
             messages: [
                 {

@@ -6,6 +6,29 @@ ControlBox is a standalone application + web dashboard providing live race contr
 
 ---
 
+## Canonical Run Commands
+
+These are the **only** supported development entrypoints.
+
+- **Canonical App / Dashboard (ONLY dashboard)**
+  - **Path**: `packages/dashboard`
+  - **Run**: `npm run app`
+  - **Build identity**: `http://localhost:5173/about/build`
+
+- **Marketing Website (marketing only)**
+  - **Path**: `apps/website`
+  - **Run**: `npm run website`
+
+- **Relay (Electron desktop app)**
+  - **Path**: `apps/relay`
+  - **Run**: `npm run relay`
+
+- **API (backend)**
+  - **Path**: `packages/server`
+  - **Run**: `npm run api`
+
+---
+
 ## Features
 
 - 🏎️ **Live Race Control** — Real-time incident monitoring and steward tools

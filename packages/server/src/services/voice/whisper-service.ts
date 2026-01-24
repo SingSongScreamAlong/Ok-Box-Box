@@ -25,10 +25,27 @@ export interface TranscriptionResult {
     error?: string;
 }
 
+export interface TelemetryContext {
+    trackName?: string;
+    sessionType?: string;
+    position?: number;
+    lap?: number;
+    speed?: number;
+    gapToLeader?: number;
+    gapToCarAhead?: number;
+    lastLapTime?: number;
+    bestLapTime?: number;
+    fuelRemaining?: number;
+    tireDegradation?: number;
+}
+
 export interface ConversationContext {
     sessionId: string;
     driverId: string;
+    iRacingId?: string;
     recentMessages: string[];
+    telemetry?: TelemetryContext;
+    driverContext?: string; // Pre-formatted driver context from IDP
 }
 
 // ============================================================================
@@ -66,6 +83,15 @@ export class WhisperService {
      */
     isServiceAvailable(): boolean {
         return this.isAvailable;
+    }
+
+    /**
+     * Format lap time from seconds to mm:ss.xxx
+     */
+    private formatLapTime(seconds: number): string {
+        const mins = Math.floor(seconds / 60);
+        const secs = (seconds % 60).toFixed(3);
+        return `${mins}:${secs.padStart(6, '0')}`;
     }
 
     /**
@@ -159,6 +185,90 @@ export class WhisperService {
 
         // Generate AI response using chat completion
         try {
+            // Build comprehensive telemetry context string
+            const t = context.telemetry as any;
+            
+            // Format standings for AI context
+            let standingsInfo = '';
+            if (t?.standings && t.standings.length > 0) {
+                standingsInfo = '\nCURRENT STANDINGS:\n';
+                for (const car of t.standings.slice(0, 10)) {
+                    const lapTime = car.lastLapTime > 0 ? this.formatLapTime(car.lastLapTime) : 'N/A';
+                    const status = car.onPitRoad ? ' (PIT)' : '';
+                    const playerMark = car.isPlayer ? ' ← YOU' : '';
+                    standingsInfo += `P${car.position}: ${car.driverName} - ${car.carName} [${car.carClass}] - Lap ${car.lap} - Last: ${lapTime}${status}${playerMark}\n`;
+                }
+            }
+            
+            const telemetryInfo = t ? `
+CURRENT TELEMETRY DATA:
+
+SESSION INFO:
+- Track: ${t.trackName || 'Unknown'} (${t.trackLength || 'N/A'})
+- Session Type: ${t.sessionType || 'Unknown'}
+- Session Laps: ${t.sessionLaps || 'Unlimited'}
+- Time Remaining: ${t.sessionTimeRemain ? Math.floor(t.sessionTimeRemain / 60) + ' min' : 'N/A'}
+- Flag: ${t.flagStatus?.toUpperCase() || 'GREEN'}
+- Total Cars: ${t.totalCars || 'N/A'}
+
+WEATHER & CONDITIONS:
+- Track Temp: ${t.trackTemp ? t.trackTemp + '°F' : 'N/A'}
+- Air Temp: ${t.airTemp ? t.airTemp + '°F' : 'N/A'}
+- Humidity: ${t.humidity ? t.humidity + '%' : 'N/A'}
+- Wind: ${t.windSpeed ? t.windSpeed + ' mph' : 'N/A'}
+- Sky: ${t.skyCondition || 'N/A'}
+
+YOUR CAR:
+- Driver: ${t.driverName || 'Unknown'}
+- Car: ${t.carName || 'Unknown'}
+- Class: ${t.carClass || 'N/A'}
+- iRating: ${t.iRating || 'N/A'}
+- License: ${t.licenseLevel || 'N/A'}
+- On Track: ${t.isOnTrack ? 'Yes' : 'No'}
+- In Pits: ${t.onPitRoad ? 'Yes' : 'No'}
+
+POSITION & PROGRESS:
+- Overall Position: P${t.position || '?'} of ${t.totalCars || '?'}
+- Class Position: P${t.classPosition || '?'}
+- Current Lap: ${t.lap || '?'}
+- Laps Completed: ${t.lapsCompleted || '?'}
+- Track Position: ${t.lapDistPct ? (t.lapDistPct * 100).toFixed(1) + '%' : 'N/A'}
+
+SPEED & INPUTS:
+- Speed: ${t.speed ? t.speed + ' mph' : 'N/A'}
+- Gear: ${t.gear !== undefined ? t.gear : 'N/A'}
+- RPM: ${t.rpm ? Math.round(t.rpm) : 'N/A'}
+- Throttle: ${t.throttle !== undefined ? t.throttle + '%' : 'N/A'}
+- Brake: ${t.brake !== undefined ? t.brake + '%' : 'N/A'}
+
+LAP TIMES:
+- Last Lap: ${t.lastLapTime && t.lastLapTime > 0 ? this.formatLapTime(t.lastLapTime) : 'N/A'}
+- Best Lap: ${t.bestLapTime && t.bestLapTime > 0 ? this.formatLapTime(t.bestLapTime) : 'N/A'}
+- Delta to Session Best: ${t.deltaToSessionBest ? (t.deltaToSessionBest > 0 ? '+' : '') + t.deltaToSessionBest.toFixed(3) + 's' : 'N/A'}
+- Delta to Optimal: ${t.deltaToOptimalLap ? (t.deltaToOptimalLap > 0 ? '+' : '') + t.deltaToOptimalLap.toFixed(3) + 's' : 'N/A'}
+
+FUEL:
+- Fuel Level: ${t.fuelLevel ? t.fuelLevel.toFixed(1) + ' L' : 'N/A'}
+- Fuel Percentage: ${t.fuelPct !== undefined ? t.fuelPct + '%' : 'N/A'}
+- Fuel Use/Hour: ${t.fuelUsePerHour ? t.fuelUsePerHour.toFixed(2) + ' L/hr' : 'N/A'}
+
+TIRES (% worn):
+- Front Left: ${t.tireLFwear !== undefined ? t.tireLFwear + '%' : 'N/A'}
+- Front Right: ${t.tireRFwear !== undefined ? t.tireRFwear + '%' : 'N/A'}
+- Rear Left: ${t.tireLRwear !== undefined ? t.tireLRwear + '%' : 'N/A'}
+- Rear Right: ${t.tireRRwear !== undefined ? t.tireRRwear + '%' : 'N/A'}
+
+TEMPERATURES:
+- Oil Temp: ${t.oilTemp ? t.oilTemp + '°F' : 'N/A'}
+- Water Temp: ${t.waterTemp ? t.waterTemp + '°F' : 'N/A'}
+
+INCIDENTS: ${t.incidentCount !== undefined ? t.incidentCount + 'x' : 'N/A'}
+${standingsInfo}
+` : 'No telemetry data available - respond with general racing advice.';
+
+            // Include driver context (IDP profile, traits, goals) if available
+            const driverKnowledge = context.driverContext || '';
+
             const response = await fetch(`${OPENAI_API_URL}/chat/completions`, {
                 method: 'POST',
                 headers: {
@@ -170,10 +280,14 @@ export class WhisperService {
                     messages: [
                         {
                             role: 'system',
-                            content: `You are a professional race engineer providing real-time radio communication to a driver. 
-                            Keep responses brief (1-2 sentences max), clear, and actionable. 
-                            Use racing terminology naturally. Stay calm and focused.
-                            Context: Driver "${context.driverId}" in session "${context.sessionId}".`
+                            content: `You are a professional race engineer providing real-time radio communication to YOUR driver in iRacing.
+You know this driver personally - their strengths, weaknesses, goals, and history. Use this knowledge to give personalized advice.
+Keep responses brief (1-2 sentences max), clear, and actionable.
+Use racing terminology naturally. Stay calm and focused.
+IMPORTANT: Use the ACTUAL telemetry and driver data provided below. Do NOT make up data.
+
+${driverKnowledge}
+${telemetryInfo}`
                         },
                         ...context.recentMessages.map((msg, i) => ({
                             role: i % 2 === 0 ? 'user' as const : 'assistant' as const,

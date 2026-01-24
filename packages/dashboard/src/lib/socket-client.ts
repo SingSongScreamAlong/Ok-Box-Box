@@ -20,6 +20,14 @@ interface SessionActiveMessage {
     sessionType: string;
 }
 
+interface VoiceResponseMessage {
+    success: boolean;
+    query: string;
+    response: string;
+    audioBase64?: string;
+    error?: string;
+}
+
 interface SocketClientEvents {
     onConnect: () => void;
     onDisconnect: () => void;
@@ -33,6 +41,7 @@ interface SocketClientEvents {
     'explanation:generated': (packet: { packet: any; summary: string; evidence: string; audioBase64?: string }) => void;
     'video:frame': (packet: any) => void;
     'telemetry:driver': (data: any) => void;
+    'voice:response': (message: VoiceResponseMessage) => void;
     'disconnect': () => void;
 }
 
@@ -124,6 +133,10 @@ class SocketClient {
 
         this.socket.on('video:frame', (packet: any) => {
             this.listeners['video:frame']?.(packet);
+        });
+
+        this.socket.on('voice:response', (message: any) => {
+            this.listeners['voice:response']?.(message);
         });
     }
 

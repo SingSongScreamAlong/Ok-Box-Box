@@ -2,15 +2,142 @@ import { Server, Socket } from 'socket.io';
 import { activeSessions } from './SessionHandler.js';
 import { RelayAdapter } from '../services/RelayAdapter.js';
 import { getSituationalAwarenessService } from '../services/ai/situational-awareness.js';
+import { updateTelemetryCache } from './telemetry-cache.js';
 
 export class TelemetryHandler {
+    private static firstPacketLogged = false;
+    
     constructor(private io: Server) { }
+    
+    private formatLapTime(seconds: number): string {
+        if (!seconds || seconds <= 0) return '—';
+        const mins = Math.floor(seconds / 60);
+        const secs = (seconds % 60).toFixed(3);
+        return mins > 0 ? `${mins}:${secs.padStart(6, '0')}` : secs;
+    }
 
     public setup(socket: Socket) {
         const relayAdapter = new RelayAdapter(activeSessions, socket);
 
+        // Session metadata (contains track name, session type)
+        socket.on('session_metadata', (data: unknown) => {
+            const rawData = data as any;
+            console.log('📍 SESSION METADATA:', JSON.stringify(rawData));
+            
+            if (rawData && typeof rawData === 'object') {
+                updateTelemetryCache('live', {
+                    trackName: rawData.trackName,
+                    sessionType: rawData.sessionType
+                });
+            }
+        });
+
+        // Also handle session_info (relay forwards this)
+        socket.on('session_info', (data: unknown) => {
+            const rawData = data as any;
+            console.log('📍 SESSION INFO:', JSON.stringify(rawData));
+            
+            if (rawData && typeof rawData === 'object') {
+                updateTelemetryCache('live', {
+                    trackName: rawData.trackName || rawData.track,
+                    sessionType: rawData.sessionType || rawData.session
+                });
+            }
+        });
+
         // Telemetry snapshot
         socket.on('telemetry', (data: unknown) => {
+            const rawData = data as any;
+            
+            // Log first packet for debugging
+            if (!TelemetryHandler.firstPacketLogged) {
+                TelemetryHandler.firstPacketLogged = true;
+                console.log('📊 FIRST TELEMETRY:', JSON.stringify(rawData).substring(0, 500));
+            }
+            
+            // Always try to cache telemetry for voice, even if validation fails
+            if (rawData && typeof rawData === 'object') {
+                
+                // Try multiple possible data structures
+                const car = rawData.cars?.[0] || rawData.car || rawData;
+                const speedMph = car?.speed ? Math.round(car.speed * 2.237) : undefined;
+                
+                // Cache ALL telemetry for voice queries
+                const cacheData = {
+                    // Track & Session
+                    trackName: rawData.trackName,
+                    trackLength: rawData.trackLength,
+                    sessionType: rawData.sessionType,
+                    sessionLaps: rawData.sessionLaps,
+                    sessionTimeRemain: rawData.sessionTimeRemain,
+                    flagStatus: rawData.flagStatus,
+                    totalCars: rawData.totalCars,
+                    
+                    // Weather & Conditions (convert to Fahrenheit)
+                    trackTemp: rawData.trackTemp ? Math.round(rawData.trackTemp * 9/5 + 32) : undefined,
+                    airTemp: rawData.airTemp ? Math.round(rawData.airTemp * 9/5 + 32) : undefined,
+                    humidity: rawData.humidity ? Math.round(rawData.humidity * 100) : undefined,
+                    windSpeed: rawData.windSpeed ? Math.round(rawData.windSpeed * 2.237) : undefined, // m/s to mph
+                    windDir: rawData.windDir,
+                    skyCondition: rawData.skyCondition,
+                    
+                    // Driver Info
+                    driverName: car?.driverName,
+                    carName: car?.carName,
+                    carClass: car?.carClass,
+                    iRating: car?.iRating,
+                    licenseLevel: car?.licenseLevel,
+                    
+                    // Position & Lap
+                    position: car?.position,
+                    classPosition: car?.classPosition,
+                    lap: car?.lap,
+                    lapsCompleted: car?.lapsCompleted,
+                    lapDistPct: car?.lapDistPct,
+                    
+                    // Speed & Motion (convert to mph)
+                    speed: speedMph,
+                    gear: car?.gear,
+                    rpm: car?.rpm,
+                    throttle: car?.throttle ? Math.round(car.throttle * 100) : undefined,
+                    brake: car?.brake ? Math.round(car.brake * 100) : undefined,
+                    
+                    // Lap Times
+                    lastLapTime: car?.lastLapTime,
+                    bestLapTime: car?.bestLapTime,
+                    deltaToSessionBest: car?.deltaToSessionBest,
+                    deltaToOptimalLap: car?.deltaToOptimalLap,
+                    
+                    // Fuel
+                    fuelLevel: car?.fuelLevel,
+                    fuelPct: car?.fuelPct ? Math.round(car.fuelPct * 100) : undefined,
+                    fuelUsePerHour: car?.fuelUsePerHour,
+                    
+                    // Tires (convert to percentage worn)
+                    tireLFwear: car?.tireLFwear ? Math.round((1 - car.tireLFwear) * 100) : undefined,
+                    tireRFwear: car?.tireRFwear ? Math.round((1 - car.tireRFwear) * 100) : undefined,
+                    tireLRwear: car?.tireLRwear ? Math.round((1 - car.tireLRwear) * 100) : undefined,
+                    tireRRwear: car?.tireRRwear ? Math.round((1 - car.tireRRwear) * 100) : undefined,
+                    
+                    // Temperatures (convert to Fahrenheit)
+                    oilTemp: car?.oilTemp ? Math.round(car.oilTemp * 9/5 + 32) : undefined,
+                    waterTemp: car?.waterTemp ? Math.round(car.waterTemp * 9/5 + 32) : undefined,
+                    
+                    // Status
+                    onPitRoad: car?.onPitRoad,
+                    isOnTrack: car?.isOnTrack,
+                    incidentCount: car?.incidentCount,
+                    
+                    // Standings (all cars on track)
+                    standings: rawData.standings
+                };
+                
+                updateTelemetryCache('live', cacheData);
+                if (rawData.sessionId) {
+                    updateTelemetryCache(rawData.sessionId, cacheData);
+                }
+            }
+
             const isValid = relayAdapter.handleTelemetry(data);
             if (!isValid) return;
 
@@ -61,6 +188,20 @@ export class TelemetryHandler {
                 timing: { entries: timingEntries }
             };
 
+            // Update telemetry cache for voice context (use first car as driver)
+            const driverCar = validData.cars?.[0];
+            if (driverCar) {
+                updateTelemetryCache(validData.sessionId || 'live', {
+                    trackName: session.trackName,
+                    sessionType: session.sessionType,
+                    position: driverCar.position,
+                    lap: driverCar.lap,
+                    speed: driverCar.speed,
+                    lastLapTime: driverCar.lastLapTime,
+                    bestLapTime: driverCar.bestLapTime
+                });
+            }
+
             const delay = session.broadcastDelayMs;
             const roomName = `session:${validData.sessionId}`;
             const roomSize = this.io.sockets.adapter.rooms.get(roomName)?.size || 0;
@@ -76,6 +217,84 @@ export class TelemetryHandler {
                 }, delay);
             } else {
                 this.io.volatile.to(roomName).emit('timing:update', payload);
+            }
+            
+            // LROC COMPATIBILITY: Broadcast telemetry_update in legacy format
+            // This allows the Live Race Ops Console to receive telemetry data
+            if (driverCar) {
+                const lrocTelemetry = {
+                    driverId: driverCar.driverId || String(driverCar.carId),
+                    driverName: driverCar.driverName || 'Driver',
+                    speed: speedMph || 0,
+                    rpm: car?.rpm || 0,
+                    gear: car?.gear || 0,
+                    throttle: car?.throttle ? car.throttle * 100 : 0,
+                    brake: car?.brake ? car.brake * 100 : 0,
+                    clutch: car?.clutch ? car.clutch * 100 : 0,
+                    steering: car?.steeringAngle || 0,
+                    fuel: {
+                        level: car?.fuelLevel || 0,
+                        usagePerHour: car?.fuelUsePerHour || 0
+                    },
+                    tires: {
+                        frontLeft: { temp: 0, wear: car?.tireLFwear || 1, pressure: 0 },
+                        frontRight: { temp: 0, wear: car?.tireRFwear || 1, pressure: 0 },
+                        rearLeft: { temp: 0, wear: car?.tireLRwear || 1, pressure: 0 },
+                        rearRight: { temp: 0, wear: car?.tireRRwear || 1, pressure: 0 }
+                    },
+                    position: { x: 0, y: 0, z: 0 },
+                    lap: car?.lap || 0,
+                    sector: 0,
+                    lapTime: car?.lastLapTime || 0,
+                    sectorTime: 0,
+                    bestLapTime: car?.bestLapTime || 0,
+                    deltaToBestLap: car?.deltaToSessionBest || 0,
+                    bestSectorTimes: [],
+                    gForce: { lateral: 0, longitudinal: 0, vertical: 0 },
+                    trackPosition: car?.lapDistPct || 0,
+                    racePosition: car?.position || 0,
+                    gapAhead: 0,
+                    gapBehind: 0,
+                    flags: 0,
+                    drsStatus: 0,
+                    carSettings: { brakeBias: 0, abs: 0, tractionControl: 0, tractionControl2: 0, fuelMixture: 0 },
+                    energy: { batteryPct: 0, deployPct: 0, deployMode: 0 },
+                    weather: { windSpeed: rawData.windSpeed || 0, windDirection: rawData.windDir || 0 },
+                    timestamp: Date.now()
+                };
+                
+                // Broadcast to all connected clients (LROC doesn't join session rooms)
+                this.io.volatile.emit('telemetry_update', lrocTelemetry);
+                
+                // Also emit session_info for LROC
+                this.io.volatile.emit('session_info', {
+                    track: rawData.trackName || session?.trackName || 'Unknown Track',
+                    session: rawData.sessionType || session?.sessionType || 'RACE',
+                    driver: driverCar.driverName || 'Driver',
+                    car: driverCar.carName || 'Unknown Car',
+                    weather: {
+                        temperature: rawData.airTemp ? Math.round(rawData.airTemp * 9/5 + 32) : 0,
+                        trackTemperature: rawData.trackTemp ? Math.round(rawData.trackTemp * 9/5 + 32) : 0,
+                        windSpeed: rawData.windSpeed ? Math.round(rawData.windSpeed * 2.237) : 0,
+                        windDirection: 'N',
+                        humidity: rawData.humidity ? Math.round(rawData.humidity * 100) : 0,
+                        trackGrip: 100
+                    },
+                    totalLaps: rawData.sessionLaps || 0,
+                    sessionTime: validData.sessionTimeMs || 0,
+                    remainingTime: rawData.sessionTimeRemain || 0
+                });
+                
+                // Emit competitor_data for standings
+                if (rawData.standings && rawData.standings.length > 0) {
+                    const competitorData = rawData.standings.map((s: any) => ({
+                        position: s.position || 0,
+                        driver: s.driverName || `Car ${s.carIdx}`,
+                        gap: s.isPlayer ? '—' : '+0.000',
+                        lastLap: s.lastLapTime > 0 ? this.formatLapTime(s.lastLapTime) : '—'
+                    }));
+                    this.io.volatile.emit('competitor_data', competitorData);
+                }
             }
         });
 

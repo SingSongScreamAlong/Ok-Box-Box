@@ -126,7 +126,7 @@ export default function TeamSetups() {
     if (loading) {
         return (
             <div className="p-6 flex items-center justify-center min-h-[400px]">
-                <div className="text-zinc-500">Loading setups...</div>
+                <div className="text-[#0E0E0E]/50">Loading setups...</div>
             </div>
         );
     }
@@ -136,8 +136,8 @@ export default function TeamSetups() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="font-racing text-2xl text-white tracking-wide">Setups</h1>
-                    <p className="text-sm text-zinc-500">Team setup library • {setups.length} setups available</p>
+                    <h1 className="text-sm font-semibold text-[#0E0E0E] uppercase tracking-wider">Setups</h1>
+                    <p className="text-xs text-[#0E0E0E]/50">Team setup library • {setups.length} setups available</p>
                 </div>
                 <button className="btn btn-primary">
                     <Upload size={16} className="mr-2" />
@@ -180,23 +180,23 @@ export default function TeamSetups() {
                                     <div>
                                         <div className="flex items-center gap-2 mb-1">
                                             <Wrench size={14} className="text-racing-blue" />
-                                            <span className="font-medium text-white">{setup.name}</span>
+                                            <span className="font-medium text-[#0E0E0E]">{setup.name}</span>
                                         </div>
-                                        <div className="text-xs text-zinc-500">{setup.car}</div>
+                                        <div className="text-xs text-[#0E0E0E]/50">{setup.car}</div>
                                     </div>
                                     <span className={`text-xs px-2 py-0.5 rounded ${condition.bg} ${condition.text}`}>
                                         {setup.conditions}
                                     </span>
                                 </div>
 
-                                <div className="text-sm text-zinc-400 mb-3">{setup.track}</div>
+                                <div className="text-sm text-[#0E0E0E]/70 mb-3">{setup.track}</div>
 
                                 {setup.notes && (
-                                    <p className="text-xs text-zinc-500 mb-3 italic">"{setup.notes}"</p>
+                                    <p className="text-xs text-[#0E0E0E]/50 mb-3 italic">"{setup.notes}"</p>
                                 )}
 
-                                <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                                    <div className="flex items-center gap-4 text-xs text-zinc-500">
+                                <div className="flex items-center justify-between pt-3 border-t border-[#0E0E0E]/10">
+                                    <div className="flex items-center gap-4 text-xs text-[#0E0E0E]/50">
                                         <span className="flex items-center gap-1">
                                             <User size={12} />
                                             {setup.uploaded_by_name}
@@ -224,7 +224,7 @@ export default function TeamSetups() {
             {filteredSetups.length === 0 && (
                 <div className="card py-12 text-center">
                     <Filter className="mx-auto mb-2 text-zinc-600" size={24} />
-                    <p className="text-zinc-500">No setups found</p>
+                    <p className="text-[#0E0E0E]/50">No setups found</p>
                 </div>
             )}
         </div>

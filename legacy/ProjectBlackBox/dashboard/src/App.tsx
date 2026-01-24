@@ -29,7 +29,23 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="App">
-      <nav className="app-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{
+        backgroundColor: '#ff0000',
+        color: 'white',
+        textAlign: 'center',
+        padding: '10px',
+        fontWeight: 'bold',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 99999,
+        textTransform: 'uppercase',
+        letterSpacing: '1px'
+      }}>
+        LEGACY — REFERENCE ONLY — DO NOT BUILD HERE
+      </div>
+      <nav className="app-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '40px' }}>
         <ul>
           <li><Link to="/">Dashboard</Link></li>
           {/* Dev-only navigation items */}

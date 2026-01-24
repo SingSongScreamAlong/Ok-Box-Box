@@ -145,7 +145,7 @@ export default function TeamPlanning() {
     if (loading) {
         return (
             <div className="p-6 flex items-center justify-center min-h-[400px]">
-                <div className="text-zinc-500">Loading planning...</div>
+                <div className="text-[#0E0E0E]/50">Loading planning...</div>
             </div>
         );
     }
@@ -157,8 +157,8 @@ export default function TeamPlanning() {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <h1 className="font-racing text-2xl text-white tracking-wide">Planning</h1>
-                    <p className="text-sm text-zinc-500">Event scheduling & driver assignments</p>
+                    <h1 className="text-sm font-semibold text-[#0E0E0E] uppercase tracking-wider">Planning</h1>
+                    <p className="text-xs text-[#0E0E0E]/50">Event scheduling & driver assignments</p>
                 </div>
                 <button className="btn btn-primary">
                     <Plus size={16} className="mr-2" />
@@ -177,7 +177,7 @@ export default function TeamPlanning() {
                             </div>
                             <span className="text-xs text-zinc-500">{upcomingEvents.length} scheduled</span>
                         </div>
-                        <div className="divide-y divide-white/5">
+                        <div className="divide-y divide-[#0E0E0E]/10">
                             {upcomingEvents.map(event => {
                                 const type = typeStyles[event.type] || typeStyles.practice;
                                 const isExpanded = expandedEvent === event.id;
@@ -195,12 +195,12 @@ export default function TeamPlanning() {
                                             <div className="flex items-start justify-between">
                                                 <div className="flex-1">
                                                     <div className="flex items-center gap-3 mb-1">
-                                                        <span className="font-medium text-white">{event.name}</span>
+                                                        <span className="font-medium text-[#0E0E0E]">{event.name}</span>
                                                         <span className={`text-xs px-2 py-0.5 rounded ${type.bg} ${type.text}`}>
                                                             {type.label}
                                                         </span>
                                                     </div>
-                                                    <div className="flex items-center gap-4 text-xs text-zinc-500">
+                                                    <div className="flex items-center gap-4 text-xs text-[#0E0E0E]/50">
                                                         <span className="flex items-center gap-1">
                                                             <Flag size={12} />
                                                             {event.track}
@@ -245,13 +245,13 @@ export default function TeamPlanning() {
 
                                         {/* Expanded Detail Panel */}
                                         {isExpanded && (
-                                            <div className="px-4 pb-4 bg-slate-900/50 border-t border-white/5">
+                                            <div className="px-4 pb-4 bg-[#0E0E0E]/5 border-t border-[#0E0E0E]/10">
                                                 <div className="pt-4 space-y-4">
                                                     {/* Notes */}
                                                     {event.notes && (
                                                         <div>
-                                                            <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Notes</div>
-                                                            <p className="text-sm text-zinc-300 bg-slate-800/50 p-3 rounded-lg">
+                                                            <div className="text-xs text-[#0E0E0E]/50 uppercase tracking-wider mb-2">Notes</div>
+                                                            <p className="text-sm text-[#0E0E0E]/80 bg-[#0E0E0E]/5 p-3">
                                                                 {event.notes}
                                                             </p>
                                                         </div>
@@ -259,15 +259,15 @@ export default function TeamPlanning() {
 
                                                     {/* Assigned Drivers */}
                                                     <div>
-                                                        <div className="text-xs text-zinc-500 uppercase tracking-wider mb-2">Assigned Drivers</div>
+                                                        <div className="text-xs text-[#0E0E0E]/50 uppercase tracking-wider mb-2">Assigned Drivers</div>
                                                         <div className="flex flex-wrap gap-2">
                                                             {assignedDrivers.map(driver => (
                                                                 <div
                                                                     key={driver!.driver_id}
-                                                                    className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 rounded-lg"
+                                                                    className="flex items-center gap-2 px-3 py-1.5 bg-[#0E0E0E]/10 border border-[#0E0E0E]/20"
                                                                 >
                                                                     <div className={`w-2 h-2 rounded-full ${driver!.available ? 'bg-racing-green' : 'bg-racing-red'}`} />
-                                                                    <span className="text-sm text-white">{driver!.display_name}</span>
+                                                                    <span className="text-sm text-[#0E0E0E]">{driver!.display_name}</span>
                                                                 </div>
                                                             ))}
                                                             <button className="flex items-center gap-1 px-3 py-1.5 border border-dashed border-zinc-700 rounded-lg text-xs text-zinc-500 hover:border-racing-blue hover:text-racing-blue transition-colors">
@@ -311,12 +311,12 @@ export default function TeamPlanning() {
                             <span className="font-medium text-sm uppercase tracking-wider">Availability</span>
                         </div>
                     </div>
-                    <div className="divide-y divide-white/5">
+                    <div className="divide-y divide-[#0E0E0E]/10">
                         {drivers.map(driver => (
                             <div key={driver.driver_id} className="p-4 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className={`w-2 h-2 rounded-full ${driver.available ? 'bg-racing-green' : 'bg-racing-red'}`} />
-                                    <span className="text-sm text-white">{driver.display_name}</span>
+                                    <span className="text-sm text-[#0E0E0E]">{driver.display_name}</span>
                                 </div>
                                 {driver.notes && (
                                     <span className="text-xs text-zinc-500 flex items-center gap-1">

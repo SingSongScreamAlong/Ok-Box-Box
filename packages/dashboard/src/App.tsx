@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
 import { AppInitializer } from './components/AppInitializer';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -13,21 +13,21 @@ import { IncidentsPage } from './pages/IncidentsPage';
 import { RulebookEditor } from './pages/RulebookEditor';
 import { ReportsPage } from './pages/ReportsPage';
 import { LoginPage } from './pages/LoginPage';
+import { Pricing } from './pages/Pricing';
+import { BillingReturn } from './pages/BillingReturn';
+import AboutBuild from './pages/AboutBuild';
+import { DownloadRelay } from './pages/DownloadRelay';
+import { Broadcast } from './pages/Broadcast';
+import { Watch } from './pages/Watch';
+import { DriverStatusPanel } from './components/DriverStatusPanel';
+import { SurfaceHome } from './pages/SurfaceHome';
+import DiagnosticsPage from './pages/admin/Diagnostics';
 import { EventsPage } from './pages/EventsPage';
 import { EventDetailPage } from './pages/EventDetailPage';
 import { DiscordSettingsPage } from './pages/DiscordSettingsPage';
 import ProtestsPage from './pages/ProtestsPage';
 import AuditLogPage from './pages/AuditLogPage';
 import TeamsPage from './pages/TeamsPage';
-import { TeamDashboard } from './components/team/TeamDashboard';
-import { SurfaceHome } from './pages/SurfaceHome';
-import { Pricing } from './pages/Pricing';
-import { BillingReturn } from './pages/BillingReturn';
-import { DownloadRelay } from './pages/DownloadRelay';
-import DiagnosticsPage from './pages/admin/Diagnostics';
-import { Broadcast } from './pages/Broadcast';
-import { Watch } from './pages/Watch';
-import { DriverHUD } from './components/DriverHUD';
 import { TeamSessionList } from './pages/TeamSessionList';
 import { TeamLayout } from './layouts/TeamLayout';
 import TeamRoster from './pages/team/TeamRoster';
@@ -44,12 +44,13 @@ import TeamSetups from './pages/team/TeamSetups';
 import TeamStrategy from './pages/team/TeamStrategy';
 import TeamPractice from './pages/team/TeamPractice';
 import MyIDPPage from './pages/team/idp/MyIDPPage';
-
-// Wrapper to extract sessionId from URL for TeamDashboard
-function TeamDashboardWrapper() {
-    const { sessionId } = useParams<{ sessionId: string }>();
-    return <TeamDashboard sessionId={sessionId || ''} />;
-}
+import TeamPitwall from './pages/team/TeamPitwall';
+import { CanonicalBuildBadge } from './components/CanonicalBuildBadge';
+import { DriverLayout } from './pages/driver/DriverLayout';
+import { DriverIDPOverviewPage } from './pages/driver/DriverIDPOverviewPage';
+import { DriverSessionsPage } from './pages/driver/DriverSessionsPage';
+import { DriverStatsPage } from './pages/driver/DriverStatsPage';
+import { DriverRatingsPage } from './pages/driver/DriverRatingsPage';
 
 export function App() {
     return (
@@ -57,10 +58,12 @@ export function App() {
             <ToastProvider>
                 <AppInitializer>
                     <BrowserRouter>
+                        <CanonicalBuildBadge />
                         <BootstrapProvider>
                             <Routes>
                                 {/* Public route */}
                                 <Route path="/login" element={<LoginPage />} />
+                                <Route path="/about/build" element={<AboutBuild />} />
 
                                 {/* Pricing (public) */}
                                 <Route path="/pricing" element={<Pricing />} />
@@ -89,14 +92,36 @@ export function App() {
                                 {/* Public Watch Page - no auth required */}
                                 <Route path="/watch/:sessionId" element={<Watch />} />
 
-                                {/* Driver HUD - requires BlackBox */}
+                                {/* Driver Status Panel TEST - no auth for testing */}
+                                <Route path="/driver-test" element={<DriverStatusPanel />} />
+
+                                {/* Session View TEST - no auth for testing */}
+                                <Route path="/session-test" element={<SessionView />} />
+
+
+                                {/* Driver Status Panel - requires BlackBox */}
                                 <Route path="/driver" element={
                                     <ProtectedRoute>
                                         <RequireCapability capability="driver_hud">
-                                            <DriverHUD />
+                                            <DriverStatusPanel />
                                         </RequireCapability>
                                     </ProtectedRoute>
                                 } />
+
+                                {/* Driver System (Phase 2) - Identity Profile */}
+                                <Route path="/driver/*" element={
+                                    <ProtectedRoute>
+                                        <RequireCapability capability="driver_idp">
+                                            <DriverLayout />
+                                        </RequireCapability>
+                                    </ProtectedRoute>
+                                }>
+                                    <Route index element={<DriverIDPOverviewPage />} />
+                                    <Route path="idp" element={<DriverIDPOverviewPage />} />
+                                    <Route path="sessions" element={<DriverSessionsPage />} />
+                                    <Route path="stats" element={<DriverStatsPage />} />
+                                    <Route path="ratings" element={<DriverRatingsPage />} />
+                                </Route>
 
                                 {/* Billing return (after checkout) */}
                                 <Route path="/billing/return" element={
@@ -121,6 +146,15 @@ export function App() {
                                     <ProtectedRoute>
                                         <RequireCapability capability="pitwall_view">
                                             <TeamSessionList />
+                                        </RequireCapability>
+                                    </ProtectedRoute>
+                                } />
+
+                                {/* Canonical Pit Wall Surface */}
+                                <Route path="/team/pitwall" element={
+                                    <ProtectedRoute>
+                                        <RequireCapability capability="pitwall_view">
+                                            <TeamPitwall />
                                         </RequireCapability>
                                     </ProtectedRoute>
                                 } />

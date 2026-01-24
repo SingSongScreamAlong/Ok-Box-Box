@@ -8,9 +8,25 @@ import './App.css';
 function App() {
   return (
     <Router>
+      <div style={{
+        backgroundColor: '#ff0000',
+        color: 'white',
+        textAlign: 'center',
+        padding: '10px',
+        fontWeight: 'bold',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 99999,
+        textTransform: 'uppercase',
+        letterSpacing: '1px'
+      }}>
+        LEGACY — REFERENCE ONLY — DO NOT BUILD HERE
+      </div>
       <div className="app">
         <Header />
-        <main className="main-content">
+        <main className="main-content" style={{ paddingTop: '44px' }}>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/telemetry" element={<TelemetryView />} />

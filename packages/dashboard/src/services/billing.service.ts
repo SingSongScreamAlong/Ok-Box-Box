@@ -56,7 +56,7 @@ export const billingService = {
             // Redirect to Stripe hosted checkout
             window.location.href = session.url;
         } catch (error) {
-            console.error('BillingService Error:', error);
+            console.error('BillingService startCheckout Error:', error instanceof Error ? error.message : error);
             throw error;
         }
     },
@@ -84,7 +84,7 @@ export const billingService = {
             // Redirect to Stripe portal
             window.location.href = session.url;
         } catch (error) {
-            console.error('BillingService Error:', error);
+            console.error('BillingService openCustomerPortal Error:', error instanceof Error ? error.message : error);
             throw error;
         }
     }

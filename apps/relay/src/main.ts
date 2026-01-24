@@ -34,6 +34,7 @@ import {
     setupProtocolHandlers,
     handleLaunchUrl
 } from './protocol-handler';
+import { startUpdateChecker, stopUpdateChecker } from './auto-updater';
 
 
 // ============================================================================
@@ -91,6 +92,9 @@ app.whenReady().then(async () => {
 
     // Auto-start on Windows boot
     setupAutoStart();
+
+    // Start auto-updater
+    startUpdateChecker();
 
     // Initialize auth manager
     authManager = new AuthManager(API_URL);
@@ -206,7 +210,7 @@ async function startRelay(bootstrap: BootstrapResponse) {
     // STEP 3: Start telemetry uplink (ALWAYS, regardless of mode)
     // =========================================================================
     // Pass a provider so bridge can get fresh tokens on reconnect
-    pythonBridge = new PythonBridge(() => authManager.getAccessToken());
+    pythonBridge = new PythonBridge();
     pythonBridge.setBootstrap(bootstrap);
     await pythonBridge.start();
     console.log('📡 Telemetry uplink started');

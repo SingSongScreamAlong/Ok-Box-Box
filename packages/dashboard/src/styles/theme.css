@@ -1,0 +1,55 @@
+:root {
+  --bg: #FFFFFF;
+  --panel: #FFFFFF;
+  --panel2: #F5F5F5;
+  --text: #0E0E0E;
+  --muted: rgba(14, 14, 14, 0.45);
+
+  --accent: #FF7A18;
+  --accent2: #2F5BFF;
+  --danger: #FF1744;
+  --success: #00C853;
+  --warning: #FF7A18;
+
+  --surface-base: var(--bg);
+  --surface-raised: var(--panel);
+  --surface-panel: var(--panel);
+  --surface-inset: var(--panel2);
+  --surface-dark: #0E0E0E;
+
+  --ink-hard: var(--text);
+  --ink-medium: rgba(14, 14, 14, 0.85);
+  --ink-soft: rgba(14, 14, 14, 0.65);
+  --ink-muted: var(--muted);
+
+  --state-active: var(--accent2);
+  --state-warning: var(--accent);
+  --state-success: var(--success);
+  --state-error: var(--danger);
+
+  --border-hard: rgba(0, 0, 0, 0.4);
+  --border-medium: rgba(0, 0, 0, 0.15);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+
+  --font-ui: 'Inter', -apple-system, system-ui, sans-serif;
+  --font-data: 'JetBrains Mono', 'SF Mono', monospace;
+
+  --color-bg-primary: var(--bg);
+  --color-bg-secondary: var(--panel2);
+  --color-bg-tertiary: var(--surface-dark);
+  --color-bg-card: var(--panel);
+  --color-text-primary: var(--text);
+  --color-text-secondary: rgba(14, 14, 14, 0.7);
+  --color-text-muted: rgba(14, 14, 14, 0.4);
+  --color-accent-blue: var(--accent2);
+  --color-accent-orange: var(--accent);
+  --color-status-green: var(--success);
+  --color-status-red: var(--danger);
+  --color-racing-blue: var(--accent2);
+  --color-racing-green: var(--success);
+  --color-racing-yellow: var(--accent);
+  --color-racing-red: #b91c1c;
+  --border-structure: rgba(0, 0, 0, 0.25);
+
+  --white-hard: #ffffff;
+}

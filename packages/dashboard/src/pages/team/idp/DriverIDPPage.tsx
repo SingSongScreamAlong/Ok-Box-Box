@@ -6,15 +6,10 @@ import {
     ChevronLeft,
     Target,
     TrendingUp,
-    MessageSquare,
     CheckCircle2,
     CircleDot,
     XCircle,
-    Zap,
     Plus,
-    Clock,
-    Trophy,
-    Star,
     Flag,
     Users,
     Lock
@@ -111,18 +106,12 @@ const mockTimeline = [
 
 // Status config
 const statusConfig = {
-    achieved: { icon: CheckCircle2, color: 'text-racing-green', bg: 'bg-racing-green/10' },
-    in_progress: { icon: CircleDot, color: 'text-racing-yellow', bg: 'bg-racing-yellow/10' },
+    achieved: { icon: CheckCircle2, color: 'text-zinc-400', bg: 'bg-zinc-500/10' },
+    in_progress: { icon: CircleDot, color: 'text-orange-400', bg: 'bg-orange-500/10' },
     not_started: { icon: CircleDot, color: 'text-zinc-500', bg: 'bg-zinc-500/10' },
-    failed: { icon: XCircle, color: 'text-racing-red', bg: 'bg-racing-red/10' }
+    failed: { icon: XCircle, color: 'text-red-400', bg: 'bg-red-500/10' }
 };
 
-const tierColors = {
-    bronze: 'from-orange-700 to-orange-900',
-    silver: 'from-slate-400 to-slate-600',
-    gold: 'from-yellow-500 to-yellow-700',
-    platinum: 'from-cyan-300 to-cyan-500'
-};
 
 export default function DriverIDPPage() {
     const { teamId, driverId } = useParams<{ teamId: string; driverId: string }>();
@@ -166,7 +155,7 @@ export default function DriverIDPPage() {
     if (loading) {
         return (
             <div className="p-6 flex items-center justify-center min-h-[400px]">
-                <div className="text-zinc-500">Loading IDP...</div>
+                <div className="text-[#0E0E0E]/50">Loading IDP...</div>
             </div>
         );
     }
@@ -175,11 +164,11 @@ export default function DriverIDPPage() {
         <div className="p-6 max-w-7xl mx-auto">
             {/* Teammate view banner - supportive context */}
             {!isOwnIDP && (
-                <div className="mb-4 p-3 rounded-lg bg-racing-blue/10 border border-racing-blue/20 flex items-center gap-3">
-                    <Users size={18} className="text-racing-blue" />
+                <div className="mb-4 p-3 bg-[#0E0E0E]/5 border border-[#0E0E0E]/10 flex items-center gap-3">
+                    <Users size={18} className="text-[#0E0E0E]/50" />
                     <div>
-                        <span className="text-sm text-racing-blue font-medium">Viewing teammate's development journey</span>
-                        <p className="text-xs text-zinc-400">Celebrate their progress and support their growth!</p>
+                        <span className="text-sm text-[#0E0E0E] font-medium">Viewing shared development goals</span>
+                        <p className="text-xs text-[#0E0E0E]/50">Goals marked as shared are visible to team members.</p>
                     </div>
                 </div>
             )}
@@ -189,34 +178,34 @@ export default function DriverIDPPage() {
                 <div>
                     <Link
                         to={`/teams/${teamId}/driver/${driverId}`}
-                        className="inline-flex items-center gap-1 text-sm text-zinc-400 hover:text-white mb-2"
+                        className="inline-flex items-center gap-1 text-sm text-[#0E0E0E]/50 hover:text-[#0E0E0E] mb-2"
                     >
                         <ChevronLeft size={16} />
                         Back to Profile
                     </Link>
-                    <h1 className="font-racing text-3xl text-white tracking-wide">
+                    <h1 className="text-sm font-semibold text-[#0E0E0E] uppercase tracking-wider">
                         {isOwnIDP ? 'Individual Development Plan' : `${mockDriver.display_name}'s Development`}
                     </h1>
-                    <p className="text-zinc-400 mt-1">{mockDriver.display_name} • {mockDriver.irating} iR • {mockDriver.license_class} {mockDriver.safety_rating.toFixed(2)}</p>
+                    <p className="text-[#0E0E0E]/60 mt-1">{mockDriver.display_name} • {mockDriver.irating} iR • {mockDriver.license_class} {mockDriver.safety_rating.toFixed(2)}</p>
                 </div>
                 {/* Add Goal only on own IDP */}
                 {isOwnIDP && (
-                    <button className="btn bg-racing-blue hover:bg-racing-blue/80 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                    <button className="btn btn-secondary flex items-center gap-2">
                         <Plus size={16} />
                         Add Goal
                     </button>
                 )}
             </div>
 
-            {/* Stats Summary */}
-            <div className="grid grid-cols-4 gap-4 mb-6">
+            {/* Stats Summary - Telemetry readouts */}
+            <div className="grid grid-cols-4 gap-px bg-[#0E0E0E] mb-4">
                 <div className="stat-card">
                     <div className="stat-label">Active Goals</div>
-                    <div className="stat-value text-racing-yellow">{visibleActiveTargets.length}</div>
+                    <div className="stat-value">{visibleActiveTargets.length}</div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-label">Completed</div>
-                    <div className="stat-value text-racing-green">{visibleCompletedTargets.length}</div>
+                    <div className="stat-value">{visibleCompletedTargets.length}</div>
                 </div>
                 <div className="stat-card">
                     <div className="stat-label">Achievements</div>
@@ -224,23 +213,20 @@ export default function DriverIDPPage() {
                 </div>
                 <div className="stat-card">
                     <div className="stat-label">Suggestions</div>
-                    <div className="stat-value text-racing-blue">{suggestions.length}</div>
+                    <div className="stat-value">{suggestions.length}</div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Left Column - Goals */}
                 <div className="lg:col-span-2 space-y-6">
                     {/* Active Goals */}
                     <div className="card">
                         <div className="card-header">
-                            <div className="flex items-center gap-2">
-                                <Target size={16} className="text-racing-yellow" />
-                                <span className="font-medium text-sm uppercase tracking-wider">Active Goals</span>
-                            </div>
-                            <span className="text-xs text-zinc-500">{visibleActiveTargets.length} in progress</span>
+                            <span>Active Goals</span>
+                            <span className="text-xs text-zinc-500 font-mono">{visibleActiveTargets.length}</span>
                         </div>
-                        <div className="divide-y divide-white/5">
+                        <div className="divide-y divide-[#0E0E0E]/10">
                             {visibleActiveTargets.map(target => {
                                 const config = statusConfig[target.status];
                                 const StatusIcon = config.icon;
@@ -249,13 +235,13 @@ export default function DriverIDPPage() {
                                 return (
                                     <div key={target.id} className="p-4">
                                         <div className="flex items-start gap-3">
-                                            <div className={`w-8 h-8 rounded-lg ${config.bg} flex items-center justify-center flex-shrink-0`}>
+                                            <div className={`w-7 h-7 ${config.bg} border border-white/10 flex items-center justify-center flex-shrink-0`}>
                                                 <StatusIcon size={16} className={config.color} />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-2">
-                                                        <span className="font-medium text-white">{target.label}</span>
+                                                        <span className="font-medium text-[#0E0E0E]">{target.label}</span>
                                                         {/* Visibility badge */}
                                                         <button
                                                             className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded ${visibilityDisplay.color} hover:opacity-80 transition-opacity`}
@@ -267,22 +253,19 @@ export default function DriverIDPPage() {
                                                     </div>
                                                     <div className="font-mono text-sm">
                                                         <span className={config.color}>{target.current_value}</span>
-                                                        <span className="text-zinc-600"> / </span>
-                                                        <span className="text-zinc-400">{target.target_value}</span>
+                                                        <span className="text-[#0E0E0E]/30"> / </span>
+                                                        <span className="text-[#0E0E0E]/60">{target.target_value}</span>
                                                     </div>
                                                 </div>
-                                                <div className="text-xs text-zinc-500 mt-1">
+                                                <div className="text-xs text-[#0E0E0E]/50 mt-1">
                                                     {target.track && <span>{target.track} • </span>}
                                                     Set by {target.created_by}
                                                     {target.deadline && <span> • Due {target.deadline}</span>}
                                                 </div>
-                                                {/* Progress bar for numeric targets */}
+                                                {/* Progress as text fraction */}
                                                 {typeof target.current_value === 'number' && typeof target.target_value === 'number' && (
-                                                    <div className="mt-2 h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                                                        <div
-                                                            className="h-full bg-racing-yellow rounded-full transition-all"
-                                                            style={{ width: `${Math.min((target.current_value / target.target_value) * 100, 100)}%` }}
-                                                        />
+                                                    <div className="mt-2 text-xs text-[#0E0E0E]/50">
+                                                        Progress: {target.current_value} / {target.target_value}
                                                     </div>
                                                 )}
                                             </div>
@@ -291,28 +274,25 @@ export default function DriverIDPPage() {
                                 );
                             })}
                             {visibleActiveTargets.length === 0 && (
-                                <div className="p-8 text-center text-zinc-500">No active goals</div>
+                                <div className="p-8 text-center text-[#0E0E0E]/50">No active goals</div>
                             )}
                         </div>
                     </div>
 
                     {/* Suggestions from Ok, Box Box */}
                     {suggestions.length > 0 && (
-                        <div className="card border border-racing-blue/20">
-                            <div className="card-header bg-racing-blue/5">
-                                <div className="flex items-center gap-2">
-                                    <Zap size={16} className="text-racing-blue" />
-                                    <span className="font-medium text-sm uppercase tracking-wider">Suggested by Ok, Box Box</span>
-                                </div>
+                        <div className="card">
+                            <div className="card-header">
+                                <span>Suggested Targets</span>
                             </div>
-                            <div className="divide-y divide-white/5">
+                            <div className="divide-y divide-[#0E0E0E]/10">
                                 {suggestions.map(s => (
                                     <div key={s.id} className="p-4">
                                         <div className="flex items-start justify-between gap-4">
                                             <div>
-                                                <div className="font-medium text-white">{s.label}</div>
-                                                <p className="text-sm text-zinc-400 mt-1">{s.rationale}</p>
-                                                <div className="flex items-center gap-3 mt-2 text-xs text-zinc-500">
+                                                <div className="font-medium text-[#0E0E0E]">{s.label}</div>
+                                                <p className="text-sm text-[#0E0E0E]/70 mt-1">{s.rationale}</p>
+                                                <div className="flex items-center gap-3 mt-2 text-xs text-[#0E0E0E]/50">
                                                     {s.track && <span>{s.track}</span>}
                                                     <span>Target: <span className="text-racing-green font-mono">{s.target_value}</span></span>
                                                     {s.estimated_timeline && <span>~{s.estimated_timeline}</span>}
@@ -338,20 +318,20 @@ export default function DriverIDPPage() {
                             </div>
                             <span className="text-xs text-zinc-500">{visibleCompletedTargets.length} achieved</span>
                         </div>
-                        <div className="divide-y divide-white/5">
+                        <div className="divide-y divide-[#0E0E0E]/10">
                             {visibleCompletedTargets.map(target => (
                                 <div key={target.id} className="p-4 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <CheckCircle2 size={16} className="text-racing-green" />
-                                        <span className="text-white">{target.label}</span>
+                                        <span className="text-[#0E0E0E]">{target.label}</span>
                                     </div>
-                                    <div className="text-xs text-zinc-500">
+                                    <div className="text-xs text-[#0E0E0E]/50">
                                         {target.achieved_at && `Achieved ${target.achieved_at}`}
                                     </div>
                                 </div>
                             ))}
                             {visibleCompletedTargets.length === 0 && (
-                                <div className="p-8 text-center text-zinc-500">No completed goals yet</div>
+                                <div className="p-8 text-center text-[#0E0E0E]/50">No completed goals yet</div>
                             )}
                         </div>
                     </div>
@@ -360,11 +340,8 @@ export default function DriverIDPPage() {
                     {isOwnIDP && (
                         <div className="card">
                             <div className="card-header">
-                                <div className="flex items-center gap-2">
-                                    <MessageSquare size={16} className="text-racing-blue" />
-                                    <span className="font-medium text-sm uppercase tracking-wider">Notes & Coaching</span>
-                                </div>
-                                <span className="text-xs text-zinc-500">Private to you</span>
+                                <span>Notes & Coaching</span>
+                                <span className="text-xs text-zinc-500">Private</span>
                             </div>
                             <div className="p-4 border-b border-white/5">
                                 <textarea
@@ -378,7 +355,7 @@ export default function DriverIDPPage() {
                                     <button className="btn btn-sm text-xs py-1.5 px-3 bg-racing-blue hover:bg-racing-blue/80 text-white rounded">Add Note</button>
                                 </div>
                             </div>
-                            <div className="divide-y divide-white/5">
+                            <div className="divide-y divide-[#0E0E0E]/10">
                                 {notes.map(note => (
                                     <div key={note.id} className="p-4">
                                         <div className="flex items-center justify-between mb-1">
@@ -393,51 +370,30 @@ export default function DriverIDPPage() {
                     )}
                 </div>
 
-                {/* Right Column - Timeline & Achievements */}
+                {/* Right Column - Activity Log */}
                 <div className="space-y-6">
-                    {/* Achievements */}
-                    <div className="card">
-                        <div className="card-header">
-                            <div className="flex items-center gap-2">
-                                <Trophy size={16} className="text-racing-yellow" />
-                                <span className="font-medium text-sm uppercase tracking-wider">Achievements</span>
-                            </div>
-                        </div>
-                        <div className="p-4 grid grid-cols-2 gap-3">
-                            {achievements.map(a => (
-                                <div key={a.id} className={`p-3 rounded-lg bg-gradient-to-br ${tierColors[a.tier]} text-center`}>
-                                    <div className="text-2xl mb-1">{a.badge}</div>
-                                    <div className="text-xs font-medium text-white">{a.name}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
                     {/* Activity Timeline */}
                     <div className="card">
                         <div className="card-header">
-                            <div className="flex items-center gap-2">
-                                <Clock size={16} className="text-zinc-400" />
-                                <span className="font-medium text-sm uppercase tracking-wider">Activity</span>
-                            </div>
+                            <span>Activity Log</span>
                         </div>
                         <div className="p-4">
                             <div className="space-y-4">
                                 {mockTimeline.map((item, i) => {
                                     const typeIcons = {
-                                        achievement: <Star size={14} className="text-racing-yellow" />,
-                                        progress: <TrendingUp size={14} className="text-racing-green" />,
-                                        milestone: <Flag size={14} className="text-racing-blue" />,
+                                        achievement: <CheckCircle2 size={14} className="text-zinc-400" />,
+                                        progress: <TrendingUp size={14} className="text-zinc-400" />,
+                                        milestone: <Flag size={14} className="text-zinc-400" />,
                                         target: <Target size={14} className="text-zinc-400" />
                                     };
                                     return (
                                         <div key={i} className="flex gap-3">
-                                            <div className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <div className="w-5 h-5 bg-[#0E0E0E] flex items-center justify-center flex-shrink-0 mt-0.5">
                                                 {typeIcons[item.type as keyof typeof typeIcons]}
                                             </div>
                                             <div>
-                                                <div className="text-sm text-white">{item.event}</div>
-                                                <div className="text-xs text-zinc-500">{item.date}</div>
+                                                <div className="text-sm text-[#0E0E0E]">{item.event}</div>
+                                                <div className="text-xs text-[#0E0E0E]/50">{item.date}</div>
                                             </div>
                                         </div>
                                     );

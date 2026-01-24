@@ -110,7 +110,7 @@ export default function TeamEvents() {
     if (loading) {
         return (
             <div className="p-6 flex items-center justify-center min-h-[400px]">
-                <div className="text-zinc-500">Loading events...</div>
+                <div className="text-[#0E0E0E]/50">Loading events...</div>
             </div>
         );
     }
@@ -123,8 +123,8 @@ export default function TeamEvents() {
             {/* Header */}
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="font-racing text-2xl text-white tracking-wide">Events</h1>
-                    <p className="text-sm text-zinc-500">{events.length} events tracked</p>
+                    <h1 className="text-sm font-semibold text-[#0E0E0E] uppercase tracking-wider">Events</h1>
+                    <p className="text-xs text-[#0E0E0E]/50">{events.length} events tracked</p>
                 </div>
                 <button onClick={() => setShowCreateModal(true)} className="btn btn-primary">
                     <Plus size={16} className="mr-2" />
@@ -150,7 +150,7 @@ export default function TeamEvents() {
                             <div className="card overflow-hidden">
                                 <table className="w-full text-sm">
                                     <thead>
-                                        <tr className="border-b border-white/10 text-zinc-500 text-xs uppercase tracking-wider">
+                                        <tr className="bg-[#0E0E0E] text-white text-[0.6rem] font-semibold uppercase tracking-widest">
                                             <th className="text-left py-3 px-5">Event</th>
                                             <th className="text-left py-3 px-3">Track</th>
                                             <th className="text-left py-3 px-3">Type</th>
@@ -167,19 +167,19 @@ export default function TeamEvents() {
                                                     <td className="py-3 px-5">
                                                         <div className="flex items-center gap-3">
                                                             <TypeIcon size={16} className="text-racing-blue" />
-                                                            <span className="font-medium text-white">{event.event_name}</span>
+                                                            <span className="font-medium text-[#0E0E0E]">{event.event_name}</span>
                                                         </div>
                                                     </td>
-                                                    <td className="py-3 px-3 text-zinc-400">{event.track}</td>
+                                                    <td className="py-3 px-3 text-[#0E0E0E]/70">{event.track}</td>
                                                     <td className="py-3 px-3">
                                                         <span className="badge bg-racing-blue/10 text-racing-blue border border-racing-blue/30 capitalize">
                                                             {event.event_type}
                                                         </span>
                                                     </td>
-                                                    <td className="py-3 px-3 text-right font-mono text-zinc-300">
+                                                    <td className="py-3 px-3 text-right font-mono text-[#0E0E0E]">
                                                         {event.participating_driver_ids.length}
                                                     </td>
-                                                    <td className="py-3 px-5 text-right font-mono text-zinc-400">
+                                                    <td className="py-3 px-5 text-right font-mono text-[#0E0E0E]/70">
                                                         {new Date(event.created_at).toLocaleDateString()}
                                                     </td>
                                                     <td className="py-3 px-3">
@@ -203,7 +203,7 @@ export default function TeamEvents() {
                             <div className="card overflow-hidden">
                                 <table className="w-full text-sm">
                                     <thead>
-                                        <tr className="border-b border-white/10 text-zinc-500 text-xs uppercase tracking-wider">
+                                        <tr className="bg-[#0E0E0E] text-white text-[0.6rem] font-semibold uppercase tracking-widest">
                                             <th className="text-left py-3 px-5">Event</th>
                                             <th className="text-left py-3 px-3">Track</th>
                                             <th className="text-left py-3 px-3">Type</th>
@@ -220,19 +220,19 @@ export default function TeamEvents() {
                                                     <td className="py-3 px-5">
                                                         <div className="flex items-center gap-3">
                                                             <TypeIcon size={16} className="text-zinc-500" />
-                                                            <span className="font-medium text-zinc-300">{event.event_name}</span>
+                                                            <span className="font-medium text-[#0E0E0E]/70">{event.event_name}</span>
                                                         </div>
                                                     </td>
-                                                    <td className="py-3 px-3 text-zinc-500">{event.track}</td>
+                                                    <td className="py-3 px-3 text-[#0E0E0E]/50">{event.track}</td>
                                                     <td className="py-3 px-3">
                                                         <span className="badge bg-zinc-800 text-zinc-400 border border-zinc-700 capitalize">
                                                             {event.event_type}
                                                         </span>
                                                     </td>
-                                                    <td className="py-3 px-3 text-right font-mono text-zinc-500">
+                                                    <td className="py-3 px-3 text-right font-mono text-[#0E0E0E]/50">
                                                         {event.participating_driver_ids.length}
                                                     </td>
-                                                    <td className="py-3 px-5 text-right font-mono text-zinc-500">
+                                                    <td className="py-3 px-5 text-right font-mono text-[#0E0E0E]/50">
                                                         {new Date(event.created_at).toLocaleDateString()}
                                                     </td>
                                                     <td className="py-3 px-3">

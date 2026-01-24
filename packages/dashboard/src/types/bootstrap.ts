@@ -55,6 +55,7 @@ export type BootstrapRole = 'driver' | 'team' | 'racecontrol' | 'admin';
 export interface BootstrapCapabilities {
     // BlackBox - Driver (Live Race Execution)
     driver_hud: boolean;
+    driver_idp: boolean;
     situational_awareness: boolean;  // NOT "ai_coaching"
     voice_engineer: boolean;
     personal_telemetry: boolean;

@@ -8,6 +8,7 @@
 import { Tray, Menu, nativeImage, shell, BrowserWindow, app } from 'electron';
 import * as path from 'path';
 import { AuthManager } from './auth';
+import { manualUpdateCheck } from './auto-updater';
 
 export class TrayManager {
     private tray: Tray;
@@ -89,6 +90,10 @@ export class TrayManager {
             {
                 label: '⚙️ Settings',
                 click: () => this.openSettings()
+            },
+            {
+                label: '🔄 Check for Updates',
+                click: () => manualUpdateCheck()
             },
             {
                 label: '🚪 Sign Out',

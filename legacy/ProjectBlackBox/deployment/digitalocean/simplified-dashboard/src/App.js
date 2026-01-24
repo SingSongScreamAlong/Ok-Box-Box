@@ -78,14 +78,32 @@ function App() {
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <Router>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Dashboard telemetryData={telemetryData} connected={connected} messages={messages} />} />
-            <Route path="telemetry" element={<TelemetryPage telemetryData={telemetryData} />} />
-            <Route path="strategy" element={<StrategyPage telemetryData={telemetryData} messages={messages} />} />
-            <Route path="settings" element={<SettingsPage />} />
-          </Route>
-        </Routes>
+        <div style={{
+          backgroundColor: '#ff0000',
+          color: 'white',
+          textAlign: 'center',
+          padding: '10px',
+          fontWeight: 'bold',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 99999,
+          textTransform: 'uppercase',
+          letterSpacing: '1px'
+        }}>
+          LEGACY — REFERENCE ONLY — DO NOT BUILD HERE
+        </div>
+        <div style={{ paddingTop: '44px' }}>
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route index element={<Dashboard telemetryData={telemetryData} connected={connected} messages={messages} />} />
+              <Route path="telemetry" element={<TelemetryPage telemetryData={telemetryData} />} />
+              <Route path="strategy" element={<StrategyPage telemetryData={telemetryData} messages={messages} />} />
+              <Route path="settings" element={<SettingsPage />} />
+            </Route>
+          </Routes>
+        </div>
       </Router>
     </ThemeProvider>
   );

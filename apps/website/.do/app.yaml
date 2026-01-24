@@ -1,0 +1,11 @@
+name: okboxbox-website
+region: nyc
+static_sites:
+  - name: website
+    source_dir: /apps/website
+    build_command: npm run build
+    output_dir: dist
+    routes:
+      - path: /
+    environment_slug: node-js
+    catchall_document: index.html

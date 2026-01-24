@@ -153,7 +153,7 @@ export default function TeamReports() {
     if (loading) {
         return (
             <div className="p-6 flex items-center justify-center min-h-[400px]">
-                <div className="text-zinc-500">Loading reports...</div>
+                <div className="text-[#0E0E0E]/50">Loading reports...</div>
             </div>
         );
     }
@@ -162,8 +162,8 @@ export default function TeamReports() {
         <div className="p-6 max-w-7xl mx-auto">
             {/* Header */}
             <div className="mb-6">
-                <h1 className="font-racing text-2xl text-white tracking-wide">Team Reports</h1>
-                <p className="text-sm text-zinc-500">Event debriefs and analysis</p>
+                <h1 className="text-sm font-semibold text-[#0E0E0E] uppercase tracking-wider">Team Reports</h1>
+                <p className="text-xs text-[#0E0E0E]/50">Event debriefs and analysis</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -176,7 +176,7 @@ export default function TeamReports() {
                                 <span className="font-medium text-sm uppercase tracking-wider">Debriefs</span>
                             </div>
                         </div>
-                        <div className="divide-y divide-white/5">
+                        <div className="divide-y divide-[#0E0E0E]/10">
                             {events.length === 0 ? (
                                 <div className="py-8 text-center text-zinc-500 text-sm">No events</div>
                             ) : (
@@ -192,10 +192,10 @@ export default function TeamReports() {
                                                 }`}
                                         >
                                             <div>
-                                                <div className={`text-sm font-medium ${isSelected ? 'text-racing-blue' : 'text-white'}`}>
+                                                <div className={`text-sm font-medium ${isSelected ? 'text-racing-blue' : 'text-[#0E0E0E]'}`}>
                                                     {event.event_name}
                                                 </div>
-                                                <div className="text-xs text-zinc-500">{new Date(event.created_at).toLocaleDateString()}</div>
+                                                <div className="text-xs text-[#0E0E0E]/50">{new Date(event.created_at).toLocaleDateString()}</div>
                                             </div>
                                             {hasDebrief && <ChevronRight size={14} className={isSelected ? 'text-racing-blue' : 'text-zinc-600'} />}
                                         </button>
@@ -214,8 +214,8 @@ export default function TeamReports() {
                         <div className="card">
                             <div className="card-header">
                                 <div>
-                                    <div className="font-medium text-white">{selectedDebrief.event_name}</div>
-                                    <div className="text-xs text-zinc-500">Session Analysis</div>
+                                    <div className="font-medium text-[#0E0E0E]">{selectedDebrief.event_name}</div>
+                                    <div className="text-xs text-[#0E0E0E]/50">Session Analysis</div>
                                 </div>
                                 {selectedDebrief.team_summary && (
                                     <span className="badge bg-racing-blue/10 text-racing-blue border border-racing-blue/30">
@@ -227,16 +227,16 @@ export default function TeamReports() {
                             <div className="p-5 space-y-6">
                                 {/* Team Summary */}
                                 {selectedDebrief.team_summary && (
-                                    <div className="p-4 bg-zinc-900/50 rounded-lg border border-white/5">
+                                    <div className="p-4 bg-[#0E0E0E]/5 border border-[#0E0E0E]/10">
                                         <h3 className="text-xs font-medium text-racing-blue uppercase tracking-wider mb-3">Team Summary</h3>
-                                        <p className="text-sm text-zinc-300 mb-4">{selectedDebrief.team_summary.overall_observation}</p>
+                                        <p className="text-sm text-[#0E0E0E]/80 mb-4">{selectedDebrief.team_summary.overall_observation}</p>
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <h4 className="text-xs text-zinc-500 uppercase mb-2">Common Patterns</h4>
+                                                <h4 className="text-xs text-[#0E0E0E]/50 uppercase mb-2">Common Patterns</h4>
                                                 <ul className="space-y-1">
                                                     {selectedDebrief.team_summary.common_patterns.map((p, i) => (
-                                                        <li key={i} className="text-xs text-zinc-400 flex items-start gap-2">
+                                                        <li key={i} className="text-xs text-[#0E0E0E]/70 flex items-start gap-2">
                                                             <span className="text-racing-yellow mt-0.5">•</span>
                                                             {p}
                                                         </li>
@@ -244,7 +244,7 @@ export default function TeamReports() {
                                                 </ul>
                                             </div>
                                             <div>
-                                                <h4 className="text-xs text-zinc-500 uppercase mb-2">Priority Focus</h4>
+                                                <h4 className="text-xs text-[#0E0E0E]/50 uppercase mb-2">Priority Focus</h4>
                                                 <p className="text-xs text-racing-green font-medium">{selectedDebrief.team_summary.priority_focus}</p>
                                             </div>
                                         </div>
@@ -253,22 +253,22 @@ export default function TeamReports() {
 
                                 {/* Driver Summaries */}
                                 <div>
-                                    <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">Driver Analysis</h3>
+                                    <h3 className="text-xs font-medium text-[#0E0E0E]/50 uppercase tracking-wider mb-3">Driver Analysis</h3>
                                     <div className="space-y-3">
                                         {selectedDebrief.driver_summaries.map(d => (
-                                            <div key={d.driver_profile_id} className="p-4 bg-zinc-900/30 rounded-lg border border-white/5">
+                                            <div key={d.driver_profile_id} className="p-4 bg-[#0E0E0E]/5 border border-[#0E0E0E]/10">
                                                 <div className="flex items-center justify-between mb-2">
                                                     <div className="flex items-center gap-2">
-                                                        <div className="w-6 h-6 rounded bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-400">
+                                                        <div className="w-6 h-6 bg-[#0E0E0E] flex items-center justify-center text-xs font-bold text-white">
                                                             {d.display_name.split(' ').map(n => n[0]).join('')}
                                                         </div>
-                                                        <span className="font-medium text-sm text-white">{d.display_name}</span>
+                                                        <span className="font-medium text-sm text-[#0E0E0E]">{d.display_name}</span>
                                                     </div>
                                                     <span className="badge bg-racing-yellow/10 text-racing-yellow border border-racing-yellow/30 text-xs">
                                                         {d.primary_limiter}
                                                     </span>
                                                 </div>
-                                                <p className="text-xs text-zinc-400">{d.headline}</p>
+                                                <p className="text-xs text-[#0E0E0E]/70">{d.headline}</p>
                                             </div>
                                         ))}
                                     </div>
@@ -278,7 +278,7 @@ export default function TeamReports() {
                     ) : (
                         <div className="card p-12 text-center">
                             <FileText className="mx-auto text-zinc-600 mb-2" size={32} />
-                            <p className="text-zinc-500">Select an event to view its debrief</p>
+                            <p className="text-[#0E0E0E]/50">Select an event to view its debrief</p>
                         </div>
                     )}
                 </div>

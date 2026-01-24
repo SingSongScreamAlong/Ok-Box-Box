@@ -6,17 +6,26 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../stores/auth.store';
+
 import './login.css';
+
+// Dev mode bypass - set mock user without server auth
+const DEV_BYPASS_ENABLED = true;
 
 export function LoginPage() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { login, isLoading, error, clearError } = useAuthStore();
+    const { login, setDevUser, isLoading, error, clearError } = useAuthStore();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     const from = (location.state as any)?.from?.pathname || '/';
+
+    const handleDevBypass = () => {
+        setDevUser();
+        navigate(from, { replace: true });
+    };
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -86,6 +95,21 @@ export function LoginPage() {
                             'Sign In'
                         )}
                     </button>
+
+                    {DEV_BYPASS_ENABLED && (
+                        <button
+                            type="button"
+                            className="login-button dev-bypass"
+                            onClick={handleDevBypass}
+                            style={{
+                                marginTop: '12px',
+                                background: 'rgba(168, 85, 247, 0.2)',
+                                border: '1px solid rgba(168, 85, 247, 0.5)',
+                            }}
+                        >
+                            🔧 Dev Bypass (No Auth)
+                        </button>
+                    )}
                 </form>
 
                 <div className="login-footer">
