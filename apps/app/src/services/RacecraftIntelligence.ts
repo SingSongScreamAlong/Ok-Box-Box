@@ -214,7 +214,7 @@ export class RacecraftIntelligence {
    */
   assessIncidentRisk(
     traffic: TrafficContext,
-    telemetry: TelemetryData,
+    _telemetry: TelemetryData,
     mentalTiltLevel: number
   ): IncidentRisk {
     const factors: string[] = [];

@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { useRelay } from '../../hooks/useRelay';
 import { useEngineer, getEngineerRoleColor } from '../../hooks/useEngineer';
+import { useVoice } from '../../hooks/useVoice';
 import { Link } from 'react-router-dom';
 import { 
   Fuel,
@@ -14,7 +15,9 @@ import {
   MessageSquare,
   ChevronRight,
   Video,
-  VideoOff
+  VideoOff,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 
 /**
@@ -38,9 +41,17 @@ export function DriverCockpit() {
     engineerKnowledge,
     loading: engineerLoading 
   } = useEngineer();
+  const { isEnabled: voiceEnabled, toggleVoice, speak } = useVoice();
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const [cameraEnabled, setCameraEnabled] = useState(true);
+
+  // Speak critical messages automatically
+  useEffect(() => {
+    if (voiceEnabled && criticalMessages.length > 0) {
+      criticalMessages.forEach(msg => speak(msg));
+    }
+  }, [voiceEnabled, criticalMessages, speak]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -111,6 +122,15 @@ export function DriverCockpit() {
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Voice Toggle */}
+            <button 
+              onClick={toggleVoice}
+              className={`p-1.5 rounded transition-colors ${voiceEnabled ? 'bg-orange-500/20 text-orange-400' : 'text-white/40 hover:text-white/60'}`}
+              title={voiceEnabled ? 'Voice On' : 'Voice Off'}
+            >
+              {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </button>
+
             {/* Camera Toggle */}
             <button 
               onClick={() => setCameraEnabled(!cameraEnabled)}

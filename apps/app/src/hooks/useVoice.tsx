@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { VoiceService, getVoiceService, type VoiceConfig } from '../services/VoiceService';
+import { getVoiceService } from '../services/VoiceService';
 import type { EngineerMessage } from '../services/EngineerCore';
 
 /**
