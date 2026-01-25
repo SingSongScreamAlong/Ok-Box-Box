@@ -54,23 +54,24 @@ export const TRACK_DATA: Record<string, TrackData> = {
       { number: 3, name: 'Sector 3', startDistance: 3620, endDistance: 5430 }
     ],
     corners: [
-      { number: 1, name: 'Turn 1', type: 'right', apex: { distance: 350, x: 210, y: 300, normalizedDistance: 0.064 }, braking: { distance: 250, x: 180, y: 320 }, exit: { distance: 450, x: 230, y: 260 }, gear: 3, apexSpeed: 110, difficulty: 'hard', notes: 'Heavy braking into tight right' },
-      { number: 2, name: 'Esses', type: 'left-right', apex: { distance: 700, x: 300, y: 180, normalizedDistance: 0.129 }, entry: { distance: 600, x: 260, y: 220 }, exit: { distance: 800, x: 350, y: 150 }, gear: 4, apexSpeed: 145, difficulty: 'medium' },
-      { number: 3, name: 'Inner Loop', type: 'left', apex: { distance: 1100, x: 420, y: 140, normalizedDistance: 0.203 }, braking: { distance: 1000, x: 380, y: 145 }, exit: { distance: 1200, x: 460, y: 140 }, gear: 3, apexSpeed: 95, difficulty: 'hard' },
-      { number: 4, name: 'Outer Loop', type: 'right', apex: { distance: 1400, x: 500, y: 180, normalizedDistance: 0.258 }, entry: { distance: 1300, x: 480, y: 150 }, exit: { distance: 1500, x: 520, y: 220 }, gear: 4, apexSpeed: 130, difficulty: 'medium' },
-      { number: 5, name: 'Boot Entry', type: 'left', apex: { distance: 1850, x: 540, y: 320, normalizedDistance: 0.341 }, braking: { distance: 1750, x: 530, y: 280 }, exit: { distance: 1950, x: 545, y: 360 }, gear: 3, apexSpeed: 100, difficulty: 'hard', notes: 'Entry to The Boot' },
-      { number: 6, name: 'Boot', type: 'right', apex: { distance: 2200, x: 530, y: 420, normalizedDistance: 0.405 }, entry: { distance: 2100, x: 540, y: 380 }, exit: { distance: 2300, x: 510, y: 460 }, gear: 3, apexSpeed: 90, difficulty: 'hard' },
-      { number: 7, name: 'Toe', type: 'left', apex: { distance: 2700, x: 420, y: 495, normalizedDistance: 0.497 }, entry: { distance: 2600, x: 460, y: 490 }, exit: { distance: 2800, x: 380, y: 490 }, gear: 3, apexSpeed: 95, difficulty: 'hard' },
-      { number: 8, name: 'Heel', type: 'right', apex: { distance: 3100, x: 280, y: 460, normalizedDistance: 0.571 }, entry: { distance: 3000, x: 320, y: 480 }, exit: { distance: 3200, x: 240, y: 430 }, gear: 4, apexSpeed: 120, difficulty: 'medium' },
-      { number: 9, name: 'Toe of Boot', type: 'left', apex: { distance: 3500, x: 200, y: 400, normalizedDistance: 0.645 }, entry: { distance: 3400, x: 220, y: 420 }, exit: { distance: 3600, x: 180, y: 370 }, gear: 4, apexSpeed: 130, difficulty: 'medium' },
-      { number: 10, name: 'Carousel', type: 'right', apex: { distance: 4200, x: 150, y: 340, normalizedDistance: 0.774 }, braking: { distance: 4050, x: 170, y: 360 }, exit: { distance: 4350, x: 130, y: 325 }, gear: 3, apexSpeed: 100, difficulty: 'hard', notes: 'Decreasing radius' }
+      { number: 1, name: 'Turn 1', type: 'right', apex: { distance: 350, x: 140, y: 180, normalizedDistance: 0.064 }, braking: { distance: 250, x: 120, y: 200 }, exit: { distance: 450, x: 160, y: 140 }, gear: 3, apexSpeed: 110, difficulty: 'hard', notes: 'Heavy braking into tight right' },
+      { number: 2, name: 'Esses', type: 'left-right', apex: { distance: 700, x: 200, y: 100, normalizedDistance: 0.129 }, entry: { distance: 600, x: 170, y: 130 }, exit: { distance: 800, x: 260, y: 80 }, gear: 4, apexSpeed: 145, difficulty: 'medium' },
+      { number: 3, name: 'Inner Loop', type: 'left', apex: { distance: 1100, x: 320, y: 75, normalizedDistance: 0.203 }, braking: { distance: 1000, x: 280, y: 78 }, exit: { distance: 1200, x: 360, y: 85 }, gear: 3, apexSpeed: 95, difficulty: 'hard' },
+      { number: 4, name: 'Outer Loop', type: 'right', apex: { distance: 1400, x: 390, y: 110, normalizedDistance: 0.258 }, entry: { distance: 1300, x: 370, y: 95 }, exit: { distance: 1500, x: 410, y: 150 }, gear: 4, apexSpeed: 130, difficulty: 'medium' },
+      { number: 5, name: 'Boot Entry', type: 'left', apex: { distance: 1850, x: 420, y: 200, normalizedDistance: 0.341 }, braking: { distance: 1750, x: 415, y: 170 }, exit: { distance: 1950, x: 425, y: 260 }, gear: 3, apexSpeed: 100, difficulty: 'hard', notes: 'Entry to The Boot' },
+      { number: 6, name: 'Boot', type: 'right', apex: { distance: 2200, x: 415, y: 310, normalizedDistance: 0.405 }, entry: { distance: 2100, x: 420, y: 280 }, exit: { distance: 2300, x: 390, y: 345 }, gear: 3, apexSpeed: 90, difficulty: 'hard' },
+      { number: 7, name: 'Toe', type: 'left', apex: { distance: 2700, x: 300, y: 370, normalizedDistance: 0.497 }, entry: { distance: 2600, x: 340, y: 365 }, exit: { distance: 2800, x: 250, y: 360 }, gear: 3, apexSpeed: 95, difficulty: 'hard' },
+      { number: 8, name: 'Heel', type: 'right', apex: { distance: 3100, x: 200, y: 340, normalizedDistance: 0.571 }, entry: { distance: 3000, x: 230, y: 355 }, exit: { distance: 3200, x: 160, y: 300 }, gear: 4, apexSpeed: 120, difficulty: 'medium' },
+      { number: 9, name: 'Chute', type: 'left', apex: { distance: 3500, x: 130, y: 260, normalizedDistance: 0.645 }, entry: { distance: 3400, x: 150, y: 290 }, exit: { distance: 3600, x: 100, y: 230 }, gear: 4, apexSpeed: 130, difficulty: 'medium' },
+      { number: 10, name: 'Carousel', type: 'right', apex: { distance: 4200, x: 60, y: 215, normalizedDistance: 0.774 }, braking: { distance: 4050, x: 80, y: 225 }, exit: { distance: 4350, x: 45, y: 205 }, gear: 3, apexSpeed: 100, difficulty: 'hard', notes: 'Decreasing radius' }
     ],
     svg: {
-      viewBox: '0 0 600 500',
-      // Watkins Glen Boot configuration - accurate trace
-      // Layout: Start/Finish straight (bottom left) → T1 right → Esses up → Inner Loop → 
-      // Back straight → Boot section (right side bulge) → Return through Toe/Heel → Carousel → S/F
-      path: 'M 80,320 L 180,320 Q 200,320 210,300 L 230,260 Q 240,240 260,220 L 300,180 Q 320,160 350,150 L 420,140 Q 460,135 480,150 L 500,180 Q 520,210 530,250 L 540,320 Q 545,380 530,420 L 500,460 Q 470,490 420,495 L 340,490 Q 280,480 240,450 L 200,400 Q 170,360 150,340 L 100,330 Q 85,328 80,320 Z'
+      viewBox: '0 0 500 400',
+      // Watkins Glen International - Boot configuration
+      // Traced from official track map - clockwise direction
+      // S/F straight (left) → T1 (90° right) → Esses (S-curves up) → Inner Loop → 
+      // Back straight → Boot section (distinctive right bulge) → Toe → Heel → Carousel → S/F
+      path: 'M 40,200 L 120,200 L 140,180 L 160,140 L 200,100 L 260,80 L 320,75 L 360,85 L 390,110 L 410,150 L 420,200 L 425,260 L 415,310 L 390,345 L 350,365 L 300,370 L 250,360 L 200,340 L 160,300 L 130,260 L 100,230 L 60,215 L 40,200 Z'
     },
     metadata: {
       direction: 'clockwise',
