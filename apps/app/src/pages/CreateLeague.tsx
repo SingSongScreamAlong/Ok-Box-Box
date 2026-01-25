@@ -37,7 +37,7 @@ export function CreateLeague() {
 
   return (
     <div className="min-h-screen relative">
-      {/* Background video */}
+      {/* Background video - more visible */}
       <div className="fixed inset-0 z-0">
         <video
           ref={videoRef}
@@ -46,11 +46,12 @@ export function CreateLeague() {
           muted
           playsInline
           preload="auto"
-          className="w-full h-full object-cover opacity-90"
+          className="w-full h-full object-cover opacity-70"
         >
           <source src="/videos/bg-1.mp4" type="video/mp4" />
         </video>
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/80 via-[#0e0e0e]/60 to-[#0e0e0e]/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />
       </div>
 
       <div className="relative z-10 max-w-xl mx-auto px-6 py-12">
@@ -67,13 +68,13 @@ export function CreateLeague() {
         </div>
 
         {error && (
-          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-[--surface]/80 backdrop-blur-sm border border-[--border] p-6 space-y-4">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-6 shadow-lg shadow-black/20 space-y-4">
             <div>
               <label className="block text-xs uppercase tracking-wider text-white/50 mb-2">
                 League Name *

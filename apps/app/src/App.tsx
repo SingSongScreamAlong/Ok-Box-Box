@@ -30,6 +30,10 @@ import { PitwallStrategy } from './pages/pitwall/PitwallStrategy';
 import { PitwallPractice } from './pages/pitwall/PitwallPractice';
 import { PitwallRoster } from './pages/pitwall/PitwallRoster';
 import { PitwallPlanning } from './pages/pitwall/PitwallPlanning';
+import { Leagues } from './pages/Leagues';
+import { CreateLeague } from './pages/CreateLeague';
+import { LeagueDashboard } from './pages/LeagueDashboard';
+import { LeagueSettings } from './pages/LeagueSettings';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -113,6 +117,12 @@ function App() {
         <Route path="/team/:teamId/pitwall/practice" element={<ProtectedRoute><PitwallPractice /></ProtectedRoute>} />
         <Route path="/team/:teamId/pitwall/roster" element={<ProtectedRoute><PitwallRoster /></ProtectedRoute>} />
         <Route path="/team/:teamId/pitwall/planning" element={<ProtectedRoute><PitwallPlanning /></ProtectedRoute>} />
+
+        {/* League Tier routes */}
+        <Route path="/leagues" element={<ProtectedRoute><Leagues /></ProtectedRoute>} />
+        <Route path="/create-league" element={<ProtectedRoute><CreateLeague /></ProtectedRoute>} />
+        <Route path="/league/:leagueId" element={<ProtectedRoute><LeagueDashboard /></ProtectedRoute>} />
+        <Route path="/league/:leagueId/settings" element={<ProtectedRoute><LeagueSettings /></ProtectedRoute>} />
 
         {/* Redirects */}
         <Route path="/dashboard" element={<Navigate to="/driver/home" replace />} />

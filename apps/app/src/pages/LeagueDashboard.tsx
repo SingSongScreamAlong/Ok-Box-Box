@@ -66,7 +66,7 @@ export function LeagueDashboard() {
 
   return (
     <div className="min-h-screen relative">
-      {/* Background video */}
+      {/* Background video - more visible */}
       <div className="fixed inset-0 z-0">
         <video
           ref={videoRef}
@@ -75,11 +75,12 @@ export function LeagueDashboard() {
           muted
           playsInline
           preload="auto"
-          className="w-full h-full object-cover opacity-90"
+          className="w-full h-full object-cover opacity-70"
         >
           <source src="/videos/bg-1.mp4" type="video/mp4" />
         </video>
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/80 via-[#0e0e0e]/60 to-[#0e0e0e]/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto px-6 py-12">
@@ -117,10 +118,10 @@ export function LeagueDashboard() {
 
         <div className="grid gap-6">
           {/* Events */}
-          <div className="bg-[--surface]/80 backdrop-blur-sm border border-[--border] p-6">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded p-6 shadow-lg shadow-black/20">
             <div className="flex items-center justify-between mb-4">
               <h2 
-                className="text-xs uppercase tracking-[0.12em] font-semibold text-[#3b82f6]"
+                className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#3b82f6]"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
                 Events
@@ -181,10 +182,10 @@ export function LeagueDashboard() {
           </div>
 
           {/* Members */}
-          <div className="bg-[--surface]/80 backdrop-blur-sm border border-[--border] p-6">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-6 shadow-lg shadow-black/20">
             <div className="flex items-center justify-between mb-4">
               <h2 
-                className="text-xs uppercase tracking-[0.12em] font-semibold text-white"
+                className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/40"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
                 Staff & Admins
@@ -212,7 +213,7 @@ export function LeagueDashboard() {
             {isAdmin && (
               <Link 
                 to={`/league/${leagueId}/settings`} 
-                className="inline-block mt-4 text-xs text-[#3b82f6]/70 hover:text-[#3b82f6] transition-colors"
+                className="inline-block mt-4 text-xs text-white/50 hover:text-white/80 transition-colors"
               >
                 Manage members →
               </Link>
@@ -220,9 +221,9 @@ export function LeagueDashboard() {
           </div>
 
           {/* League Info */}
-          <div className="bg-[--surface]/80 backdrop-blur-sm border border-[--border] p-6">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-6 shadow-lg shadow-black/20">
             <h2 
-              className="text-xs uppercase tracking-[0.12em] font-semibold text-white/50 mb-4"
+              className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/40 mb-4"
               style={{ fontFamily: 'Orbitron, sans-serif' }}
             >
               League Info

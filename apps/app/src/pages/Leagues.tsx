@@ -31,7 +31,7 @@ export function Leagues() {
 
   return (
     <div className="min-h-screen relative">
-      {/* Background video */}
+      {/* Background video - more visible */}
       <div className="fixed inset-0 z-0">
         <video
           ref={videoRef}
@@ -40,11 +40,12 @@ export function Leagues() {
           muted
           playsInline
           preload="auto"
-          className="w-full h-full object-cover opacity-90"
+          className="w-full h-full object-cover opacity-70"
         >
           <source src="/videos/bg-1.mp4" type="video/mp4" />
         </video>
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/80 via-[#0e0e0e]/60 to-[#0e0e0e]/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto px-6 py-12">
@@ -67,11 +68,11 @@ export function Leagues() {
         </div>
 
         {loading ? (
-          <div className="text-white/50">Loading leagues...</div>
+          <div className="text-white/40">Loading leagues...</div>
         ) : leagues.length === 0 ? (
-          <div className="bg-[--surface]/80 backdrop-blur-sm border border-[--border] p-8 text-center">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded p-8 text-center shadow-lg shadow-black/20">
             <Trophy size={48} className="mx-auto mb-4 text-white/20" />
-            <h2 className="text-lg text-white mb-2">No Leagues Yet</h2>
+            <h2 className="text-lg text-white/90 mb-2">No Leagues Yet</h2>
             <p className="text-sm text-white/50 mb-6">
               Create a league to organize races, championships, and special events.
             </p>
@@ -85,12 +86,12 @@ export function Leagues() {
               <Link
                 key={league.id}
                 to={`/league/${league.id}`}
-                className="bg-[--surface]/80 backdrop-blur-sm border border-[--border] p-6 hover:border-[#3b82f6]/50 transition-colors group"
+                className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-6 hover:border-white/20 hover:bg-white/[0.05] transition-all shadow-lg shadow-black/20 group"
               >
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 
-                      className="text-sm uppercase tracking-[0.12em] font-semibold text-white group-hover:text-[#3b82f6] transition-colors"
+                      className="text-sm uppercase tracking-[0.12em] font-semibold text-white/90 group-hover:text-white transition-colors"
                       style={{ fontFamily: 'Orbitron, sans-serif' }}
                     >
                       {league.name}
