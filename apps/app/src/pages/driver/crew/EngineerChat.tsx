@@ -1,8 +1,8 @@
 ﻿import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
-import { TrackDataPanel } from '../../../components/TrackDataPanel';
-import { fetchUpcomingRaces, fetchDriverSessions, UpcomingRace } from '../../../lib/driverService';
+import { EngineerDataPanel } from '../../../components/EngineerDataPanel';
+import { fetchUpcomingRaces, UpcomingRace } from '../../../lib/driverService';
 import { 
   Wrench, Send, ArrowLeft, Calendar, Flag,
   Settings2, Clock, ChevronRight, Loader2,
@@ -172,7 +172,7 @@ export function EngineerChat() {
 
         <div className="flex-1 overflow-y-auto">
           {showTrackData && selectedRace ? (
-            <TrackDataPanel track={selectedRace} />
+            <EngineerDataPanel track={selectedRace} />
           ) : (
             <div className="p-4 space-y-4">
               {messages.map(message => (

@@ -1,8 +1,8 @@
 ﻿import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
-import { TrackDataPanel } from '../../../components/TrackDataPanel';
-import { fetchDriverSessions, DriverSessionSummary } from '../../../lib/driverService';
+import { AnalystDataPanel } from '../../../components/AnalystDataPanel';
+import { fetchDriverSessions } from '../../../lib/driverService';
 import { 
   BarChart3, Send, ArrowLeft, Calendar,
   Settings2, ChevronRight, Loader2,
@@ -194,7 +194,7 @@ export function AnalystChat() {
 
         <div className="flex-1 overflow-y-auto">
           {showTrackData && selectedSession ? (
-            <TrackDataPanel track={selectedSession} />
+            <AnalystDataPanel track={selectedSession} />
           ) : (
             <div className="p-4 space-y-4">
               {messages.map(message => (

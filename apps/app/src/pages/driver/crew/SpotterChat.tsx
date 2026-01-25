@@ -1,7 +1,7 @@
 ﻿import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
-import { TrackDataPanel } from '../../../components/TrackDataPanel';
+import { SpotterDataPanel } from '../../../components/SpotterDataPanel';
 import { fetchUpcomingRaces, UpcomingRace } from '../../../lib/driverService';
 import { 
   Eye, Send, ArrowLeft, Calendar,
@@ -161,7 +161,7 @@ export function SpotterChat() {
 
         <div className="flex-1 overflow-y-auto">
           {showTrackData && selectedRace ? (
-            <TrackDataPanel track={selectedRace} />
+            <SpotterDataPanel track={selectedRace} />
           ) : (
             <div className="p-4 space-y-4">
               {messages.map(message => (
