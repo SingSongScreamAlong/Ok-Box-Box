@@ -16,12 +16,6 @@ interface TrackMapRiveProps {
   className?: string;
 }
 
-const getSectorColor = (delta: number | undefined) => {
-  if (delta === undefined) return '#ffffff20';
-  if (delta < -0.1) return '#22c55e'; // Green - faster
-  if (delta > 0.1) return '#ef4444'; // Red - slower
-  return '#eab308'; // Yellow - neutral
-};
 
 // Get track data from accurate database or use default
 function getTrackSVGData(trackId: string): { viewBox: string; path: string; corners: TrackData['corners'] } {
@@ -45,93 +39,110 @@ function getTrackSVGData(trackId: string): { viewBox: string; path: string; corn
   };
 }
 
-// Fallback SVG-based track map (until .riv files are created)
+// F1-style track map with thick colored track, sector colors, and car positions
 function TrackMapSVG({ 
   trackId, 
   carPosition, 
   currentSector, 
-  sectorDeltas,
   className 
 }: TrackMapRiveProps) {
   const trackData = getTrackSVGData(trackId);
+  const vb = trackData.viewBox.split(' ').map(Number);
+  
+  // Sector colors matching F1 style
+  const sectorColors = {
+    1: '#eab308', // Yellow - Sector 1
+    2: '#22c55e', // Green - Sector 2  
+    3: '#a855f7', // Purple - Sector 3
+  };
+  
+  // Default track color (yellow like F1)
+  const trackColor = currentSector ? sectorColors[currentSector as 1|2|3] : '#eab308';
   
   return (
     <svg 
       viewBox={trackData.viewBox} 
       className={`w-full h-full ${className || ''}`}
       style={{ background: 'transparent' }}
+      preserveAspectRatio="xMidYMid meet"
     >
-      {/* Track outline glow */}
       <defs>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+        {/* Glow filter for track */}
+        <filter id="trackGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="4" result="blur"/>
           <feMerge>
-            <feMergeNode in="coloredBlur"/>
+            <feMergeNode in="blur"/>
             <feMergeNode in="SourceGraphic"/>
           </feMerge>
         </filter>
-        <linearGradient id="trackGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#f97316" stopOpacity="0.3"/>
-          <stop offset="100%" stopColor="#f97316" stopOpacity="0.1"/>
-        </linearGradient>
+        {/* Glow for car marker */}
+        <filter id="carGlow" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
       </defs>
       
-      {/* Base track */}
+      {/* Track shadow/outline */}
       <path 
         d={trackData.path} 
         fill="none" 
-        stroke="#ffffff10" 
-        strokeWidth="20"
+        stroke="#000000" 
+        strokeWidth="18"
         strokeLinecap="round"
         strokeLinejoin="round"
+        opacity="0.5"
       />
       
-      {/* Main track path with sector coloring */}
+      {/* Main track - thick yellow/colored line like F1 */}
       <path 
         d={trackData.path} 
         fill="none" 
-        stroke={currentSector === 1 ? '#f97316' : currentSector === 2 ? '#3b82f6' : currentSector === 3 ? '#8b5cf6' : '#ffffff60'}
-        strokeWidth="6"
+        stroke={trackColor}
+        strokeWidth="12"
         strokeLinecap="round"
         strokeLinejoin="round"
-        filter={currentSector ? 'url(#glow)' : undefined}
+        filter="url(#trackGlow)"
       />
       
-      {/* Track center line */}
+      {/* Track edge highlights */}
       <path 
         d={trackData.path} 
         fill="none" 
-        stroke="#ffffff30" 
-        strokeWidth="2"
+        stroke="#ffffff"
+        strokeWidth="14"
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeDasharray="8,8"
+        opacity="0.1"
       />
       
-      {/* Corner markers */}
-      {trackData.corners.slice(0, 8).map((corner) => {
-        // Parse viewBox to scale corner positions
-        const vb = trackData.viewBox.split(' ').map(Number);
-        const scaleX = vb[2] / 1300; // Normalize to viewBox
-        const scaleY = vb[3] / 900;
-        const cx = corner.apex.x * scaleX;
-        const cy = (corner.apex.y + 800) * scaleY; // Offset for negative Y values
+      {/* Corner number markers */}
+      {trackData.corners.map((corner) => {
+        const cx = corner.apex.x;
+        const cy = corner.apex.y;
         
         return (
-          <g key={corner.number} transform={`translate(${cx}, ${cy})`}>
+          <g key={corner.number}>
+            {/* Corner marker circle */}
             <circle 
-              r="12" 
-              fill={corner.difficulty === 'hard' ? '#ef4444' : corner.difficulty === 'medium' ? '#eab308' : '#22c55e'} 
-              fillOpacity="0.3"
-              stroke={corner.difficulty === 'hard' ? '#ef4444' : corner.difficulty === 'medium' ? '#eab308' : '#22c55e'}
-              strokeWidth="1"
+              cx={cx}
+              cy={cy}
+              r="14" 
+              fill="#1a1a2e"
+              stroke={corner.difficulty === 'hard' ? '#ef4444' : corner.difficulty === 'medium' ? '#f97316' : '#22c55e'}
+              strokeWidth="2"
             />
+            {/* Corner number */}
             <text 
-              y="4" 
+              x={cx}
+              y={cy + 4}
               fill="#ffffff" 
-              fontSize="10" 
+              fontSize="11" 
               textAnchor="middle"
               fontWeight="bold"
+              fontFamily="Arial, sans-serif"
             >
               {corner.number}
             </text>
@@ -139,19 +150,33 @@ function TrackMapSVG({
         );
       })}
       
+      {/* Sector labels */}
+      <g>
+        <text x={vb[2] * 0.25} y={vb[3] * 0.15} fill="#eab308" fontSize="12" fontWeight="bold" opacity="0.7">SECTOR 1</text>
+        <text x={vb[2] * 0.7} y={vb[3] * 0.4} fill="#22c55e" fontSize="12" fontWeight="bold" opacity="0.7">SECTOR 2</text>
+        <text x={vb[2] * 0.4} y={vb[3] * 0.85} fill="#a855f7" fontSize="12" fontWeight="bold" opacity="0.7">SECTOR 3</text>
+      </g>
+      
+      {/* Start/Finish line */}
+      <g transform={`translate(${vb[2] * 0.08}, ${vb[3] * 0.45})`}>
+        <rect x="0" y="0" width="20" height="3" fill="#ffffff"/>
+        <rect x="0" y="5" width="20" height="3" fill="#000000"/>
+        <rect x="0" y="10" width="20" height="3" fill="#ffffff"/>
+      </g>
+      
       {/* Car position indicator */}
       {carPosition && (
-        <g transform={`translate(${carPosition.x * parseFloat(trackData.viewBox.split(' ')[2])}, ${carPosition.y * parseFloat(trackData.viewBox.split(' ')[3])})`}>
-          <circle r="10" fill="#f97316" filter="url(#glow)">
-            <animate attributeName="r" values="8;12;8" dur="1s" repeatCount="indefinite"/>
+        <g transform={`translate(${carPosition.x * vb[2]}, ${carPosition.y * vb[3]})`}>
+          {/* Outer glow */}
+          <circle r="12" fill="#00d4ff" opacity="0.3" filter="url(#carGlow)">
+            <animate attributeName="r" values="10;14;10" dur="1.5s" repeatCount="indefinite"/>
           </circle>
-          <circle r="5" fill="#ffffff"/>
+          {/* Car dot */}
+          <circle r="8" fill="#00d4ff" stroke="#ffffff" strokeWidth="2"/>
+          {/* Inner highlight */}
+          <circle r="3" fill="#ffffff" opacity="0.8"/>
         </g>
       )}
-      
-      {/* Start/Finish marker */}
-      <rect x="95" y="440" width="15" height="4" fill="#ffffff" rx="1"/>
-      <rect x="95" y="446" width="15" height="4" fill="#000000" rx="1"/>
     </svg>
   );
 }
