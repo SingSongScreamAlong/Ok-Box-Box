@@ -121,7 +121,7 @@ export function TrackMap({
             <svg
                 viewBox={viewBox}
                 className="w-full h-full overflow-visible"
-                style={{ transform: 'scale(1, -1)' }} // Invert Y axis for standard cartesian maps
+                style={{ transform: 'scale(-1, -1)' }} // Flip both axes to match standard track map orientation
             >
                 {/* Track Outline (Shadow) */}
                 <path
