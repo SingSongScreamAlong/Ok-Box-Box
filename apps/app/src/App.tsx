@@ -8,11 +8,7 @@ import { Signup } from './pages/auth/Signup';
 import { ForgotPassword } from './pages/auth/ForgotPassword';
 import { ResetPassword } from './pages/auth/ResetPassword';
 import { AuthCallback } from './pages/auth/AuthCallback';
-import { DriverHome } from './pages/driver/DriverHome';
 import { DriverCockpit } from './pages/driver/DriverCockpit';
-import { DriverBlackBox } from './pages/driver/DriverBlackBox';
-import { DriverPitwall } from './pages/driver/DriverPitwall';
-import { DriverPitwallAdvanced } from './pages/driver/DriverPitwallAdvanced';
 import { DriverSessions } from './pages/driver/DriverSessions';
 import { DriverStats } from './pages/driver/DriverStats';
 import { DriverRatings } from './pages/driver/DriverRatings';
@@ -92,19 +88,15 @@ function App() {
           <Route index element={<DriverCockpit />} />
           <Route path="home" element={<DriverCockpit />} />
           <Route path="cockpit" element={<DriverCockpit />} />
-          <Route path="blackbox" element={<DriverBlackBox />} />
-          <Route path="pitwall" element={<DriverPitwall />} />
-          <Route path="pitwall/advanced" element={<DriverPitwallAdvanced />} />
           <Route path="sessions" element={<DriverSessions />} />
           <Route path="stats" element={<DriverStats />} />
           <Route path="ratings" element={<DriverRatings />} />
-          <Route path="hud" element={<DriverHUD />} />
-          <Route path="voice" element={<DriverVoice />} />
           <Route path="profile" element={<DriverProfilePage />} />
           <Route path="crew/engineer" element={<EngineerChat />} />
           <Route path="crew/spotter" element={<SpotterChat />} />
           <Route path="crew/analyst" element={<AnalystChat />} />
-          <Route path="planning" element={<DriverHome />} />
+          <Route path="settings/hud" element={<DriverHUD />} />
+          <Route path="settings/voice" element={<DriverVoice />} />
         </Route>
 
         {/* Settings & Profile Creation (outside driver layout) */}
