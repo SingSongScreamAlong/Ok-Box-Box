@@ -228,107 +228,130 @@ export function DriverCockpit() {
         {/* LIVE SESSION - The Core Experience */}
         {/* ============================================ */}
         {isLive && (
-          <div className="space-y-5">
+          <div className="space-y-4">
             
-            {/* PRIMARY FOCUS CARD - The largest, most important element */}
-            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Target className="w-6 h-6 text-orange-400" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-[10px] uppercase tracking-wider text-orange-400 mb-2">Current Focus</div>
-                  <div className="text-xl font-medium leading-relaxed">
-                    {currentFocus?.content || driverAssessment || 'Drive your line. Build rhythm.'}
+            {/* PRIMARY FOCUS CARD - Hero element with gradient border */}
+            <div className="relative group">
+              <div className="absolute -inset-[1px] bg-gradient-to-r from-orange-500/50 via-orange-500/20 to-transparent rounded-2xl" />
+              <div className="relative bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl rounded-2xl p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-14 h-14 bg-gradient-to-br from-orange-500/30 to-orange-600/10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-orange-500/10">
+                    <Target className="w-7 h-7 text-orange-400" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="text-[10px] uppercase tracking-wider text-orange-400/80 mb-2 font-medium">Current Focus</div>
+                    <div className="text-xl font-medium leading-relaxed text-white/90">
+                      {currentFocus?.content || driverAssessment || 'Drive your line. Build rhythm.'}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* EXECUTION STATUS + DELTA */}
-            <div className={`backdrop-blur-xl border rounded-xl p-4 ${execution.bg}`}>
+            {/* EXECUTION STATUS + DELTA - With glow effect */}
+            <div className={`relative overflow-hidden backdrop-blur-xl rounded-xl p-4 ${
+              executionStatus === 'improving' ? 'bg-gradient-to-r from-green-500/20 to-green-500/5 border border-green-500/30 shadow-lg shadow-green-500/10' :
+              executionStatus === 'regressing' ? 'bg-gradient-to-r from-red-500/20 to-red-500/5 border border-red-500/30 shadow-lg shadow-red-500/10' :
+              executionStatus === 'holding' ? 'bg-gradient-to-r from-yellow-500/20 to-yellow-500/5 border border-yellow-500/30' :
+              'bg-white/[0.03] border border-white/10'
+            }`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <ExecutionIcon className={`w-5 h-5 ${execution.color}`} />
-                  <span className={`font-medium ${execution.color}`}>{execution.label}</span>
+                  <span className={`font-semibold ${execution.color}`}>{execution.label}</span>
                 </div>
                 {telemetry.delta !== null && (
-                  <span className={`text-2xl font-mono font-bold ${telemetry.delta < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                  <span className={`text-3xl font-mono font-bold tracking-tight ${telemetry.delta < 0 ? 'text-green-400' : 'text-red-400'}`}>
                     {telemetry.delta > 0 ? '+' : ''}{telemetry.delta.toFixed(3)}s
                   </span>
                 )}
               </div>
             </div>
 
-            {/* TELEMETRY GRID - Styled like pitwall */}
+            {/* TELEMETRY GRID - Glass cards with depth */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {/* Position */}
-              <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl p-4">
-                <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Position</div>
-                <div className="text-3xl font-bold font-mono">P{telemetry.position ?? '--'}</div>
+              {/* Position - Highlighted */}
+              <div className="bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-xl p-4 hover:border-white/20 transition-colors">
+                <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Position</div>
+                <div className="text-4xl font-bold font-mono tracking-tight">P{telemetry.position ?? '--'}</div>
               </div>
 
               {/* Lap */}
-              <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl p-4">
-                <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Lap</div>
-                <div className="text-3xl font-bold font-mono">{telemetry.lap ?? '--'}</div>
+              <div className="bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-xl p-4 hover:border-white/20 transition-colors">
+                <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Lap</div>
+                <div className="text-4xl font-bold font-mono tracking-tight">{telemetry.lap ?? '--'}</div>
               </div>
 
               {/* Last Lap */}
-              <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl p-4">
-                <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1 flex items-center gap-1">
+              <div className="bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-xl p-4 hover:border-white/20 transition-colors">
+                <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2 flex items-center gap-1.5">
                   <Clock className="w-3 h-3" /> Last Lap
                 </div>
-                <div className="text-xl font-mono font-bold">{formatTime(telemetry.lastLap)}</div>
+                <div className="text-2xl font-mono font-bold tracking-tight">{formatTime(telemetry.lastLap)}</div>
               </div>
 
-              {/* Best Lap */}
-              <div className="bg-purple-500/10 backdrop-blur-xl border border-purple-500/30 rounded-xl p-4">
-                <div className="text-[10px] uppercase tracking-wider text-purple-400 mb-1">Best Lap</div>
-                <div className="text-xl font-mono font-bold text-purple-400">{formatTime(telemetry.bestLap)}</div>
+              {/* Best Lap - Purple accent */}
+              <div className="bg-gradient-to-br from-purple-500/20 to-purple-500/5 backdrop-blur-xl border border-purple-500/30 rounded-xl p-4 shadow-lg shadow-purple-500/10">
+                <div className="text-[10px] uppercase tracking-wider text-purple-400 mb-2 font-medium">Best Lap</div>
+                <div className="text-2xl font-mono font-bold text-purple-300 tracking-tight">{formatTime(telemetry.bestLap)}</div>
               </div>
             </div>
 
-            {/* SPEED + FUEL ROW */}
+            {/* SPEED + FUEL ROW - Larger cards */}
             <div className="grid grid-cols-2 gap-3">
-              {/* Speed */}
-              <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl p-4">
-                <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1 flex items-center gap-1">
+              {/* Speed - Big number emphasis */}
+              <div className="bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-xl p-5">
+                <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2 flex items-center gap-1.5">
                   <Gauge className="w-3 h-3" /> Speed
                 </div>
-                <div className="text-4xl font-bold font-mono">
-                  {telemetry.speed !== null ? Math.round(telemetry.speed) : '--'}
-                  <span className="text-lg text-white/40 ml-1">mph</span>
+                <div className="flex items-baseline">
+                  <span className="text-5xl font-bold font-mono tracking-tighter">
+                    {telemetry.speed !== null ? Math.round(telemetry.speed) : '--'}
+                  </span>
+                  <span className="text-xl text-white/30 ml-2">mph</span>
                 </div>
               </div>
 
-              {/* Fuel */}
-              <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="text-[10px] uppercase tracking-wider text-white/40 flex items-center gap-1">
-                    <Fuel className="w-3 h-3" /> Fuel Level
+              {/* Fuel - With progress indicator */}
+              <div className="bg-gradient-to-br from-white/[0.06] to-white/[0.02] backdrop-blur-xl border border-white/10 rounded-xl p-5">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-[10px] uppercase tracking-wider text-white/40 flex items-center gap-1.5">
+                    <Fuel className="w-3 h-3" /> Fuel
                   </div>
-                  <div className={`text-xs ${
+                  <div className={`text-xs font-medium ${
                     telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-white/50'
                   }`}>
-                    {telemetry.lapsRemaining ?? '--'} laps remaining
+                    {telemetry.lapsRemaining ?? '--'} laps
                   </div>
                 </div>
-                <div className="text-3xl font-bold font-mono">
-                  {telemetry.fuel !== null ? telemetry.fuel.toFixed(1) : '--'}
-                  <span className="text-lg text-white/40 ml-1">L</span>
+                <div className="flex items-baseline">
+                  <span className="text-4xl font-bold font-mono tracking-tighter">
+                    {telemetry.fuel !== null ? telemetry.fuel.toFixed(1) : '--'}
+                  </span>
+                  <span className="text-lg text-white/30 ml-2">L</span>
+                </div>
+                {/* Fuel bar */}
+                <div className="mt-3 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full transition-all ${
+                      telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 
+                        ? 'bg-gradient-to-r from-red-500 to-red-400' 
+                        : 'bg-gradient-to-r from-green-500 to-emerald-400'
+                    }`}
+                    style={{ width: `${telemetry.fuel ? Math.min(100, (telemetry.fuel / 20) * 100) : 0}%` }}
+                  />
                 </div>
               </div>
             </div>
 
-            {/* ENGINEER VOICE - Recent messages (non-critical) */}
+            {/* ENGINEER VOICE - Subtle card */}
             {messages.filter(m => m.urgency !== 'critical').length > 0 && (
-              <div className="space-y-2">
-                <div className="text-[10px] uppercase tracking-wider text-white/30 px-1">Engineer</div>
+              <div className="space-y-2 pt-2">
+                <div className="text-[10px] uppercase tracking-wider text-white/30 px-1 font-medium">Engineer</div>
                 {messages.filter(m => m.urgency !== 'critical').slice(0, 2).map(msg => (
                   <div 
                     key={msg.id}
-                    className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl px-4 py-3 text-white/70"
+                    className="bg-gradient-to-r from-white/[0.04] to-transparent backdrop-blur-xl border-l-2 border-orange-500/50 rounded-r-lg px-4 py-3 text-white/70"
                   >
                     {msg.content}
                   </div>
