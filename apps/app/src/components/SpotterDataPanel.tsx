@@ -151,17 +151,17 @@ export function SpotterDataPanel({ track }: SpotterDataPanelProps) {
   return (
     <div className="space-y-4 p-4">
       {/* Spotter Header */}
-      <div className="bg-[#3b82f6]/10 border border-[#3b82f6]/30 p-4">
+      <div className="bg-white/[0.03] border border-white/[0.12] rounded p-4 shadow-lg shadow-black/20">
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Eye className="w-4 h-4 text-[#3b82f6]" />
-              <span className="text-[10px] uppercase tracking-wider text-[#3b82f6]">Spotter's Briefing</span>
+              <Eye className="w-3.5 h-3.5 text-[#3b82f6]" />
+              <span className="text-[10px] uppercase tracking-[0.15em] text-[#3b82f6]">Spotter's Briefing</span>
             </div>
-            <h2 className="text-lg font-bold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+            <h2 className="text-lg font-bold uppercase tracking-wider text-white/90" style={{ fontFamily: 'Orbitron, sans-serif' }}>
               {track.track}
             </h2>
-            <div className="flex items-center gap-4 mt-1 text-xs text-white/50">
+            <div className="flex items-center gap-4 mt-1 text-xs text-white/40">
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{metadata.country}</span>
               <span>{metadata.length}</span>
             </div>
@@ -177,9 +177,9 @@ export function SpotterDataPanel({ track }: SpotterDataPanelProps) {
       </div>
 
       {/* Track Map with Danger Zones */}
-      <div className="bg-black/40 border border-white/10 p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Eye className="w-4 h-4 text-[#3b82f6]" />
+      <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
+        <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+          <Eye className="w-3 h-3" />
           Track Overview - Danger Zones
         </h3>
         <div className="h-48 relative">
@@ -199,7 +199,7 @@ export function SpotterDataPanel({ track }: SpotterDataPanelProps) {
       </div>
 
       {/* Turn 1 Risk Assessment */}
-      <div className={`border p-4 ${getRiskColor(metadata.turn1Risk)}`}>
+      <div className={`border rounded p-4 shadow-lg shadow-black/20 ${getRiskColor(metadata.turn1Risk)}`}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <AlertTriangle className="w-6 h-6" />
@@ -219,15 +219,15 @@ export function SpotterDataPanel({ track }: SpotterDataPanelProps) {
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Race Start Tips */}
-        <div className="bg-black/40 border border-[#3b82f6]/20 p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
-            <Zap className="w-4 h-4 text-[#3b82f6]" />
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
+          <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+            <Zap className="w-3 h-3" />
             Race Start Plan
           </h3>
           <ul className="space-y-2">
             {metadata.startTips.map((tip, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-white/70">
-                <span className="text-[#3b82f6] mt-0.5">▸</span>
+              <li key={i} className="flex items-start gap-2 text-xs text-white/60">
+                <span className="text-white/30 mt-0.5">▸</span>
                 {tip}
               </li>
             ))}
@@ -235,15 +235,15 @@ export function SpotterDataPanel({ track }: SpotterDataPanelProps) {
         </div>
 
         {/* Traffic Management */}
-        <div className="bg-black/40 border border-[#3b82f6]/20 p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
-            <Car className="w-4 h-4 text-[#3b82f6]" />
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
+          <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+            <Car className="w-3 h-3" />
             Traffic Management
           </h3>
           <ul className="space-y-2">
             {metadata.trafficTips.map((tip, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-white/70">
-                <span className="text-[#3b82f6] mt-0.5">▸</span>
+              <li key={i} className="flex items-start gap-2 text-xs text-white/60">
+                <span className="text-white/30 mt-0.5">▸</span>
                 {tip}
               </li>
             ))}
@@ -252,14 +252,14 @@ export function SpotterDataPanel({ track }: SpotterDataPanelProps) {
       </div>
 
       {/* Passing Zones */}
-      <div className="bg-black/40 border border-white/10 p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Target className="w-4 h-4 text-green-400" />
+      <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
+        <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+          <Target className="w-3 h-3 text-emerald-400" />
           Safe Passing Zones
         </h3>
         <div className="flex flex-wrap gap-2">
           {metadata.passingZones.map((zone, i) => (
-            <span key={i} className="px-3 py-1 bg-green-500/10 border border-green-500/30 text-xs text-green-400">
+            <span key={i} className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded text-xs text-emerald-400">
               {zone}
             </span>
           ))}
@@ -267,9 +267,9 @@ export function SpotterDataPanel({ track }: SpotterDataPanelProps) {
       </div>
 
       {/* Danger Zones */}
-      <div className="bg-black/40 border border-white/10 p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Shield className="w-4 h-4 text-red-400" />
+      <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
+        <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+          <Shield className="w-3 h-3 text-red-400" />
           Danger Zones - Avoid Battles Here
         </h3>
         <div className="space-y-2">
@@ -284,26 +284,26 @@ export function SpotterDataPanel({ track }: SpotterDataPanelProps) {
 
       {/* Field Info */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-black/40 border border-white/10 p-3 text-center">
-          <Users className="w-4 h-4 text-white/40 mx-auto mb-1" />
-          <div className="text-lg font-bold">{expectedField}</div>
-          <div className="text-[10px] text-white/40">Field Size</div>
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
+          <Users className="w-3.5 h-3.5 text-white/30 mx-auto mb-1" />
+          <div className="text-base font-bold text-white/80">{expectedField}</div>
+          <div className="text-[10px] text-white/30">Field Size</div>
         </div>
-        <div className="bg-black/40 border border-white/10 p-3 text-center">
-          <Flag className="w-4 h-4 text-white/40 mx-auto mb-1" />
-          <div className="text-lg font-bold">{track.laps}</div>
-          <div className="text-[10px] text-white/40">Laps</div>
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
+          <Flag className="w-3.5 h-3.5 text-white/30 mx-auto mb-1" />
+          <div className="text-base font-bold text-white/80">{track.laps}</div>
+          <div className="text-[10px] text-white/30">Laps</div>
         </div>
-        <div className="bg-black/40 border border-white/10 p-3 text-center">
-          <Car className="w-4 h-4 text-white/40 mx-auto mb-1" />
-          <div className="text-lg font-bold">~{Math.floor(track.laps / 3)}</div>
-          <div className="text-[10px] text-white/40">Traffic Laps</div>
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
+          <Car className="w-3.5 h-3.5 text-white/30 mx-auto mb-1" />
+          <div className="text-base font-bold text-white/80">~{Math.floor(track.laps / 3)}</div>
+          <div className="text-[10px] text-white/30">Traffic Laps</div>
         </div>
       </div>
 
       {/* Your Incident History */}
       {trackData && trackData.history.length > 0 && (
-        <div className="bg-black/40 border border-white/10 p-4">
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
           <h3 className="text-xs font-semibold uppercase tracking-wider mb-2">Your Incident History Here</h3>
           <div className="flex items-center gap-4 text-sm">
             {trackData.history.slice(0, 3).map((session, i) => (

@@ -136,17 +136,17 @@ export function AnalystDataPanel({ track }: AnalystDataPanelProps) {
   return (
     <div className="space-y-4 p-4">
       {/* Analyst Header */}
-      <div className="bg-[#8b5cf6]/10 border border-[#8b5cf6]/30 p-4">
+      <div className="bg-white/[0.03] border border-white/[0.12] rounded p-4 shadow-lg shadow-black/20">
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <BarChart3 className="w-4 h-4 text-[#8b5cf6]" />
-              <span className="text-[10px] uppercase tracking-wider text-[#8b5cf6]">Performance Analysis</span>
+              <BarChart3 className="w-3.5 h-3.5 text-[#8b5cf6]" />
+              <span className="text-[10px] uppercase tracking-[0.15em] text-[#8b5cf6]">Performance Analysis</span>
             </div>
-            <h2 className="text-lg font-bold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+            <h2 className="text-lg font-bold uppercase tracking-wider text-white/90" style={{ fontFamily: 'Orbitron, sans-serif' }}>
               {track.track}
             </h2>
-            <div className="flex items-center gap-4 mt-1 text-xs text-white/50">
+            <div className="flex items-center gap-4 mt-1 text-xs text-white/40">
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{metadata.country}</span>
               <span>{metadata.length}</span>
               <span>{track.series}</span>
@@ -166,9 +166,9 @@ export function AnalystDataPanel({ track }: AnalystDataPanelProps) {
       </div>
 
       {/* Track Map with Sector Analysis */}
-      <div className="bg-black/40 border border-white/10 p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Target className="w-4 h-4 text-[#8b5cf6]" />
+      <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
+        <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+          <Target className="w-3 h-3" />
           Sector Performance
         </h3>
         <div className="h-48 relative">
@@ -191,42 +191,42 @@ export function AnalystDataPanel({ track }: AnalystDataPanelProps) {
       {/* Performance Metrics */}
       {(track.bestLap || track.consistency || track.incidents !== undefined) && (
         <div className="grid grid-cols-4 gap-3">
-          <div className="bg-black/40 border border-[#8b5cf6]/20 p-3 text-center">
-            <Clock className="w-4 h-4 text-[#8b5cf6] mx-auto mb-1" />
-            <div className="text-lg font-mono font-bold">{track.bestLap || '--:--.---'}</div>
-            <div className="text-[10px] text-white/40">Best Lap</div>
+          <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
+            <Clock className="w-3.5 h-3.5 text-white/30 mx-auto mb-1" />
+            <div className="text-base font-mono font-bold text-white/80">{track.bestLap || '--:--.---'}</div>
+            <div className="text-[10px] text-white/30">Best Lap</div>
           </div>
-          <div className="bg-black/40 border border-[#8b5cf6]/20 p-3 text-center">
-            <Activity className="w-4 h-4 text-[#8b5cf6] mx-auto mb-1" />
-            <div className="text-lg font-bold">{track.consistency || 85}%</div>
-            <div className="text-[10px] text-white/40">Consistency</div>
+          <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
+            <Activity className="w-3.5 h-3.5 text-white/30 mx-auto mb-1" />
+            <div className="text-base font-bold text-white/80">{track.consistency || 85}%</div>
+            <div className="text-[10px] text-white/30">Consistency</div>
           </div>
-          <div className="bg-black/40 border border-[#8b5cf6]/20 p-3 text-center">
-            <Target className="w-4 h-4 text-[#8b5cf6] mx-auto mb-1" />
-            <div className={`text-lg font-bold ${(track.incidents || 0) > 2 ? 'text-red-400' : 'text-green-400'}`}>
+          <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
+            <Target className="w-3.5 h-3.5 text-white/30 mx-auto mb-1" />
+            <div className={`text-base font-bold ${(track.incidents || 0) > 2 ? 'text-red-400' : 'text-emerald-400'}`}>
               {track.incidents || 0}x
             </div>
-            <div className="text-[10px] text-white/40">Incidents</div>
+            <div className="text-[10px] text-white/30">Incidents</div>
           </div>
-          <div className="bg-black/40 border border-[#8b5cf6]/20 p-3 text-center">
-            {isImprovement ? <TrendingUp className="w-4 h-4 text-green-400 mx-auto mb-1" /> : <TrendingDown className="w-4 h-4 text-red-400 mx-auto mb-1" />}
-            <div className={`text-lg font-bold ${isImprovement ? 'text-green-400' : 'text-red-400'}`}>
+          <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
+            {isImprovement ? <TrendingUp className="w-3.5 h-3.5 text-emerald-400 mx-auto mb-1" /> : <TrendingDown className="w-3.5 h-3.5 text-red-400 mx-auto mb-1" />}
+            <div className={`text-base font-bold ${isImprovement ? 'text-emerald-400' : 'text-red-400'}`}>
               {isImprovement ? '+' : ''}{positionChange}
             </div>
-            <div className="text-[10px] text-white/40">Pos. Change</div>
+            <div className="text-[10px] text-white/30">Pos. Change</div>
           </div>
         </div>
       )}
 
       {/* Sector Analysis */}
-      <div className="bg-black/40 border border-white/10 p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Target className="w-4 h-4 text-[#8b5cf6]" />
+      <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
+        <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+          <Target className="w-3 h-3" />
           Sector Focus Areas
         </h3>
         <div className="space-y-3">
           {metadata.sectors.map((sector, i) => (
-            <div key={i} className="border-l-2 border-[#8b5cf6]/50 pl-3">
+            <div key={i} className="border-l-2 border-white/20 pl-3">
               <div className="text-sm font-medium text-white">{sector.name}</div>
               <div className="text-xs text-white/60 mt-1">{sector.focus}</div>
             </div>
@@ -237,15 +237,15 @@ export function AnalystDataPanel({ track }: AnalystDataPanelProps) {
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Areas to Improve */}
-        <div className="bg-black/40 border border-red-500/20 p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-red-400" />
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
+          <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+            <TrendingUp className="w-3 h-3 text-red-400" />
             Areas to Improve
           </h3>
           <ul className="space-y-2">
             {metadata.improvementAreas.map((area, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-white/70">
-                <span className="text-red-400 mt-0.5">▸</span>
+              <li key={i} className="flex items-start gap-2 text-xs text-white/60">
+                <span className="text-white/30 mt-0.5">▸</span>
                 {area}
               </li>
             ))}
@@ -253,15 +253,15 @@ export function AnalystDataPanel({ track }: AnalystDataPanelProps) {
         </div>
 
         {/* Strengths */}
-        <div className="bg-black/40 border border-green-500/20 p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
-            <Award className="w-4 h-4 text-green-400" />
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
+          <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+            <Award className="w-3 h-3 text-emerald-400" />
             Your Strengths
           </h3>
           <ul className="space-y-2">
             {metadata.strengthAreas.map((area, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-white/70">
-                <span className="text-green-400 mt-0.5">▸</span>
+              <li key={i} className="flex items-start gap-2 text-xs text-white/60">
+                <span className="text-white/30 mt-0.5">▸</span>
                 {area}
               </li>
             ))}
@@ -271,9 +271,9 @@ export function AnalystDataPanel({ track }: AnalystDataPanelProps) {
 
       {/* Historical Performance */}
       {trackData && trackData.history.length > 0 && (
-        <div className="bg-black/40 border border-white/10 p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-[#8b5cf6]" />
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
+          <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+            <BarChart3 className="w-3 h-3" />
             Performance Trend at {track.track}
           </h3>
           <div className="space-y-2">
@@ -304,9 +304,9 @@ export function AnalystDataPanel({ track }: AnalystDataPanelProps) {
       )}
 
       {/* Consistency Score Breakdown */}
-      <div className="bg-black/40 border border-white/10 p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
-          <Zap className="w-4 h-4 text-[#8b5cf6]" />
+      <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
+        <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+          <Zap className="w-3 h-3" />
           Key Insights
         </h3>
         <div className="grid grid-cols-2 gap-4 text-xs">
