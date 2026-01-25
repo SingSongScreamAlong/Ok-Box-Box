@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MapPin, Flag, Users, Eye, AlertTriangle, Loader2, Car, Zap, Shield, Target } from 'lucide-react';
 import { fetchTrackPerformance, TrackPerformanceData } from '../lib/driverService';
+import { TrackMapRive } from './TrackMapRive';
 
 interface SpotterDataPanelProps {
   track: {
@@ -148,6 +149,25 @@ export function SpotterDataPanel({ track }: SpotterDataPanelProps) {
               <span className="text-lg font-bold">{expectedField}</span>
               <span className="text-xs text-white/40">cars</span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Track Map with Danger Zones */}
+      <div className="bg-black/40 border border-white/10 p-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
+          <Eye className="w-4 h-4 text-[#3b82f6]" />
+          Track Overview - Danger Zones
+        </h3>
+        <div className="h-48 relative">
+          <TrackMapRive 
+            trackId={track.track.toLowerCase().replace(/[^a-z]/g, '-').replace(/-+/g, '-')}
+            highlightDangerZones={true}
+            className="w-full h-full"
+          />
+          <div className="absolute bottom-2 left-2 flex items-center gap-3 text-[10px]">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-green-500 rounded-full"></span> Safe passing</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-red-500 rounded-full"></span> Danger zone</span>
           </div>
         </div>
       </div>

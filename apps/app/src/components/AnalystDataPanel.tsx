@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MapPin, BarChart3, TrendingUp, TrendingDown, Target, Loader2, Clock, Zap, Activity, Award } from 'lucide-react';
 import { fetchTrackPerformance, TrackPerformanceData } from '../lib/driverService';
+import { TrackMapRive } from './TrackMapRive';
 
 interface AnalystDataPanelProps {
   track: {
@@ -154,6 +155,27 @@ export function AnalystDataPanel({ track }: AnalystDataPanelProps) {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Track Map with Sector Analysis */}
+      <div className="bg-black/40 border border-white/10 p-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
+          <Target className="w-4 h-4 text-[#8b5cf6]" />
+          Sector Performance
+        </h3>
+        <div className="h-48 relative">
+          <TrackMapRive 
+            trackId={track.track.toLowerCase().replace(/[^a-z]/g, '-').replace(/-+/g, '-')}
+            currentSector={1}
+            sectorDeltas={[-0.2, 0.1, 0.3]} // Mock deltas - would come from real data
+            className="w-full h-full"
+          />
+          <div className="absolute bottom-2 left-2 flex items-center gap-3 text-[10px]">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-green-500 rounded-full"></span> Faster</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-yellow-500 rounded-full"></span> Neutral</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-red-500 rounded-full"></span> Slower</span>
+          </div>
         </div>
       </div>
 

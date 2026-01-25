@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { MapPin, Flag, Fuel, Gauge, Wrench, ThermometerSun, Loader2, Settings, Zap, Timer } from 'lucide-react';
 import { fetchTrackPerformance, TrackPerformanceData } from '../lib/driverService';
+import { TrackMapRive } from './TrackMapRive';
 
 interface EngineerDataPanelProps {
   track: {
@@ -133,6 +134,24 @@ export function EngineerDataPanel({ track }: EngineerDataPanelProps) {
           <div className="text-right">
             <div className="text-xs text-white/40">{track.date}</div>
             <div className="text-sm text-[#f97316]">{track.time}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Track Map with Pit Lane */}
+      <div className="bg-black/40 border border-white/10 p-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2">
+          <MapPin className="w-4 h-4 text-[#f97316]" />
+          Track Layout
+        </h3>
+        <div className="h-48 relative">
+          <TrackMapRive 
+            trackId={track.track.toLowerCase().replace(/[^a-z]/g, '-').replace(/-+/g, '-')}
+            showPitLane={true}
+            className="w-full h-full"
+          />
+          <div className="absolute bottom-2 right-2 text-[10px] text-white/40">
+            Pit Loss: {metadata.pitLossTime}s
           </div>
         </div>
       </div>
