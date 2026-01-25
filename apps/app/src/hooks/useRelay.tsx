@@ -111,55 +111,68 @@ export function RelayProvider({ children }: { children: ReactNode }) {
           lapsRemaining: null,
         });
 
-        // Start telemetry simulation with smooth track position updates
+        // Start telemetry simulation with realistic update rate
         let lap = 1;
-        let bestLap = 999;
+        let bestLap = 95.234; // ~1:35.234
+        let lastLap = 96.892;
         let trackPos = 0; // 0-1 position around track
+        let position = 8; // Start in P8
+        let fuel = 18;
+        let currentSpeed = 180;
+        let currentDelta = 0.15;
         
-        // Fast update for smooth car movement (60fps-ish)
+        // Slower, more realistic update rate (1 second)
         const positionInterval = setInterval(() => {
-          trackPos += 0.005; // Move ~0.5% of track per update
+          // Move around track more slowly (~1% per second = ~100 second lap)
+          trackPos += 0.01;
           if (trackPos >= 1) {
             trackPos = 0;
             lap++;
+            // Generate new lap time when crossing line
+            lastLap = 94 + Math.random() * 4; // 1:34 to 1:38
+            if (lastLap < bestLap) bestLap = lastLap;
+            fuel = Math.max(0, fuel - 0.5); // Use fuel each lap
+            // Position can change slightly each lap
+            position = Math.max(1, Math.min(20, position + Math.floor(Math.random() * 3) - 1));
           }
           
           // Calculate sector (1, 2, or 3) based on track position
           const sector = trackPos < 0.33 ? 1 : trackPos < 0.66 ? 2 : 3;
           
-          // Simulate speed variations based on track position
-          // Slower in corners (around 0.15, 0.45, 0.75), faster on straights
+          // Smooth speed changes based on track position
           const cornerFactor = Math.sin(trackPos * Math.PI * 6) * 0.15;
-          const baseSpeed = 180;
-          const speed = baseSpeed + (cornerFactor * baseSpeed) + (Math.random() * 5);
+          const targetSpeed = 180 + (cornerFactor * 180);
+          // Smooth interpolation toward target speed
+          currentSpeed = currentSpeed + (targetSpeed - currentSpeed) * 0.3;
+          
+          // Delta drifts slowly
+          currentDelta = currentDelta + (Math.random() - 0.5) * 0.1;
+          currentDelta = Math.max(-2, Math.min(2, currentDelta)); // Clamp to +/- 2 seconds
           
           // Throttle/brake based on speed change
-          const throttle = cornerFactor > 0 ? 80 + Math.random() * 20 : 40 + Math.random() * 30;
-          const brake = cornerFactor < -0.05 ? 50 + Math.random() * 50 : Math.random() * 10;
-          
-          const lapTime = 45 + Math.random() * 2;
-          if (lapTime < bestLap) bestLap = lapTime;
+          const throttle = cornerFactor > 0 ? 85 : 50;
+          const brake = cornerFactor < -0.05 ? 70 : 0;
           
           setTelemetry({
-            lapTime: trackPos * 45, // Approximate lap time based on position
-            lastLap: lapTime,
+            lapTime: trackPos * 95, // Approximate lap time based on position
+            lastLap: lastLap,
             bestLap: bestLap,
-            delta: (Math.random() - 0.5) * 2,
-            fuel: Math.max(0, 18 - (lap * 0.5)),
+            delta: currentDelta,
+            fuel: fuel,
             fuelPerLap: 0.5,
-            lapsRemaining: Math.floor(Math.max(0, 18 - (lap * 0.5)) / 0.5),
-            position: Math.floor(Math.random() * 20) + 1,
+            lapsRemaining: Math.floor(fuel / 0.5),
+            position: position,
             lap: lap,
-            speed: speed,
-            gear: speed < 100 ? 3 : speed < 150 ? 4 : speed < 180 ? 5 : 6,
-            rpm: 4000 + (speed / 200) * 4000,
+            speed: currentSpeed,
+            gear: currentSpeed < 100 ? 3 : currentSpeed < 150 ? 4 : currentSpeed < 180 ? 5 : 6,
+            rpm: 4000 + (currentSpeed / 200) * 4000,
             throttle: throttle,
             brake: brake,
             trackPosition: trackPos,
             sector: sector,
             inPit: false,
           });
-        }, 50); // Update every 50ms for smooth animation
+        }, 1000); // Update every 1 second - much calmer
 
         const interval = positionInterval; // Keep reference for cleanup
 
