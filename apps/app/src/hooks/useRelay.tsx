@@ -179,7 +179,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
         setMockInterval(interval);
       }, 2000);
     }, 1500);
-  }, []);
+  }, [mockEnabled]);
 
   // Helper to convert track position to x,y coordinates for map
   // This would be track-specific in production
