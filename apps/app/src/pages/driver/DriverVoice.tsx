@@ -1,177 +1,231 @@
 import { useState } from 'react';
-import { useRelay } from '../../hooks/useRelay';
 import { 
-  Mic, 
-  Volume2, 
+  Wrench,
+  Eye,
+  Volume2,
   VolumeX,
-  Bot,
-  Radio,
-  Play,
-  Square,
-  Sliders,
-  MessageSquare
+  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
+  Circle
 } from 'lucide-react';
 
-interface VoiceProfile {
+interface CalloutCategory {
   id: string;
   name: string;
   description: string;
-  accent: string;
+  enabled: boolean;
+  examples: string[];
 }
 
-const voiceProfiles: VoiceProfile[] = [
-  { id: 'engineer-1', name: 'Marcus', description: 'Calm, technical engineer', accent: 'British' },
-  { id: 'engineer-2', name: 'Sofia', description: 'Energetic strategist', accent: 'Italian' },
-  { id: 'spotter-1', name: 'Jake', description: 'Clear, direct spotter', accent: 'American' },
-  { id: 'spotter-2', name: 'Liam', description: 'Experienced veteran', accent: 'Australian' },
-];
-
 export function DriverVoice() {
-  const { status } = useRelay();
-  const [engineerEnabled, setEngineerEnabled] = useState(true);
-  const [spotterEnabled, setSpotterEnabled] = useState(true);
-  const [selectedEngineer, setSelectedEngineer] = useState('engineer-1');
-  const [selectedSpotter, setSelectedSpotter] = useState('spotter-1');
   const [engineerVolume, setEngineerVolume] = useState(80);
   const [spotterVolume, setSpotterVolume] = useState(100);
-  const [testPlaying, setTestPlaying] = useState<string | null>(null);
+  const [engineerExpanded, setEngineerExpanded] = useState(true);
+  const [spotterExpanded, setSpotterExpanded] = useState(true);
 
-  const handleTestVoice = (voiceId: string) => {
-    if (testPlaying === voiceId) {
-      setTestPlaying(null);
-    } else {
-      setTestPlaying(voiceId);
-      // Simulate audio playback
-      setTimeout(() => setTestPlaying(null), 3000);
-    }
+  const [engineerCallouts, setEngineerCallouts] = useState<CalloutCategory[]>([
+    {
+      id: 'fuel',
+      name: 'Fuel Updates',
+      description: 'Fuel remaining, consumption rate, and pit window calculations',
+      enabled: true,
+      examples: [
+        '"Fuel looking good. 12 laps remaining on current load."',
+        '"Pit window opens in 3 laps. Start thinking about your stop."',
+        '"Fuel critical. Box this lap."',
+      ],
+    },
+    {
+      id: 'pace',
+      name: 'Pace Analysis',
+      description: 'Lap time trends, sector comparisons, and consistency feedback',
+      enabled: true,
+      examples: [
+        '"Good lap. Two tenths under your average."',
+        '"Pace dropping in sector 2. Check your entry speed."',
+        '"Consistent laps. Keep this rhythm."',
+      ],
+    },
+    {
+      id: 'strategy',
+      name: 'Strategy Calls',
+      description: 'Pit timing, tire strategy, and race situation updates',
+      enabled: true,
+      examples: [
+        '"Leader just pitted. You\'ll cycle to P3 after stops."',
+        '"Undercut opportunity. Box now to jump the 42."',
+        '"Stay out. Track position is more valuable here."',
+      ],
+    },
+    {
+      id: 'weather',
+      name: 'Weather Updates',
+      description: 'Track temperature, rain probability, and condition changes',
+      enabled: false,
+      examples: [
+        '"Track temp rising. Expect grip to drop."',
+        '"Rain in 10 minutes. Start planning for wets."',
+      ],
+    },
+  ]);
+
+  const [spotterCallouts, setSpotterCallouts] = useState<CalloutCategory[]>([
+    {
+      id: 'traffic',
+      name: 'Traffic Calls',
+      description: 'Cars around you, closing rates, and passing opportunities',
+      enabled: true,
+      examples: [
+        '"Car inside. Hold your line."',
+        '"Clear left. Go when ready."',
+        '"Three wide into turn 1. Be careful."',
+      ],
+    },
+    {
+      id: 'gaps',
+      name: 'Gap Updates',
+      description: 'Time to car ahead, car behind, and pit delta',
+      enabled: true,
+      examples: [
+        '"Gap to leader: 4.2 seconds."',
+        '"Car behind closing. 0.8 seconds now."',
+        '"You\'re pulling away. Gap is 2.1 and growing."',
+      ],
+    },
+    {
+      id: 'flags',
+      name: 'Flag Conditions',
+      description: 'Yellow flags, incidents, and track status changes',
+      enabled: true,
+      examples: [
+        '"Yellow flag sector 3. Incident ahead."',
+        '"Green green green. Go racing."',
+        '"Full course caution. Slow down."',
+      ],
+    },
+    {
+      id: 'incidents',
+      name: 'Incident Alerts',
+      description: 'Crashes, spins, and debris warnings',
+      enabled: true,
+      examples: [
+        '"Crash ahead turn 4. Stay high."',
+        '"Debris on the racing line. Watch turn 7."',
+        '"Car spinning ahead. Check up!"',
+      ],
+    },
+  ]);
+
+  const toggleCallout = (
+    callouts: CalloutCategory[], 
+    setCallouts: React.Dispatch<React.SetStateAction<CalloutCategory[]>>,
+    id: string
+  ) => {
+    setCallouts(callouts.map(c => 
+      c.id === id ? { ...c, enabled: !c.enabled } : c
+    ));
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 
-            className="text-2xl font-bold uppercase tracking-wider"
-            style={{ fontFamily: 'Orbitron, sans-serif' }}
-          >
-            Voice Systems
-          </h1>
-          <p className="text-sm text-white/50 mt-1">AI Engineer & Spotter configuration</p>
-        </div>
+      <div className="text-center">
+        <h1 
+          className="text-2xl font-bold uppercase tracking-wider"
+          style={{ fontFamily: 'Orbitron, sans-serif' }}
+        >
+          Crew Communication
+        </h1>
+        <p className="text-white/50 mt-2">
+          Configure what your virtual crew calls out during sessions
+        </p>
       </div>
 
-      {/* Connection Warning */}
-      {status === 'disconnected' && (
-        <div className="bg-yellow-500/10 border border-yellow-500/30 p-4 flex items-center gap-3">
-          <Mic className="w-5 h-5 text-yellow-500" />
-          <p className="text-sm text-yellow-400">
-            Connect the Relay to enable voice systems during sessions. Configuration changes will be saved.
-          </p>
-        </div>
-      )}
-
-      {/* AI Engineer Section */}
-      <div className="bg-black/40 backdrop-blur-sm border border-white/10 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#f97316]/20 border border-[#f97316]/30 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-[#f97316]" />
+      {/* Engineer Section */}
+      <div className="bg-black/40 backdrop-blur-sm border border-white/10">
+        <button
+          onClick={() => setEngineerExpanded(!engineerExpanded)}
+          className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-[#f97316]/20 border border-[#f97316]/30 flex items-center justify-center">
+              <Wrench className="w-6 h-6 text-[#f97316]" />
             </div>
-            <div>
+            <div className="text-left">
               <h2 
-                className="text-sm uppercase tracking-wider font-semibold"
+                className="text-sm font-semibold uppercase tracking-wider"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
-                AI Engineer
+                Race Engineer
               </h2>
-              <p className="text-xs text-white/50">Strategy, fuel, tire management</p>
+              <p className="text-xs text-white/50">Strategy, fuel, and pace analysis</p>
             </div>
           </div>
-          <button
-            onClick={() => setEngineerEnabled(!engineerEnabled)}
-            className={`flex items-center gap-2 px-4 py-2 border transition-colors ${
-              engineerEnabled 
-                ? 'bg-green-500/20 border-green-500/30 text-green-400'
-                : 'bg-red-500/20 border-red-500/30 text-red-400'
-            }`}
-          >
-            {engineerEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            <span className="text-xs uppercase tracking-wider">
-              {engineerEnabled ? 'Enabled' : 'Disabled'}
-            </span>
-          </button>
-        </div>
+          {engineerExpanded ? (
+            <ChevronUp className="w-5 h-5 text-white/40" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-white/40" />
+          )}
+        </button>
 
-        {engineerEnabled && (
-          <div className="space-y-6">
-            {/* Voice Selection */}
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-white/40 mb-3 block">
-                Voice Profile
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {voiceProfiles.filter(v => v.id.startsWith('engineer')).map(voice => (
-                  <div
-                    key={voice.id}
-                    onClick={() => setSelectedEngineer(voice.id)}
-                    className={`border p-4 cursor-pointer transition-colors ${
-                      selectedEngineer === voice.id
-                        ? 'bg-[#f97316]/10 border-[#f97316]/50'
-                        : 'bg-black/20 border-white/10 hover:border-white/20'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">{voice.name}</div>
-                        <div className="text-xs text-white/50">{voice.description}</div>
-                        <div className="text-[10px] text-white/30 mt-1">{voice.accent}</div>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleTestVoice(voice.id);
-                        }}
-                        className="p-2 hover:bg-white/10 transition-colors"
-                      >
-                        {testPlaying === voice.id ? (
-                          <Square className="w-4 h-4 text-[#f97316]" />
-                        ) : (
-                          <Play className="w-4 h-4 text-white/40" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                ))}
+        {engineerExpanded && (
+          <div className="border-t border-white/10 p-4 space-y-4">
+            {/* Volume Control */}
+            <div className="flex items-center gap-4 pb-4 border-b border-white/10">
+              <Volume2 className="w-5 h-5 text-white/40" />
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs uppercase tracking-wider text-white/40">Volume</span>
+                  <span className="text-xs font-mono">{engineerVolume}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={engineerVolume}
+                  onChange={(e) => setEngineerVolume(parseInt(e.target.value))}
+                  className="w-full accent-[#f97316]"
+                />
               </div>
+              {engineerVolume === 0 && <VolumeX className="w-5 h-5 text-red-500" />}
             </div>
 
-            {/* Volume */}
+            {/* Callout Categories */}
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-white/40 mb-3 block">
-                Volume: {engineerVolume}%
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={engineerVolume}
-                onChange={(e) => setEngineerVolume(Number(e.target.value))}
-                className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#f97316]"
-              />
-            </div>
-
-            {/* Callout Settings */}
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-white/40 mb-3 block">
-                Callouts
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {['Fuel Updates', 'Pit Window', 'Tire Wear', 'Weather Changes'].map(callout => (
-                  <label key={callout} className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="accent-[#f97316]" />
-                    <span className="text-xs text-white/60">{callout}</span>
-                  </label>
+              <div className="text-xs uppercase tracking-wider text-white/40 mb-3">
+                What Your Engineer Calls Out
+              </div>
+              <div className="space-y-2">
+                {engineerCallouts.map((callout) => (
+                  <div key={callout.id} className="border border-white/10 p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => toggleCallout(engineerCallouts, setEngineerCallouts, callout.id)}
+                            className="flex items-center gap-2"
+                          >
+                            {callout.enabled ? (
+                              <CheckCircle2 className="w-4 h-4 text-green-500" />
+                            ) : (
+                              <Circle className="w-4 h-4 text-white/30" />
+                            )}
+                            <span className="text-sm font-semibold">{callout.name}</span>
+                          </button>
+                        </div>
+                        <p className="text-xs text-white/50 mt-1 ml-6">{callout.description}</p>
+                      </div>
+                    </div>
+                    {callout.enabled && (
+                      <div className="mt-3 ml-6 space-y-1">
+                        {callout.examples.map((example, i) => (
+                          <p key={i} className="text-xs text-white/40 italic">{example}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -179,107 +233,89 @@ export function DriverVoice() {
         )}
       </div>
 
-      {/* AI Spotter Section */}
-      <div className="bg-black/40 backdrop-blur-sm border border-white/10 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#3b82f6]/20 border border-[#3b82f6]/30 flex items-center justify-center">
-              <Radio className="w-5 h-5 text-[#3b82f6]" />
+      {/* Spotter Section */}
+      <div className="bg-black/40 backdrop-blur-sm border border-white/10">
+        <button
+          onClick={() => setSpotterExpanded(!spotterExpanded)}
+          className="w-full p-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-[#3b82f6]/20 border border-[#3b82f6]/30 flex items-center justify-center">
+              <Eye className="w-6 h-6 text-[#3b82f6]" />
             </div>
-            <div>
+            <div className="text-left">
               <h2 
-                className="text-sm uppercase tracking-wider font-semibold"
+                className="text-sm font-semibold uppercase tracking-wider"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
-                AI Spotter
+                Spotter
               </h2>
-              <p className="text-xs text-white/50">Proximity alerts, traffic awareness</p>
+              <p className="text-xs text-white/50">Traffic, gaps, and track awareness</p>
             </div>
           </div>
-          <button
-            onClick={() => setSpotterEnabled(!spotterEnabled)}
-            className={`flex items-center gap-2 px-4 py-2 border transition-colors ${
-              spotterEnabled 
-                ? 'bg-green-500/20 border-green-500/30 text-green-400'
-                : 'bg-red-500/20 border-red-500/30 text-red-400'
-            }`}
-          >
-            {spotterEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-            <span className="text-xs uppercase tracking-wider">
-              {spotterEnabled ? 'Enabled' : 'Disabled'}
-            </span>
-          </button>
-        </div>
+          {spotterExpanded ? (
+            <ChevronUp className="w-5 h-5 text-white/40" />
+          ) : (
+            <ChevronDown className="w-5 h-5 text-white/40" />
+          )}
+        </button>
 
-        {spotterEnabled && (
-          <div className="space-y-6">
-            {/* Voice Selection */}
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-white/40 mb-3 block">
-                Voice Profile
-              </label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {voiceProfiles.filter(v => v.id.startsWith('spotter')).map(voice => (
-                  <div
-                    key={voice.id}
-                    onClick={() => setSelectedSpotter(voice.id)}
-                    className={`border p-4 cursor-pointer transition-colors ${
-                      selectedSpotter === voice.id
-                        ? 'bg-[#3b82f6]/10 border-[#3b82f6]/50'
-                        : 'bg-black/20 border-white/10 hover:border-white/20'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">{voice.name}</div>
-                        <div className="text-xs text-white/50">{voice.description}</div>
-                        <div className="text-[10px] text-white/30 mt-1">{voice.accent}</div>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleTestVoice(voice.id);
-                        }}
-                        className="p-2 hover:bg-white/10 transition-colors"
-                      >
-                        {testPlaying === voice.id ? (
-                          <Square className="w-4 h-4 text-[#3b82f6]" />
-                        ) : (
-                          <Play className="w-4 h-4 text-white/40" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                ))}
+        {spotterExpanded && (
+          <div className="border-t border-white/10 p-4 space-y-4">
+            {/* Volume Control */}
+            <div className="flex items-center gap-4 pb-4 border-b border-white/10">
+              <Volume2 className="w-5 h-5 text-white/40" />
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs uppercase tracking-wider text-white/40">Volume</span>
+                  <span className="text-xs font-mono">{spotterVolume}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={spotterVolume}
+                  onChange={(e) => setSpotterVolume(parseInt(e.target.value))}
+                  className="w-full accent-[#3b82f6]"
+                />
               </div>
+              {spotterVolume === 0 && <VolumeX className="w-5 h-5 text-red-500" />}
             </div>
 
-            {/* Volume */}
+            {/* Callout Categories */}
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-white/40 mb-3 block">
-                Volume: {spotterVolume}%
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                value={spotterVolume}
-                onChange={(e) => setSpotterVolume(Number(e.target.value))}
-                className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#3b82f6]"
-              />
-            </div>
-
-            {/* Callout Settings */}
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-white/40 mb-3 block">
-                Callouts
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {['Car Left', 'Car Right', 'Clear', 'Yellow Flags'].map(callout => (
-                  <label key={callout} className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" defaultChecked className="accent-[#3b82f6]" />
-                    <span className="text-xs text-white/60">{callout}</span>
-                  </label>
+              <div className="text-xs uppercase tracking-wider text-white/40 mb-3">
+                What Your Spotter Watches For
+              </div>
+              <div className="space-y-2">
+                {spotterCallouts.map((callout) => (
+                  <div key={callout.id} className="border border-white/10 p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => toggleCallout(spotterCallouts, setSpotterCallouts, callout.id)}
+                            className="flex items-center gap-2"
+                          >
+                            {callout.enabled ? (
+                              <CheckCircle2 className="w-4 h-4 text-green-500" />
+                            ) : (
+                              <Circle className="w-4 h-4 text-white/30" />
+                            )}
+                            <span className="text-sm font-semibold">{callout.name}</span>
+                          </button>
+                        </div>
+                        <p className="text-xs text-white/50 mt-1 ml-6">{callout.description}</p>
+                      </div>
+                    </div>
+                    {callout.enabled && (
+                      <div className="mt-3 ml-6 space-y-1">
+                        {callout.examples.map((example, i) => (
+                          <p key={i} className="text-xs text-white/40 italic">{example}</p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -287,48 +323,13 @@ export function DriverVoice() {
         )}
       </div>
 
-      {/* Advanced Settings */}
-      <div className="bg-black/40 backdrop-blur-sm border border-white/10 p-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Sliders className="w-5 h-5 text-white/40" />
-          <span 
-            className="text-xs uppercase tracking-[0.15em] text-white/40"
-            style={{ fontFamily: 'Orbitron, sans-serif' }}
-          >
-            Advanced Settings
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-white/40 mb-2 block">
-              Push-to-Talk Key
-            </label>
-            <div className="bg-black/40 border border-white/10 px-4 py-3 text-sm text-white/60">
-              Press any key to bind...
-            </div>
-          </div>
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-white/40 mb-2 block">
-              Audio Output Device
-            </label>
-            <select className="w-full bg-black/40 border border-white/10 px-4 py-3 text-sm text-white/60">
-              <option>Default System Output</option>
-              <option>VoiceMeeter Input</option>
-              <option>Virtual Cable</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Info Panel */}
-      <div className="bg-[#8b5cf6]/10 border border-[#8b5cf6]/30 p-4 flex items-start gap-3">
-        <MessageSquare className="w-5 h-5 text-[#8b5cf6] flex-shrink-0 mt-0.5" />
+      {/* Info Note */}
+      <div className="bg-white/5 border border-white/10 p-4 flex items-start gap-3">
+        <MessageSquare className="w-5 h-5 text-white/40 flex-shrink-0 mt-0.5" />
         <div>
-          <h3 className="text-sm font-semibold text-[#8b5cf6]">Voice Systems Powered by ElevenLabs</h3>
-          <p className="text-xs text-white/60 mt-1">
-            AI voices are generated in real-time using advanced speech synthesis. 
-            Voice quality and latency depend on your internet connection.
+          <p className="text-sm text-white/60">
+            Your crew learns from your driving style over time. The more you race with Ok, Box Box, 
+            the more personalized their callouts become.
           </p>
         </div>
       </div>
