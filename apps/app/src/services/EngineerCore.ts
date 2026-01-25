@@ -57,6 +57,29 @@ export interface SessionBriefing {
 }
 
 // ========================
+// MENTAL STATE TYPES
+// ========================
+
+export interface MentalState {
+  tiltLevel: number; // 0-1 (0 = calm, 1 = full tilt)
+  fatigueLevel: number; // 0-1 (0 = fresh, 1 = exhausted)
+  confidenceLevel: number; // 0-1 (0 = shattered, 1 = peak)
+  focusLevel: number; // 0-1 (0 = scattered, 1 = locked in)
+  overdriving: boolean;
+  needsReset: boolean;
+  lastIncidentLap: number | null;
+  incidentsThisSession: number;
+  lapsSinceIncident: number;
+}
+
+export interface MentalStateAlert {
+  type: 'tilt' | 'fatigue' | 'confidence' | 'overdriving' | 'reset_needed';
+  severity: 'warning' | 'critical';
+  message: string;
+  intervention: string;
+}
+
+// ========================
 // ENGINEER CORE CLASS
 // ========================
 
@@ -68,6 +91,22 @@ export class EngineerCore {
   private lastMessage: EngineerMessage | null = null;
   private silenceUntil: number = 0;
   private messageHistory: EngineerMessage[] = [];
+  
+  // Mental state tracking
+  private mentalState: MentalState = {
+    tiltLevel: 0,
+    fatigueLevel: 0,
+    confidenceLevel: 0.5,
+    focusLevel: 0.7,
+    overdriving: false,
+    needsReset: false,
+    lastIncidentLap: null,
+    incidentsThisSession: 0,
+    lapsSinceIncident: 0,
+  };
+  private sessionStartTime: number = 0;
+  private lastLapTime: number | null = null;
+  private recentLapTimes: number[] = [];
 
   constructor(
     memory: DriverMemory | null,
@@ -499,6 +538,189 @@ export class EngineerCore {
       return `I don't have enough data on ${topic} yet. Let's see how the session goes.`;
     }
     return `I'm not certain about ${topic}. We'll learn more as we go.`;
+  }
+
+  // ========================
+  // MENTAL STATE MONITORING
+  // ========================
+
+  /**
+   * Start a new session - reset mental state tracking
+   */
+  startSession(): void {
+    this.sessionStartTime = Date.now();
+    this.mentalState = {
+      tiltLevel: 0,
+      fatigueLevel: 0,
+      confidenceLevel: this.memory?.currentConfidence ?? 0.5,
+      focusLevel: 0.7,
+      overdriving: false,
+      needsReset: false,
+      lastIncidentLap: null,
+      incidentsThisSession: 0,
+      lapsSinceIncident: 0,
+    };
+    this.recentLapTimes = [];
+    this.lastLapTime = null;
+  }
+
+  /**
+   * Record an incident and update mental state
+   */
+  recordIncident(currentLap: number): void {
+    this.mentalState.incidentsThisSession++;
+    this.mentalState.lastIncidentLap = currentLap;
+    this.mentalState.lapsSinceIncident = 0;
+
+    // Increase tilt based on driver's known tilt risk
+    const tiltIncrease = this.memory?.postIncidentTiltRisk ?? 0.3;
+    this.mentalState.tiltLevel = Math.min(1, this.mentalState.tiltLevel + tiltIncrease);
+
+    // Decrease confidence
+    this.mentalState.confidenceLevel = Math.max(0, this.mentalState.confidenceLevel - 0.15);
+
+    // Check for incident clustering (multiple incidents close together)
+    if (this.mentalState.incidentsThisSession >= 2 && this.mentalState.tiltLevel > 0.5) {
+      this.mentalState.needsReset = true;
+    }
+  }
+
+  /**
+   * Record a completed lap and update mental state
+   */
+  recordLap(lapTime: number, currentLap: number): void {
+    this.recentLapTimes.push(lapTime);
+    if (this.recentLapTimes.length > 10) {
+      this.recentLapTimes.shift();
+    }
+
+    // Update laps since incident
+    if (this.mentalState.lastIncidentLap !== null) {
+      this.mentalState.lapsSinceIncident = currentLap - this.mentalState.lastIncidentLap;
+    }
+
+    // Gradually reduce tilt over clean laps
+    if (this.mentalState.lapsSinceIncident > 3) {
+      this.mentalState.tiltLevel = Math.max(0, this.mentalState.tiltLevel - 0.1);
+      this.mentalState.needsReset = false;
+    }
+
+    // Detect overdriving (lap times getting worse, high variance)
+    if (this.recentLapTimes.length >= 3) {
+      const recent = this.recentLapTimes.slice(-3);
+      const avg = recent.reduce((a, b) => a + b, 0) / recent.length;
+      const variance = recent.reduce((sum, t) => sum + Math.pow(t - avg, 2), 0) / recent.length;
+      
+      // High variance + getting slower = overdriving
+      if (variance > 1 && this.lastLapTime && lapTime > this.lastLapTime) {
+        this.mentalState.overdriving = true;
+      } else {
+        this.mentalState.overdriving = false;
+      }
+    }
+
+    // Update fatigue based on session duration
+    const sessionMinutes = (Date.now() - this.sessionStartTime) / (1000 * 60);
+    const fatigueOnset = this.memory?.fatigueOnsetLap ?? 30;
+    if (currentLap > fatigueOnset) {
+      this.mentalState.fatigueLevel = Math.min(1, (currentLap - fatigueOnset) / 20);
+    }
+
+    // Boost confidence on clean, consistent laps
+    if (this.mentalState.lapsSinceIncident > 5 && !this.mentalState.overdriving) {
+      this.mentalState.confidenceLevel = Math.min(1, this.mentalState.confidenceLevel + 0.02);
+    }
+
+    this.lastLapTime = lapTime;
+  }
+
+  /**
+   * Get current mental state
+   */
+  getMentalState(): MentalState {
+    return { ...this.mentalState };
+  }
+
+  /**
+   * Check for mental state alerts that need intervention
+   */
+  checkMentalStateAlerts(): MentalStateAlert | null {
+    // Critical: Full tilt
+    if (this.mentalState.tiltLevel > 0.8) {
+      return {
+        type: 'tilt',
+        severity: 'critical',
+        message: 'You\'re pushing too hard after that incident.',
+        intervention: 'Take a breath. Reset. The pace will come back.',
+      };
+    }
+
+    // Critical: Needs reset
+    if (this.mentalState.needsReset) {
+      return {
+        type: 'reset_needed',
+        severity: 'critical',
+        message: 'Multiple incidents. Time to reset.',
+        intervention: 'Pit in. Take 30 seconds. Clear your head.',
+      };
+    }
+
+    // Warning: Overdriving
+    if (this.mentalState.overdriving) {
+      return {
+        type: 'overdriving',
+        severity: 'warning',
+        message: 'You\'re overdriving. Lap times are scattered.',
+        intervention: 'Smooth inputs. Hit your marks. The time will come.',
+      };
+    }
+
+    // Warning: High fatigue
+    if (this.mentalState.fatigueLevel > 0.7) {
+      return {
+        type: 'fatigue',
+        severity: 'warning',
+        message: 'You\'re getting tired. Focus is dropping.',
+        intervention: 'Simplify. Protect position. Finish the race.',
+      };
+    }
+
+    // Warning: Low confidence
+    if (this.mentalState.confidenceLevel < 0.3) {
+      return {
+        type: 'confidence',
+        severity: 'warning',
+        message: 'Confidence is low. That\'s okay.',
+        intervention: 'One corner at a time. Build momentum.',
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Get a mental state summary for display
+   */
+  getMentalStateSummary(): string {
+    const state = this.mentalState;
+    
+    if (state.tiltLevel > 0.6) {
+      return 'Elevated stress. Focus on clean laps.';
+    }
+    if (state.overdriving) {
+      return 'Overdriving detected. Smooth it out.';
+    }
+    if (state.fatigueLevel > 0.5) {
+      return 'Fatigue building. Manage your energy.';
+    }
+    if (state.confidenceLevel > 0.7 && state.tiltLevel < 0.2) {
+      return 'In the zone. Trust your instincts.';
+    }
+    if (state.lapsSinceIncident > 10) {
+      return 'Clean run. Keep it up.';
+    }
+    
+    return 'Monitoring...';
   }
 }
 
