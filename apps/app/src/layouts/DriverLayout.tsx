@@ -126,7 +126,7 @@ export function DriverLayout() {
             </button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-48 bg-[#111] border border-white/10 shadow-xl z-50">
+              <div className="absolute right-0 top-full mt-1 w-48 bg-[#141414] border border-white/10 shadow-xl z-50 backdrop-blur-md">
                 <NavLink
                   to="/driver/profile"
                   className="flex items-center gap-2 px-4 py-3 text-xs uppercase tracking-wider text-white/60 hover:text-white hover:bg-white/5"
