@@ -110,24 +110,10 @@ export const TRACK_DATA: Record<string, TrackData> = {
       { number: 9, name: 'NASCAR Turn 3', type: 'left', apex: { distance: 4640, x: 1563, y: 779, normalizedDistance: 0.81 }, entry: { distance: 4550, x: 1477, y: 818 }, exit: { distance: 4730, x: 1640, y: 738 }, gear: 5, apexSpeed: 200, difficulty: 'medium' }
     ],
     svg: {
-      // Daytona Road Course - distinctive shape with infield
-      viewBox: '0 0 400 350',
-      // Daytona Road Course: Start on banking, dive into infield, Bus Stop, back to banking
-      // Shape: Elongated oval at top, with infield section creating a "figure-8" like bottom portion
-      path: `M 350,80 
-             Q 380,80 390,110 L 390,140 Q 390,170 360,180 
-             L 300,185 L 240,180 L 200,160 
-             L 160,140 L 120,150 L 90,180 
-             L 70,220 L 60,260 Q 60,290 90,310 
-             L 140,320 L 180,315 Q 210,300 210,270 
-             L 200,240 L 170,220 L 150,200 
-             L 170,180 L 210,190 L 240,220 
-             L 250,260 Q 260,300 300,315 
-             L 350,310 Q 390,290 390,250 
-             L 390,200 L 380,160 L 350,140 
-             L 300,130 L 200,120 L 100,130 
-             Q 40,140 20,110 Q 20,80 60,70 
-             L 150,60 L 250,60 L 350,80 Z`
+      // Daytona Road Course - tri-oval with infield
+      viewBox: '0 0 500 400',
+      // Simple clear shape: Oval banking at top, infield horseshoe dipping down on left, Bus Stop chicane
+      path: 'M 470,150 Q 490,100 450,60 L 300,40 L 150,40 Q 50,60 30,120 L 30,160 L 50,200 L 80,220 L 60,260 L 50,300 Q 50,350 100,370 L 180,380 Q 230,370 240,330 L 230,280 L 200,250 L 220,220 L 280,230 L 300,280 Q 320,350 400,370 L 450,360 Q 490,330 490,280 L 490,220 L 470,150 Z'
     },
     metadata: {
       direction: 'counter-clockwise',
