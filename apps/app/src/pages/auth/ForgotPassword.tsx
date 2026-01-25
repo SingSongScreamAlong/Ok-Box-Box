@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { Mail, Loader2, Send } from 'lucide-react';
 
 export function ForgotPassword() {
   const { resetPassword } = useAuth();
@@ -26,24 +27,22 @@ export function ForgotPassword() {
 
   if (success) {
     return (
-      <div className="w-full max-w-sm text-center">
+      <div className="bg-black/60 backdrop-blur-xl border border-white/10 p-8 md:p-10 text-center">
         <div className="mb-6">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[--accent]/20 flex items-center justify-center">
-            <svg className="w-8 h-8 text-[--accent]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#f97316]/20 flex items-center justify-center">
+            <Send className="w-8 h-8 text-[#f97316]" />
           </div>
           <h1 
-            className="text-xl uppercase tracking-[0.15em] font-semibold text-white mb-2"
+            className="text-2xl uppercase tracking-[0.2em] font-bold text-white mb-2"
             style={{ fontFamily: 'Orbitron, sans-serif' }}
           >
             Check Your Email
           </h1>
           <p className="text-sm text-white/50">
-            We've sent a password reset link to <span className="text-white">{email}</span>
+            We've sent a password reset link to <span className="text-white font-medium">{email}</span>
           </p>
         </div>
-        <Link to="/login" className="text-sm text-[--accent] hover:text-[#ea580c] transition-colors">
+        <Link to="/login" className="text-sm text-[#f97316] hover:text-[#fb923c] transition-colors font-medium">
           Back to sign in
         </Link>
       </div>
@@ -51,10 +50,11 @@ export function ForgotPassword() {
   }
 
   return (
-    <div className="w-full max-w-sm">
+    <div className="bg-black/60 backdrop-blur-xl border border-white/10 p-8 md:p-10">
+      {/* Header */}
       <div className="text-center mb-8">
         <h1 
-          className="text-xl uppercase tracking-[0.15em] font-semibold text-white mb-2"
+          className="text-2xl uppercase tracking-[0.2em] font-bold text-white mb-2"
           style={{ fontFamily: 'Orbitron, sans-serif' }}
         >
           Reset Password
@@ -64,39 +64,49 @@ export function ForgotPassword() {
         </p>
       </div>
 
+      {/* Error */}
       {error && (
-        <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4 mb-6">
+      {/* Form */}
+      <form onSubmit={handleSubmit} className="space-y-5 mb-6">
         <div>
-          <label className="block text-xs uppercase tracking-wider text-white/50 mb-2">
+          <label className="block text-xs uppercase tracking-wider text-white/50 mb-2 font-medium">
             Email
           </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="input"
-            placeholder="you@example.com"
-            required
-          />
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="input pl-11"
+              placeholder="driver@team.com"
+              required
+            />
+          </div>
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="btn btn-primary w-full"
+          className="btn btn-primary w-full h-12 text-sm"
         >
-          {loading ? 'Sending...' : 'Send Reset Link'}
+          {loading ? (
+            <Loader2 className="w-5 h-5 animate-spin" />
+          ) : (
+            'Send Reset Link'
+          )}
         </button>
       </form>
 
+      {/* Back link */}
       <p className="text-center text-sm text-white/50">
         Remember your password?{' '}
-        <Link to="/login" className="text-[--accent] hover:text-[#ea580c] transition-colors">
+        <Link to="/login" className="text-[#f97316] hover:text-[#fb923c] transition-colors font-medium">
           Sign in
         </Link>
       </p>
