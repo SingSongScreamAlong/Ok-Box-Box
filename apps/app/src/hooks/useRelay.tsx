@@ -62,8 +62,11 @@ const RelayContext = createContext<RelayContextValue | null>(null);
 
 const MOCK_ENABLED = import.meta.env.VITE_RELAY_MOCK === 'true';
 
+console.log('[Relay] Mock mode:', MOCK_ENABLED, 'env value:', import.meta.env.VITE_RELAY_MOCK);
+
 export function RelayProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<RelayStatus>('disconnected');
+  const [initialized, setInitialized] = useState(false);
   const [telemetry, setTelemetry] = useState<TelemetryData>(defaultTelemetry);
   const [session, setSession] = useState<SessionInfo>(defaultSession);
   const [mockInterval, setMockInterval] = useState<NodeJS.Timeout | null>(null);
@@ -151,13 +154,15 @@ export function RelayProvider({ children }: { children: ReactNode }) {
 
   // Auto-connect in mock mode on mount
   useEffect(() => {
-    if (MOCK_ENABLED) {
+    if (MOCK_ENABLED && !initialized) {
+      setInitialized(true);
+      console.log('[Relay] Auto-connecting mock...');
       const timer = setTimeout(() => {
-        connect();
+        startMockSimulation();
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [connect]);
+  }, [initialized, startMockSimulation]);
 
   // Cleanup on unmount
   useEffect(() => {
