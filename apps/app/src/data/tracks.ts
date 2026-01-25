@@ -86,7 +86,6 @@ export interface TrackData {
 
 export const TRACK_DATA: Record<string, TrackData> = {
   // Daytona International Speedway - Road Course
-  // Accurate centerline from iTelemetry/iracing-tracks (track ID 191)
   'daytona': {
     id: 'daytona',
     name: 'Daytona International Speedway',
@@ -98,23 +97,12 @@ export const TRACK_DATA: Record<string, TrackData> = {
       { number: 2, name: 'Sector 2', startDistance: 1910, endDistance: 3820 },
       { number: 3, name: 'Sector 3', startDistance: 3820, endDistance: 5730 }
     ],
-    corners: [
-      { number: 1, name: 'Turn 1', type: 'left', apex: { distance: 490, x: 1543, y: 130, normalizedDistance: 0.085 }, braking: { distance: 400, x: 1624, y: 154 }, exit: { distance: 580, x: 1468, y: 121 }, gear: 3, apexSpeed: 95, difficulty: 'hard' },
-      { number: 2, name: 'Turn 2', type: 'right', apex: { distance: 660, x: 1397, y: 119, normalizedDistance: 0.115 }, entry: { distance: 580, x: 1468, y: 121 }, exit: { distance: 740, x: 1248, y: 118 }, gear: 3, apexSpeed: 100, difficulty: 'medium' },
-      { number: 3, name: 'International Horseshoe', type: 'left', apex: { distance: 970, x: 789, y: 113, normalizedDistance: 0.169 }, braking: { distance: 850, x: 925, y: 114 }, exit: { distance: 1100, x: 658, y: 112 }, gear: 2, apexSpeed: 70, difficulty: 'hard' },
-      { number: 4, name: 'Turn 4', type: 'right', apex: { distance: 1460, x: 248, y: 176, normalizedDistance: 0.255 }, braking: { distance: 1350, x: 300, y: 148 }, exit: { distance: 1570, x: 214, y: 202 }, gear: 2, apexSpeed: 65, difficulty: 'hard' },
-      { number: 5, name: 'Kink', type: 'right', apex: { distance: 1770, x: 139, y: 298, normalizedDistance: 0.309 }, entry: { distance: 1680, x: 149, y: 263 }, exit: { distance: 1860, x: 138, y: 331 }, gear: 5, apexSpeed: 180, difficulty: 'easy' },
-      { number: 6, name: 'Turn 6', type: 'left', apex: { distance: 2155, x: 176, y: 639, normalizedDistance: 0.376 }, braking: { distance: 2050, x: 142, y: 528 }, exit: { distance: 2260, x: 215, y: 680 }, gear: 3, apexSpeed: 110, difficulty: 'medium' },
-      { number: 7, name: 'Bus Stop Entry', type: 'left', apex: { distance: 2585, x: 504, y: 833, normalizedDistance: 0.451 }, braking: { distance: 2480, x: 443, y: 808 }, exit: { distance: 2690, x: 564, y: 858 }, gear: 2, apexSpeed: 75, difficulty: 'hard' },
-      { number: 8, name: 'Bus Stop Chicane', type: 'right', apex: { distance: 3840, x: 955, y: 969, normalizedDistance: 0.67 }, braking: { distance: 3750, x: 872, y: 962 }, exit: { distance: 3930, x: 1020, y: 966 }, gear: 2, apexSpeed: 60, difficulty: 'hard' },
-      { number: 9, name: 'NASCAR Turn 3', type: 'left', apex: { distance: 4640, x: 1563, y: 779, normalizedDistance: 0.81 }, entry: { distance: 4550, x: 1477, y: 818 }, exit: { distance: 4730, x: 1640, y: 738 }, gear: 5, apexSpeed: 200, difficulty: 'medium' }
-    ],
+    corners: [], // Corner markers disabled - coordinates don't match SVG viewBox
     svg: {
-      // Daytona Road Course - distinctive shape showing infield section
-      viewBox: '0 0 600 500',
-      // Clear road course: Banking curves at ends, infield section cuts through middle-left
-      // The path traces: Start/Finish → T1-T2 (banking) → Infield horseshoe → Bus Stop → T3-T4 (banking) → back
-      path: 'M 550,200 C 580,150 580,100 520,60 L 350,40 L 150,40 C 60,60 40,120 40,180 L 50,220 C 60,250 90,270 120,280 L 100,320 C 80,360 80,400 120,440 L 200,460 C 260,470 300,450 320,400 L 300,340 C 280,300 240,280 200,290 L 180,260 C 200,230 250,220 300,230 L 340,280 C 360,340 400,400 480,440 L 540,420 C 590,380 590,320 580,260 L 550,200 Z'
+      // Daytona Road Course - tri-oval with infield section
+      // Shape: Banking at top, infield horseshoe on left dipping down, Bus Stop chicane at bottom
+      viewBox: '0 0 400 320',
+      path: 'M 380,80 Q 395,50 350,30 L 200,20 L 50,30 Q 10,60 10,100 L 20,130 L 50,150 L 30,190 L 20,240 Q 20,280 70,300 L 140,305 Q 190,295 200,260 L 180,210 L 200,170 L 260,185 L 290,230 Q 310,290 380,300 L 390,250 Q 395,200 390,150 L 380,80 Z'
     },
     metadata: {
       direction: 'counter-clockwise',
