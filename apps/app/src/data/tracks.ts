@@ -99,10 +99,10 @@ export const TRACK_DATA: Record<string, TrackData> = {
     ],
     corners: [], // Corner markers disabled - coordinates don't match SVG viewBox
     svg: {
-      // Daytona Road Course - tri-oval with infield section
-      // Shape: Banking at top, infield horseshoe on left dipping down, Bus Stop chicane at bottom
-      viewBox: '0 0 400 320',
-      path: 'M 380,80 Q 395,50 350,30 L 200,20 L 50,30 Q 10,60 10,100 L 20,130 L 50,150 L 30,190 L 20,240 Q 20,280 70,300 L 140,305 Q 190,295 200,260 L 180,210 L 200,170 L 260,185 L 290,230 Q 310,290 380,300 L 390,250 Q 395,200 390,150 L 380,80 Z'
+      // Daytona Road Course - simplified distinctive shape
+      viewBox: '0 0 400 300',
+      // Simple path: Oval top + clear infield horseshoe cutting into left side + Bus Stop at bottom
+      path: 'M 380,100 Q 390,50 320,30 L 180,25 L 60,35 Q 15,60 15,110 L 25,140 Q 50,160 80,165 L 60,200 Q 40,240 60,270 Q 90,295 140,295 Q 180,290 190,260 L 175,220 Q 160,195 140,200 Q 160,220 190,240 Q 230,280 300,285 Q 370,275 385,230 L 385,160 Q 385,120 380,100 Z'
     },
     metadata: {
       direction: 'counter-clockwise',
