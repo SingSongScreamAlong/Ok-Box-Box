@@ -1,5 +1,48 @@
 // Accurate Track Data from iRacing telemetry calibration
-// Source: legacy/ProjectBlackBox/server/src/data/tracks/*.json
+// Source: packages/dashboard/src/data/trackData/*.shape.json
+
+// Centerline point from telemetry
+export interface CenterlinePoint {
+  x: number;
+  y: number;
+  distPct: number;
+}
+
+// Convert centerline points to SVG path
+export function centerlineToSVGPath(points: CenterlinePoint[]): string {
+  if (points.length < 2) return '';
+  
+  // Start with move to first point
+  let path = `M ${points[0].x},${points[0].y}`;
+  
+  // Add line segments for each point
+  for (let i = 1; i < points.length; i++) {
+    path += ` L ${points[i].x},${points[i].y}`;
+  }
+  
+  // Close the path
+  path += ' Z';
+  return path;
+}
+
+// Calculate bounds from centerline
+export function calculateBounds(points: CenterlinePoint[]): { xMin: number; xMax: number; yMin: number; yMax: number } {
+  const xs = points.map(p => p.x);
+  const ys = points.map(p => p.y);
+  return {
+    xMin: Math.min(...xs),
+    xMax: Math.max(...xs),
+    yMin: Math.min(...ys),
+    yMax: Math.max(...ys)
+  };
+}
+
+// Generate viewBox from bounds with padding
+export function boundsToViewBox(bounds: { xMin: number; xMax: number; yMin: number; yMax: number }, padding = 50): string {
+  const width = bounds.xMax - bounds.xMin + padding * 2;
+  const height = bounds.yMax - bounds.yMin + padding * 2;
+  return `${bounds.xMin - padding} ${bounds.yMin - padding} ${width} ${height}`;
+}
 
 export interface TrackCorner {
   number: number;
@@ -43,7 +86,7 @@ export interface TrackData {
 
 export const TRACK_DATA: Record<string, TrackData> = {
   // Daytona International Speedway - Road Course
-  // Centerline data from iTelemetry/iracing-tracks (track ID 191)
+  // Accurate centerline from iTelemetry/iracing-tracks (track ID 191)
   'daytona': {
     id: 'daytona',
     name: 'Daytona International Speedway',
@@ -63,15 +106,14 @@ export const TRACK_DATA: Record<string, TrackData> = {
       { number: 5, name: 'Kink', type: 'right', apex: { distance: 1770, x: 139, y: 298, normalizedDistance: 0.309 }, entry: { distance: 1680, x: 149, y: 263 }, exit: { distance: 1860, x: 138, y: 331 }, gear: 5, apexSpeed: 180, difficulty: 'easy' },
       { number: 6, name: 'Turn 6', type: 'left', apex: { distance: 2155, x: 176, y: 639, normalizedDistance: 0.376 }, braking: { distance: 2050, x: 142, y: 528 }, exit: { distance: 2260, x: 215, y: 680 }, gear: 3, apexSpeed: 110, difficulty: 'medium' },
       { number: 7, name: 'Bus Stop Entry', type: 'left', apex: { distance: 2585, x: 504, y: 833, normalizedDistance: 0.451 }, braking: { distance: 2480, x: 443, y: 808 }, exit: { distance: 2690, x: 564, y: 858 }, gear: 2, apexSpeed: 75, difficulty: 'hard' },
-      { number: 8, name: 'Bus Stop Chicane 1', type: 'right', apex: { distance: 3840, x: 955, y: 969, normalizedDistance: 0.67 }, braking: { distance: 3750, x: 872, y: 962 }, exit: { distance: 3930, x: 1020, y: 966 }, gear: 2, apexSpeed: 60, difficulty: 'hard' },
-      { number: 9, name: 'Bus Stop Chicane 2', type: 'left', apex: { distance: 3900, x: 1021, y: 966, normalizedDistance: 0.68 }, entry: { distance: 3840, x: 955, y: 969 }, exit: { distance: 3960, x: 1073, y: 960 }, gear: 2, apexSpeed: 55, difficulty: 'hard' },
-      { number: 10, name: 'NASCAR Turn 1', type: 'left', apex: { distance: 4640, x: 1563, y: 779, normalizedDistance: 0.81 }, entry: { distance: 4550, x: 1477, y: 818 }, exit: { distance: 4730, x: 1640, y: 738 }, gear: 5, apexSpeed: 200, difficulty: 'medium' }
+      { number: 8, name: 'Bus Stop Chicane', type: 'right', apex: { distance: 3840, x: 955, y: 969, normalizedDistance: 0.67 }, braking: { distance: 3750, x: 872, y: 962 }, exit: { distance: 3930, x: 1020, y: 966 }, gear: 2, apexSpeed: 60, difficulty: 'hard' },
+      { number: 9, name: 'NASCAR Turn 3', type: 'left', apex: { distance: 4640, x: 1563, y: 779, normalizedDistance: 0.81 }, entry: { distance: 4550, x: 1477, y: 818 }, exit: { distance: 4730, x: 1640, y: 738 }, gear: 5, apexSpeed: 200, difficulty: 'medium' }
     ],
     svg: {
-      viewBox: '0 0 1920 1080',
-      // Accurate centerline from telemetry data - Daytona Road Course
-      // Tri-oval banking with infield road course section
-      path: 'M 1785,309 Q 1763,270 1741,240 Q 1719,217 1702,201 L 1623,154 Q 1544,130 1468,121 L 1397,119 L 1248,118 L 789,113 L 658,112 L 498,111 Q 423,116 358,128 Q 300,148 248,176 Q 214,202 184,230 Q 159,263 138,298 Q 123,332 114,363 Q 109,389 106,408 L 107,471 Q 118,531 142,587 Q 176,639 215,680 Q 256,714 297,740 L 333,759 Q 384,783 443,808 L 504,833 L 564,858 Q 588,867 632,886 L 717,919 Q 791,943 872,962 L 955,969 Q 1020,966 1073,960 Q 1121,950 1166,936 L 1264,900 L 1372,859 L 1477,818 L 1563,779 Q 1602,760 1640,738 Q 1677,712 1713,682 Q 1749,644 1777,602 Q 1800,549 1812,493 Q 1815,444 1811,397 Q 1801,351 1785,309 Z'
+      // Accurate viewBox from telemetry bounds: xMin=106.3, xMax=1814.97, yMin=110.94, yMax=969
+      viewBox: '56 61 1809 958',
+      // SVG path generated from actual telemetry centerline data (87 points)
+      path: 'M 1784.5,308.5 L 1763.21,270.39 L 1740.53,239.95 L 1719.08,217.01 L 1701.5,201.4 L 1623.24,154.1 L 1543.5,129.69 L 1467.81,120.55 L 1401.7,119.1 L 1396.82,119.1 L 1392.08,119.09 L 1387.44,119.06 L 1382.9,119.0 L 1247.88,117.59 L 1085.96,115.95 L 924.14,114.39 L 789.4,113.2 L 773.5,113.03 L 755.79,112.84 L 736.71,112.62 L 716.7,112.4 L 658.86,111.78 L 599.59,111.23 L 544.2,110.94 L 498.0,111.1 L 423.23,115.55 L 357.81,127.54 L 299.99,147.54 L 248.0,176.0 L 214.14,201.5 L 184.49,230.39 L 159.17,262.55 L 138.3,297.9 L 123.55,331.85 L 114.09,362.6 L 108.73,388.55 L 106.3,408.1 L 106.59,471.33 L 118.36,531.01 L 141.55,586.96 L 176.1,639.0 L 214.93,680.35 L 256.12,713.86 L 296.53,740.04 L 333.0,759.4 L 384.18,782.74 L 443.0,807.92 L 504.59,833.37 L 564.1,857.5 L 588.37,867.32 L 611.49,876.7 L 632.94,885.48 L 652.2,893.5 L 716.7,919.05 L 791.34,943.48 L 872.18,961.79 L 955.3,969.0 L 957.21,969.0 L 959.15,968.99 L 961.09,968.96 L 963.0,968.9 L 1020.21,966.04 L 1072.58,959.62 L 1121.01,949.49 L 1166.4,935.5 L 1168.4,934.7 L 1264.15,899.82 L 1372.41,859.25 L 1477.4,817.56 L 1563.3,779.3 L 1601.52,759.7 L 1639.84,737.63 L 1677.39,712.14 L 1713.3,682.3 L 1732.3,663.32 L 1749.39,643.49 L 1764.5,622.89 L 1777.6,601.6 L 1790.25,575.95 L 1800.29,549.15 L 1807.68,521.3 L 1812.4,492.5 L 1814.97,443.63 L 1811.16,396.56 L 1801.0,351.47 L 1784.5,308.5 Z'
     },
     metadata: {
       direction: 'counter-clockwise',
