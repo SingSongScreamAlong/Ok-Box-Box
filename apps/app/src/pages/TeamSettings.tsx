@@ -172,7 +172,7 @@ export function TeamSettings() {
 
   return (
     <div className="min-h-screen relative">
-      {/* Background video */}
+      {/* Background video - more visible */}
       <div className="fixed inset-0 z-0">
         <video
           ref={videoRef}
@@ -181,11 +181,12 @@ export function TeamSettings() {
           muted
           playsInline
           preload="auto"
-          className="w-full h-full object-cover opacity-90"
+          className="w-full h-full object-cover opacity-70"
         >
           <source src="/videos/team-bg.mp4" type="video/mp4" />
         </video>
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/80 via-[#0e0e0e]/60 to-[#0e0e0e]/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />
       </div>
 
       <div className="relative z-10 max-w-2xl mx-auto px-6 py-12">
@@ -208,13 +209,13 @@ export function TeamSettings() {
         </div>
 
         {error && (
-          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-sm">
+          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded text-red-400 text-sm">
             {error}
           </div>
         )}
 
         {success && (
-          <div className="mb-6 p-3 bg-green-500/10 border border-green-500/30 text-green-400 text-sm">
+          <div className="mb-6 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded text-emerald-400 text-sm">
             {success}
           </div>
         )}
@@ -222,9 +223,9 @@ export function TeamSettings() {
         <div className="space-y-6">
           {/* Team Details */}
           {isOwner && (
-            <div className="bg-[--surface]/80 backdrop-blur-sm border border-[--border] p-6">
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-6 shadow-lg shadow-black/20">
               <h2 
-                className="text-xs uppercase tracking-[0.12em] font-semibold text-white mb-4"
+                className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/40 mb-4"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
                 Team Details
@@ -254,9 +255,9 @@ export function TeamSettings() {
           )}
 
           {/* Invite Members */}
-          <div className="bg-[--surface]/80 backdrop-blur-sm border border-[--border] p-6">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-6 shadow-lg shadow-black/20">
             <h2 
-              className="text-xs uppercase tracking-[0.12em] font-semibold text-[#f97316] mb-4"
+              className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#f97316] mb-4"
               style={{ fontFamily: 'Orbitron, sans-serif' }}
             >
               Invite Members
@@ -301,9 +302,9 @@ export function TeamSettings() {
           </div>
 
           {/* Members */}
-          <div className="bg-[--surface]/80 backdrop-blur-sm border border-[--border] p-6">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-6 shadow-lg shadow-black/20">
             <h2 
-              className="text-xs uppercase tracking-[0.12em] font-semibold text-white mb-4"
+              className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/40 mb-4"
               style={{ fontFamily: 'Orbitron, sans-serif' }}
             >
               Members
@@ -352,9 +353,9 @@ export function TeamSettings() {
 
           {/* Danger Zone */}
           {isOwner && (
-            <div className="bg-red-500/5 border border-red-500/20 p-6">
+            <div className="bg-red-500/5 border border-red-500/20 rounded p-6 shadow-lg shadow-black/20">
               <h2 
-                className="text-xs uppercase tracking-[0.12em] font-semibold text-red-400 mb-4"
+                className="text-[10px] uppercase tracking-[0.15em] font-semibold text-red-400 mb-4"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
               >
                 Danger Zone
