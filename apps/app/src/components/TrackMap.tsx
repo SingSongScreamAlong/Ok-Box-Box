@@ -121,7 +121,7 @@ export function TrackMap({
             <svg
                 viewBox={viewBox}
                 className="w-full h-full overflow-visible"
-                style={{ transform: 'scale(-1, -1) rotate(90deg)' }} // Rotate to put infield at bottom
+                style={{ transform: 'scale(-1, -1) rotate(180deg)' }} // Rotate to put infield at bottom
             >
                 {/* Track Outline (Shadow) */}
                 <path
