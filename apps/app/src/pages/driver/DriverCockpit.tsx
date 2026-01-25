@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { useRelay } from '../../hooks/useRelay';
+import { useEngineer, getEngineerRoleColor } from '../../hooks/useEngineer';
 import { Link } from 'react-router-dom';
 import { 
   Fuel,
@@ -16,29 +17,28 @@ import {
   VideoOff
 } from 'lucide-react';
 
-type Urgency = 'critical' | 'warning' | 'info';
-
-interface AIAlert {
-  id: string;
-  role: 'engineer' | 'spotter' | 'analyst';
-  message: string;
-  urgency: Urgency;
-}
-
 /**
  * DriverCockpit - The unified driver dashboard
  * 
  * Combines:
  * - Driver camera system (video background)
  * - Live telemetry overlay
- * - AI crew alerts
+ * - AI crew alerts powered by EngineerCore
+ * - Driver memory integration
  * 
  * This is THE driver experience - one view, always available.
+ * The engineer KNOWS you and speaks with conviction.
  */
 export function DriverCockpit() {
   const { status, telemetry, session } = useRelay();
+  const { 
+    messages, 
+    criticalMessages, 
+    driverAssessment,
+    loading: engineerLoading 
+  } = useEngineer();
+  
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [alerts, setAlerts] = useState<AIAlert[]>([]);
   const [cameraEnabled, setCameraEnabled] = useState(true);
 
   useEffect(() => {
@@ -47,62 +47,11 @@ export function DriverCockpit() {
     }
   }, []);
 
-  // Generate AI alerts based on telemetry
-  useEffect(() => {
-    const newAlerts: AIAlert[] = [];
-
-    if (telemetry.fuel !== null && telemetry.fuelPerLap !== null) {
-      const lapsLeft = telemetry.fuel / telemetry.fuelPerLap;
-      if (lapsLeft < 2) {
-        newAlerts.push({
-          id: 'fuel-critical',
-          role: 'engineer',
-          message: 'BOX NOW — Fuel critical',
-          urgency: 'critical',
-        });
-      } else if (lapsLeft < 5) {
-        newAlerts.push({
-          id: 'fuel-warning',
-          role: 'engineer',
-          message: `Pit window open — ${Math.floor(lapsLeft)} laps fuel`,
-          urgency: 'warning',
-        });
-      }
-    }
-
-    if (telemetry.delta !== null && telemetry.delta < -0.5) {
-      newAlerts.push({
-        id: 'pace-good',
-        role: 'spotter',
-        message: 'Good pace, clear ahead',
-        urgency: 'info',
-      });
-    }
-
-    setAlerts(newAlerts);
-  }, [telemetry.fuel, telemetry.fuelPerLap, telemetry.delta]);
-
   const formatTime = (seconds: number | null) => {
     if (seconds === null) return '--:--.---';
     const mins = Math.floor(seconds / 60);
     const secs = (seconds % 60).toFixed(3);
     return `${mins}:${secs.padStart(6, '0')}`;
-  };
-
-  const getUrgencyStyle = (urgency: Urgency) => {
-    switch (urgency) {
-      case 'critical': return 'bg-red-500/20 border-red-500 text-red-400';
-      case 'warning': return 'bg-yellow-500/20 border-yellow-500 text-yellow-400';
-      case 'info': return 'bg-blue-500/20 border-blue-500 text-blue-400';
-    }
-  };
-
-  const getRoleColor = (role: AIAlert['role']) => {
-    switch (role) {
-      case 'engineer': return 'text-orange-400';
-      case 'spotter': return 'text-blue-400';
-      case 'analyst': return 'text-purple-400';
-    }
   };
 
   const isLive = status === 'in_session' || status === 'connected';
@@ -183,17 +132,17 @@ export function DriverCockpit() {
           </div>
         </div>
 
-        {/* CRITICAL ALERTS - Top priority interrupts */}
-        {alerts.filter(a => a.urgency === 'critical').map(alert => (
+        {/* CRITICAL ALERTS - Top priority interrupts from Engineer */}
+        {criticalMessages.map(msg => (
           <div 
-            key={alert.id}
-            className={`border-l-4 px-4 py-3 flex items-center justify-between ${getUrgencyStyle(alert.urgency)}`}
+            key={msg.id}
+            className="border-l-4 border-red-500 bg-red-500/20 px-4 py-3 flex items-center justify-between"
           >
             <div className="flex items-center gap-3">
-              <AlertTriangle className="w-5 h-5" />
-              <span className="font-bold uppercase tracking-wider">{alert.message}</span>
+              <AlertTriangle className="w-5 h-5 text-red-400" />
+              <span className="font-bold uppercase tracking-wider text-red-400">{msg.content}</span>
             </div>
-            <span className={`text-xs uppercase ${getRoleColor(alert.role)}`}>{alert.role}</span>
+            <span className="text-xs uppercase text-orange-400">{msg.domain}</span>
           </div>
         ))}
 
@@ -393,20 +342,25 @@ export function DriverCockpit() {
                   </Link>
                 </div>
                 <div className="p-2 space-y-1 max-h-20 overflow-y-auto">
-                  {alerts.filter(a => a.urgency !== 'critical').length > 0 ? (
-                    alerts.filter(a => a.urgency !== 'critical').map(alert => (
+                  {messages.filter(m => m.urgency !== 'critical').length > 0 ? (
+                    messages.filter(m => m.urgency !== 'critical').map(msg => (
                       <div 
-                        key={alert.id}
-                        className={`flex items-center gap-2 px-2 py-1 border-l-2 rounded ${getUrgencyStyle(alert.urgency)}`}
+                        key={msg.id}
+                        className={`flex items-center gap-2 px-2 py-1 border-l-2 rounded ${
+                          msg.urgency === 'important' ? 'bg-yellow-500/20 border-yellow-500' :
+                          'bg-blue-500/20 border-blue-500'
+                        }`}
                       >
-                        <span className={`text-[10px] uppercase font-semibold ${getRoleColor(alert.role)}`}>
-                          {alert.role}
+                        <span className={`text-[10px] uppercase font-semibold ${getEngineerRoleColor(msg.domain)}`}>
+                          {msg.domain}
                         </span>
-                        <span className="text-sm text-white/80">{alert.message}</span>
+                        <span className="text-sm text-white/80">{msg.content}</span>
                       </div>
                     ))
                   ) : (
-                    <div className="text-xs text-white/30 italic px-2 py-1">Monitoring...</div>
+                    <div className="text-xs text-white/30 italic px-2 py-1">
+                      {engineerLoading ? 'Loading...' : driverAssessment}
+                    </div>
                   )}
                 </div>
               </div>

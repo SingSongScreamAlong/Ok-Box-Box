@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDriverMemory } from './useDriverMemory';
 import { useRelay } from './useRelay';
 import { 
-  EngineerCore, 
   createEngineerCore,
   type EngineerMessage,
   type EngineerVerdict,
