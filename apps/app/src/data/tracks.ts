@@ -42,6 +42,44 @@ export interface TrackData {
 }
 
 export const TRACK_DATA: Record<string, TrackData> = {
+  // Daytona International Speedway - Road Course
+  // Centerline data from iTelemetry/iracing-tracks (track ID 191)
+  'daytona': {
+    id: 'daytona',
+    name: 'Daytona International Speedway',
+    country: 'USA',
+    length: 5730,
+    layout: 'Road Course',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1910 },
+      { number: 2, name: 'Sector 2', startDistance: 1910, endDistance: 3820 },
+      { number: 3, name: 'Sector 3', startDistance: 3820, endDistance: 5730 }
+    ],
+    corners: [
+      { number: 1, name: 'Turn 1', type: 'left', apex: { distance: 490, x: 1543, y: 130, normalizedDistance: 0.085 }, braking: { distance: 400, x: 1624, y: 154 }, exit: { distance: 580, x: 1468, y: 121 }, gear: 3, apexSpeed: 95, difficulty: 'hard' },
+      { number: 2, name: 'Turn 2', type: 'right', apex: { distance: 660, x: 1397, y: 119, normalizedDistance: 0.115 }, entry: { distance: 580, x: 1468, y: 121 }, exit: { distance: 740, x: 1248, y: 118 }, gear: 3, apexSpeed: 100, difficulty: 'medium' },
+      { number: 3, name: 'International Horseshoe', type: 'left', apex: { distance: 970, x: 789, y: 113, normalizedDistance: 0.169 }, braking: { distance: 850, x: 925, y: 114 }, exit: { distance: 1100, x: 658, y: 112 }, gear: 2, apexSpeed: 70, difficulty: 'hard' },
+      { number: 4, name: 'Turn 4', type: 'right', apex: { distance: 1460, x: 248, y: 176, normalizedDistance: 0.255 }, braking: { distance: 1350, x: 300, y: 148 }, exit: { distance: 1570, x: 214, y: 202 }, gear: 2, apexSpeed: 65, difficulty: 'hard' },
+      { number: 5, name: 'Kink', type: 'right', apex: { distance: 1770, x: 139, y: 298, normalizedDistance: 0.309 }, entry: { distance: 1680, x: 149, y: 263 }, exit: { distance: 1860, x: 138, y: 331 }, gear: 5, apexSpeed: 180, difficulty: 'easy' },
+      { number: 6, name: 'Turn 6', type: 'left', apex: { distance: 2155, x: 176, y: 639, normalizedDistance: 0.376 }, braking: { distance: 2050, x: 142, y: 528 }, exit: { distance: 2260, x: 215, y: 680 }, gear: 3, apexSpeed: 110, difficulty: 'medium' },
+      { number: 7, name: 'Bus Stop Entry', type: 'left', apex: { distance: 2585, x: 504, y: 833, normalizedDistance: 0.451 }, braking: { distance: 2480, x: 443, y: 808 }, exit: { distance: 2690, x: 564, y: 858 }, gear: 2, apexSpeed: 75, difficulty: 'hard' },
+      { number: 8, name: 'Bus Stop Chicane 1', type: 'right', apex: { distance: 3840, x: 955, y: 969, normalizedDistance: 0.67 }, braking: { distance: 3750, x: 872, y: 962 }, exit: { distance: 3930, x: 1020, y: 966 }, gear: 2, apexSpeed: 60, difficulty: 'hard' },
+      { number: 9, name: 'Bus Stop Chicane 2', type: 'left', apex: { distance: 3900, x: 1021, y: 966, normalizedDistance: 0.68 }, entry: { distance: 3840, x: 955, y: 969 }, exit: { distance: 3960, x: 1073, y: 960 }, gear: 2, apexSpeed: 55, difficulty: 'hard' },
+      { number: 10, name: 'NASCAR Turn 1', type: 'left', apex: { distance: 4640, x: 1563, y: 779, normalizedDistance: 0.81 }, entry: { distance: 4550, x: 1477, y: 818 }, exit: { distance: 4730, x: 1640, y: 738 }, gear: 5, apexSpeed: 200, difficulty: 'medium' }
+    ],
+    svg: {
+      viewBox: '0 0 1920 1080',
+      // Accurate centerline from telemetry data - Daytona Road Course
+      // Tri-oval banking with infield road course section
+      path: 'M 1785,309 Q 1763,270 1741,240 Q 1719,217 1702,201 L 1623,154 Q 1544,130 1468,121 L 1397,119 L 1248,118 L 789,113 L 658,112 L 498,111 Q 423,116 358,128 Q 300,148 248,176 Q 214,202 184,230 Q 159,263 138,298 Q 123,332 114,363 Q 109,389 106,408 L 107,471 Q 118,531 142,587 Q 176,639 215,680 Q 256,714 297,740 L 333,759 Q 384,783 443,808 L 504,833 L 564,858 Q 588,867 632,886 L 717,919 Q 791,943 872,962 L 955,969 Q 1020,966 1073,960 Q 1121,950 1166,936 L 1264,900 L 1372,859 L 1477,818 L 1563,779 Q 1602,760 1640,738 Q 1677,712 1713,682 Q 1749,644 1777,602 Q 1800,549 1812,493 Q 1815,444 1811,397 Q 1801,351 1785,309 Z'
+    },
+    metadata: {
+      direction: 'counter-clockwise',
+      elevation: { minimum: 0, maximum: 10, change: 10 },
+      coordinates: { latitude: 29.1852, longitude: -81.0705 }
+    }
+  },
+
   'watkins-glen': {
     id: 'watkins-glen',
     name: 'Watkins Glen International',
@@ -178,37 +216,6 @@ export const TRACK_DATA: Record<string, TrackData> = {
       direction: 'clockwise',
       elevation: { minimum: 52, maximum: 168, change: 116 },
       coordinates: { latitude: 36.5841, longitude: -121.7534 }
-    }
-  },
-
-  'daytona': {
-    id: 'daytona',
-    name: 'Daytona International Speedway',
-    country: 'USA',
-    length: 5729,
-    layout: 'Road Course',
-    sectors: [
-      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1910 },
-      { number: 2, name: 'Sector 2', startDistance: 1910, endDistance: 3820 },
-      { number: 3, name: 'Sector 3', startDistance: 3820, endDistance: 5729 }
-    ],
-    corners: [
-      { number: 1, name: 'Turn 1 (Oval)', type: 'left', apex: { distance: 800, x: 200, y: 300, normalizedDistance: 0.140 }, entry: { distance: 600, x: 100, y: 350 }, exit: { distance: 1000, x: 300, y: 250 }, gear: 6, apexSpeed: 280, difficulty: 'easy', notes: 'High-speed banked turn' },
-      { number: 2, name: 'International Horseshoe', type: 'right', apex: { distance: 1800, x: 600, y: 150, normalizedDistance: 0.314 }, braking: { distance: 1600, x: 500, y: 180 }, exit: { distance: 2000, x: 700, y: 130 }, gear: 3, apexSpeed: 90, difficulty: 'hard', notes: 'Tight infield section' },
-      { number: 3, name: 'Infield Turn 3', type: 'left', apex: { distance: 2200, x: 850, y: 200, normalizedDistance: 0.384 }, entry: { distance: 2100, x: 800, y: 170 }, exit: { distance: 2300, x: 900, y: 250 }, gear: 4, apexSpeed: 120, difficulty: 'medium' },
-      { number: 4, name: 'Infield Turn 4', type: 'right', apex: { distance: 2600, x: 950, y: 350, normalizedDistance: 0.454 }, braking: { distance: 2500, x: 930, y: 300 }, exit: { distance: 2700, x: 970, y: 400 }, gear: 3, apexSpeed: 100, difficulty: 'medium' },
-      { number: 5, name: 'Infield Turn 5', type: 'left', apex: { distance: 3000, x: 900, y: 500, normalizedDistance: 0.524 }, entry: { distance: 2900, x: 940, y: 450 }, exit: { distance: 3100, x: 850, y: 550 }, gear: 4, apexSpeed: 130, difficulty: 'easy' },
-      { number: 6, name: 'Bus Stop Chicane', type: 'chicane', apex: { distance: 3600, x: 650, y: 600, normalizedDistance: 0.629 }, braking: { distance: 3400, x: 750, y: 580 }, exit: { distance: 3800, x: 550, y: 620 }, gear: 2, apexSpeed: 70, difficulty: 'hard', notes: 'Tight chicane before oval' },
-      { number: 7, name: 'Turn 3 (Oval)', type: 'left', apex: { distance: 4800, x: 200, y: 550, normalizedDistance: 0.838 }, entry: { distance: 4500, x: 350, y: 600 }, exit: { distance: 5100, x: 150, y: 480 }, gear: 6, apexSpeed: 275, difficulty: 'easy', notes: 'High-speed banked turn' }
-    ],
-    svg: {
-      viewBox: '0 0 1100 700',
-      path: 'M 100,400 Q 80,300 100,200 L 200,120 Q 350,80 500,100 L 700,130 Q 850,160 950,250 L 1000,350 Q 1020,450 980,550 L 900,620 Q 750,680 550,680 L 350,650 Q 200,600 120,520 L 100,400 Z'
-    },
-    metadata: {
-      direction: 'clockwise',
-      elevation: { minimum: 0, maximum: 10, change: 10 },
-      coordinates: { latitude: 29.1852, longitude: -81.0705 }
     }
   }
 };
