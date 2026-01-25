@@ -57,21 +57,26 @@ export function DriverLayout() {
   return (
     <div className="min-h-screen bg-[--bg] flex flex-col">
       {/* Header */}
-      <header className="h-14 border-b border-white/10 bg-black/40 backdrop-blur-sm flex items-center justify-between px-4 sticky top-0 z-50">
+      <header className="border-b border-white/10 bg-[#0e0e0e] sticky top-0 z-50">
+        {/* Main nav row */}
+        <div className="h-14 flex items-center justify-between px-4">
         <div className="flex items-center gap-6">
-          {/* Logo */}
-          <NavLink to="/driver/home" className="flex items-center gap-2">
-            <div className="flex gap-0.5">
-              <div className="w-2 h-5 bg-[#f97316]" />
-              <div className="w-2 h-5 bg-[#f97316]" />
-              <div className="w-2 h-5 bg-[#f97316]" />
+          {/* Logo - Triple stripe matching website */}
+          <NavLink to="/driver/home" className="flex items-center gap-3 group">
+            <div className="flex gap-1">
+              <div className="w-2 h-7 bg-white rounded-full transform rotate-12"></div>
+              <div className="w-2 h-7 bg-[#3b82f6] rounded-full transform rotate-12"></div>
+              <div className="w-2 h-7 bg-[#f97316] rounded-full transform rotate-12"></div>
             </div>
-            <span 
-              className="text-sm font-bold tracking-wider text-white uppercase hidden sm:block"
-              style={{ fontFamily: 'Orbitron, sans-serif' }}
-            >
-              Ok, Box Box
-            </span>
+            <div className="flex flex-col hidden sm:flex">
+              <span 
+                className="text-sm font-bold tracking-wider text-white uppercase"
+                style={{ fontFamily: 'Orbitron, sans-serif' }}
+              >
+                Ok, Box Box
+              </span>
+              <span className="text-[9px] tracking-wider text-[#f97316] uppercase">Driver Tier</span>
+            </div>
           </NavLink>
 
           {/* Driver Sub-Nav */}
@@ -148,6 +153,7 @@ export function DriverLayout() {
               </div>
             )}
           </div>
+        </div>
         </div>
       </header>
 
