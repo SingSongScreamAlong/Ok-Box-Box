@@ -1,0 +1,21 @@
+name: okboxbox-app
+region: nyc
+static_sites:
+  - name: okboxbox-web
+    github:
+      repo: SingSongScreamAlong/Ok-Box-Box
+      branch: main
+      deploy_on_push: true
+    source_dir: apps/app
+    build_command: npm install && npm run build
+    output_dir: dist
+    environment_slug: node-js
+    envs:
+      - key: VITE_SUPABASE_URL
+        value: "${VITE_SUPABASE_URL}"
+        scope: BUILD_TIME
+      - key: VITE_SUPABASE_ANON_KEY
+        value: "${VITE_SUPABASE_ANON_KEY}"
+        scope: BUILD_TIME
+    routes:
+      - path: /
