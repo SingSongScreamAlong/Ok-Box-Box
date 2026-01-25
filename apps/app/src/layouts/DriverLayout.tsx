@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useRelay } from '../hooks/useRelay';
-import { Home, Activity, Monitor, Mic, Settings, LogOut, User, ChevronDown, History, BarChart3, Award } from 'lucide-react';
+import { Home, Activity, Monitor, Mic, Settings, LogOut, User, ChevronDown, History, BarChart3, Award, Users } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 export function DriverLayout() {
@@ -134,6 +134,14 @@ export function DriverLayout() {
                 >
                   <User className="w-4 h-4" />
                   Driver Profile
+                </NavLink>
+                <NavLink
+                  to="/teams"
+                  className="flex items-center gap-2 px-4 py-3 text-xs uppercase tracking-wider text-white/60 hover:text-white hover:bg-white/5"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  <Users className="w-4 h-4" />
+                  Teams
                 </NavLink>
                 <NavLink
                   to="/settings"
