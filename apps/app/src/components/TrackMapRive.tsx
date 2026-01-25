@@ -49,15 +49,15 @@ function TrackMapSVG({
   const trackData = getTrackSVGData(trackId);
   const vb = trackData.viewBox.split(' ').map(Number);
   
-  // Sector colors matching F1 style
+  // Sector colors matching F1 style - brighter versions
   const sectorColors = {
-    1: '#eab308', // Yellow - Sector 1
-    2: '#22c55e', // Green - Sector 2  
-    3: '#a855f7', // Purple - Sector 3
+    1: '#fbbf24', // Bright Yellow - Sector 1
+    2: '#4ade80', // Bright Green - Sector 2  
+    3: '#c084fc', // Bright Purple - Sector 3
   };
   
-  // Default track color (yellow like F1)
-  const trackColor = currentSector ? sectorColors[currentSector as 1|2|3] : '#eab308';
+  // Default track color (bright yellow/orange like F1)
+  const trackColor = currentSector ? sectorColors[currentSector as 1|2|3] : '#f59e0b';
   
   return (
     <svg 
@@ -93,7 +93,7 @@ function TrackMapSVG({
         strokeWidth="18"
         strokeLinecap="round"
         strokeLinejoin="round"
-        opacity="0.5"
+        opacity="0.6"
       />
       
       {/* Main track - thick yellow/colored line like F1 */}
@@ -105,9 +105,10 @@ function TrackMapSVG({
         strokeLinecap="round"
         strokeLinejoin="round"
         filter="url(#trackGlow)"
+        opacity="1"
       />
       
-      {/* Track edge highlights */}
+      {/* Track edge highlights - brighter */}
       <path 
         d={trackData.path} 
         fill="none" 
@@ -115,7 +116,7 @@ function TrackMapSVG({
         strokeWidth="14"
         strokeLinecap="round"
         strokeLinejoin="round"
-        opacity="0.1"
+        opacity="0.2"
       />
       
       {/* Corner number markers */}
