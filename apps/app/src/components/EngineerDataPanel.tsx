@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { MapPin, Flag, Fuel, Gauge, Wrench, ThermometerSun, Loader2, Settings, Zap, Timer } from 'lucide-react';
 import { fetchTrackPerformance, TrackPerformanceData } from '../lib/driverService';
 import { TrackMapRive } from './TrackMapRive';
+import { useRelay } from '../hooks/useRelay';
 
 interface EngineerDataPanelProps {
   track: {
@@ -88,7 +89,13 @@ const getTrackMetadata = (trackName: string): TrackMetadata => {
 export function EngineerDataPanel({ track }: EngineerDataPanelProps) {
   const [loading, setLoading] = useState(true);
   const [trackData, setTrackData] = useState<TrackPerformanceData | null>(null);
+  const { telemetry, getCarMapPosition } = useRelay();
   const metadata = getTrackMetadata(track.track);
+  
+  // Get car position for map visualization
+  const carPosition = telemetry.trackPosition !== null 
+    ? getCarMapPosition(telemetry.trackPosition) 
+    : undefined;
 
   useEffect(() => {
     let mounted = true;
@@ -148,6 +155,11 @@ export function EngineerDataPanel({ track }: EngineerDataPanelProps) {
           <TrackMapRive 
             trackId={track.track.toLowerCase().replace(/[^a-z]/g, '-').replace(/-+/g, '-')}
             showPitLane={true}
+            carPosition={carPosition}
+            currentSector={telemetry.sector || undefined}
+            speed={telemetry.speed || undefined}
+            throttle={telemetry.throttle || undefined}
+            brake={telemetry.brake || undefined}
             className="w-full h-full"
           />
           <div className="absolute bottom-2 right-2 text-[10px] text-white/40">

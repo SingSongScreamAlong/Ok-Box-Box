@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { MapPin, BarChart3, TrendingUp, TrendingDown, Target, Loader2, Clock, Zap, Activity, Award } from 'lucide-react';
 import { fetchTrackPerformance, TrackPerformanceData } from '../lib/driverService';
 import { TrackMapRive } from './TrackMapRive';
+import { useRelay } from '../hooks/useRelay';
 
 interface AnalystDataPanelProps {
   track: {
@@ -103,7 +104,13 @@ const getTrackMetadata = (trackName: string): TrackMetadata => {
 export function AnalystDataPanel({ track }: AnalystDataPanelProps) {
   const [loading, setLoading] = useState(true);
   const [trackData, setTrackData] = useState<TrackPerformanceData | null>(null);
+  const { telemetry, getCarMapPosition } = useRelay();
   const metadata = getTrackMetadata(track.track);
+  
+  // Get car position for map visualization
+  const carPosition = telemetry.trackPosition !== null 
+    ? getCarMapPosition(telemetry.trackPosition) 
+    : undefined;
 
   useEffect(() => {
     let mounted = true;
@@ -167,8 +174,10 @@ export function AnalystDataPanel({ track }: AnalystDataPanelProps) {
         <div className="h-48 relative">
           <TrackMapRive 
             trackId={track.track.toLowerCase().replace(/[^a-z]/g, '-').replace(/-+/g, '-')}
-            currentSector={1}
+            currentSector={telemetry.sector || 1}
             sectorDeltas={[-0.2, 0.1, 0.3]} // Mock deltas - would come from real data
+            carPosition={carPosition}
+            speed={telemetry.speed || undefined}
             className="w-full h-full"
           />
           <div className="absolute bottom-2 left-2 flex items-center gap-3 text-[10px]">

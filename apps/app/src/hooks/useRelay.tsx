@@ -17,6 +17,10 @@ export interface TelemetryData {
   rpm: number | null;
   throttle: number | null;
   brake: number | null;
+  // Track position data for map visualization
+  trackPosition: number | null; // 0-1 position around track (LapDistPct)
+  sector: number | null; // Current sector 1, 2, or 3
+  inPit: boolean;
 }
 
 export interface SessionInfo {
@@ -32,6 +36,7 @@ interface RelayContextValue {
   session: SessionInfo;
   connect: () => void;
   disconnect: () => void;
+  getCarMapPosition: (trackPos: number) => { x: number; y: number };
 }
 
 const defaultTelemetry: TelemetryData = {
@@ -49,6 +54,9 @@ const defaultTelemetry: TelemetryData = {
   rpm: null,
   throttle: null,
   brake: null,
+  trackPosition: null,
+  sector: null,
+  inPit: false,
 };
 
 const defaultSession: SessionInfo = {
@@ -90,37 +98,72 @@ export function RelayProvider({ children }: { children: ReactNode }) {
           lapsRemaining: null,
         });
 
-        // Start telemetry simulation
+        // Start telemetry simulation with smooth track position updates
         let lap = 1;
         let bestLap = 999;
+        let trackPos = 0; // 0-1 position around track
         
-        const interval = setInterval(() => {
-          const lapTime = 45 + Math.random() * 2; // ~45-47 second laps
+        // Fast update for smooth car movement (60fps-ish)
+        const positionInterval = setInterval(() => {
+          trackPos += 0.005; // Move ~0.5% of track per update
+          if (trackPos >= 1) {
+            trackPos = 0;
+            lap++;
+          }
+          
+          // Calculate sector (1, 2, or 3) based on track position
+          const sector = trackPos < 0.33 ? 1 : trackPos < 0.66 ? 2 : 3;
+          
+          // Simulate speed variations based on track position
+          // Slower in corners (around 0.15, 0.45, 0.75), faster on straights
+          const cornerFactor = Math.sin(trackPos * Math.PI * 6) * 0.15;
+          const baseSpeed = 180;
+          const speed = baseSpeed + (cornerFactor * baseSpeed) + (Math.random() * 5);
+          
+          // Throttle/brake based on speed change
+          const throttle = cornerFactor > 0 ? 80 + Math.random() * 20 : 40 + Math.random() * 30;
+          const brake = cornerFactor < -0.05 ? 50 + Math.random() * 50 : Math.random() * 10;
+          
+          const lapTime = 45 + Math.random() * 2;
           if (lapTime < bestLap) bestLap = lapTime;
           
           setTelemetry({
-            lapTime: lapTime - Math.floor(lapTime / 45) * 45, // Current lap progress
+            lapTime: trackPos * 45, // Approximate lap time based on position
             lastLap: lapTime,
             bestLap: bestLap,
-            delta: (Math.random() - 0.5) * 2, // -1 to +1 seconds
-            fuel: 18 - (lap * 0.5), // Decreasing fuel
+            delta: (Math.random() - 0.5) * 2,
+            fuel: Math.max(0, 18 - (lap * 0.5)),
             fuelPerLap: 0.5,
-            lapsRemaining: Math.floor((18 - (lap * 0.5)) / 0.5),
+            lapsRemaining: Math.floor(Math.max(0, 18 - (lap * 0.5)) / 0.5),
             position: Math.floor(Math.random() * 20) + 1,
             lap: lap,
-            speed: 180 + Math.random() * 20,
-            gear: Math.floor(Math.random() * 4) + 3,
-            rpm: 6000 + Math.random() * 2000,
-            throttle: Math.random() * 100,
-            brake: Math.random() * 30,
+            speed: speed,
+            gear: speed < 100 ? 3 : speed < 150 ? 4 : speed < 180 ? 5 : 6,
+            rpm: 4000 + (speed / 200) * 4000,
+            throttle: throttle,
+            brake: brake,
+            trackPosition: trackPos,
+            sector: sector,
+            inPit: false,
           });
-          
-          lap++;
-        }, 3000); // Update every 3 seconds
+        }, 50); // Update every 50ms for smooth animation
+
+        const interval = positionInterval; // Keep reference for cleanup
 
         setMockInterval(interval);
       }, 2000);
     }, 1500);
+  }, []);
+
+  // Helper to convert track position to x,y coordinates for map
+  // This would be track-specific in production
+  const getCarMapPosition = useCallback((trackPos: number): { x: number; y: number } => {
+    // Simple oval approximation - real tracks would have proper path data
+    const angle = trackPos * Math.PI * 2;
+    return {
+      x: 0.5 + Math.cos(angle) * 0.35,
+      y: 0.5 + Math.sin(angle) * 0.25,
+    };
   }, []);
 
   const stopMockSimulation = useCallback(() => {
@@ -174,7 +217,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   }, [mockInterval]);
 
   return (
-    <RelayContext.Provider value={{ status, telemetry, session, connect, disconnect }}>
+    <RelayContext.Provider value={{ status, telemetry, session, connect, disconnect, getCarMapPosition }}>
       {children}
     </RelayContext.Provider>
   );
@@ -190,6 +233,10 @@ export function useRelay() {
       session: defaultSession,
       connect: () => {},
       disconnect: () => {},
+      getCarMapPosition: (trackPos: number) => ({
+        x: 0.5 + Math.cos(trackPos * Math.PI * 2) * 0.35,
+        y: 0.5 + Math.sin(trackPos * Math.PI * 2) * 0.25,
+      }),
     };
   }
   return context;

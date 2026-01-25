@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { MapPin, Flag, Users, Eye, AlertTriangle, Loader2, Car, Zap, Shield, Target } from 'lucide-react';
 import { fetchTrackPerformance, TrackPerformanceData } from '../lib/driverService';
 import { TrackMapRive } from './TrackMapRive';
+import { useRelay } from '../hooks/useRelay';
 
 interface SpotterDataPanelProps {
   track: {
@@ -105,8 +106,14 @@ const getRiskColor = (risk: 'high' | 'medium' | 'low') => {
 export function SpotterDataPanel({ track }: SpotterDataPanelProps) {
   const [loading, setLoading] = useState(true);
   const [trackData, setTrackData] = useState<TrackPerformanceData | null>(null);
+  const { telemetry, getCarMapPosition } = useRelay();
   const metadata = getTrackMetadata(track.track);
   const expectedField = track.expectedField || 24;
+  
+  // Get car position for map visualization
+  const carPosition = telemetry.trackPosition !== null 
+    ? getCarMapPosition(telemetry.trackPosition) 
+    : undefined;
 
   useEffect(() => {
     let mounted = true;
@@ -163,6 +170,9 @@ export function SpotterDataPanel({ track }: SpotterDataPanelProps) {
           <TrackMapRive 
             trackId={track.track.toLowerCase().replace(/[^a-z]/g, '-').replace(/-+/g, '-')}
             highlightDangerZones={true}
+            carPosition={carPosition}
+            currentSector={telemetry.sector || undefined}
+            speed={telemetry.speed || undefined}
             className="w-full h-full"
           />
           <div className="absolute bottom-2 left-2 flex items-center gap-3 text-[10px]">
