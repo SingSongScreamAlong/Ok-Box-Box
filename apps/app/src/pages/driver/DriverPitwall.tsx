@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react';
 import { useRelay } from '../../hooks/useRelay';
 import { Link } from 'react-router-dom';
 import { 
@@ -31,6 +32,13 @@ interface SpotterCall {
 
 export function DriverPitwall() {
   const { status, telemetry, session } = useRelay();
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.6;
+    }
+  }, []);
 
   const formatTime = (seconds: number | null) => {
     if (seconds === null) return '--:--.---';
@@ -130,196 +138,223 @@ export function DriverPitwall() {
     }
   };
 
+  // Video background component
+  const VideoBackground = () => (
+    <>
+      <video
+        ref={videoRef}
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="fixed inset-0 w-full h-full object-cover opacity-70"
+        style={{ zIndex: -2 }}
+      >
+        <source src="https://okboxbox.com/video/okbb-bg.mp4" type="video/mp4" />
+      </video>
+      <div className="fixed inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/70" style={{ zIndex: -1 }} />
+      <div className="fixed inset-0 bg-gradient-to-r from-black/30 via-transparent to-black/30" style={{ zIndex: -1 }} />
+    </>
+  );
+
   // Disconnected state - Show crew access and recent data
   if (status === 'disconnected') {
     return (
-      <div className="max-w-5xl mx-auto space-y-6">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-            Pitwall
-          </h1>
-          <p className="text-white/50 mt-2">Your crew is available for planning even without live data</p>
-        </div>
+      <>
+        <VideoBackground />
+        <div className="max-w-5xl mx-auto space-y-6 px-6 py-8">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+              Pitwall
+            </h1>
+            <p className="text-white/50 mt-2">Your crew is available for planning even without live data</p>
+          </div>
 
-        {/* Crew Access Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Link to="/driver/crew/engineer" className="bg-black/40 backdrop-blur-sm border border-white/10 p-6 hover:border-[#f97316]/50 transition-colors group">
-            <div className="w-12 h-12 bg-[#f97316]/20 border border-[#f97316]/30 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-              <Wrench className="w-6 h-6 text-[#f97316]" />
-            </div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>Race Engineer</h3>
-            <p className="text-xs text-white/50 mt-2">Plan strategy, discuss setups, calculate fuel</p>
-            <div className="flex items-center gap-1 mt-4 text-xs text-[#f97316]">
-              <span>Start Planning</span>
-              <ChevronRight className="w-3 h-3" />
-            </div>
-          </Link>
-          <Link to="/driver/crew/spotter" className="bg-black/40 backdrop-blur-sm border border-white/10 p-6 hover:border-[#3b82f6]/50 transition-colors group">
-            <div className="w-12 h-12 bg-[#3b82f6]/20 border border-[#3b82f6]/30 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-              <Eye className="w-6 h-6 text-[#3b82f6]" />
-            </div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>Spotter</h3>
-            <p className="text-xs text-white/50 mt-2">Discuss race starts, traffic, competitors</p>
-            <div className="flex items-center gap-1 mt-4 text-xs text-[#3b82f6]">
-              <span>Race Briefing</span>
-              <ChevronRight className="w-3 h-3" />
-            </div>
-          </Link>
-          <Link to="/driver/crew/analyst" className="bg-black/40 backdrop-blur-sm border border-white/10 p-6 hover:border-[#8b5cf6]/50 transition-colors group">
-            <div className="w-12 h-12 bg-[#8b5cf6]/20 border border-[#8b5cf6]/30 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-              <TrendingUp className="w-6 h-6 text-[#8b5cf6]" />
-            </div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>Analyst</h3>
-            <p className="text-xs text-white/50 mt-2">Review sessions, analyze performance</p>
-            <div className="flex items-center gap-1 mt-4 text-xs text-[#8b5cf6]">
-              <span>View Analysis</span>
-              <ChevronRight className="w-3 h-3" />
-            </div>
-          </Link>
-        </div>
-
-        {/* Quick Links */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Link to="/driver/sessions" className="bg-black/40 backdrop-blur-sm border border-white/10 p-5 hover:border-white/30 transition-colors group flex items-center gap-4">
-            <div className="w-10 h-10 bg-white/10 flex items-center justify-center">
-              <Flag className="w-5 h-5 text-white/60" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold uppercase tracking-wider">Recent Sessions</h3>
-              <p className="text-xs text-white/40 mt-1">View your race history and results</p>
-            </div>
-            <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60" />
-          </Link>
-          <Link to="/driver/stats" className="bg-black/40 backdrop-blur-sm border border-white/10 p-5 hover:border-white/30 transition-colors group flex items-center gap-4">
-            <div className="w-10 h-10 bg-white/10 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-white/60" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold uppercase tracking-wider">Career Stats</h3>
-              <p className="text-xs text-white/40 mt-1">Your performance across all disciplines</p>
-            </div>
-            <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60" />
-          </Link>
-        </div>
-
-        {/* Relay Info */}
-        <div className="bg-white/5 border border-white/10 p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-white/10 flex items-center justify-center">
-                <Radio className="w-5 h-5 text-white/40" />
+          {/* Crew Access Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link to="/driver/crew/engineer" className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded shadow-lg shadow-black/20 p-6 hover:border-[#f97316]/50 transition-colors group">
+              <div className="w-12 h-12 bg-[#f97316]/20 border border-[#f97316]/30 rounded flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                <Wrench className="w-6 h-6 text-[#f97316]" />
               </div>
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-wider">Live Telemetry</h3>
-                <p className="text-xs text-white/40 mt-1">Connect the Relay for real-time data during sessions</p>
+              <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>Race Engineer</h3>
+              <p className="text-xs text-white/50 mt-2">Plan strategy, discuss setups, calculate fuel</p>
+              <div className="flex items-center gap-1 mt-4 text-xs text-[#f97316]">
+                <span>Start Planning</span>
+                <ChevronRight className="w-3 h-3" />
               </div>
-            </div>
-            <Link to="/download" className="px-4 py-2 border border-white/20 text-white/60 text-xs uppercase tracking-wider hover:bg-white/5 hover:text-white transition-colors">
-              Get Relay
+            </Link>
+            <Link to="/driver/crew/spotter" className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded shadow-lg shadow-black/20 p-6 hover:border-[#3b82f6]/50 transition-colors group">
+              <div className="w-12 h-12 bg-[#3b82f6]/20 border border-[#3b82f6]/30 rounded flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                <Eye className="w-6 h-6 text-[#3b82f6]" />
+              </div>
+              <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>Spotter</h3>
+              <p className="text-xs text-white/50 mt-2">Discuss race starts, traffic, competitors</p>
+              <div className="flex items-center gap-1 mt-4 text-xs text-[#3b82f6]">
+                <span>Race Briefing</span>
+                <ChevronRight className="w-3 h-3" />
+              </div>
+            </Link>
+            <Link to="/driver/crew/analyst" className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded shadow-lg shadow-black/20 p-6 hover:border-[#8b5cf6]/50 transition-colors group">
+              <div className="w-12 h-12 bg-[#8b5cf6]/20 border border-[#8b5cf6]/30 rounded flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+                <TrendingUp className="w-6 h-6 text-[#8b5cf6]" />
+              </div>
+              <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>Analyst</h3>
+              <p className="text-xs text-white/50 mt-2">Review sessions, analyze performance</p>
+              <div className="flex items-center gap-1 mt-4 text-xs text-[#8b5cf6]">
+                <span>View Analysis</span>
+                <ChevronRight className="w-3 h-3" />
+              </div>
             </Link>
           </div>
+
+          {/* Quick Links */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Link to="/driver/sessions" className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded shadow-lg shadow-black/20 p-5 hover:border-white/30 transition-colors group flex items-center gap-4">
+              <div className="w-10 h-10 bg-white/10 rounded flex items-center justify-center">
+                <Flag className="w-5 h-5 text-white/60" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold uppercase tracking-wider">Recent Sessions</h3>
+                <p className="text-xs text-white/40 mt-1">View your race history and results</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60" />
+            </Link>
+            <Link to="/driver/stats" className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded shadow-lg shadow-black/20 p-5 hover:border-white/30 transition-colors group flex items-center gap-4">
+              <div className="w-10 h-10 bg-white/10 rounded flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-white/60" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold uppercase tracking-wider">Career Stats</h3>
+                <p className="text-xs text-white/40 mt-1">Your performance across all disciplines</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60" />
+            </Link>
+          </div>
+
+          {/* Relay Info */}
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded shadow-lg shadow-black/20 p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-white/10 rounded flex items-center justify-center">
+                  <Radio className="w-5 h-5 text-white/40" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-wider">Live Telemetry</h3>
+                  <p className="text-xs text-white/40 mt-1">Connect the Relay for real-time data during sessions</p>
+                </div>
+              </div>
+              <Link to="/download" className="px-4 py-2 border border-white/20 text-white/60 text-xs uppercase tracking-wider hover:bg-white/5 hover:text-white transition-colors rounded">
+                Get Relay
+              </Link>
+            </div>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // Connecting state
   if (status === 'connecting') {
     return (
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-black/40 backdrop-blur-sm border border-yellow-500/30 p-12 text-center">
-          <div className="w-20 h-20 mx-auto mb-6 bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center animate-pulse">
-            <Radio className="w-10 h-10 text-yellow-500" />
+      <>
+        <VideoBackground />
+        <div className="max-w-4xl mx-auto px-6 py-8">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-yellow-500/30 rounded shadow-lg shadow-black/20 p-12 text-center">
+            <div className="w-20 h-20 mx-auto mb-6 bg-yellow-500/20 border border-yellow-500/30 rounded flex items-center justify-center animate-pulse">
+              <Radio className="w-10 h-10 text-yellow-500" />
+            </div>
+            <h2 
+              className="text-xl uppercase tracking-wider font-bold mb-2"
+              style={{ fontFamily: 'Orbitron, sans-serif' }}
+            >
+              Connecting to Your Crew
+            </h2>
+            <p className="text-sm text-white/50">Establishing connection to iRacing...</p>
           </div>
-          <h2 
-            className="text-xl uppercase tracking-wider font-bold mb-2"
-            style={{ fontFamily: 'Orbitron, sans-serif' }}
-          >
-            Connecting to Your Crew
-          </h2>
-          <p className="text-sm text-white/50">Establishing connection to iRacing...</p>
         </div>
-      </div>
+      </>
     );
   }
 
   // Connected / In Session - Live Support View
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 
-            className="text-2xl font-bold uppercase tracking-wider"
-            style={{ fontFamily: 'Orbitron, sans-serif' }}
-          >
-            Live Pitwall
-          </h1>
-          <p className="text-sm text-white/50 mt-1">
-            {status === 'in_session' 
-              ? 'Your crew is actively monitoring'
-              : 'Standing by for session start'}
-          </p>
+    <>
+      <VideoBackground />
+      <div className="max-w-6xl mx-auto space-y-6 px-6 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 
+              className="text-2xl font-bold uppercase tracking-wider"
+              style={{ fontFamily: 'Orbitron, sans-serif' }}
+            >
+              Live Pitwall
+            </h1>
+            <p className="text-sm text-white/50 mt-1">
+              {status === 'in_session' 
+                ? 'Your crew is actively monitoring'
+                : 'Standing by for session start'}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/30 rounded">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-xs uppercase tracking-wider text-green-400">
+              {status === 'in_session' ? 'Live' : 'Connected'}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-green-500/20 border border-green-500/30">
-          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-xs uppercase tracking-wider text-green-400">
-            {status === 'in_session' ? 'Live' : 'Connected'}
-          </span>
-        </div>
-      </div>
 
-      {/* Session Info */}
-      {session.trackName && (
-        <div className="bg-black/40 backdrop-blur-sm border border-[#f97316]/30 p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Flag className="w-5 h-5 text-[#f97316]" />
-              <div>
-                <div className="text-sm font-semibold">{session.trackName}</div>
-                <div className="text-xs text-white/50 uppercase">{session.sessionType}</div>
+        {/* Session Info */}
+        {session.trackName && (
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded shadow-lg shadow-black/20 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Flag className="w-5 h-5 text-[#f97316]" />
+                <div>
+                  <div className="text-sm font-semibold">{session.trackName}</div>
+                  <div className="text-xs text-white/50 uppercase">{session.sessionType}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                {telemetry.position !== null && (
+                  <div className="text-right">
+                    <div className="text-xs text-white/40 uppercase">Position</div>
+                    <div className="text-2xl font-mono font-bold">P{telemetry.position}</div>
+                  </div>
+                )}
+                {telemetry.lap !== null && (
+                  <div className="text-right">
+                    <div className="text-xs text-white/40 uppercase">Lap</div>
+                    <div className="text-2xl font-mono font-bold">{telemetry.lap}</div>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-6">
-              {telemetry.position !== null && (
-                <div className="text-right">
-                  <div className="text-xs text-white/40 uppercase">Position</div>
-                  <div className="text-2xl font-mono font-bold">P{telemetry.position}</div>
-                </div>
-              )}
-              {telemetry.lap !== null && (
-                <div className="text-right">
-                  <div className="text-xs text-white/40 uppercase">Lap</div>
-                  <div className="text-2xl font-mono font-bold">{telemetry.lap}</div>
-                </div>
-              )}
-            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Two Column Layout: Engineer + Spotter */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Engineer Panel */}
-        <div className="bg-black/40 backdrop-blur-sm border border-white/10">
-          <div className="p-4 border-b border-white/10 flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#f97316]/20 border border-[#f97316]/30 flex items-center justify-center">
-              <Wrench className="w-5 h-5 text-[#f97316]" />
+        {/* Two Column Layout: Engineer + Spotter */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Engineer Panel */}
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded shadow-lg shadow-black/20">
+            <div className="p-4 border-b border-white/[0.08] flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#f97316]/20 border border-[#f97316]/30 rounded flex items-center justify-center">
+                <Wrench className="w-5 h-5 text-[#f97316]" />
+              </div>
+              <div>
+                <h2 
+                  className="text-sm font-semibold uppercase tracking-wider"
+                  style={{ fontFamily: 'Orbitron, sans-serif' }}
+                >
+                  Race Engineer
+                </h2>
+                <p className="text-[10px] text-white/40 uppercase">Strategy & Fuel</p>
+              </div>
             </div>
-            <div>
-              <h2 
-                className="text-sm font-semibold uppercase tracking-wider"
-                style={{ fontFamily: 'Orbitron, sans-serif' }}
-              >
-                Race Engineer
-              </h2>
-              <p className="text-[10px] text-white/40 uppercase">Strategy & Fuel</p>
-            </div>
-          </div>
           
           <div className="p-4 space-y-3">
             {/* Key Metrics */}
-            <div className="grid grid-cols-3 gap-3 pb-4 border-b border-white/10">
+            <div className="grid grid-cols-3 gap-3 pb-4 border-b border-white/[0.08]">
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Fuel</div>
                 <div className="text-xl font-mono font-bold">
@@ -365,9 +400,9 @@ export function DriverPitwall() {
         </div>
 
         {/* Spotter Panel */}
-        <div className="bg-black/40 backdrop-blur-sm border border-white/10">
-          <div className="p-4 border-b border-white/10 flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#3b82f6]/20 border border-[#3b82f6]/30 flex items-center justify-center">
+        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded shadow-lg shadow-black/20">
+          <div className="p-4 border-b border-white/[0.08] flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#3b82f6]/20 border border-[#3b82f6]/30 rounded flex items-center justify-center">
               <Eye className="w-5 h-5 text-[#3b82f6]" />
             </div>
             <div>
@@ -383,7 +418,7 @@ export function DriverPitwall() {
           
           <div className="p-4 space-y-3">
             {/* Timing */}
-            <div className="grid grid-cols-3 gap-3 pb-4 border-b border-white/10">
+            <div className="grid grid-cols-3 gap-3 pb-4 border-b border-white/[0.08]">
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Last Lap</div>
                 <div className="text-xl font-mono font-bold">
@@ -425,7 +460,7 @@ export function DriverPitwall() {
                   {spotterCalls.map((call, i) => (
                     <div 
                       key={i}
-                      className="p-3 border border-white/10 bg-white/5 flex items-start gap-3"
+                      className="p-3 border border-white/[0.08] bg-white/[0.02] rounded flex items-start gap-3"
                     >
                       <Eye className="w-4 h-4 text-[#3b82f6]" />
                       <p className="text-sm text-white/60">"{call.message}"</p>
@@ -433,7 +468,7 @@ export function DriverPitwall() {
                   ))}
                 </div>
               ) : (
-                <div className="p-3 border border-white/10 text-sm text-white/40 italic">
+                <div className="p-3 border border-white/[0.08] bg-white/[0.02] rounded text-sm text-white/40 italic">
                   "Standing by. I'll call traffic when you're on track."
                 </div>
               )}
@@ -443,9 +478,9 @@ export function DriverPitwall() {
       </div>
 
       {/* Analyst Panel */}
-      <div className="bg-black/40 backdrop-blur-sm border border-white/10">
-        <div className="p-4 border-b border-white/10 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#8b5cf6]/20 border border-[#8b5cf6]/30 flex items-center justify-center">
+      <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded shadow-lg shadow-black/20">
+        <div className="p-4 border-b border-white/[0.08] flex items-center gap-3">
+          <div className="w-10 h-10 bg-[#8b5cf6]/20 border border-[#8b5cf6]/30 rounded flex items-center justify-center">
             <BarChart3 className="w-5 h-5 text-[#8b5cf6]" />
           </div>
           <div>
@@ -460,7 +495,7 @@ export function DriverPitwall() {
         </div>
         <div className="p-4">
           <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Analyst Notes</div>
-          <div className="p-3 border border-white/10 bg-white/5 text-sm text-white/60 italic">
+          <div className="p-3 border border-white/[0.08] bg-white/[0.02] rounded text-sm text-white/60 italic">
             {status === 'in_session' ? (
               telemetry.bestLap !== null ? (
                 `"Your best lap of ${formatTime(telemetry.bestLap)} is competitive. ${
@@ -477,7 +512,7 @@ export function DriverPitwall() {
       {/* Warning Banner (when applicable) */}
       {telemetry.fuel !== null && telemetry.fuelPerLap !== null && 
        telemetry.fuel / telemetry.fuelPerLap < 3 && (
-        <div className="bg-red-500/20 border border-red-500/50 p-4 flex items-center gap-4">
+        <div className="bg-red-500/20 border border-red-500/50 rounded p-4 flex items-center gap-4">
           <AlertTriangle className="w-6 h-6 text-red-500 flex-shrink-0" />
           <div>
             <h3 className="text-sm font-semibold text-red-400 uppercase tracking-wider">
@@ -493,10 +528,10 @@ export function DriverPitwall() {
       {/* Advanced View Link */}
       <Link 
         to="/driver/pitwall/advanced" 
-        className="bg-black/40 backdrop-blur-sm border border-white/10 p-4 hover:border-purple-500/50 transition-colors group flex items-center justify-between"
+        className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded shadow-lg shadow-black/20 p-4 hover:border-purple-500/50 transition-colors group flex items-center justify-between"
       >
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-purple-500/20 border border-purple-500/30 flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
+          <div className="w-10 h-10 bg-purple-500/20 border border-purple-500/30 rounded flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
             <Layers className="w-5 h-5 text-purple-400" />
           </div>
           <div>
@@ -509,6 +544,7 @@ export function DriverPitwall() {
         </div>
         <ChevronRight className="w-5 h-5 text-white/30 group-hover:text-purple-400 transition-colors" />
       </Link>
-    </div>
+      </div>
+    </>
   );
 }
