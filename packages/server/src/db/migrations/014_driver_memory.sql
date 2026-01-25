@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS driver_memory_events (
     
     -- Evidence
     evidence_type VARCHAR(50) NOT NULL, -- 'session_analysis', 'incident_review', 'interaction_pattern', 'explicit_feedback'
-    evidence_session_id UUID REFERENCES sessions(id),
+    evidence_session_id UUID, -- Reference to session if available
     evidence_summary TEXT NOT NULL,
     
     -- Confidence in this learning
@@ -150,7 +150,7 @@ CREATE INDEX IF NOT EXISTS idx_memory_events_time ON driver_memory_events(create
 
 CREATE TABLE IF NOT EXISTS driver_session_behaviors (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    session_id UUID, -- Reference to session if available
     driver_profile_id UUID NOT NULL REFERENCES driver_profiles(id) ON DELETE CASCADE,
     
     -- Session context
