@@ -10,6 +10,9 @@ import { ResetPassword } from './pages/auth/ResetPassword';
 import { AuthCallback } from './pages/auth/AuthCallback';
 import { DriverHome } from './pages/driver/DriverHome';
 import { DriverPitwall } from './pages/driver/DriverPitwall';
+import { DriverSessions } from './pages/driver/DriverSessions';
+import { DriverStats } from './pages/driver/DriverStats';
+import { DriverRatings } from './pages/driver/DriverRatings';
 import { DriverHUD } from './pages/driver/DriverHUD';
 import { DriverVoice } from './pages/driver/DriverVoice';
 import { DriverProfilePage } from './pages/driver/DriverProfilePage';
@@ -69,6 +72,9 @@ function App() {
         <Route path="/driver" element={<ProtectedRoute><DriverLayout /></ProtectedRoute>}>
           <Route path="home" element={<DriverHome />} />
           <Route path="pitwall" element={<DriverPitwall />} />
+          <Route path="sessions" element={<DriverSessions />} />
+          <Route path="stats" element={<DriverStats />} />
+          <Route path="ratings" element={<DriverRatings />} />
           <Route path="hud" element={<DriverHUD />} />
           <Route path="voice" element={<DriverVoice />} />
           <Route path="profile" element={<DriverProfilePage />} />
