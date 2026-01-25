@@ -30,15 +30,6 @@ export interface SessionInfo {
   lapsRemaining: number | null;
 }
 
-interface RelayContextValue {
-  status: RelayStatus;
-  telemetry: TelemetryData;
-  session: SessionInfo;
-  connect: () => void;
-  disconnect: () => void;
-  getCarMapPosition: (trackPos: number) => { x: number; y: number };
-}
-
 const defaultTelemetry: TelemetryData = {
   lapTime: null,
   lastLap: null,
@@ -66,11 +57,28 @@ const defaultSession: SessionInfo = {
   lapsRemaining: null,
 };
 
+interface RelayContextValue {
+  status: RelayStatus;
+  telemetry: TelemetryData;
+  session: SessionInfo;
+  connect: () => void;
+  disconnect: () => void;
+  getCarMapPosition: (trackPos: number) => { x: number; y: number };
+  mockEnabled: boolean;
+  toggleMock: () => void;
+}
+
 const RelayContext = createContext<RelayContextValue | null>(null);
 
-const MOCK_ENABLED = import.meta.env.VITE_RELAY_MOCK === 'true';
+// Default to mock mode enabled for demo/development
+const getInitialMockState = (): boolean => {
+  const envValue = import.meta.env.VITE_RELAY_MOCK;
+  if (envValue === 'false') return false;
+  // Default to true for demo purposes
+  return true;
+};
 
-console.log('[Relay] Mock mode:', MOCK_ENABLED, 'env value:', import.meta.env.VITE_RELAY_MOCK);
+console.log('[Relay] Initial mock mode:', getInitialMockState());
 
 export function RelayProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<RelayStatus>('disconnected');
@@ -78,9 +86,14 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   const [telemetry, setTelemetry] = useState<TelemetryData>(defaultTelemetry);
   const [session, setSession] = useState<SessionInfo>(defaultSession);
   const [mockInterval, setMockInterval] = useState<NodeJS.Timeout | null>(null);
+  const [mockEnabled, setMockEnabled] = useState(getInitialMockState);
+
+  const toggleMock = useCallback(() => {
+    setMockEnabled(prev => !prev);
+  }, []);
 
   const startMockSimulation = useCallback(() => {
-    if (!MOCK_ENABLED) return;
+    if (!mockEnabled) return;
 
     // Simulate connection sequence
     setStatus('connecting');
@@ -177,27 +190,27 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   }, [mockInterval]);
 
   const connect = useCallback(() => {
-    if (MOCK_ENABLED) {
+    if (mockEnabled) {
       startMockSimulation();
     } else {
       // Real WebSocket connection would go here
       setStatus('connecting');
       // TODO: Implement real relay connection
     }
-  }, [startMockSimulation]);
+  }, [mockEnabled, startMockSimulation]);
 
   const disconnect = useCallback(() => {
-    if (MOCK_ENABLED) {
+    if (mockEnabled) {
       stopMockSimulation();
     } else {
       // Real WebSocket disconnection would go here
       setStatus('disconnected');
     }
-  }, [stopMockSimulation]);
+  }, [mockEnabled, stopMockSimulation]);
 
   // Auto-connect in mock mode on mount
   useEffect(() => {
-    if (MOCK_ENABLED && !initialized) {
+    if (mockEnabled && !initialized) {
       setInitialized(true);
       console.log('[Relay] Auto-connecting mock...');
       const timer = setTimeout(() => {
@@ -205,7 +218,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [initialized, startMockSimulation]);
+  }, [mockEnabled, initialized, startMockSimulation]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -217,7 +230,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   }, [mockInterval]);
 
   return (
-    <RelayContext.Provider value={{ status, telemetry, session, connect, disconnect, getCarMapPosition }}>
+    <RelayContext.Provider value={{ status, telemetry, session, connect, disconnect, getCarMapPosition, mockEnabled, toggleMock }}>
       {children}
     </RelayContext.Provider>
   );
@@ -237,6 +250,8 @@ export function useRelay() {
         x: 0.5 + Math.cos(trackPos * Math.PI * 2) * 0.35,
         y: 0.5 + Math.sin(trackPos * Math.PI * 2) * 0.25,
       }),
+      mockEnabled: false,
+      toggleMock: () => {},
     };
   }
   return context;

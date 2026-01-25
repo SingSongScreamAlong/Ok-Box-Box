@@ -3,17 +3,22 @@ import { useParams, Link } from 'react-router-dom';
 import { Radio, Target, BarChart3, Users, Clock, Zap, TrendingUp } from 'lucide-react';
 import { getTeam, Team } from '../../lib/teams';
 import { PitwallWelcome, useFirstTimeExperience } from '../../components/PitwallWelcome';
+import { useRelay } from '../../hooks/useRelay';
 
 export function PitwallHome() {
   const { teamId } = useParams<{ teamId: string }>();
   const [team, setTeam] = useState<Team | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [sessionState, setSessionState] = useState<'practice' | 'qual' | 'race' | 'offline'>('offline');
-  const [lastUpdateAt, setLastUpdateAt] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const { hasSeenWelcome, markAsSeen } = useFirstTimeExperience('pitwall');
+  const { status, telemetry, session, connect } = useRelay();
   const videoRef = useRef<HTMLVideoElement>(null);
   const breatheRef = useRef<HTMLDivElement>(null);
+
+  // Derive connection state from relay status
+  const isConnected = status === 'connected' || status === 'in_session';
+  const sessionState = status === 'in_session' 
+    ? (session.sessionType === 'qualifying' ? 'qual' : session.sessionType || 'practice')
+    : 'offline';
 
   useEffect(() => {
     if (videoRef.current) {
@@ -27,14 +32,12 @@ export function PitwallHome() {
     }
   }, [teamId]);
 
-  // TODO: Wire to Relay socket
+  // Auto-connect on mount
   useEffect(() => {
-    // Placeholder for socket connection
-    const interval = setInterval(() => {
-      setLastUpdateAt(Date.now());
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+    if (status === 'disconnected') {
+      connect();
+    }
+  }, [status, connect]);
 
   // Live clock for temporal presence
   useEffect(() => {
@@ -56,7 +59,15 @@ export function PitwallHome() {
         ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
         : 'bg-white/10 text-white/40 border border-white/20';
 
-  const lastUpdateLabel = lastUpdateAt ? new Date(lastUpdateAt).toLocaleTimeString() : '—';
+  const lastUpdateLabel = telemetry.lapTime !== null ? new Date().toLocaleTimeString() : '—';
+
+  // Format lap time helper
+  const formatLapTime = (seconds: number | null): string => {
+    if (seconds === null) return '—:—.———';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toFixed(3).padStart(6, '0')}`;
+  };
 
   // Department tiles - these are rooms, not buttons
   const departments = [
@@ -211,25 +222,37 @@ export function PitwallHome() {
             </div>
             <div className="p-6">
               <div className="flex items-baseline justify-between mb-4">
-                <div className="text-xl font-bold tracking-wide text-white/40">Awaiting Driver...</div>
-                <div className="text-xs font-mono text-white/30">#—</div>
+                <div className={`text-xl font-bold tracking-wide ${status === 'in_session' ? 'text-white' : 'text-white/40'}`}>
+                  {status === 'in_session' ? (session.trackName || 'In Session') : 'Awaiting Driver...'}
+                </div>
+                <div className="text-xs font-mono text-white/50">
+                  {telemetry.position !== null ? `P${telemetry.position}` : '#—'}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white/[0.02] border border-white/[0.08] rounded p-4">
                   <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">Position</div>
-                  <div className="mt-1 text-2xl font-bold text-white/30">—</div>
+                  <div className={`mt-1 text-2xl font-bold ${telemetry.position !== null ? 'text-white' : 'text-white/30'}`}>
+                    {telemetry.position !== null ? `P${telemetry.position}` : '—'}
+                  </div>
                 </div>
                 <div className="bg-white/[0.02] border border-white/[0.08] rounded p-4">
                   <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">Lap</div>
-                  <div className="mt-1 text-2xl font-bold text-white/30">—</div>
+                  <div className={`mt-1 text-2xl font-bold ${telemetry.lap !== null ? 'text-white' : 'text-white/30'}`}>
+                    {telemetry.lap !== null ? telemetry.lap : '—'}
+                  </div>
                 </div>
                 <div className="bg-white/[0.02] border border-white/[0.08] rounded p-4">
                   <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">Last Lap</div>
-                  <div className="mt-1 text-lg font-mono text-white/30">—:—.———</div>
+                  <div className={`mt-1 text-lg font-mono ${telemetry.lastLap !== null ? 'text-white' : 'text-white/30'}`}>
+                    {formatLapTime(telemetry.lastLap)}
+                  </div>
                 </div>
                 <div className="bg-white/[0.02] border border-white/[0.08] rounded p-4">
                   <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">Best Lap</div>
-                  <div className="mt-1 text-lg font-mono text-white/30">—:—.———</div>
+                  <div className={`mt-1 text-lg font-mono ${telemetry.bestLap !== null ? 'text-purple-400' : 'text-white/30'}`}>
+                    {formatLapTime(telemetry.bestLap)}
+                  </div>
                 </div>
               </div>
             </div>
@@ -282,8 +305,12 @@ export function PitwallHome() {
         <div className="mt-4 grid grid-cols-1 lg:grid-cols-4 gap-4">
           <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
             <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">Fuel Level</div>
-            <div className="mt-2 text-2xl font-bold text-white/30">—%</div>
-            <div className="mt-1 text-xs text-white/30">— laps remaining</div>
+            <div className={`mt-2 text-2xl font-bold ${telemetry.fuel !== null ? (telemetry.fuel < 5 ? 'text-red-400' : 'text-white') : 'text-white/30'}`}>
+              {telemetry.fuel !== null ? `${telemetry.fuel.toFixed(1)}L` : '—%'}
+            </div>
+            <div className="mt-1 text-xs text-white/30">
+              {telemetry.lapsRemaining !== null ? `${telemetry.lapsRemaining} laps remaining` : '— laps remaining'}
+            </div>
           </div>
           <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
             <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">Tire Wear</div>
@@ -295,12 +322,16 @@ export function PitwallHome() {
             </div>
           </div>
           <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
-            <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">Gap Ahead</div>
-            <div className="mt-2 text-2xl font-mono text-white/30">—.—</div>
+            <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">Speed</div>
+            <div className={`mt-2 text-2xl font-mono ${telemetry.speed !== null ? 'text-white' : 'text-white/30'}`}>
+              {telemetry.speed !== null ? `${Math.round(telemetry.speed)} mph` : '— mph'}
+            </div>
           </div>
           <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
-            <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">Gap Behind</div>
-            <div className="mt-2 text-2xl font-mono text-white/30">—.—</div>
+            <div className="text-[10px] uppercase tracking-[0.12em] text-white/40">Delta</div>
+            <div className={`mt-2 text-2xl font-mono ${telemetry.delta !== null ? (telemetry.delta < 0 ? 'text-green-400' : 'text-red-400') : 'text-white/30'}`}>
+              {telemetry.delta !== null ? `${telemetry.delta >= 0 ? '+' : ''}${telemetry.delta.toFixed(2)}s` : '—.—'}
+            </div>
           </div>
         </div>
 
