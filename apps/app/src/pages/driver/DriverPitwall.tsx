@@ -12,7 +12,9 @@ import {
   Minus,
   ChevronRight,
   Radio,
-  MessageSquare
+  MessageSquare,
+  Layers,
+  BarChart3
 } from 'lucide-react';
 
 interface EngineerInsight {
@@ -440,6 +442,38 @@ export function DriverPitwall() {
         </div>
       </div>
 
+      {/* Analyst Panel */}
+      <div className="bg-black/40 backdrop-blur-sm border border-white/10">
+        <div className="p-4 border-b border-white/10 flex items-center gap-3">
+          <div className="w-10 h-10 bg-[#8b5cf6]/20 border border-[#8b5cf6]/30 flex items-center justify-center">
+            <BarChart3 className="w-5 h-5 text-[#8b5cf6]" />
+          </div>
+          <div>
+            <h2 
+              className="text-sm font-semibold uppercase tracking-wider"
+              style={{ fontFamily: 'Orbitron, sans-serif' }}
+            >
+              Performance Analyst
+            </h2>
+            <p className="text-[10px] text-white/40 uppercase">Data & Insights</p>
+          </div>
+        </div>
+        <div className="p-4">
+          <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Analyst Notes</div>
+          <div className="p-3 border border-white/10 bg-white/5 text-sm text-white/60 italic">
+            {status === 'in_session' ? (
+              telemetry.bestLap !== null ? (
+                `"Your best lap of ${formatTime(telemetry.bestLap)} is competitive. ${
+                  telemetry.delta !== null && telemetry.delta < 0 
+                    ? 'Current pace is strong - you\'re finding time.' 
+                    : 'Focus on consistency through the technical sections.'
+                }"`
+              ) : '"Recording lap data. Complete a lap for initial analysis."'
+            ) : '"Standing by to analyze your session data."'}
+          </div>
+        </div>
+      </div>
+
       {/* Warning Banner (when applicable) */}
       {telemetry.fuel !== null && telemetry.fuelPerLap !== null && 
        telemetry.fuel / telemetry.fuelPerLap < 3 && (
@@ -455,6 +489,26 @@ export function DriverPitwall() {
           </div>
         </div>
       )}
+
+      {/* Advanced View Link */}
+      <Link 
+        to="/driver/pitwall/advanced" 
+        className="bg-black/40 backdrop-blur-sm border border-white/10 p-4 hover:border-purple-500/50 transition-colors group flex items-center justify-between"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-purple-500/20 border border-purple-500/30 flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
+            <Layers className="w-5 h-5 text-purple-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold uppercase tracking-wider">Advanced View</h3>
+              <span className="px-1.5 py-0.5 text-[9px] uppercase tracking-wider bg-purple-500/20 border border-purple-500/30 text-purple-400">Alpha</span>
+            </div>
+            <p className="text-xs text-white/40 mt-1">BlackBox-level telemetry panels for power users</p>
+          </div>
+        </div>
+        <ChevronRight className="w-5 h-5 text-white/30 group-hover:text-purple-400 transition-colors" />
+      </Link>
     </div>
   );
 }

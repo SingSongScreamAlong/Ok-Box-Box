@@ -10,6 +10,7 @@ import { ResetPassword } from './pages/auth/ResetPassword';
 import { AuthCallback } from './pages/auth/AuthCallback';
 import { DriverHome } from './pages/driver/DriverHome';
 import { DriverPitwall } from './pages/driver/DriverPitwall';
+import { DriverPitwallAdvanced } from './pages/driver/DriverPitwallAdvanced';
 import { DriverSessions } from './pages/driver/DriverSessions';
 import { DriverStats } from './pages/driver/DriverStats';
 import { DriverRatings } from './pages/driver/DriverRatings';
@@ -88,6 +89,7 @@ function App() {
         <Route path="/driver" element={<ProtectedRoute><DriverLayout /></ProtectedRoute>}>
           <Route path="home" element={<DriverHome />} />
           <Route path="pitwall" element={<DriverPitwall />} />
+          <Route path="pitwall/advanced" element={<DriverPitwallAdvanced />} />
           <Route path="sessions" element={<DriverSessions />} />
           <Route path="stats" element={<DriverStats />} />
           <Route path="ratings" element={<DriverRatings />} />
