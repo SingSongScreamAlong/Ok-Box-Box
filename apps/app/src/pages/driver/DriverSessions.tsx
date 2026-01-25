@@ -22,20 +22,28 @@ export function DriverSessions() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <h1 
-          className="text-2xl font-bold uppercase tracking-wider"
-          style={{ fontFamily: 'Orbitron, sans-serif' }}
-        >
-          Session History
-        </h1>
-        <p className="text-sm text-white/50 mt-1">Your recent racing sessions</p>
-      </div>
+    <div className="relative min-h-[calc(100vh-8rem)]">
+      {/* Background */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+        style={{ backgroundImage: 'url(/images/system-bg.jpg)' }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-black" />
+
+      <div className="relative z-10 max-w-6xl mx-auto space-y-6 py-6">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 
+            className="text-3xl font-bold uppercase tracking-wider"
+            style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
+          >
+            Session History
+          </h1>
+          <p className="text-sm text-white/60 mt-2" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>Your recent racing sessions</p>
+        </div>
 
       {/* Sessions Table */}
-      <div className="bg-black/40 backdrop-blur-sm border border-white/10 overflow-hidden">
+      <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -129,30 +137,31 @@ export function DriverSessions() {
       {/* Summary */}
       {sessions && sessions.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-black/40 backdrop-blur-sm border border-white/10 p-4">
-            <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Total Sessions</div>
-            <div className="text-2xl font-mono font-bold">{sessions.length}</div>
+          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm p-5 shadow-lg hover:bg-black/50 transition-all duration-200">
+            <div className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-2">Total Sessions</div>
+            <div className="text-3xl font-mono font-bold" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{sessions.length}</div>
           </div>
-          <div className="bg-black/40 backdrop-blur-sm border border-white/10 p-4">
-            <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Avg Finish</div>
-            <div className="text-2xl font-mono font-bold">
+          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm p-5 shadow-lg hover:bg-black/50 transition-all duration-200">
+            <div className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-2">Avg Finish</div>
+            <div className="text-3xl font-mono font-bold" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
               {(sessions.reduce((acc, s) => acc + (s.finishPos ?? 0), 0) / sessions.length).toFixed(1)}
             </div>
           </div>
-          <div className="bg-black/40 backdrop-blur-sm border border-white/10 p-4">
-            <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Best Finish</div>
-            <div className="text-2xl font-mono font-bold text-green-500">
+          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm p-5 shadow-lg hover:bg-black/50 transition-all duration-200">
+            <div className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-2">Best Finish</div>
+            <div className="text-3xl font-mono font-bold text-green-400" style={{ textShadow: '0 2px 10px rgba(34,197,94,0.3)' }}>
               P{Math.min(...sessions.map(s => s.finishPos ?? 99))}
             </div>
           </div>
-          <div className="bg-black/40 backdrop-blur-sm border border-white/10 p-4">
-            <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Total Incidents</div>
-            <div className="text-2xl font-mono font-bold">
+          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm p-5 shadow-lg hover:bg-black/50 transition-all duration-200">
+            <div className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-2">Total Incidents</div>
+            <div className="text-3xl font-mono font-bold" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
               {sessions.reduce((acc, s) => acc + (s.incidents ?? 0), 0)}
             </div>
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
