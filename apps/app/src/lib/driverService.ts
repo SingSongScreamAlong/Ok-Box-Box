@@ -414,7 +414,7 @@ export async function fetchUpcomingRaces(): Promise<UpcomingRace[]> {
     if (!auth.Authorization) {
       // Return demo upcoming races
       return [
-        { id: '1', series: 'IMSA Pilot Challenge', track: 'Watkins Glen', date: 'Today', time: '8:00 PM', laps: 45, weather: 'Clear', expectedField: 24 },
+        { id: '1', series: 'IMSA Pilot Challenge', track: 'Daytona', date: 'Today', time: '8:00 PM', laps: 45, weather: 'Clear', expectedField: 24 },
         { id: '2', series: 'GT3 Sprint', track: 'Spa-Francorchamps', date: 'Tomorrow', time: '2:00 PM', laps: 30, weather: 'Overcast', expectedField: 30 },
         { id: '3', series: 'Porsche Cup', track: 'Laguna Seca', date: 'Jan 28', time: '9:00 PM', laps: 25, weather: 'Sunny', expectedField: 20 },
       ];

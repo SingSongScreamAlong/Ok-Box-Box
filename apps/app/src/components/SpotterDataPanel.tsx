@@ -29,6 +29,22 @@ interface TrackMetadata {
 }
 
 const TRACK_METADATA: Record<string, TrackMetadata> = {
+  'Daytona': {
+    config: 'Road Course', country: 'USA', length: '3.56 mi',
+    turn1Risk: 'high',
+    passingZones: ['Tri-oval banking into T1', 'Back straight into Bus Stop', 'NASCAR Turn 3 exit'],
+    dangerZones: ['International Horseshoe - tight infield section', 'Bus Stop Chicane - contact magnet', 'Turn 1 lap 1 - heavy braking'],
+    startTips: [
+      'T1 is chaos - brake early, protect inside',
+      'Horseshoe: single file lap 1',
+      'Bus Stop: patient, wait for clean exit',
+    ],
+    trafficTips: [
+      'Use banking speed for passes',
+      'Bus Stop: never alongside, wait for straight',
+      'Infield is tight - be patient',
+    ],
+  },
   'Watkins Glen': {
     config: 'Boot', country: 'USA', length: '3.4 mi',
     turn1Risk: 'high',
