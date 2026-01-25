@@ -21,6 +21,15 @@ import { SpotterChat } from './pages/driver/crew/SpotterChat';
 import { AnalystChat } from './pages/driver/crew/AnalystChat';
 import { Settings } from './pages/Settings';
 import { CreateDriverProfile } from './pages/CreateDriverProfile';
+import { Teams } from './pages/Teams';
+import { CreateTeam } from './pages/CreateTeam';
+import { TeamDashboard } from './pages/TeamDashboard';
+import { TeamSettings } from './pages/TeamSettings';
+import { PitwallHome } from './pages/pitwall/PitwallHome';
+import { PitwallStrategy } from './pages/pitwall/PitwallStrategy';
+import { PitwallPractice } from './pages/pitwall/PitwallPractice';
+import { PitwallRoster } from './pages/pitwall/PitwallRoster';
+import { PitwallPlanning } from './pages/pitwall/PitwallPlanning';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -93,6 +102,17 @@ function App() {
         <Route path="/create-driver-profile" element={<ProtectedRoute><DriverLayout /></ProtectedRoute>}>
           <Route index element={<CreateDriverProfile />} />
         </Route>
+
+        {/* Team Tier routes */}
+        <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
+        <Route path="/create-team" element={<ProtectedRoute><CreateTeam /></ProtectedRoute>} />
+        <Route path="/team/:teamId" element={<ProtectedRoute><TeamDashboard /></ProtectedRoute>} />
+        <Route path="/team/:teamId/settings" element={<ProtectedRoute><TeamSettings /></ProtectedRoute>} />
+        <Route path="/team/:teamId/pitwall" element={<ProtectedRoute><PitwallHome /></ProtectedRoute>} />
+        <Route path="/team/:teamId/pitwall/strategy" element={<ProtectedRoute><PitwallStrategy /></ProtectedRoute>} />
+        <Route path="/team/:teamId/pitwall/practice" element={<ProtectedRoute><PitwallPractice /></ProtectedRoute>} />
+        <Route path="/team/:teamId/pitwall/roster" element={<ProtectedRoute><PitwallRoster /></ProtectedRoute>} />
+        <Route path="/team/:teamId/pitwall/planning" element={<ProtectedRoute><PitwallPlanning /></ProtectedRoute>} />
 
         {/* Redirects */}
         <Route path="/dashboard" element={<Navigate to="/driver/home" replace />} />
