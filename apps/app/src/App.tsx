@@ -9,6 +9,7 @@ import { ForgotPassword } from './pages/auth/ForgotPassword';
 import { ResetPassword } from './pages/auth/ResetPassword';
 import { AuthCallback } from './pages/auth/AuthCallback';
 import { DriverHome } from './pages/driver/DriverHome';
+import { DriverBlackBox } from './pages/driver/DriverBlackBox';
 import { DriverPitwall } from './pages/driver/DriverPitwall';
 import { DriverPitwallAdvanced } from './pages/driver/DriverPitwallAdvanced';
 import { DriverSessions } from './pages/driver/DriverSessions';
@@ -87,7 +88,9 @@ function App() {
 
         {/* Driver Tier routes */}
         <Route path="/driver" element={<ProtectedRoute><DriverLayout /></ProtectedRoute>}>
-          <Route path="home" element={<DriverHome />} />
+          <Route index element={<DriverBlackBox />} />
+          <Route path="home" element={<DriverBlackBox />} />
+          <Route path="blackbox" element={<DriverBlackBox />} />
           <Route path="pitwall" element={<DriverPitwall />} />
           <Route path="pitwall/advanced" element={<DriverPitwallAdvanced />} />
           <Route path="sessions" element={<DriverSessions />} />
@@ -99,6 +102,7 @@ function App() {
           <Route path="crew/engineer" element={<EngineerChat />} />
           <Route path="crew/spotter" element={<SpotterChat />} />
           <Route path="crew/analyst" element={<AnalystChat />} />
+          <Route path="planning" element={<DriverHome />} />
         </Route>
 
         {/* Settings & Profile Creation (outside driver layout) */}
