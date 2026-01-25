@@ -2,8 +2,6 @@ import {
   Target,
   AlertCircle,
   Flag,
-  Thermometer,
-  Clock,
   CheckCircle
 } from 'lucide-react';
 import type { SessionBriefing } from '../../services/EngineerCore';
