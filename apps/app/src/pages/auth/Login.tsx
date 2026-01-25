@@ -69,7 +69,8 @@ export function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input pl-11"
+              className="input"
+              style={{ paddingLeft: '2.75rem' }}
               placeholder="driver@team.com"
               required
             />
@@ -86,7 +87,8 @@ export function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input pl-11"
+              className="input"
+              style={{ paddingLeft: '2.75rem' }}
               placeholder="••••••••"
               required
             />
