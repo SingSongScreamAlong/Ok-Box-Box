@@ -35,6 +35,7 @@ export function DriverCockpit() {
     messages, 
     criticalMessages, 
     driverAssessment,
+    engineerKnowledge,
     loading: engineerLoading 
   } = useEngineer();
   
@@ -149,19 +150,36 @@ export function DriverCockpit() {
         {/* MAIN CONTENT AREA */}
         <div className="flex-1 p-4 flex flex-col">
           
-          {/* Disconnected State */}
+          {/* Disconnected State - Engineer Knowledge Display */}
           {!isLive && status !== 'connecting' && (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center max-w-md">
-                <div className="w-16 h-16 mx-auto mb-4 bg-white/10 rounded-full flex items-center justify-center">
-                  <Radio className="w-8 h-8 text-white/40" />
+            <div className="flex-1 flex flex-col items-center justify-center p-4">
+              <div className="text-center max-w-lg">
+                <div className="w-16 h-16 mx-auto mb-4 bg-orange-500/20 rounded-full flex items-center justify-center">
+                  <Radio className="w-8 h-8 text-orange-400" />
                 </div>
                 <h2 className="text-xl font-bold uppercase tracking-wider mb-2" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                  Waiting for Session
+                  Your Engineer
                 </h2>
                 <p className="text-sm text-white/50 mb-6">
-                  Start iRacing and the Ok, Box Box Relay to connect
+                  {engineerLoading ? 'Loading...' : 'Standing by. Start iRacing to connect.'}
                 </p>
+
+                {/* What the Engineer Knows */}
+                {!engineerLoading && engineerKnowledge.length > 0 && (
+                  <div className="bg-white/[0.03] backdrop-blur-xl border border-orange-500/20 rounded p-4 mb-6 text-left">
+                    <div className="text-[10px] uppercase tracking-wider text-orange-400 mb-3">What I Know About You</div>
+                    <div className="space-y-2">
+                      {engineerKnowledge.map((knowledge, idx) => (
+                        <div key={idx} className="text-sm text-white/70 flex items-start gap-2">
+                          <span className="text-orange-400 mt-0.5">•</span>
+                          <span>{knowledge}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quick Actions */}
                 <div className="flex items-center justify-center gap-3">
                   <Link 
                     to="/driver/crew/engineer"
