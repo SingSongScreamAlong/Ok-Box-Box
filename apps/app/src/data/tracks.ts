@@ -1,0 +1,244 @@
+// Accurate Track Data from iRacing telemetry calibration
+// Source: legacy/ProjectBlackBox/server/src/data/tracks/*.json
+
+export interface TrackCorner {
+  number: number;
+  name: string;
+  type: string;
+  apex: { distance: number; x: number; y: number; normalizedDistance: number };
+  braking?: { distance: number; x: number; y: number };
+  entry?: { distance: number; x: number; y: number };
+  exit?: { distance: number; x: number; y: number };
+  gear: number;
+  apexSpeed: number;
+  difficulty: 'easy' | 'medium' | 'hard';
+  notes?: string;
+}
+
+export interface TrackSector {
+  number: number;
+  name: string;
+  startDistance: number;
+  endDistance: number;
+}
+
+export interface TrackData {
+  id: string;
+  name: string;
+  country: string;
+  length: number;
+  layout: string;
+  sectors: TrackSector[];
+  corners: TrackCorner[];
+  svg: {
+    viewBox: string;
+    path: string;
+  };
+  metadata?: {
+    direction?: string;
+    elevation?: { minimum: number; maximum: number; change: number };
+    coordinates?: { latitude: number; longitude: number };
+  };
+}
+
+export const TRACK_DATA: Record<string, TrackData> = {
+  'watkins-glen': {
+    id: 'watkins-glen',
+    name: 'Watkins Glen International',
+    country: 'USA',
+    length: 5430,
+    layout: 'Grand Prix (Boot)',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1810 },
+      { number: 2, name: 'Sector 2', startDistance: 1810, endDistance: 3620 },
+      { number: 3, name: 'Sector 3', startDistance: 3620, endDistance: 5430 }
+    ],
+    corners: [
+      { number: 1, name: 'Turn 1 (90°)', type: 'right', apex: { distance: 350, x: 350, y: 0, normalizedDistance: 0.064 }, braking: { distance: 250, x: 250, y: 0 }, exit: { distance: 450, x: 450, y: -50 }, gear: 3, apexSpeed: 110, difficulty: 'hard', notes: 'End of long straight, heavy braking, downhill' },
+      { number: 2, name: 'The Esses', type: 'left-right-left', apex: { distance: 750, x: 500, y: -150, normalizedDistance: 0.138 }, entry: { distance: 650, x: 480, y: -100 }, exit: { distance: 900, x: 550, y: -200 }, gear: 4, apexSpeed: 145, difficulty: 'medium', notes: 'Fast flowing esses, keep momentum' },
+      { number: 3, name: 'The 90', type: 'left', apex: { distance: 1100, x: 600, y: -300, normalizedDistance: 0.203 }, braking: { distance: 1000, x: 580, y: -250 }, exit: { distance: 1200, x: 620, y: -350 }, gear: 3, apexSpeed: 105, difficulty: 'medium' },
+      { number: 4, name: 'Turn 5', type: 'right', apex: { distance: 1450, x: 700, y: -450, normalizedDistance: 0.267 }, entry: { distance: 1350, x: 670, y: -400 }, exit: { distance: 1550, x: 730, y: -500 }, gear: 4, apexSpeed: 140, difficulty: 'easy' },
+      { number: 5, name: 'Boot Entry', type: 'left', apex: { distance: 1850, x: 800, y: -650, normalizedDistance: 0.341 }, braking: { distance: 1750, x: 780, y: -600 }, exit: { distance: 1950, x: 820, y: -700 }, gear: 3, apexSpeed: 115, difficulty: 'medium', notes: 'Entry to The Boot section' },
+      { number: 6, name: 'Turn 7 (Boot)', type: 'right', apex: { distance: 2200, x: 950, y: -750, normalizedDistance: 0.405 }, entry: { distance: 2100, x: 920, y: -720 }, exit: { distance: 2300, x: 980, y: -780 }, gear: 4, apexSpeed: 135, difficulty: 'medium' },
+      { number: 7, name: 'Turn 8', type: 'left', apex: { distance: 2600, x: 1050, y: -650, normalizedDistance: 0.479 }, entry: { distance: 2500, x: 1020, y: -700 }, exit: { distance: 2700, x: 1080, y: -600 }, gear: 4, apexSpeed: 140, difficulty: 'easy' },
+      { number: 8, name: 'Turn 9 (Uphill)', type: 'right', apex: { distance: 3050, x: 1150, y: -500, normalizedDistance: 0.562 }, braking: { distance: 2950, x: 1120, y: -550 }, exit: { distance: 3150, x: 1180, y: -450 }, gear: 3, apexSpeed: 105, difficulty: 'medium', notes: 'Uphill braking zone' },
+      { number: 9, name: 'Turn 10', type: 'left', apex: { distance: 3500, x: 1100, y: -300, normalizedDistance: 0.645 }, entry: { distance: 3400, x: 1120, y: -350 }, exit: { distance: 3600, x: 1080, y: -250 }, gear: 5, apexSpeed: 175, difficulty: 'hard', notes: 'Fast sweeper, blind apex' },
+      { number: 10, name: 'Carousel', type: 'right', apex: { distance: 4200, x: 900, y: -150, normalizedDistance: 0.774 }, braking: { distance: 4050, x: 950, y: -200 }, exit: { distance: 4350, x: 850, y: -100 }, gear: 3, apexSpeed: 100, difficulty: 'hard', notes: 'Decreasing radius, easy to run wide' }
+    ],
+    svg: {
+      viewBox: '0 0 1300 900',
+      path: 'M 100,450 L 350,450 Q 420,450 450,400 L 500,320 Q 530,260 580,220 L 680,150 Q 750,100 820,80 L 950,50 Q 1050,40 1100,80 L 1150,150 Q 1180,220 1180,300 L 1160,400 Q 1130,500 1050,550 L 950,600 Q 850,650 750,680 L 600,720 Q 450,750 350,720 L 200,650 Q 120,600 100,520 L 100,450 Z'
+    },
+    metadata: {
+      direction: 'clockwise',
+      elevation: { minimum: 479, maximum: 543, change: 64 },
+      coordinates: { latitude: 42.3370, longitude: -76.9272 }
+    }
+  },
+
+  'spa-francorchamps': {
+    id: 'spa-francorchamps',
+    name: 'Circuit de Spa-Francorchamps',
+    country: 'Belgium',
+    length: 7004,
+    layout: 'Grand Prix',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 2334 },
+      { number: 2, name: 'Sector 2', startDistance: 2334, endDistance: 4669 },
+      { number: 3, name: 'Sector 3', startDistance: 4669, endDistance: 7004 }
+    ],
+    corners: [
+      { number: 1, name: 'La Source', type: 'hairpin', apex: { distance: 180, x: 100, y: 100, normalizedDistance: 0.026 }, braking: { distance: 100, x: 100, y: 50 }, exit: { distance: 250, x: 150, y: 150 }, gear: 2, apexSpeed: 65, difficulty: 'medium' },
+      { number: 2, name: 'Eau Rouge', type: 'left-kink', apex: { distance: 850, x: 200, y: 350, normalizedDistance: 0.121 }, entry: { distance: 750, x: 180, y: 300 }, exit: { distance: 950, x: 250, y: 420 }, gear: 6, apexSpeed: 260, difficulty: 'hard', notes: 'Flat out in GT3' },
+      { number: 3, name: 'Raidillon', type: 'left', apex: { distance: 1050, x: 300, y: 500, normalizedDistance: 0.150 }, entry: { distance: 950, x: 250, y: 420 }, exit: { distance: 1200, x: 400, y: 580 }, gear: 6, apexSpeed: 270, difficulty: 'hard', notes: 'Critical for Kemmel straight speed' },
+      { number: 4, name: 'Les Combes', type: 'chicane', apex: { distance: 2100, x: 750, y: 700, normalizedDistance: 0.300 }, braking: { distance: 1950, x: 680, y: 680 }, exit: { distance: 2250, x: 820, y: 720 }, gear: 3, apexSpeed: 120, difficulty: 'medium' },
+      { number: 5, name: 'Malmedy', type: 'right', apex: { distance: 2650, x: 950, y: 750, normalizedDistance: 0.378 }, braking: { distance: 2500, x: 900, y: 740 }, exit: { distance: 2800, x: 1000, y: 760 }, gear: 4, apexSpeed: 145, difficulty: 'medium' },
+      { number: 6, name: 'Rivage', type: 'left', apex: { distance: 3100, x: 1100, y: 700, normalizedDistance: 0.443 }, braking: { distance: 2950, x: 1050, y: 730 }, exit: { distance: 3250, x: 1120, y: 650 }, gear: 3, apexSpeed: 110, difficulty: 'easy' },
+      { number: 7, name: 'Pouhon', type: 'double-left', apex: { distance: 3550, x: 1150, y: 550, normalizedDistance: 0.507 }, entry: { distance: 3400, x: 1130, y: 600 }, exit: { distance: 3750, x: 1150, y: 480 }, gear: 5, apexSpeed: 195, difficulty: 'hard', notes: 'Long high-speed double-apex' },
+      { number: 8, name: 'Campus', type: 'chicane', apex: { distance: 4200, x: 1100, y: 350, normalizedDistance: 0.600 }, braking: { distance: 4050, x: 1120, y: 400 }, exit: { distance: 4350, x: 1050, y: 300 }, gear: 3, apexSpeed: 115, difficulty: 'easy' },
+      { number: 9, name: 'Stavelot', type: 'left', apex: { distance: 4700, x: 900, y: 200, normalizedDistance: 0.671 }, entry: { distance: 4550, x: 950, y: 250 }, exit: { distance: 4850, x: 850, y: 180 }, gear: 5, apexSpeed: 180, difficulty: 'medium' },
+      { number: 10, name: 'Blanchimont', type: 'left-kink', apex: { distance: 5500, x: 550, y: 150, normalizedDistance: 0.785 }, entry: { distance: 5350, x: 620, y: 170 }, exit: { distance: 5650, x: 480, y: 140 }, gear: 7, apexSpeed: 285, difficulty: 'hard', notes: 'High-speed left kink, flat out' },
+      { number: 11, name: 'Bus Stop', type: 'chicane', apex: { distance: 6450, x: 200, y: 120, normalizedDistance: 0.921 }, braking: { distance: 6250, x: 300, y: 130 }, exit: { distance: 6600, x: 150, y: 100 }, gear: 3, apexSpeed: 100, difficulty: 'medium', notes: 'Heavy braking, overtaking spot' }
+    ],
+    svg: {
+      viewBox: '0 0 1300 900',
+      path: 'M 100,100 L 100,150 Q 100,200 130,250 L 200,380 Q 250,480 350,550 L 550,680 Q 700,750 850,780 L 1000,780 Q 1100,770 1150,720 L 1180,650 Q 1200,580 1180,500 L 1120,380 Q 1050,280 950,220 L 750,150 Q 600,100 450,100 L 250,100 Q 150,100 100,100 Z'
+    },
+    metadata: {
+      direction: 'clockwise',
+      elevation: { minimum: 386, maximum: 476, change: 90 },
+      coordinates: { latitude: 50.4372, longitude: 5.9714 }
+    }
+  },
+
+  'road-atlanta': {
+    id: 'road-atlanta',
+    name: 'Road Atlanta',
+    country: 'USA',
+    length: 4088,
+    layout: 'Grand Prix',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1363 },
+      { number: 2, name: 'Sector 2', startDistance: 1363, endDistance: 2726 },
+      { number: 3, name: 'Sector 3', startDistance: 2726, endDistance: 4088 }
+    ],
+    corners: [
+      { number: 1, name: 'Turn 1', type: 'right', apex: { distance: 450, x: 450, y: 550, normalizedDistance: 0.110 }, braking: { distance: 350, x: 350, y: 580 }, exit: { distance: 550, x: 550, y: 500 }, gear: 3, apexSpeed: 115, difficulty: 'hard', notes: 'Uphill right-hander' },
+      { number: 2, name: 'Turn 2', type: 'left', apex: { distance: 750, x: 650, y: 420, normalizedDistance: 0.183 }, entry: { distance: 650, x: 600, y: 460 }, exit: { distance: 850, x: 700, y: 380 }, gear: 4, apexSpeed: 135, difficulty: 'medium' },
+      { number: 3, name: 'Turn 3', type: 'right', apex: { distance: 1100, x: 850, y: 280, normalizedDistance: 0.269 }, entry: { distance: 1000, x: 800, y: 320 }, exit: { distance: 1200, x: 900, y: 240 }, gear: 5, apexSpeed: 165, difficulty: 'medium', notes: 'Blind crest' },
+      { number: 5, name: 'Turn 5', type: 'right', apex: { distance: 1750, x: 1050, y: 150, normalizedDistance: 0.428 }, braking: { distance: 1650, x: 1000, y: 180 }, exit: { distance: 1850, x: 1080, y: 130 }, gear: 3, apexSpeed: 105, difficulty: 'medium' },
+      { number: 6, name: 'Turn 6', type: 'left', apex: { distance: 2100, x: 1100, y: 200, normalizedDistance: 0.514 }, entry: { distance: 2000, x: 1090, y: 170 }, exit: { distance: 2200, x: 1080, y: 250 }, gear: 5, apexSpeed: 160, difficulty: 'hard', notes: 'Fast downhill left' },
+      { number: 7, name: 'Turn 7', type: 'right', apex: { distance: 2550, x: 1000, y: 380, normalizedDistance: 0.624 }, braking: { distance: 2450, x: 1020, y: 340 }, exit: { distance: 2650, x: 950, y: 420 }, gear: 3, apexSpeed: 95, difficulty: 'hard', notes: 'Downhill hairpin' },
+      { number: 10, name: 'Turn 10A', type: 'left-kink', apex: { distance: 3550, x: 600, y: 580, normalizedDistance: 0.869 }, entry: { distance: 3450, x: 650, y: 550 }, exit: { distance: 3650, x: 550, y: 600 }, gear: 6, apexSpeed: 215, difficulty: 'medium', notes: 'High-speed kink' },
+      { number: 11, name: 'Turn 10B', type: 'left', apex: { distance: 3850, x: 400, y: 620, normalizedDistance: 0.942 }, entry: { distance: 3750, x: 450, y: 610 }, exit: { distance: 3950, x: 350, y: 630 }, gear: 6, apexSpeed: 220, difficulty: 'hard', notes: 'Flat out, leads to Turn 12' },
+      { number: 12, name: 'Turn 12', type: 'right', apex: { distance: 200, x: 200, y: 650, normalizedDistance: 0.049 }, braking: { distance: 4000, x: 300, y: 640 }, exit: { distance: 300, x: 150, y: 620 }, gear: 2, apexSpeed: 75, difficulty: 'hard', notes: 'Heavy braking zone' }
+    ],
+    svg: {
+      viewBox: '0 0 1200 750',
+      path: 'M 100,620 L 350,580 Q 500,540 650,480 L 850,380 Q 950,320 1020,250 L 1080,180 Q 1100,130 1080,100 L 1020,80 Q 950,70 900,100 L 800,180 Q 720,280 700,380 L 680,480 Q 650,560 580,600 L 400,640 Q 250,660 100,620 Z'
+    },
+    metadata: {
+      direction: 'clockwise',
+      elevation: { minimum: 244, maximum: 280, change: 36 },
+      coordinates: { latitude: 34.1481, longitude: -83.7732 }
+    }
+  },
+
+  'laguna-seca': {
+    id: 'laguna-seca',
+    name: 'WeatherTech Raceway Laguna Seca',
+    country: 'USA',
+    length: 3602,
+    layout: 'Grand Prix',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1200 },
+      { number: 2, name: 'Sector 2', startDistance: 1200, endDistance: 2400 },
+      { number: 3, name: 'Sector 3', startDistance: 2400, endDistance: 3602 }
+    ],
+    corners: [
+      { number: 1, name: 'Turn 1', type: 'right', apex: { distance: 200, x: 250, y: 400, normalizedDistance: 0.056 }, braking: { distance: 120, x: 180, y: 420 }, exit: { distance: 280, x: 320, y: 370 }, gear: 3, apexSpeed: 100, difficulty: 'medium' },
+      { number: 2, name: 'Turn 2 (Andretti Hairpin)', type: 'left', apex: { distance: 450, x: 450, y: 280, normalizedDistance: 0.125 }, braking: { distance: 350, x: 400, y: 320 }, exit: { distance: 550, x: 500, y: 250 }, gear: 2, apexSpeed: 65, difficulty: 'hard', notes: 'Tight hairpin, heavy braking' },
+      { number: 3, name: 'Turn 3', type: 'right', apex: { distance: 750, x: 650, y: 180, normalizedDistance: 0.208 }, entry: { distance: 650, x: 600, y: 210 }, exit: { distance: 850, x: 700, y: 150 }, gear: 4, apexSpeed: 130, difficulty: 'easy' },
+      { number: 4, name: 'Turn 4', type: 'left', apex: { distance: 1000, x: 800, y: 100, normalizedDistance: 0.278 }, entry: { distance: 900, x: 750, y: 120 }, exit: { distance: 1100, x: 850, y: 90 }, gear: 5, apexSpeed: 155, difficulty: 'medium' },
+      { number: 5, name: 'Turn 5', type: 'right', apex: { distance: 1350, x: 950, y: 150, normalizedDistance: 0.375 }, braking: { distance: 1250, x: 920, y: 120 }, exit: { distance: 1450, x: 980, y: 200 }, gear: 3, apexSpeed: 95, difficulty: 'medium' },
+      { number: 6, name: 'Turn 6', type: 'left', apex: { distance: 1650, x: 1000, y: 320, normalizedDistance: 0.458 }, entry: { distance: 1550, x: 990, y: 270 }, exit: { distance: 1750, x: 1000, y: 380 }, gear: 4, apexSpeed: 125, difficulty: 'easy' },
+      { number: 8, name: 'Corkscrew (8)', type: 'left', apex: { distance: 2100, x: 950, y: 500, normalizedDistance: 0.583 }, braking: { distance: 2000, x: 980, y: 450 }, exit: { distance: 2200, x: 900, y: 550 }, gear: 2, apexSpeed: 55, difficulty: 'hard', notes: 'Famous blind downhill corkscrew' },
+      { number: 9, name: 'Corkscrew (8A)', type: 'right', apex: { distance: 2300, x: 820, y: 600, normalizedDistance: 0.639 }, entry: { distance: 2200, x: 860, y: 560 }, exit: { distance: 2400, x: 780, y: 630 }, gear: 3, apexSpeed: 80, difficulty: 'hard', notes: 'Exit of corkscrew' },
+      { number: 10, name: 'Rainey Curve', type: 'left', apex: { distance: 2800, x: 550, y: 680, normalizedDistance: 0.778 }, entry: { distance: 2650, x: 620, y: 660 }, exit: { distance: 2950, x: 480, y: 680 }, gear: 4, apexSpeed: 140, difficulty: 'medium', notes: 'Fast sweeping left' },
+      { number: 11, name: 'Turn 11', type: 'right', apex: { distance: 3400, x: 200, y: 550, normalizedDistance: 0.944 }, braking: { distance: 3250, x: 280, y: 600 }, exit: { distance: 3500, x: 150, y: 500 }, gear: 3, apexSpeed: 105, difficulty: 'medium' }
+    ],
+    svg: {
+      viewBox: '0 0 1100 750',
+      path: 'M 100,450 L 250,420 Q 380,380 450,300 L 550,200 Q 620,130 720,100 L 850,80 Q 950,80 1000,130 L 1020,220 Q 1030,320 1000,420 L 950,530 Q 880,620 780,660 L 600,700 Q 450,720 300,680 L 180,620 Q 120,560 100,480 L 100,450 Z'
+    },
+    metadata: {
+      direction: 'clockwise',
+      elevation: { minimum: 52, maximum: 168, change: 116 },
+      coordinates: { latitude: 36.5841, longitude: -121.7534 }
+    }
+  },
+
+  'daytona': {
+    id: 'daytona',
+    name: 'Daytona International Speedway',
+    country: 'USA',
+    length: 5729,
+    layout: 'Road Course',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1910 },
+      { number: 2, name: 'Sector 2', startDistance: 1910, endDistance: 3820 },
+      { number: 3, name: 'Sector 3', startDistance: 3820, endDistance: 5729 }
+    ],
+    corners: [
+      { number: 1, name: 'Turn 1 (Oval)', type: 'left', apex: { distance: 800, x: 200, y: 300, normalizedDistance: 0.140 }, entry: { distance: 600, x: 100, y: 350 }, exit: { distance: 1000, x: 300, y: 250 }, gear: 6, apexSpeed: 280, difficulty: 'easy', notes: 'High-speed banked turn' },
+      { number: 2, name: 'International Horseshoe', type: 'right', apex: { distance: 1800, x: 600, y: 150, normalizedDistance: 0.314 }, braking: { distance: 1600, x: 500, y: 180 }, exit: { distance: 2000, x: 700, y: 130 }, gear: 3, apexSpeed: 90, difficulty: 'hard', notes: 'Tight infield section' },
+      { number: 3, name: 'Infield Turn 3', type: 'left', apex: { distance: 2200, x: 850, y: 200, normalizedDistance: 0.384 }, entry: { distance: 2100, x: 800, y: 170 }, exit: { distance: 2300, x: 900, y: 250 }, gear: 4, apexSpeed: 120, difficulty: 'medium' },
+      { number: 4, name: 'Infield Turn 4', type: 'right', apex: { distance: 2600, x: 950, y: 350, normalizedDistance: 0.454 }, braking: { distance: 2500, x: 930, y: 300 }, exit: { distance: 2700, x: 970, y: 400 }, gear: 3, apexSpeed: 100, difficulty: 'medium' },
+      { number: 5, name: 'Infield Turn 5', type: 'left', apex: { distance: 3000, x: 900, y: 500, normalizedDistance: 0.524 }, entry: { distance: 2900, x: 940, y: 450 }, exit: { distance: 3100, x: 850, y: 550 }, gear: 4, apexSpeed: 130, difficulty: 'easy' },
+      { number: 6, name: 'Bus Stop Chicane', type: 'chicane', apex: { distance: 3600, x: 650, y: 600, normalizedDistance: 0.629 }, braking: { distance: 3400, x: 750, y: 580 }, exit: { distance: 3800, x: 550, y: 620 }, gear: 2, apexSpeed: 70, difficulty: 'hard', notes: 'Tight chicane before oval' },
+      { number: 7, name: 'Turn 3 (Oval)', type: 'left', apex: { distance: 4800, x: 200, y: 550, normalizedDistance: 0.838 }, entry: { distance: 4500, x: 350, y: 600 }, exit: { distance: 5100, x: 150, y: 480 }, gear: 6, apexSpeed: 275, difficulty: 'easy', notes: 'High-speed banked turn' }
+    ],
+    svg: {
+      viewBox: '0 0 1100 700',
+      path: 'M 100,400 Q 80,300 100,200 L 200,120 Q 350,80 500,100 L 700,130 Q 850,160 950,250 L 1000,350 Q 1020,450 980,550 L 900,620 Q 750,680 550,680 L 350,650 Q 200,600 120,520 L 100,400 Z'
+    },
+    metadata: {
+      direction: 'clockwise',
+      elevation: { minimum: 0, maximum: 10, change: 10 },
+      coordinates: { latitude: 29.1852, longitude: -81.0705 }
+    }
+  }
+};
+
+// Helper to get track by name (fuzzy match)
+export function getTrackData(trackName: string): TrackData | null {
+  const normalizedName = trackName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  
+  // Try exact ID match first
+  for (const [id, track] of Object.entries(TRACK_DATA)) {
+    if (id === normalizedName) return track;
+  }
+  
+  // Try fuzzy match on name
+  for (const track of Object.values(TRACK_DATA)) {
+    const trackNormalized = track.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (trackNormalized.includes(normalizedName) || normalizedName.includes(trackNormalized)) {
+      return track;
+    }
+  }
+  
+  // Try partial match on ID
+  for (const [id, track] of Object.entries(TRACK_DATA)) {
+    if (normalizedName.includes(id.replace(/-/g, '')) || id.replace(/-/g, '').includes(normalizedName)) {
+      return track;
+    }
+  }
+  
+  return null;
+}
+
+// Get track ID from name
+export function getTrackId(trackName: string): string {
+  const track = getTrackData(trackName);
+  return track?.id || trackName.toLowerCase().replace(/[^a-z]/g, '-').replace(/-+/g, '-');
+}

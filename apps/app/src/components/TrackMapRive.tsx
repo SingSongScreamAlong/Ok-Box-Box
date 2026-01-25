@@ -1,5 +1,6 @@
 import { useRive, useStateMachineInput, Layout, Fit, Alignment } from '@rive-app/react-canvas';
 import { useEffect } from 'react';
+import { getTrackData, TRACK_DATA, TrackData } from '../data/tracks';
 
 interface TrackMapRiveProps {
   trackId: string;
@@ -15,38 +16,6 @@ interface TrackMapRiveProps {
   className?: string;
 }
 
-// Track SVG paths - these would ideally come from .riv files
-// For now, we'll create a fallback SVG component
-const TRACK_PATHS: Record<string, { path: string; viewBox: string; sectors: string[] }> = {
-  'watkins-glen': {
-    viewBox: '0 0 400 300',
-    path: 'M 50,150 Q 50,50 150,50 L 250,50 Q 350,50 350,100 L 350,150 Q 350,200 300,200 L 200,200 Q 150,200 150,250 L 150,280 Q 150,290 100,290 L 60,290 Q 50,290 50,250 Z',
-    sectors: [
-      'M 50,150 Q 50,50 150,50 L 250,50', // S1 - Esses
-      'Q 350,50 350,100 L 350,150 Q 350,200 300,200 L 200,200', // S2 - Back straight
-      'Q 150,200 150,250 L 150,280 Q 150,290 100,290 L 60,290 Q 50,290 50,250 Z M 50,150', // S3 - Boot
-    ],
-  },
-  'spa': {
-    viewBox: '0 0 500 350',
-    path: 'M 50,300 L 50,250 Q 50,200 100,180 L 150,160 Q 200,140 200,100 L 200,80 Q 200,50 250,50 L 350,50 Q 400,50 420,100 L 450,200 Q 470,280 400,300 L 200,300 Q 100,300 50,300 Z',
-    sectors: [
-      'M 50,300 L 50,250 Q 50,200 100,180 L 150,160 Q 200,140 200,100', // S1 - La Source to Eau Rouge
-      'L 200,80 Q 200,50 250,50 L 350,50 Q 400,50 420,100 L 450,200', // S2 - Kemmel to Rivage
-      'Q 470,280 400,300 L 200,300 Q 100,300 50,300 Z', // S3 - Bus Stop
-    ],
-  },
-  'laguna-seca': {
-    viewBox: '0 0 400 300',
-    path: 'M 50,200 L 50,100 Q 50,50 100,50 L 200,50 Q 250,50 280,80 L 320,120 Q 350,150 350,200 L 350,250 Q 350,280 300,280 L 100,280 Q 50,280 50,200 Z',
-    sectors: [
-      'M 50,200 L 50,100 Q 50,50 100,50 L 200,50', // S1 - Andretti Hairpin
-      'Q 250,50 280,80 L 320,120 Q 350,150 350,200', // S2 - Corkscrew
-      'L 350,250 Q 350,280 300,280 L 100,280 Q 50,280 50,200 Z', // S3 - Rainey Curve
-    ],
-  },
-};
-
 const getSectorColor = (delta: number | undefined) => {
   if (delta === undefined) return '#ffffff20';
   if (delta < -0.1) return '#22c55e'; // Green - faster
@@ -54,17 +23,37 @@ const getSectorColor = (delta: number | undefined) => {
   return '#eab308'; // Yellow - neutral
 };
 
+// Get track data from accurate database or use default
+function getTrackSVGData(trackId: string): { viewBox: string; path: string; corners: TrackData['corners'] } {
+  // Try to find track in database
+  const track = TRACK_DATA[trackId] || getTrackData(trackId);
+  
+  if (track) {
+    return {
+      viewBox: track.svg.viewBox,
+      path: track.svg.path,
+      corners: track.corners
+    };
+  }
+  
+  // Fallback to Watkins Glen if not found
+  const fallback = TRACK_DATA['watkins-glen'];
+  return {
+    viewBox: fallback.svg.viewBox,
+    path: fallback.svg.path,
+    corners: fallback.corners
+  };
+}
+
 // Fallback SVG-based track map (until .riv files are created)
 function TrackMapSVG({ 
   trackId, 
   carPosition, 
   currentSector, 
   sectorDeltas,
-  highlightDangerZones,
-  highlightPassingZones,
   className 
 }: TrackMapRiveProps) {
-  const trackData = TRACK_PATHS[trackId] || TRACK_PATHS['watkins-glen'];
+  const trackData = getTrackSVGData(trackId);
   
   return (
     <svg 
@@ -97,49 +86,72 @@ function TrackMapSVG({
         strokeLinejoin="round"
       />
       
-      {/* Sector highlights */}
-      {trackData.sectors.map((sectorPath, i) => (
-        <path
-          key={i}
-          d={sectorPath}
-          fill="none"
-          stroke={currentSector === i + 1 ? '#f97316' : getSectorColor(sectorDeltas?.[i])}
-          strokeWidth={currentSector === i + 1 ? 8 : 6}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          opacity={currentSector === i + 1 ? 1 : 0.6}
-          filter={currentSector === i + 1 ? 'url(#glow)' : undefined}
-        />
-      ))}
+      {/* Main track path with sector coloring */}
+      <path 
+        d={trackData.path} 
+        fill="none" 
+        stroke={currentSector === 1 ? '#f97316' : currentSector === 2 ? '#3b82f6' : currentSector === 3 ? '#8b5cf6' : '#ffffff60'}
+        strokeWidth="6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        filter={currentSector ? 'url(#glow)' : undefined}
+      />
       
       {/* Track center line */}
       <path 
         d={trackData.path} 
         fill="none" 
-        stroke="#ffffff40" 
+        stroke="#ffffff30" 
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeDasharray="10,10"
+        strokeDasharray="8,8"
       />
+      
+      {/* Corner markers */}
+      {trackData.corners.slice(0, 8).map((corner) => {
+        // Parse viewBox to scale corner positions
+        const vb = trackData.viewBox.split(' ').map(Number);
+        const scaleX = vb[2] / 1300; // Normalize to viewBox
+        const scaleY = vb[3] / 900;
+        const cx = corner.apex.x * scaleX;
+        const cy = (corner.apex.y + 800) * scaleY; // Offset for negative Y values
+        
+        return (
+          <g key={corner.number} transform={`translate(${cx}, ${cy})`}>
+            <circle 
+              r="12" 
+              fill={corner.difficulty === 'hard' ? '#ef4444' : corner.difficulty === 'medium' ? '#eab308' : '#22c55e'} 
+              fillOpacity="0.3"
+              stroke={corner.difficulty === 'hard' ? '#ef4444' : corner.difficulty === 'medium' ? '#eab308' : '#22c55e'}
+              strokeWidth="1"
+            />
+            <text 
+              y="4" 
+              fill="#ffffff" 
+              fontSize="10" 
+              textAnchor="middle"
+              fontWeight="bold"
+            >
+              {corner.number}
+            </text>
+          </g>
+        );
+      })}
       
       {/* Car position indicator */}
       {carPosition && (
-        <g transform={`translate(${carPosition.x * 400}, ${carPosition.y * 300})`}>
-          <circle r="8" fill="#f97316" filter="url(#glow)">
-            <animate attributeName="r" values="6;10;6" dur="1s" repeatCount="indefinite"/>
+        <g transform={`translate(${carPosition.x * parseFloat(trackData.viewBox.split(' ')[2])}, ${carPosition.y * parseFloat(trackData.viewBox.split(' ')[3])})`}>
+          <circle r="10" fill="#f97316" filter="url(#glow)">
+            <animate attributeName="r" values="8;12;8" dur="1s" repeatCount="indefinite"/>
           </circle>
-          <circle r="4" fill="#ffffff"/>
+          <circle r="5" fill="#ffffff"/>
         </g>
       )}
       
-      {/* Start/Finish line */}
-      <line x1="45" y1="145" x2="55" y2="155" stroke="#ffffff" strokeWidth="3"/>
-      
-      {/* Sector labels */}
-      <text x="150" y="35" fill="#ffffff60" fontSize="10" textAnchor="middle">S1</text>
-      <text x="340" y="175" fill="#ffffff60" fontSize="10" textAnchor="middle">S2</text>
-      <text x="100" y="270" fill="#ffffff60" fontSize="10" textAnchor="middle">S3</text>
+      {/* Start/Finish marker */}
+      <rect x="95" y="440" width="15" height="4" fill="#ffffff" rx="1"/>
+      <rect x="95" y="446" width="15" height="4" fill="#000000" rx="1"/>
     </svg>
   );
 }
