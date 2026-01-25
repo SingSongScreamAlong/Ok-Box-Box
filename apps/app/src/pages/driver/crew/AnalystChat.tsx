@@ -128,7 +128,7 @@ export function AnalystChat() {
           loop
           muted
           playsInline
-          className="w-full h-full object-cover opacity-[0.45]"
+          className="w-full h-full object-cover opacity-70"
         >
           <source src="/videos/track-right.mp4" type="video/mp4" />
         </video>
