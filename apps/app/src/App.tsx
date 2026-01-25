@@ -16,6 +16,9 @@ import { DriverRatings } from './pages/driver/DriverRatings';
 import { DriverHUD } from './pages/driver/DriverHUD';
 import { DriverVoice } from './pages/driver/DriverVoice';
 import { DriverProfilePage } from './pages/driver/DriverProfilePage';
+import { EngineerChat } from './pages/driver/crew/EngineerChat';
+import { SpotterChat } from './pages/driver/crew/SpotterChat';
+import { AnalystChat } from './pages/driver/crew/AnalystChat';
 import { Settings } from './pages/Settings';
 import { CreateDriverProfile } from './pages/CreateDriverProfile';
 
@@ -78,6 +81,9 @@ function App() {
           <Route path="hud" element={<DriverHUD />} />
           <Route path="voice" element={<DriverVoice />} />
           <Route path="profile" element={<DriverProfilePage />} />
+          <Route path="crew/engineer" element={<EngineerChat />} />
+          <Route path="crew/spotter" element={<SpotterChat />} />
+          <Route path="crew/analyst" element={<AnalystChat />} />
         </Route>
 
         {/* Settings & Profile Creation (outside driver layout) */}
