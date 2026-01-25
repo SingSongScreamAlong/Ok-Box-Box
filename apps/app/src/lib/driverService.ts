@@ -302,3 +302,158 @@ export function getLicenseColor(licenseClass: string): string {
   };
   return colors[licenseClass] || '#6b7280';
 }
+
+// Track-specific data interfaces
+export interface TrackSessionHistory {
+  sessionId: string;
+  date: string;
+  series: string;
+  position: number;
+  started: number;
+  bestLap: string;
+  avgLap: string;
+  incidents: number;
+}
+
+export interface TrackPerformanceData {
+  trackName: string;
+  trackConfig?: string;
+  country?: string;
+  length?: string;
+  turns?: number;
+  lapRecord?: string;
+  yourBest?: string;
+  sessions: number;
+  avgFinish: number;
+  bestFinish: number;
+  history: TrackSessionHistory[];
+  sectors?: { name: string; yourBest: string; trackBest: string; delta: number }[];
+  notes?: string[];
+}
+
+export interface UpcomingRace {
+  id: string;
+  series: string;
+  track: string;
+  date: string;
+  time: string;
+  laps: number;
+  weather?: string;
+  expectedField?: number;
+  registered?: boolean;
+}
+
+// Fetch sessions filtered by track
+export async function fetchSessionsByTrack(trackName: string): Promise<TrackSessionHistory[]> {
+  try {
+    const sessions = await fetchDriverSessions();
+    
+    // Filter sessions by track name (case-insensitive partial match)
+    const trackSessions = sessions.filter(s => 
+      s.trackName.toLowerCase().includes(trackName.toLowerCase())
+    );
+
+    return trackSessions.map(s => ({
+      sessionId: s.sessionId,
+      date: new Date(s.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      series: s.seriesName,
+      position: s.finishPos || 0,
+      started: s.startPos || 0,
+      bestLap: '--:--.---', // Would come from detailed session data
+      avgLap: '--:--.---',
+      incidents: s.incidents || 0,
+    }));
+  } catch (error) {
+    console.error('[IDP] Error fetching track sessions:', error);
+    return [];
+  }
+}
+
+// Get aggregated performance data for a specific track
+export async function fetchTrackPerformance(trackName: string): Promise<TrackPerformanceData> {
+  try {
+    const history = await fetchSessionsByTrack(trackName);
+    
+    if (history.length === 0) {
+      return {
+        trackName,
+        sessions: 0,
+        avgFinish: 0,
+        bestFinish: 0,
+        history: [],
+      };
+    }
+
+    const finishes = history.map(h => h.position).filter(p => p > 0);
+    const bestFinish = finishes.length > 0 ? Math.min(...finishes) : 0;
+    const avgFinish = finishes.length > 0 ? finishes.reduce((a, b) => a + b, 0) / finishes.length : 0;
+
+    return {
+      trackName,
+      sessions: history.length,
+      avgFinish: Math.round(avgFinish * 10) / 10,
+      bestFinish,
+      history: history.slice(0, 5), // Last 5 sessions
+    };
+  } catch (error) {
+    console.error('[IDP] Error fetching track performance:', error);
+    return {
+      trackName,
+      sessions: 0,
+      avgFinish: 0,
+      bestFinish: 0,
+      history: [],
+    };
+  }
+}
+
+// Fetch upcoming races from registered sessions or schedule
+export async function fetchUpcomingRaces(): Promise<UpcomingRace[]> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) {
+      // Return demo upcoming races
+      return [
+        { id: '1', series: 'IMSA Pilot Challenge', track: 'Watkins Glen', date: 'Today', time: '8:00 PM', laps: 45, weather: 'Clear', expectedField: 24 },
+        { id: '2', series: 'GT3 Sprint', track: 'Spa-Francorchamps', date: 'Tomorrow', time: '2:00 PM', laps: 30, weather: 'Overcast', expectedField: 30 },
+        { id: '3', series: 'Porsche Cup', track: 'Laguna Seca', date: 'Jan 28', time: '9:00 PM', laps: 25, weather: 'Sunny', expectedField: 20 },
+      ];
+    }
+
+    // Try to fetch from API - this would be a schedule endpoint
+    const response = await fetch(`${API_BASE}/api/v1/schedule/upcoming`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      // Fallback to demo data
+      return [
+        { id: '1', series: 'IMSA Pilot Challenge', track: 'Watkins Glen', date: 'Today', time: '8:00 PM', laps: 45, weather: 'Clear', expectedField: 24 },
+        { id: '2', series: 'GT3 Sprint', track: 'Spa-Francorchamps', date: 'Tomorrow', time: '2:00 PM', laps: 30, weather: 'Overcast', expectedField: 30 },
+        { id: '3', series: 'Porsche Cup', track: 'Laguna Seca', date: 'Jan 28', time: '9:00 PM', laps: 25, weather: 'Sunny', expectedField: 20 },
+      ];
+    }
+
+    const data = await response.json();
+    return data.races || [];
+  } catch (error) {
+    console.error('[IDP] Error fetching upcoming races:', error);
+    return [
+      { id: '1', series: 'IMSA Pilot Challenge', track: 'Watkins Glen', date: 'Today', time: '8:00 PM', laps: 45, weather: 'Clear', expectedField: 24 },
+      { id: '2', series: 'GT3 Sprint', track: 'Spa-Francorchamps', date: 'Tomorrow', time: '2:00 PM', laps: 30, weather: 'Overcast', expectedField: 30 },
+      { id: '3', series: 'Porsche Cup', track: 'Laguna Seca', date: 'Jan 28', time: '9:00 PM', laps: 25, weather: 'Sunny', expectedField: 20 },
+    ];
+  }
+}
+
+// Get all unique tracks from session history
+export async function fetchTracksFromHistory(): Promise<string[]> {
+  try {
+    const sessions = await fetchDriverSessions();
+    const tracks = [...new Set(sessions.map(s => s.trackName))];
+    return tracks.sort();
+  } catch (error) {
+    console.error('[IDP] Error fetching tracks:', error);
+    return [];
+  }
+}
