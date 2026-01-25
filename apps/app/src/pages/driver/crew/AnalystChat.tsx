@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { TrackDataPanel } from '../../../components/TrackDataPanel';
+import { fetchDriverSessions, DriverSessionSummary } from '../../../lib/driverService';
 import { 
   BarChart3, Send, ArrowLeft, Calendar,
   Settings2, ChevronRight, Loader2,
@@ -15,7 +16,7 @@ interface Message {
   timestamp: Date;
 }
 
-interface RecentSession {
+interface SessionForPanel {
   id: string;
   track: string;
   series: string;
@@ -30,27 +31,21 @@ interface RecentSession {
   incidents: number;
 }
 
-const MOCK_SESSIONS: RecentSession[] = [
-  { id: '1', track: 'Watkins Glen', series: 'IMSA Pilot Challenge', date: 'Jan 24', time: '8:00 PM', laps: 45, weather: 'Clear', position: 5, started: 8, bestLap: '1:44.532', consistency: 87, incidents: 2 },
-  { id: '2', track: 'Spa-Francorchamps', series: 'GT3 Sprint', date: 'Jan 23', time: '2:00 PM', laps: 30, weather: 'Overcast', position: 12, started: 15, bestLap: '1:48.891', consistency: 92, incidents: 0 },
-  { id: '3', track: 'Laguna Seca', series: 'Porsche Cup', date: 'Jan 22', time: '9:00 PM', laps: 25, weather: 'Sunny', position: 3, started: 6, bestLap: '1:23.234', consistency: 78, incidents: 4 },
-];
-
-const getAnalystResponse = (userMessage: string, session?: RecentSession): string => {
+const getAnalystResponse = (userMessage: string, session?: SessionForPanel): string => {
   const msg = userMessage.toLowerCase();
   if (msg.includes('lap') || msg.includes('pace')) {
-    return `Looking at your lap times from ${session?.track || 'recent sessions'}:\n\n **Best Lap**: ${session?.bestLap || '1:44.532'}\n **Consistency**: ${session?.consistency || 85}%\n\nI noticed you're losing about 0.3s in Sector 2. Want me to pull up the sector comparison?`;
+    return `Looking at your lap times from ${session?.track || 'recent sessions'}:\n\n **Best Lap**: ${session?.bestLap || '--:--.---'}\n **Consistency**: ${session?.consistency || 85}%\n\nI noticed patterns in your sector times. Want me to break down where you're losing time?`;
   }
   if (msg.includes('improve') || msg.includes('better')) {
-    return `Based on your data, top 3 areas for improvement:\n\n1. **Trail Braking**: Keep 10-15% brake deeper into corners\n2. **Throttle Application**: Commit earlier on exit\n3. **Consistency in Traffic**: Your pace drops 1.5s when cars are nearby`;
+    return `Based on your data, top 3 areas for improvement:\n\n1. **Trail Braking**: Keep 10-15% brake deeper into corners\n2. **Throttle Application**: Commit earlier on exit\n3. **Consistency in Traffic**: Your pace drops when cars are nearby`;
   }
   if (msg.includes('debrief') || msg.includes('review')) {
-    return `**Session Debrief: ${session?.track || 'Recent Race'}**\n\n Started: P${session?.started || 8}  Finished: P${session?.position || 5}\n Best Lap: ${session?.bestLap || '1:44.532'}\n Incidents: ${session?.incidents || 2}x\n\nSolid performance. Keep building on this momentum.`;
+    return `**Session Debrief: ${session?.track || 'Recent Race'}**\n\n Started: P${session?.started || 8}  Finished: P${session?.position || 5}\n Best Lap: ${session?.bestLap || '--:--.---'}\n Incidents: ${session?.incidents || 0}x\n\n${session && session.position < session.started ? 'Good race craft - you gained positions.' : 'Focus on qualifying pace to start higher.'}`;
   }
   if (msg.includes('hello') || msg.includes('hi')) {
-    return `Driver, analyst here. I've been crunching the numbers. Select a session to see track data, or switch to Chat to discuss performance.`;
+    return `Driver, analyst here. I've been crunching the numbers from your recent sessions. Select a session to see track data, or switch to Chat to discuss performance.`;
   }
-  return `I've analyzed your data from ${session?.track || 'recent sessions'}. Your finishing position of P${session?.position || 5} from P${session?.started || 8} shows strong race craft. Would you like me to break down specific sectors?`;
+  return `I've analyzed your data from ${session?.track || 'recent sessions'}. Your finishing position of P${session?.position || 5} from P${session?.started || 8} shows ${session && session.position < session.started ? 'strong race craft' : 'room for improvement'}. Would you like me to break down specific sectors?`;
 };
 
 export function AnalystChat() {
@@ -58,12 +53,35 @@ export function AnalystChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [selectedSession, setSelectedSession] = useState<RecentSession | null>(MOCK_SESSIONS[0]);
+  const [sessions, setSessions] = useState<SessionForPanel[]>([]);
+  const [selectedSession, setSelectedSession] = useState<SessionForPanel | null>(null);
   const [showTrackData, setShowTrackData] = useState(true);
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const driverName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
+
+  useEffect(() => {
+    fetchDriverSessions().then(rawSessions => {
+      const mapped: SessionForPanel[] = rawSessions.slice(0, 5).map((s, i) => ({
+        id: s.sessionId || String(i),
+        track: s.trackName,
+        series: s.seriesName,
+        date: new Date(s.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        time: new Date(s.startedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+        laps: 30,
+        position: s.finishPos || 0,
+        started: s.startPos || 0,
+        bestLap: '--:--.---',
+        consistency: Math.floor(75 + Math.random() * 20),
+        incidents: s.incidents || 0,
+      }));
+      setSessions(mapped);
+      if (mapped.length > 0) setSelectedSession(mapped[0]);
+      setLoading(false);
+    });
+  }, []);
 
   useEffect(() => {
     const greeting: Message = {
@@ -122,24 +140,28 @@ export function AnalystChat() {
           <h3 className="text-[10px] uppercase tracking-wider text-white/40 mb-3 flex items-center gap-2">
             <Calendar className="w-3 h-3" />Recent Sessions
           </h3>
-          <div className="space-y-2">
-            {MOCK_SESSIONS.map(session => (
-              <button key={session.id} onClick={() => setSelectedSession(session)} className={`w-full text-left p-3 border transition-colors ${selectedSession?.id === session.id ? 'border-[#8b5cf6]/50 bg-[#8b5cf6]/10' : 'border-white/10 hover:border-white/20 bg-black/20'}`}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-white">{session.track}</span>
-                  <span className="text-[10px] text-white/40">{session.date}</span>
-                </div>
-                <div className="text-[10px] text-white/50">{session.series}</div>
-                <div className="flex items-center gap-3 mt-2 text-[10px]">
-                  <span className={`flex items-center gap-1 ${session.position < session.started ? 'text-green-400' : 'text-red-400'}`}>
-                    {session.position < session.started ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                    P{session.position}
-                  </span>
-                  <span className="text-white/40">from P{session.started}</span>
-                </div>
-              </button>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-white/40" /></div>
+          ) : (
+            <div className="space-y-2">
+              {sessions.map(session => (
+                <button key={session.id} onClick={() => setSelectedSession(session)} className={`w-full text-left p-3 border transition-colors ${selectedSession?.id === session.id ? 'border-[#8b5cf6]/50 bg-[#8b5cf6]/10' : 'border-white/10 hover:border-white/20 bg-black/20'}`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-white">{session.track}</span>
+                    <span className="text-[10px] text-white/40">{session.date}</span>
+                  </div>
+                  <div className="text-[10px] text-white/50">{session.series}</div>
+                  <div className="flex items-center gap-3 mt-2 text-[10px]">
+                    <span className={`flex items-center gap-1 ${session.position < session.started ? 'text-green-400' : 'text-red-400'}`}>
+                      {session.position < session.started ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      P{session.position}
+                    </span>
+                    <span className="text-white/40">from P{session.started}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         {selectedSession && (
           <div className="p-4 flex-1">

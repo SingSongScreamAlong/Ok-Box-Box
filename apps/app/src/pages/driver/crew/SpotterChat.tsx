@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { TrackDataPanel } from '../../../components/TrackDataPanel';
+import { fetchUpcomingRaces, UpcomingRace } from '../../../lib/driverService';
 import { 
   Eye, Send, ArrowLeft, Calendar,
   Settings2, ChevronRight, Loader2,
@@ -15,32 +16,13 @@ interface Message {
   timestamp: Date;
 }
 
-interface UpcomingRace {
-  id: string;
-  series: string;
-  track: string;
-  date: string;
-  time: string;
-  laps: number;
-  weather?: string;
-  expectedField: number;
-  knownRivals?: string[];
-}
-
-const MOCK_UPCOMING_RACES: UpcomingRace[] = [
-  { id: '1', series: 'IMSA Pilot Challenge', track: 'Watkins Glen', date: 'Jan 26', time: '8:00 PM', laps: 45, weather: 'Clear', expectedField: 24, knownRivals: ['FastDriver42', 'SpeedKing_99'] },
-  { id: '2', series: 'GT3 Sprint', track: 'Spa-Francorchamps', date: 'Jan 27', time: '2:00 PM', laps: 30, weather: 'Overcast', expectedField: 30, knownRivals: ['BelgianRacer', 'EauRouge_Master'] },
-  { id: '3', series: 'Porsche Cup', track: 'Laguna Seca', date: 'Jan 28', time: '9:00 PM', laps: 25, weather: 'Sunny', expectedField: 20, knownRivals: ['CorkscrewKing'] },
-];
-
 const getSpotterResponse = (userMessage: string, race?: UpcomingRace): string => {
   const msg = userMessage.toLowerCase();
   if (msg.includes('start') || msg.includes('t1') || msg.includes('turn 1')) {
     return `For ${race?.track || 'this track'}, Turn 1 is going to be chaotic with ${race?.expectedField || 24} cars. I'll call "clear inside" or "car outside" - trust the call. We're racing for the finish, not Turn 1.`;
   }
   if (msg.includes('rival') || msg.includes('watch')) {
-    const rivals = race?.knownRivals?.join(', ') || 'a few fast drivers';
-    return `Watch out for ${rivals}. They tend to be aggressive on restarts and strong in braking zones. I'll call them out by position during the race.`;
+    return `I've been watching the field. There are a few fast drivers to keep an eye on. They tend to be aggressive on restarts and strong in braking zones. I'll call them out by position during the race.`;
   }
   if (msg.includes('traffic') || msg.includes('lapped')) {
     return `Traffic management: I'll give early warnings. Blue flags mean they should let you by. Best passing zones: main straight and heavy braking areas. Patience wins races.`;
@@ -56,12 +38,22 @@ export function SpotterChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [selectedRace, setSelectedRace] = useState<UpcomingRace | null>(MOCK_UPCOMING_RACES[0]);
+  const [upcomingRaces, setUpcomingRaces] = useState<UpcomingRace[]>([]);
+  const [selectedRace, setSelectedRace] = useState<UpcomingRace | null>(null);
   const [showTrackData, setShowTrackData] = useState(true);
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const driverName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
+
+  useEffect(() => {
+    fetchUpcomingRaces().then(races => {
+      setUpcomingRaces(races);
+      if (races.length > 0) setSelectedRace(races[0]);
+      setLoading(false);
+    });
+  }, []);
 
   useEffect(() => {
     const greeting: Message = {
@@ -120,27 +112,31 @@ export function SpotterChat() {
           <h3 className="text-[10px] uppercase tracking-wider text-white/40 mb-3 flex items-center gap-2">
             <Calendar className="w-3 h-3" />Upcoming Races
           </h3>
-          <div className="space-y-2">
-            {MOCK_UPCOMING_RACES.map(race => (
-              <button key={race.id} onClick={() => setSelectedRace(race)} className={`w-full text-left p-3 border transition-colors ${selectedRace?.id === race.id ? 'border-[#3b82f6]/50 bg-[#3b82f6]/10' : 'border-white/10 hover:border-white/20 bg-black/20'}`}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-white">{race.track}</span>
-                  <span className="text-[10px] text-white/40">{race.date}</span>
-                </div>
-                <div className="text-[10px] text-white/50">{race.series}</div>
-                <div className="flex items-center gap-3 mt-2 text-[10px] text-white/40">
-                  <span className="flex items-center gap-1"><Users className="w-3 h-3" />{race.expectedField} cars</span>
-                </div>
-              </button>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-white/40" /></div>
+          ) : (
+            <div className="space-y-2">
+              {upcomingRaces.map(race => (
+                <button key={race.id} onClick={() => setSelectedRace(race)} className={`w-full text-left p-3 border transition-colors ${selectedRace?.id === race.id ? 'border-[#3b82f6]/50 bg-[#3b82f6]/10' : 'border-white/10 hover:border-white/20 bg-black/20'}`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-white">{race.track}</span>
+                    <span className="text-[10px] text-white/40">{race.date}</span>
+                  </div>
+                  <div className="text-[10px] text-white/50">{race.series}</div>
+                  <div className="flex items-center gap-3 mt-2 text-[10px] text-white/40">
+                    <span className="flex items-center gap-1"><Users className="w-3 h-3" />{race.expectedField || 24} cars</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         {selectedRace && (
           <div className="p-4 flex-1">
             <h3 className="text-[10px] uppercase tracking-wider text-white/40 mb-3">Field Info</h3>
             <div className="space-y-3">
-              <div className="flex items-center justify-between text-xs"><span className="text-white/50 flex items-center gap-2"><Users className="w-3 h-3" />Expected</span><span className="text-white">{selectedRace.expectedField} cars</span></div>
-              <div className="flex items-center justify-between text-xs"><span className="text-white/50 flex items-center gap-2"><AlertTriangle className="w-3 h-3" />Rivals</span><span className="text-white">{selectedRace.knownRivals?.length || 0}</span></div>
+              <div className="flex items-center justify-between text-xs"><span className="text-white/50 flex items-center gap-2"><Users className="w-3 h-3" />Expected</span><span className="text-white">{selectedRace.expectedField || 24} cars</span></div>
+              <div className="flex items-center justify-between text-xs"><span className="text-white/50 flex items-center gap-2"><AlertTriangle className="w-3 h-3" />Caution Risk</span><span className="text-white">Medium</span></div>
             </div>
           </div>
         )}
@@ -150,7 +146,7 @@ export function SpotterChat() {
         <div className="h-14 border-b border-white/10 bg-black/20 flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <div className="w-2 h-2 rounded-full bg-green-500"></div>
-            <span className="text-sm text-white/80">{selectedRace ? `${selectedRace.track} - ${selectedRace.expectedField} car field` : 'Select a race'}</span>
+            <span className="text-sm text-white/80">{selectedRace ? `${selectedRace.track} - ${selectedRace.expectedField || 24} car field` : 'Select a race'}</span>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setShowTrackData(true)} className={`px-3 py-1.5 text-xs uppercase tracking-wider transition-colors ${showTrackData ? 'bg-[#3b82f6]/20 text-[#3b82f6]' : 'text-white/40 hover:text-white'}`}>

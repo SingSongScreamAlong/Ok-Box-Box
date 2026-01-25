@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { TrackDataPanel } from '../../../components/TrackDataPanel';
+import { fetchUpcomingRaces, fetchDriverSessions, UpcomingRace } from '../../../lib/driverService';
 import { 
   Wrench, Send, ArrowLeft, Calendar, Flag,
   Settings2, Clock, ChevronRight, Loader2,
@@ -15,32 +16,16 @@ interface Message {
   timestamp: Date;
 }
 
-interface UpcomingRace {
-  id: string;
-  series: string;
-  track: string;
-  date: string;
-  time: string;
-  laps: number;
-  weather?: string;
-}
-
-const MOCK_UPCOMING_RACES: UpcomingRace[] = [
-  { id: '1', series: 'IMSA Pilot Challenge', track: 'Watkins Glen', date: 'Jan 26', time: '8:00 PM', laps: 45, weather: 'Clear' },
-  { id: '2', series: 'GT3 Sprint', track: 'Spa-Francorchamps', date: 'Jan 27', time: '2:00 PM', laps: 30, weather: 'Overcast' },
-  { id: '3', series: 'Porsche Cup', track: 'Laguna Seca', date: 'Jan 28', time: '9:00 PM', laps: 25, weather: 'Sunny' },
-];
-
 const getEngineerResponse = (userMessage: string, race?: UpcomingRace): string => {
   const msg = userMessage.toLowerCase();
   if (msg.includes('fuel') || msg.includes('pit')) {
-    return `For ${race?.track || 'this track'}, I'm calculating fuel consumption. At your current pace, you'll need approximately 2.8 gallons per stint. I recommend planning for a pit window around lap ${Math.floor((race?.laps || 30) / 2)}.`;
+    return `For ${race?.track || 'this track'}, I'm calculating fuel consumption based on your recent laps. At your current pace, you'll need approximately 2.8 gallons per stint. I recommend planning for a pit window around lap ${Math.floor((race?.laps || 30) / 2)} if we're running a two-stop strategy.`;
   }
   if (msg.includes('setup') || msg.includes('car')) {
-    return `I've been analyzing your telemetry. Your corner entry is strong, but I'm seeing some understeer on exit. I'd suggest softening the rear ARB by 2 clicks and adding a bit more rear wing.`;
+    return `I've been analyzing your telemetry from practice. Your corner entry is strong, but I'm seeing some understeer on exit at the high-speed sections. I'd suggest softening the rear ARB by 2 clicks and adding a bit more rear wing.`;
   }
   if (msg.includes('strategy') || msg.includes('plan')) {
-    return `Looking at the ${race?.laps || 30}-lap race at ${race?.track || 'the track'}:\n\n **Qualifying**: Push for top-5 grid\n **Start**: Conservative, protect position through T1\n **Pit Window**: Lap ${Math.floor((race?.laps || 30) / 2)}  2 laps`;
+    return `Looking at the ${race?.laps || 30}-lap race at ${race?.track || 'the track'}:\n\n **Qualifying**: Push for a top-5 grid position\n **Start**: Conservative launch, protect position through T1\n **Pit Window**: Lap ${Math.floor((race?.laps || 30) / 2)}  2 laps depending on traffic`;
   }
   if (msg.includes('hello') || msg.includes('hi')) {
     return `Hey driver! Good to have you in the briefing room. What would you like to discuss? Strategy, setup, fuel, or tire management?`;
@@ -53,18 +38,32 @@ export function EngineerChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [selectedRace, setSelectedRace] = useState<UpcomingRace | null>(MOCK_UPCOMING_RACES[0]);
+  const [upcomingRaces, setUpcomingRaces] = useState<UpcomingRace[]>([]);
+  const [selectedRace, setSelectedRace] = useState<UpcomingRace | null>(null);
   const [showTrackData, setShowTrackData] = useState(true);
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const driverName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
 
+  // Fetch upcoming races on mount
+  useEffect(() => {
+    fetchUpcomingRaces().then(races => {
+      setUpcomingRaces(races);
+      if (races.length > 0) {
+        setSelectedRace(races[0]);
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  // Initial greeting
   useEffect(() => {
     const greeting: Message = {
       id: 'greeting',
       role: 'engineer',
-      content: `Good to see you, ${driverName}. I've been reviewing your recent sessions. Select a race from the sidebar to see your track data, or switch to Chat View to discuss strategy.`,
+      content: `Good to see you, ${driverName}. I've been reviewing your recent sessions and preparing for your upcoming races. Select a race from the sidebar to see your track data, or switch to Chat View to discuss strategy.`,
       timestamp: new Date(),
     };
     setMessages([greeting]);
@@ -119,21 +118,27 @@ export function EngineerChat() {
           <h3 className="text-[10px] uppercase tracking-wider text-white/40 mb-3 flex items-center gap-2">
             <Calendar className="w-3 h-3" />Upcoming Races
           </h3>
-          <div className="space-y-2">
-            {MOCK_UPCOMING_RACES.map(race => (
-              <button key={race.id} onClick={() => setSelectedRace(race)} className={`w-full text-left p-3 border transition-colors ${selectedRace?.id === race.id ? 'border-[#f97316]/50 bg-[#f97316]/10' : 'border-white/10 hover:border-white/20 bg-black/20'}`}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-white">{race.track}</span>
-                  <span className="text-[10px] text-white/40">{race.date}</span>
-                </div>
-                <div className="text-[10px] text-white/50">{race.series}</div>
-                <div className="flex items-center gap-3 mt-2 text-[10px] text-white/40">
-                  <span className="flex items-center gap-1"><Flag className="w-3 h-3" />{race.laps} laps</span>
-                  <span className="flex items-center gap-1"><ThermometerSun className="w-3 h-3" />{race.weather}</span>
-                </div>
-              </button>
-            ))}
-          </div>
+          {loading ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-5 h-5 animate-spin text-white/40" />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {upcomingRaces.map(race => (
+                <button key={race.id} onClick={() => setSelectedRace(race)} className={`w-full text-left p-3 border transition-colors ${selectedRace?.id === race.id ? 'border-[#f97316]/50 bg-[#f97316]/10' : 'border-white/10 hover:border-white/20 bg-black/20'}`}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-white">{race.track}</span>
+                    <span className="text-[10px] text-white/40">{race.date}</span>
+                  </div>
+                  <div className="text-[10px] text-white/50">{race.series}</div>
+                  <div className="flex items-center gap-3 mt-2 text-[10px] text-white/40">
+                    <span className="flex items-center gap-1"><Flag className="w-3 h-3" />{race.laps} laps</span>
+                    {race.weather && <span className="flex items-center gap-1"><ThermometerSun className="w-3 h-3" />{race.weather}</span>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         {selectedRace && (
           <div className="p-4 flex-1">
