@@ -28,6 +28,20 @@ interface TrackMetadata {
 }
 
 const TRACK_METADATA: Record<string, TrackMetadata> = {
+  'Daytona': {
+    config: 'Road Course', country: 'USA', length: '3.56 mi', turns: 12,
+    fuelPerLap: 0.62, pitLossTime: 28,
+    setupNotes: [
+      'Max downforce for banking stability',
+      'Soften rear for infield rotation',
+      'Lower front ride height for Bus Stop chicane',
+    ],
+    strategyNotes: [
+      'Fuel window opens around lap 22 for a 45-lap race',
+      'Pit loss is ~28s - undercut works well',
+      'Save fuel on banking sections to extend stint',
+    ],
+  },
   'Watkins Glen': {
     config: 'Boot', country: 'USA', length: '3.4 mi', turns: 11,
     fuelPerLap: 0.62, pitLossTime: 28,
