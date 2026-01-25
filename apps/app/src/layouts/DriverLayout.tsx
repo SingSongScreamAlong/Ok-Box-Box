@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useRelay } from '../hooks/useRelay';
-import { Home, Activity, Monitor, Mic, Settings, LogOut, User, ChevronDown, History, BarChart3, Award, Users, Trophy } from 'lucide-react';
+import { Activity, Monitor, Mic, Settings, LogOut, User, ChevronDown, History, BarChart3, Award, Users, Trophy, Zap, MessageSquare } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 export function DriverLayout() {
@@ -45,8 +45,9 @@ export function DriverLayout() {
   };
 
   const navItems = [
-    { to: '/driver/home', icon: Home, label: 'Home' },
+    { to: '/driver/home', icon: Zap, label: 'BlackBox' },
     { to: '/driver/pitwall', icon: Activity, label: 'Pitwall' },
+    { to: '/driver/crew/engineer', icon: MessageSquare, label: 'Crew' },
     { to: '/driver/sessions', icon: History, label: 'Sessions' },
     { to: '/driver/stats', icon: BarChart3, label: 'Stats' },
     { to: '/driver/ratings', icon: Award, label: 'Ratings' },
