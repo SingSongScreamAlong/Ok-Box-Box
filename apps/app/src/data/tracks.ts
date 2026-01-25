@@ -111,9 +111,9 @@ export const TRACK_DATA: Record<string, TrackData> = {
     ],
     svg: {
       // Daytona Road Course - tri-oval with infield road course section
-      viewBox: '0 0 500 350',
-      // Road Course: Banking (top) → Infield horseshoe (left) → Bus Stop chicane (bottom) → Back to banking
-      path: 'M 480,120 L 450,90 Q 400,60 340,50 L 250,45 L 160,50 Q 100,60 60,90 L 40,120 L 35,150 Q 35,180 50,200 L 80,220 L 120,235 L 100,260 L 80,290 Q 70,310 90,325 L 130,335 L 180,340 L 220,335 Q 250,325 260,300 L 255,270 L 235,245 L 260,230 L 300,220 L 280,250 L 270,290 Q 275,320 310,335 L 370,340 L 430,330 Q 465,310 480,270 L 485,220 L 480,170 L 480,120 Z'
+      viewBox: '0 0 400 300',
+      // Clear road course shape: oval top + infield section cutting down into middle
+      path: 'M 380,100 Q 380,50 320,30 L 200,20 L 80,30 Q 20,50 20,100 L 20,120 L 40,140 L 60,150 L 60,180 L 40,200 L 30,220 L 40,250 L 80,270 L 120,275 L 140,260 L 150,230 L 140,200 L 120,180 L 140,160 L 180,150 L 200,170 L 180,200 L 170,240 L 190,270 L 250,280 L 320,270 Q 380,250 380,200 L 380,100 Z'
     },
     metadata: {
       direction: 'counter-clockwise',
