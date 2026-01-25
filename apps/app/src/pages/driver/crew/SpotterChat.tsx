@@ -100,7 +100,7 @@ export function SpotterChat() {
           loop
           muted
           playsInline
-          className="w-full h-full object-cover opacity-30"
+          className="w-full h-full object-cover opacity-[0.45]"
         >
           <source src="/videos/track-left.mp4" type="video/mp4" />
         </video>
