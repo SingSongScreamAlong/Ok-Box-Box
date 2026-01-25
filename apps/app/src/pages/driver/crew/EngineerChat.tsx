@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
+import { TrackDetailModal } from '../../../components/TrackDetailModal';
 import { 
   Wrench, Send, ArrowLeft, Calendar, Flag,
   Settings2, Clock, ChevronRight, Loader2,
-  Car, Gauge, ThermometerSun
+  Car, Gauge, ThermometerSun, MapPin
 } from 'lucide-react';
 
 interface Message {
@@ -68,6 +69,7 @@ export function EngineerChat() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [selectedRace, setSelectedRace] = useState<UpcomingRace | null>(MOCK_UPCOMING_RACES[0]);
+  const [showTrackDetail, setShowTrackDetail] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -207,9 +209,21 @@ export function EngineerChat() {
                 <span className="text-white">~{Math.round(selectedRace.laps * 1.8)} min</span>
               </div>
             </div>
+            <button
+              onClick={() => setShowTrackDetail(true)}
+              className="w-full mt-4 px-3 py-2 bg-[#f97316]/20 border border-[#f97316]/30 text-[#f97316] text-xs uppercase tracking-wider hover:bg-[#f97316]/30 transition-colors flex items-center justify-center gap-2"
+            >
+              <MapPin className="w-3 h-3" />
+              View Track Data
+            </button>
           </div>
         )}
       </div>
+
+      {/* Track Detail Modal */}
+      {showTrackDetail && selectedRace && (
+        <TrackDetailModal track={selectedRace} onClose={() => setShowTrackDetail(false)} />
+      )}
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
