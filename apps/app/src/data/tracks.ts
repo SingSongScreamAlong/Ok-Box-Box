@@ -86,6 +86,8 @@ export interface TrackData {
 
 export const TRACK_DATA: Record<string, TrackData> = {
   // Daytona International Speedway - Road Course
+  // NOTE: Accurate road course SVG needs to be created in a vector editor (Rive/Figma)
+  // Current path is a placeholder - the infield section should be more pronounced
   'daytona': {
     id: 'daytona',
     name: 'Daytona International Speedway',
@@ -97,12 +99,11 @@ export const TRACK_DATA: Record<string, TrackData> = {
       { number: 2, name: 'Sector 2', startDistance: 1910, endDistance: 3820 },
       { number: 3, name: 'Sector 3', startDistance: 3820, endDistance: 5730 }
     ],
-    corners: [], // Corner markers disabled - coordinates don't match SVG viewBox
+    corners: [],
     svg: {
-      // Daytona Road Course - simplified distinctive shape
-      viewBox: '0 0 400 300',
-      // Simple path: Oval top + clear infield horseshoe cutting into left side + Bus Stop at bottom
-      path: 'M 380,100 Q 390,50 320,30 L 180,25 L 60,35 Q 15,60 15,110 L 25,140 Q 50,160 80,165 L 60,200 Q 40,240 60,270 Q 90,295 140,295 Q 180,290 190,260 L 175,220 Q 160,195 140,200 Q 160,220 190,240 Q 230,280 300,285 Q 370,275 385,230 L 385,160 Q 385,120 380,100 Z'
+      viewBox: '0 0 500 450',
+      // Watkins Glen style path as placeholder until proper Daytona Road Course is created
+      path: 'M 30,220 L 100,220 C 120,220 130,210 135,195 L 145,165 C 155,140 175,115 200,95 L 240,70 C 270,55 310,50 350,55 L 390,65 C 420,75 440,100 450,135 L 460,180 C 470,230 470,280 460,330 L 445,375 C 430,405 400,425 360,430 L 300,430 C 250,425 200,405 165,375 L 130,335 C 100,295 80,260 70,235 L 50,225 C 40,222 30,220 30,220 Z'
     },
     metadata: {
       direction: 'counter-clockwise',
