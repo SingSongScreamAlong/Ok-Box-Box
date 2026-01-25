@@ -137,7 +137,7 @@ export function EngineerDataPanel({ track }: EngineerDataPanelProps) {
   return (
     <div className="space-y-4 p-4">
       {/* Engineer Header */}
-      <div className="bg-white/[0.03] border border-white/[0.08] rounded p-4">
+      <div className="bg-white/[0.03] border border-white/[0.12] rounded p-4 shadow-lg shadow-black/20">
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -160,7 +160,7 @@ export function EngineerDataPanel({ track }: EngineerDataPanelProps) {
       </div>
 
       {/* Track Map with Pit Lane */}
-      <div className="bg-white/[0.02] border border-white/[0.06] rounded p-4">
+      <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
         <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
           <MapPin className="w-3 h-3" />
           Track Layout
@@ -183,7 +183,7 @@ export function EngineerDataPanel({ track }: EngineerDataPanelProps) {
       </div>
 
       {/* Fuel Strategy - Engineer's Focus */}
-      <div className="bg-white/[0.02] border border-white/[0.06] rounded p-4">
+      <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
         <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-4 flex items-center gap-2">
           <Fuel className="w-3 h-3" />
           Fuel Strategy
@@ -217,7 +217,7 @@ export function EngineerDataPanel({ track }: EngineerDataPanelProps) {
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Setup Recommendations */}
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded p-4">
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
           <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
             <Settings className="w-3 h-3" />
             Setup Recommendations
@@ -233,7 +233,7 @@ export function EngineerDataPanel({ track }: EngineerDataPanelProps) {
         </div>
 
         {/* Strategy Notes */}
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded p-4">
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
           <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
             <Zap className="w-3 h-3" />
             Strategy Notes
@@ -251,22 +251,22 @@ export function EngineerDataPanel({ track }: EngineerDataPanelProps) {
 
       {/* Race Info */}
       <div className="grid grid-cols-4 gap-3">
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded p-3 text-center">
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
           <Flag className="w-3.5 h-3.5 text-white/30 mx-auto mb-1" />
           <div className="text-base font-bold text-white/80">{track.laps}</div>
           <div className="text-[10px] text-white/30">Laps</div>
         </div>
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded p-3 text-center">
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
           <Timer className="w-3.5 h-3.5 text-white/30 mx-auto mb-1" />
           <div className="text-base font-bold text-white/80">~{Math.round(track.laps * 1.8)}</div>
           <div className="text-[10px] text-white/30">Minutes</div>
         </div>
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded p-3 text-center">
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
           <Gauge className="w-3.5 h-3.5 text-white/30 mx-auto mb-1" />
           <div className="text-base font-bold text-white/80">{metadata.pitLossTime}s</div>
           <div className="text-[10px] text-white/30">Pit Loss</div>
         </div>
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded p-3 text-center">
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
           <ThermometerSun className="w-3.5 h-3.5 text-white/30 mx-auto mb-1" />
           <div className="text-base font-bold text-white/80">{track.weather || 'Clear'}</div>
           <div className="text-[10px] text-white/30">Conditions</div>
@@ -275,7 +275,7 @@ export function EngineerDataPanel({ track }: EngineerDataPanelProps) {
 
       {/* Your History */}
       {trackData && trackData.sessions > 0 && (
-        <div className="bg-white/[0.02] border border-white/[0.06] rounded p-4">
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
           <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-2">Your Track Record</h3>
           <div className="flex items-center gap-6 text-sm">
             <span className="text-white/50">{trackData.sessions} sessions</span>
