@@ -92,3 +92,12 @@ body {
 .input::placeholder {
   color: rgba(255, 255, 255, 0.4);
 }
+
+.font-mono {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+.font-data {
+  font-family: 'JetBrains Mono', 'SF Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
