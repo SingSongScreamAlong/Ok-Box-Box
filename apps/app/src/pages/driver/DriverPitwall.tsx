@@ -128,73 +128,93 @@ export function DriverPitwall() {
     }
   };
 
-  // Disconnected state - Engineer waiting
+  // Disconnected state - Show crew access and recent data
   if (status === 'disconnected') {
     return (
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-black/40 backdrop-blur-sm border border-white/10 p-12 text-center">
-          <div className="w-20 h-20 mx-auto mb-6 bg-[#f97316]/20 border border-[#f97316]/30 flex items-center justify-center">
-            <Wrench className="w-10 h-10 text-[#f97316]" />
-          </div>
-          <h2 
-            className="text-xl uppercase tracking-wider font-bold mb-2"
-            style={{ fontFamily: 'Orbitron, sans-serif' }}
-          >
-            Your Engineer is Waiting
-          </h2>
-          <p className="text-sm text-white/50 max-w-md mx-auto mb-6">
-            Connect the Ok, Box Box Relay to receive live strategy insights, 
-            fuel calculations, and pace analysis from your virtual engineer.
-          </p>
-          <Link 
-            to="/download"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-[#f97316] text-black font-semibold text-sm uppercase tracking-wider hover:bg-[#fb923c] transition-colors"
-          >
-            Download Relay
-            <ChevronRight className="w-4 h-4" />
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="text-center mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+            Pitwall
+          </h1>
+          <p className="text-white/50 mt-2">Your crew is available for planning even without live data</p>
+        </div>
+
+        {/* Crew Access Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link to="/driver/crew/engineer" className="bg-black/40 backdrop-blur-sm border border-white/10 p-6 hover:border-[#f97316]/50 transition-colors group">
+            <div className="w-12 h-12 bg-[#f97316]/20 border border-[#f97316]/30 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+              <Wrench className="w-6 h-6 text-[#f97316]" />
+            </div>
+            <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>Race Engineer</h3>
+            <p className="text-xs text-white/50 mt-2">Plan strategy, discuss setups, calculate fuel</p>
+            <div className="flex items-center gap-1 mt-4 text-xs text-[#f97316]">
+              <span>Start Planning</span>
+              <ChevronRight className="w-3 h-3" />
+            </div>
+          </Link>
+          <Link to="/driver/crew/spotter" className="bg-black/40 backdrop-blur-sm border border-white/10 p-6 hover:border-[#3b82f6]/50 transition-colors group">
+            <div className="w-12 h-12 bg-[#3b82f6]/20 border border-[#3b82f6]/30 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+              <Eye className="w-6 h-6 text-[#3b82f6]" />
+            </div>
+            <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>Spotter</h3>
+            <p className="text-xs text-white/50 mt-2">Discuss race starts, traffic, competitors</p>
+            <div className="flex items-center gap-1 mt-4 text-xs text-[#3b82f6]">
+              <span>Race Briefing</span>
+              <ChevronRight className="w-3 h-3" />
+            </div>
+          </Link>
+          <Link to="/driver/crew/analyst" className="bg-black/40 backdrop-blur-sm border border-white/10 p-6 hover:border-[#8b5cf6]/50 transition-colors group">
+            <div className="w-12 h-12 bg-[#8b5cf6]/20 border border-[#8b5cf6]/30 flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
+              <TrendingUp className="w-6 h-6 text-[#8b5cf6]" />
+            </div>
+            <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>Analyst</h3>
+            <p className="text-xs text-white/50 mt-2">Review sessions, analyze performance</p>
+            <div className="flex items-center gap-1 mt-4 text-xs text-[#8b5cf6]">
+              <span>View Analysis</span>
+              <ChevronRight className="w-3 h-3" />
+            </div>
           </Link>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-black/40 backdrop-blur-sm border border-white/10 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Wrench className="w-5 h-5 text-[#f97316]" />
-              <span className="text-sm font-semibold uppercase tracking-wider">What Your Engineer Does</span>
+        {/* Quick Links */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link to="/driver/sessions" className="bg-black/40 backdrop-blur-sm border border-white/10 p-5 hover:border-white/30 transition-colors group flex items-center gap-4">
+            <div className="w-10 h-10 bg-white/10 flex items-center justify-center">
+              <Flag className="w-5 h-5 text-white/60" />
             </div>
-            <ul className="space-y-2 text-sm text-white/60">
-              <li className="flex items-start gap-2">
-                <span className="text-[#f97316]">•</span>
-                Calculates fuel windows and pit strategy
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#f97316]">•</span>
-                Monitors pace trends and tire degradation
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#f97316]">•</span>
-                Provides real-time strategy recommendations
-              </li>
-            </ul>
-          </div>
-          <div className="bg-black/40 backdrop-blur-sm border border-white/10 p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <Eye className="w-5 h-5 text-[#3b82f6]" />
-              <span className="text-sm font-semibold uppercase tracking-wider">What Your Spotter Does</span>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold uppercase tracking-wider">Recent Sessions</h3>
+              <p className="text-xs text-white/40 mt-1">View your race history and results</p>
             </div>
-            <ul className="space-y-2 text-sm text-white/60">
-              <li className="flex items-start gap-2">
-                <span className="text-[#3b82f6]">•</span>
-                Watches traffic and calls positions
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#3b82f6]">•</span>
-                Alerts you to incidents and yellow flags
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#3b82f6]">•</span>
-                Provides situational awareness in traffic
-              </li>
-            </ul>
+            <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60" />
+          </Link>
+          <Link to="/driver/stats" className="bg-black/40 backdrop-blur-sm border border-white/10 p-5 hover:border-white/30 transition-colors group flex items-center gap-4">
+            <div className="w-10 h-10 bg-white/10 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-white/60" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold uppercase tracking-wider">Career Stats</h3>
+              <p className="text-xs text-white/40 mt-1">Your performance across all disciplines</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60" />
+          </Link>
+        </div>
+
+        {/* Relay Info */}
+        <div className="bg-white/5 border border-white/10 p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-white/10 flex items-center justify-center">
+                <Radio className="w-5 h-5 text-white/40" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wider">Live Telemetry</h3>
+                <p className="text-xs text-white/40 mt-1">Connect the Relay for real-time data during sessions</p>
+              </div>
+            </div>
+            <Link to="/download" className="px-4 py-2 border border-white/20 text-white/60 text-xs uppercase tracking-wider hover:bg-white/5 hover:text-white transition-colors">
+              Get Relay
+            </Link>
           </div>
         </div>
       </div>
