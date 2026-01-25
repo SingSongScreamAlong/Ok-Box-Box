@@ -104,9 +104,9 @@ export function SpotterChat() {
         >
           <source src="/videos/track-left.mp4" type="video/mp4" />
         </video>
-        {/* Softer gradient overlay for depth */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/95 via-[#0e0e0e]/85 to-[#0e0e0e]/75" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]" />
+        {/* Lighter gradient overlay - let video show through */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/80 via-[#0e0e0e]/60 to-[#0e0e0e]/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />
       </div>
 
       {/* Sidebar - cleaner with subtle layering */}
