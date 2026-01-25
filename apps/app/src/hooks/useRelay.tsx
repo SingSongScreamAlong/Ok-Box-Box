@@ -93,8 +93,8 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const startMockSimulation = useCallback(() => {
-    if (!mockEnabled) return;
-
+    console.log('[Relay] Starting mock simulation...');
+    
     // Simulate connection sequence
     setStatus('connecting');
     
@@ -223,15 +223,87 @@ export function RelayProvider({ children }: { children: ReactNode }) {
 
   // Auto-connect in mock mode on mount
   useEffect(() => {
-    if (mockEnabled && !initialized) {
+    if (!initialized) {
       setInitialized(true);
-      console.log('[Relay] Auto-connecting mock...');
-      const timer = setTimeout(() => {
-        startMockSimulation();
-      }, 1000);
-      return () => clearTimeout(timer);
+      console.log('[Relay] Initializing, mockEnabled:', mockEnabled);
+      
+      if (mockEnabled) {
+        console.log('[Relay] Auto-connecting mock in 1 second...');
+        const timer = setTimeout(() => {
+          console.log('[Relay] Triggering mock simulation now');
+          // Inline the mock start to avoid closure issues
+          setStatus('connecting');
+          
+          setTimeout(() => {
+            setStatus('connected');
+            
+            setTimeout(() => {
+              setStatus('in_session');
+              setSession({
+                trackName: 'Daytona International Speedway',
+                sessionType: 'practice',
+                timeRemaining: 3600,
+                lapsRemaining: null,
+              });
+
+              let lap = 1;
+              let bestLap = 95.234;
+              let lastLap = 96.892;
+              let trackPos = 0;
+              let position = 8;
+              let fuel = 18;
+              let currentSpeed = 180;
+              let currentDelta = 0.15;
+              
+              const interval = setInterval(() => {
+                trackPos += 0.01;
+                if (trackPos >= 1) {
+                  trackPos = 0;
+                  lap++;
+                  lastLap = 94 + Math.random() * 4;
+                  if (lastLap < bestLap) bestLap = lastLap;
+                  fuel = Math.max(0, fuel - 0.5);
+                  position = Math.max(1, Math.min(20, position + Math.floor(Math.random() * 3) - 1));
+                }
+                
+                const sector = trackPos < 0.33 ? 1 : trackPos < 0.66 ? 2 : 3;
+                const cornerFactor = Math.sin(trackPos * Math.PI * 6) * 0.15;
+                const targetSpeed = 180 + (cornerFactor * 180);
+                currentSpeed = currentSpeed + (targetSpeed - currentSpeed) * 0.3;
+                currentDelta = currentDelta + (Math.random() - 0.5) * 0.1;
+                currentDelta = Math.max(-2, Math.min(2, currentDelta));
+                const throttle = cornerFactor > 0 ? 85 : 50;
+                const brake = cornerFactor < -0.05 ? 70 : 0;
+                
+                setTelemetry({
+                  lapTime: trackPos * 95,
+                  lastLap: lastLap,
+                  bestLap: bestLap,
+                  delta: currentDelta,
+                  fuel: fuel,
+                  fuelPerLap: 0.5,
+                  lapsRemaining: Math.floor(fuel / 0.5),
+                  position: position,
+                  lap: lap,
+                  speed: currentSpeed,
+                  gear: currentSpeed < 100 ? 3 : currentSpeed < 150 ? 4 : currentSpeed < 180 ? 5 : 6,
+                  rpm: 4000 + (currentSpeed / 200) * 4000,
+                  throttle: throttle,
+                  brake: brake,
+                  trackPosition: trackPos,
+                  sector: sector,
+                  inPit: false,
+                });
+              }, 1000);
+
+              setMockInterval(interval);
+            }, 2000);
+          }, 1500);
+        }, 1000);
+        return () => clearTimeout(timer);
+      }
     }
-  }, [mockEnabled, initialized, startMockSimulation]);
+  }, []);  // Empty deps - run once on mount
 
   // Cleanup on unmount
   useEffect(() => {
