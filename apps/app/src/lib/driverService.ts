@@ -1,3 +1,7 @@
+import { supabase } from './supabase';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 export type DriverDiscipline = 'oval' | 'sportsCar' | 'formula' | 'dirtOval' | 'dirtRoad';
 
 export interface DriverLicense {
@@ -38,6 +42,14 @@ export interface DriverStatsSnapshot {
   poles: number;
   avgStart: number;
   avgFinish: number;
+}
+
+async function getAuthHeader(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    return { 'Authorization': `Bearer ${session.access_token}` };
+  }
+  return {};
 }
 
 const DEMO_PROFILE: DriverIdentityProfile = {
@@ -110,25 +122,162 @@ const DEMO_STATS: DriverStatsSnapshot[] = [
 ];
 
 export async function fetchDriverProfile(): Promise<DriverIdentityProfile> {
-  // TODO: Connect to real API when available
-  // For now, return demo data
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(DEMO_PROFILE), 500);
-  });
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) {
+      console.log('[IDP] No auth token, using demo data');
+      return DEMO_PROFILE;
+    }
+
+    const response = await fetch(`${API_BASE}/api/v1/drivers/me`, {
+      headers: {
+        ...auth,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      console.log('[IDP] API error, using demo data');
+      return DEMO_PROFILE;
+    }
+
+    const data = await response.json();
+    
+    return {
+      driverId: data.id || 'me',
+      displayName: data.display_name || DEMO_PROFILE.displayName,
+      custId: data.iracing_cust_id || DEMO_PROFILE.custId,
+      memberSince: data.member_since || DEMO_PROFILE.memberSince,
+      primaryDiscipline: data.primary_discipline || DEMO_PROFILE.primaryDiscipline,
+      timezone: data.timezone || DEMO_PROFILE.timezone,
+      safetyRatingOverall: data.safety_rating_overall ?? DEMO_PROFILE.safetyRatingOverall,
+      iRatingOverall: data.irating_overall ?? DEMO_PROFILE.iRatingOverall,
+      licenses: data.licenses || DEMO_PROFILE.licenses,
+    };
+  } catch (error) {
+    console.error('[IDP] Error fetching profile:', error);
+    return DEMO_PROFILE;
+  }
 }
 
 export async function fetchDriverSessions(): Promise<DriverSessionSummary[]> {
-  // TODO: Connect to real API when available
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(DEMO_SESSIONS), 500);
-  });
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) {
+      return DEMO_SESSIONS;
+    }
+
+    // First get the driver profile to get the ID
+    const profileResponse = await fetch(`${API_BASE}/api/v1/drivers/me`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!profileResponse.ok) {
+      return DEMO_SESSIONS;
+    }
+
+    const profile = await profileResponse.json();
+    
+    const response = await fetch(`${API_BASE}/api/v1/drivers/${profile.id}/sessions?limit=25`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      return DEMO_SESSIONS;
+    }
+
+    const data = await response.json();
+    const sessions = data.sessions || [];
+
+    return sessions.map((s: any) => ({
+      sessionId: String(s.session_id || s.id || ''),
+      startedAt: String(s.started_at || s.session_start || ''),
+      trackName: String(s.track_name || 'Unknown Track'),
+      seriesName: String(s.series_name || 'Unknown Series'),
+      discipline: (s.discipline || 'sportsCar') as DriverDiscipline,
+      startPos: s.start_pos ?? s.starting_position,
+      finishPos: s.finish_pos ?? s.finishing_position,
+      incidents: s.incidents ?? s.incident_count,
+    }));
+  } catch (error) {
+    console.error('[IDP] Error fetching sessions:', error);
+    return DEMO_SESSIONS;
+  }
 }
 
 export async function fetchDriverStats(): Promise<DriverStatsSnapshot[]> {
-  // TODO: Connect to real API when available
-  return new Promise((resolve) => {
-    setTimeout(() => resolve(DEMO_STATS), 500);
-  });
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) {
+      return DEMO_STATS;
+    }
+
+    // Get driver profile first
+    const profileResponse = await fetch(`${API_BASE}/api/v1/drivers/me`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!profileResponse.ok) {
+      return DEMO_STATS;
+    }
+
+    const profile = await profileResponse.json();
+
+    // Fetch performance/aggregates data
+    const response = await fetch(`${API_BASE}/api/v1/drivers/${profile.id}/performance`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      return DEMO_STATS;
+    }
+
+    const data = await response.json();
+    
+    // Transform aggregates into stats format
+    if (data.global) {
+      // If we have global data, create a single entry
+      return [{
+        discipline: (profile.primary_discipline || 'sportsCar') as DriverDiscipline,
+        starts: data.global.total_sessions || 0,
+        wins: data.global.wins || 0,
+        top5s: data.global.top5s || 0,
+        poles: data.global.poles || 0,
+        avgStart: data.global.avg_start || 0,
+        avgFinish: data.global.avg_finish || 0,
+      }];
+    }
+
+    return DEMO_STATS;
+  } catch (error) {
+    console.error('[IDP] Error fetching stats:', error);
+    return DEMO_STATS;
+  }
+}
+
+export async function syncIRacingData(): Promise<{ success: boolean; message: string }> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) {
+      return { success: false, message: 'Not authenticated' };
+    }
+
+    const response = await fetch(`${API_BASE}/api/v1/drivers/me/sync-iracing`, {
+      method: 'POST',
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      return { success: false, message: error.error || 'Sync failed' };
+    }
+
+    const data = await response.json();
+    return { success: true, message: data.message || `Synced ${data.synced_races} races` };
+  } catch (error) {
+    console.error('[IDP] Error syncing iRacing:', error);
+    return { success: false, message: 'Network error' };
+  }
 }
 
 export function getDisciplineLabel(discipline: DriverDiscipline): string {
