@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import { useTrackData } from '../hooks/useTrackData';
-import { getTrackId } from '../data/tracks';
+import { getTrackId, TRACK_SLUG_MAP } from '../data/tracks';
 
 interface TrackMapProps {
     trackId: string;
@@ -11,28 +11,18 @@ interface TrackMapProps {
     showTrace?: boolean; // Debug: show raw points
 }
 
-// Map slugs to iRacing shape IDs
-export const TRACK_SLUG_MAP: Record<string, string> = {
-    'daytona': '191',
-    'daytona-road': '191', // Note: 191 is Road Config? Need to verify. Title said "Daytona Oval - Config" in 191.shape.json... wait.
-    // If 191 is Oval, we need Road.
-    'watkins-glen': '146', // Placeholder guess, will update
-    'spa-francorchamps': '163', // Placeholder
-    'laguna-seca': '47', // Confirmed via grep
-    'road-atlanta': '30', // Checking...
-};
-
+// Logic to resolve slug -> shape ID
 function getShapeId(slug: string): string {
     // Normalize
     const s = slug.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+    // Check numeric first (optimization)
+    if (/^\d+$/.test(slug)) return slug;
 
     // Check map
     for (const [k, v] of Object.entries(TRACK_SLUG_MAP)) {
         if (s.includes(k.replace(/[^a-z0-9]/g, ''))) return v;
     }
-
-    // If slug is numeric, return it
-    if (/^\d+$/.test(slug)) return slug;
 
     return slug;
 }
@@ -49,13 +39,9 @@ export function TrackMap({
     // Generate SVG Path from Centerline
     const pathData = useMemo(() => {
         if (!shape || !shape.centerline) return '';
-
-        // Scale points to Fit ViewBox if needed, or use raw bounds
-        // Centerline is array of {x, y, distPct}
-        // We construct a path "M x y L x y ..."
         return shape.centerline.reduce((acc, point, index) => {
             return acc + `${index === 0 ? 'M' : 'L'} ${point.x},${point.y} `;
-        }, '') + (shape.trackId === '191' ? 'Z' : 'Z'); // Close path for loops
+        }, '') + 'Z';
     }, [shape]);
 
     // ViewBox
@@ -79,10 +65,6 @@ export function TrackMap({
     const activeColor = getSectorColor(currentSector);
 
     // Car Position Calculation
-    // If we have trackPercentage, use it to interpolate along path (expensive? No, SVG getPointAtLength is standard but we don't have ref easily)
-    // Instead, use raw X/Y if provided and matches coordinate space
-    // OR interpolate between centerline points based on percentage.
-
     const carCoords = useMemo(() => {
         if (!shape || !shape.centerline || !carPosition) return null;
 
@@ -93,31 +75,19 @@ export function TrackMap({
 
         // Use normalized 0-1 percentage to find point on track
         if (carPosition.trackPercentage !== undefined) {
-            // Find segment
             const pct = carPosition.trackPercentage;
             const cl = shape.centerline;
 
-            // Simple lookup (assumes sorted distPct)
-            // Find first point where distPct > pct
             let idx = cl.findIndex(p => p.distPct >= pct);
-            if (idx === -1) idx = 0; // Wrap or end
+            if (idx === -1) idx = 0;
 
-            // Interpolate between idx-1 and idx
             const p2 = cl[idx];
             const p1 = cl[idx === 0 ? cl.length - 1 : idx - 1];
 
-            // Check for wrap-around case (end to start)
-            if (idx === 0 && pct > 0.9) {
-                return { x: p2.x, y: p2.y }; // Approximate
-            }
-
-            // Linear interpolation
-            // Dist difference
+            // Interpolate
             let d1 = p1.distPct;
             let d2 = p2.distPct;
-
-            // Handle wrap around 0-1 boundary if needed
-            if (d1 > d2) d1 = 0; // Simplified
+            if (d1 > d2) d1 = 0;
 
             const ratio = (pct - d1) / (d2 - d1 || 1);
 
@@ -130,8 +100,8 @@ export function TrackMap({
         return null;
     }, [shape, carPosition]);
 
-    if (loading) return <div className="text-white/50 animate-pulse">Loading Track...</div>;
-    if (error || !shape) return <div className="text-red-500">Track data not found</div>;
+    if (loading) return <div className="text-white/50 animate-pulse text-xs">Loading Track...</div>;
+    if (error || !shape) return <div className="text-red-500 text-xs text-center borderBorder border-red-900/30 p-2 rounded bg-black/50">Track shape not found ({shapeId})</div>;
 
     return (
         <div className={`relative w-full h-full ${className}`}>
@@ -151,8 +121,7 @@ export function TrackMap({
             <svg
                 viewBox={viewBox}
                 className="w-full h-full overflow-visible"
-                style={{ transform: 'scale(1, -1)' }} // iRacing coords might be flipped Y? Usually Y is up in 3D, down in SVG. 
-            // We'll verify flip. Often maps need flip.
+                style={{ transform: 'scale(1, -1)' }} // Invert Y axis for standard cartesian maps
             >
                 {/* Track Outline (Shadow) */}
                 <path
@@ -175,8 +144,7 @@ export function TrackMap({
                     strokeLinejoin="round"
                 />
 
-                {/* Active Sector Highlighting - Simplification: color whole track for now */}
-                {/* Ideally we chop path into sectors, but for v1 we color the whole active track or car dot */}
+                {/* Active Sector/Track Line */}
                 <path
                     d={pathData}
                     stroke={activeColor}
@@ -193,7 +161,7 @@ export function TrackMap({
                     <motion.g
                         initial={{ x: carCoords.x, y: carCoords.y }}
                         animate={{ x: carCoords.x, y: carCoords.y }}
-                        transition={{ type: 'spring', damping: 20, stiffness: 300 }} // Smooth movement
+                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                     >
                         {/* Pulsing Dot */}
                         <circle r="20" fill={activeColor} opacity="0.4">

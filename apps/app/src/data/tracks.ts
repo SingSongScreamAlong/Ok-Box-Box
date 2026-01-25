@@ -1,6 +1,28 @@
 // Accurate Track Data from iRacing telemetry calibration
 // Source: packages/dashboard/src/data/trackData/*.shape.json
 
+// Map slugs to iRacing shape IDs for the TrackMap component
+export const TRACK_SLUG_MAP: Record<string, string> = {
+  // Daytona
+  'daytona': '381',        // Daytona Road Course 2020? (Verifying ID)
+  'daytona-road': '381',
+  'daytona-oval': '191',
+
+  // Watkins Glen
+  'watkins-glen': '146',   // Placeholder - will load if file with this ID exists, else searches
+  'watkins-glen-boot': '483', // Likely boot if 483 exists
+
+  // Spa
+  'spa': '163', // Common iRacing ID for Spa
+  'spa-francorchamps': '163',
+
+  // Laguna Seca
+  'laguna-seca': '47',
+
+  // Road Atlanta
+  // 'road-atlanta': '30', // Warn: ID 30 is Irwindale. Need to find Road Atlanta ID.
+};
+
 // Centerline point from telemetry
 export interface CenterlinePoint {
   x: number;
@@ -11,15 +33,15 @@ export interface CenterlinePoint {
 // Convert centerline points to SVG path
 export function centerlineToSVGPath(points: CenterlinePoint[]): string {
   if (points.length < 2) return '';
-  
+
   // Start with move to first point
   let path = `M ${points[0].x},${points[0].y}`;
-  
+
   // Add line segments for each point
   for (let i = 1; i < points.length; i++) {
     path += ` L ${points[i].x},${points[i].y}`;
   }
-  
+
   // Close the path
   path += ' Z';
   return path;
@@ -86,8 +108,6 @@ export interface TrackData {
 
 export const TRACK_DATA: Record<string, TrackData> = {
   // Daytona International Speedway - Road Course
-  // NOTE: Accurate road course SVG needs to be created in a vector editor (Rive/Figma)
-  // Current path is a placeholder - the infield section should be more pronounced
   'daytona': {
     id: 'daytona',
     name: 'Daytona International Speedway',
@@ -102,7 +122,6 @@ export const TRACK_DATA: Record<string, TrackData> = {
     corners: [],
     svg: {
       viewBox: '0 0 500 450',
-      // Watkins Glen style path as placeholder until proper Daytona Road Course is created
       path: 'M 30,220 L 100,220 C 120,220 130,210 135,195 L 145,165 C 155,140 175,115 200,95 L 240,70 C 270,55 310,50 350,55 L 390,65 C 420,75 440,100 450,135 L 460,180 C 470,230 470,280 460,330 L 445,375 C 430,405 400,425 360,430 L 300,430 C 250,425 200,405 165,375 L 130,335 C 100,295 80,260 70,235 L 50,225 C 40,222 30,220 30,220 Z'
     },
     metadata: {
@@ -137,9 +156,6 @@ export const TRACK_DATA: Record<string, TrackData> = {
     ],
     svg: {
       viewBox: '0 0 500 450',
-      // Watkins Glen International - Boot configuration (accurate trace from reference)
-      // Key features: Long S/F straight, sharp T1, flowing Esses, tight Inner Loop,
-      // distinctive Boot section bulging right, return through Toe/Heel/Carousel
       path: 'M 30,220 L 100,220 C 120,220 130,210 135,195 L 145,165 C 155,140 175,115 200,95 L 240,70 C 270,55 310,50 350,55 L 390,65 C 420,75 440,100 450,135 L 460,180 C 470,230 470,280 460,330 L 445,375 C 430,405 400,425 360,430 L 300,430 C 250,425 200,405 165,375 L 130,335 C 100,295 80,260 70,235 L 50,225 C 40,222 30,220 30,220 Z'
     },
     metadata: {
@@ -255,12 +271,12 @@ export const TRACK_DATA: Record<string, TrackData> = {
 // Helper to get track by name (fuzzy match)
 export function getTrackData(trackName: string): TrackData | null {
   const normalizedName = trackName.toLowerCase().replace(/[^a-z0-9]/g, '');
-  
+
   // Try exact ID match first
   for (const [id, track] of Object.entries(TRACK_DATA)) {
     if (id === normalizedName) return track;
   }
-  
+
   // Try fuzzy match on name
   for (const track of Object.values(TRACK_DATA)) {
     const trackNormalized = track.name.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -268,14 +284,14 @@ export function getTrackData(trackName: string): TrackData | null {
       return track;
     }
   }
-  
+
   // Try partial match on ID
   for (const [id, track] of Object.entries(TRACK_DATA)) {
     if (normalizedName.includes(id.replace(/-/g, '')) || id.replace(/-/g, '').includes(normalizedName)) {
       return track;
     }
   }
-  
+
   return null;
 }
 
