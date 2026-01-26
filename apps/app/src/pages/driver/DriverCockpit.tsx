@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useRelay } from '../../hooks/useRelay';
 import { useEngineer } from '../../hooks/useEngineer';
 import { useVoice } from '../../hooks/useVoice';
-import { Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX, Mic, MicOff, Radio } from 'lucide-react';
 import { TrackMapRive } from '../../components/TrackMapRive';
 
 /**
@@ -95,11 +95,40 @@ function getMoodMessage(mood: DriverMood, context: {
 
 export function DriverCockpit() {
   const { status, telemetry, session, getCarMapPosition } = useRelay();
-  const { criticalMessages } = useEngineer();
+  const { criticalMessages, messages } = useEngineer();
   const { isEnabled: voiceEnabled, toggleVoice, speak } = useVoice();
+
+  // Engineer/Spotter mute controls
+  const [engineerMuted, setEngineerMuted] = useState(false);
+  const [spotterMuted, setSpotterMuted] = useState(false);
 
   // Track recent lap trend (simplified - would be more sophisticated in production)
   const [recentLapTrend] = useState<'improving' | 'stable' | 'struggling'>('stable');
+
+  // Get the most recent message to display (fades after a few seconds)
+  const [visibleMessage, setVisibleMessage] = useState<{ content: string; from: 'engineer' | 'spotter'; id: string } | null>(null);
+  
+  // Show new messages temporarily
+  useEffect(() => {
+    if (messages.length > 0) {
+      const latest = messages[messages.length - 1];
+      const from = latest.urgency === 'critical' ? 'engineer' : 'spotter';
+      
+      // Don't show if muted
+      if ((from === 'engineer' && engineerMuted) || (from === 'spotter' && spotterMuted)) {
+        return;
+      }
+      
+      setVisibleMessage({ content: latest.content, from, id: latest.id });
+      
+      // Clear after 5 seconds
+      const timer = setTimeout(() => {
+        setVisibleMessage(prev => prev?.id === latest.id ? null : prev);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [messages, engineerMuted, spotterMuted]);
 
   // Speak critical messages automatically
   useEffect(() => {
@@ -189,8 +218,37 @@ export function DriverCockpit() {
         </div>
       )}
 
-      {/* Voice toggle - subtle, top right */}
-      <div className="absolute top-4 right-4 z-20">
+      {/* Controls - top right */}
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+        {/* Engineer mute */}
+        <button
+          onClick={() => setEngineerMuted(!engineerMuted)}
+          className={`p-2 rounded-full transition-all flex items-center gap-1.5 ${
+            engineerMuted 
+              ? 'bg-red-500/20 text-red-400' 
+              : 'bg-white/5 text-white/50 hover:text-white/70'
+          }`}
+          title={engineerMuted ? 'Unmute Engineer' : 'Mute Engineer'}
+        >
+          {engineerMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          <span className="text-[10px] uppercase tracking-wider">Eng</span>
+        </button>
+
+        {/* Spotter mute */}
+        <button
+          onClick={() => setSpotterMuted(!spotterMuted)}
+          className={`p-2 rounded-full transition-all flex items-center gap-1.5 ${
+            spotterMuted 
+              ? 'bg-red-500/20 text-red-400' 
+              : 'bg-white/5 text-white/50 hover:text-white/70'
+          }`}
+          title={spotterMuted ? 'Unmute Spotter' : 'Mute Spotter'}
+        >
+          {spotterMuted ? <MicOff className="w-4 h-4" /> : <Radio className="w-4 h-4" />}
+          <span className="text-[10px] uppercase tracking-wider">Spt</span>
+        </button>
+
+        {/* Voice toggle */}
         <button
           onClick={toggleVoice}
           className={`p-2 rounded-full transition-all ${
@@ -198,10 +256,43 @@ export function DriverCockpit() {
               ? 'bg-orange-500/20 text-orange-400' 
               : 'bg-white/5 text-white/30 hover:text-white/50'
           }`}
+          title={voiceEnabled ? 'Mute Voice' : 'Enable Voice'}
         >
           {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
         </button>
       </div>
+
+      {/* Engineer/Spotter message - appears temporarily when they speak */}
+      {visibleMessage && (
+        <div className="absolute top-16 left-4 right-4 z-20 flex justify-center animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className={`
+            px-6 py-3 rounded-xl backdrop-blur-xl bg-black/70 border max-w-lg
+            ${visibleMessage.from === 'engineer' ? 'border-orange-500/30' : 'border-cyan-500/30'}
+          `}>
+            <div className="flex items-start gap-3">
+              <div className={`
+                w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0
+                ${visibleMessage.from === 'engineer' ? 'bg-orange-500/20' : 'bg-cyan-500/20'}
+              `}>
+                {visibleMessage.from === 'engineer' 
+                  ? <Mic className="w-4 h-4 text-orange-400" />
+                  : <Radio className="w-4 h-4 text-cyan-400" />
+                }
+              </div>
+              <div>
+                <div className={`text-[10px] uppercase tracking-wider mb-0.5 ${
+                  visibleMessage.from === 'engineer' ? 'text-orange-400' : 'text-cyan-400'
+                }`}>
+                  {visibleMessage.from === 'engineer' ? 'Engineer' : 'Spotter'}
+                </div>
+                <div className="text-white/90 text-sm leading-snug">
+                  {visibleMessage.content}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Session info - very subtle, bottom */}
       <div className="absolute bottom-4 left-4 right-4 z-20">
