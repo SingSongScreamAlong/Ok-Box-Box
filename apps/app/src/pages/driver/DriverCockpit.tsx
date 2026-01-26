@@ -99,7 +99,7 @@ export function DriverCockpit() {
       </div>
 
       {/* Left Sidebar - Race Info */}
-      <div className="w-64 border-r border-white/[0.08] bg-[#111111]/90 backdrop-blur-xl flex flex-col flex-shrink-0 overflow-hidden">
+      <div className="w-64 border-r border-white/[0.08] bg-[#111111]/60 backdrop-blur-xl flex flex-col flex-shrink-0 overflow-hidden z-10">
         
         {/* Header */}
         <div className="p-4 border-b border-white/[0.06]">
@@ -262,7 +262,7 @@ export function DriverCockpit() {
       </div>
 
       {/* Right Sidebar - Leaderboard */}
-      <div className="w-72 border-l border-white/[0.08] bg-[#111111]/90 backdrop-blur-xl flex flex-col">
+      <div className="w-72 border-l border-white/[0.08] bg-[#111111]/60 backdrop-blur-xl flex flex-col z-10">
         
         {/* Header */}
         <div className="p-4 border-b border-white/[0.06]">
