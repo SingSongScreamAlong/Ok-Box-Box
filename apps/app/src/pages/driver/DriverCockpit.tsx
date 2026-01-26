@@ -208,7 +208,7 @@ export function DriverCockpit() {
             <img 
               src="/okboxbox-logo.png" 
               alt="" 
-              className="w-96 h-96 object-contain"
+              style={{ width: '400px', height: '400px' }}
             />
           </div>
 
