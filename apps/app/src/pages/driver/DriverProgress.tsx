@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   TrendingUp, TrendingDown, Minus, Trophy, Target, Zap,
-  Clock, Flag, AlertTriangle, Shield, Gauge, Car
+  Clock, Flag, AlertTriangle, Shield, Gauge, Car, ArrowLeft
 } from 'lucide-react';
 
 interface DriverStats {
@@ -122,140 +123,144 @@ function getBadgeIcon(icon: string) {
 export function DriverProgress() {
   const { user } = useAuth();
   const [stats] = useState<DriverStats>(mockStats);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   const driverName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
 
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = 0.5;
-    }
-  }, []);
-
   return (
-    <div className="min-h-screen relative">
+    <div className="h-[calc(100vh-8rem)] flex relative">
       {/* Background video */}
-      <div className="fixed inset-0 z-0">
+      <div className="absolute inset-0 overflow-hidden">
         <video
-          ref={videoRef}
           autoPlay
           loop
           muted
           playsInline
-          preload="auto"
-          className="w-full h-full object-cover opacity-40"
+          className="w-full h-full object-cover opacity-70"
         >
           <source src="/videos/driver-bg.mp4" type="video/mp4" />
         </video>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/80 via-[#0a0a0a]/60 to-[#0a0a0a]/95" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/80 via-[#0e0e0e]/60 to-[#0e0e0e]/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto px-6 py-8">
-        {/* Header Card - Overall Rating */}
-        <div className="bg-gradient-to-r from-[#1a1a2e] to-[#16213e] border border-white/[0.10] rounded-lg p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              {/* Big Overall Number */}
-              <div className="text-center">
-                <div 
-                  className="text-5xl font-bold text-white"
-                  style={{ fontFamily: 'Orbitron, sans-serif' }}
-                >
-                  {stats.overall}
-                </div>
-                <div className="text-[10px] uppercase tracking-wider text-white/40 mt-1">Overall</div>
-              </div>
-              
-              <div className="h-16 w-px bg-white/10" />
-              
-              {/* Driver Info */}
-              <div>
-                <h1 
-                  className="text-xl font-semibold text-white uppercase tracking-wider"
-                  style={{ fontFamily: 'Orbitron, sans-serif' }}
-                >
-                  {driverName}
-                </h1>
-                <div className="flex items-center gap-4 mt-2 text-sm">
-                  <span className="text-white/50">
-                    Rank <span className="text-white font-mono">#{stats.rank.toLocaleString()}</span>
-                    <span className="text-white/30"> / {stats.totalDrivers.toLocaleString()}</span>
-                  </span>
-                  <span className={`flex items-center gap-1 ${stats.weekChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {stats.weekChange >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                    {stats.weekChange >= 0 ? '+' : ''}{stats.weekChange} this week
-                  </span>
-                </div>
-              </div>
+      {/* Sidebar - Attributes & Focus */}
+      <div className="relative z-10 w-72 border-r border-white/[0.06] bg-[#0e0e0e]/80 backdrop-blur-xl flex flex-col">
+        <div className="p-4 border-b border-white/[0.06]">
+          <Link to="/driver/home" className="flex items-center gap-2 text-white/50 hover:text-white text-xs mb-4 transition-colors">
+            <ArrowLeft className="w-3 h-3" />Back to Operations
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/[0.04] border border-white/[0.08] rounded flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-white/70" />
             </div>
-
-            {/* Weekly Projection */}
-            <div className="text-right">
-              <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Weekly Projection</div>
-              <div className="flex items-center gap-3">
-                <div className="text-center">
-                  <div className="text-lg font-mono text-emerald-400">{stats.weeklyProjection.optimistic}</div>
-                  <div className="text-[9px] text-white/30">High</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-mono text-white font-bold">{stats.weeklyProjection.expected}</div>
-                  <div className="text-[9px] text-white/30">Expected</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-mono text-amber-400">{stats.weeklyProjection.floor}</div>
-                  <div className="text-[9px] text-white/30">Floor</div>
-                </div>
-              </div>
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-white/90" style={{ fontFamily: 'Orbitron, sans-serif' }}>Progress</h2>
+              <p className="text-[10px] text-white/40 uppercase tracking-wider">Driver Development</p>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-12 gap-6">
-          {/* Left Column - Attributes */}
-          <div className="col-span-4">
-            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded-lg overflow-hidden">
-              <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
-                <Gauge size={14} className="text-[#3b82f6]" />
-                <h2 
-                  className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/70"
-                  style={{ fontFamily: 'Orbitron, sans-serif' }}
-                >
-                  Attributes
-                </h2>
+        {/* Overall Rating Card */}
+        <div className="p-4 border-b border-white/[0.06]">
+          <div className="flex items-center gap-4">
+            <div 
+              className="text-4xl font-bold text-white"
+              style={{ fontFamily: 'Orbitron, sans-serif' }}
+            >
+              {stats.overall}
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-white/40">Overall Rating</div>
+              <div className={`text-xs flex items-center gap-1 mt-1 ${stats.weekChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                {stats.weekChange >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+                {stats.weekChange >= 0 ? '+' : ''}{stats.weekChange} this week
               </div>
-              <div className="divide-y divide-white/[0.04]">
-                {stats.attributes.map((attr, idx) => (
-                  <div key={idx} className="px-4 py-3 hover:bg-white/[0.02] transition-colors">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-white/80">{attr.name}</span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-mono font-semibold text-white">{attr.value}</span>
-                        <div className="flex items-center gap-1">
-                          {getTrendIcon(attr.trend)}
-                          {attr.change !== 0 && (
-                            <span className={`text-[10px] font-mono ${attr.change > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                              {attr.change > 0 ? '+' : ''}{attr.change}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full ${getAttributeColor(attr.value)}`}
-                        style={{ width: `${attr.value}%` }}
-                      />
+            </div>
+          </div>
+          <div className="text-[10px] text-white/40 mt-2">
+            Rank #{stats.rank.toLocaleString()} / {stats.totalDrivers.toLocaleString()}
+          </div>
+        </div>
+
+        {/* Attributes List */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4">
+            <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+              <Gauge className="w-3 h-3" />Attributes
+            </h3>
+            <div className="space-y-3">
+              {stats.attributes.map((attr, idx) => (
+                <div key={idx}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-white/70">{attr.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-mono font-semibold text-white">{attr.value}</span>
+                      {getTrendIcon(attr.trend)}
+                      {attr.change !== 0 && (
+                        <span className={`text-[9px] font-mono ${attr.change > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {attr.change > 0 ? '+' : ''}{attr.change}
+                        </span>
+                      )}
                     </div>
                   </div>
-                ))}
+                  <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full ${getAttributeColor(attr.value)}`}
+                      style={{ width: `${attr.value}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Focus Area */}
+          <div className="p-4 border-t border-white/[0.06]">
+            <h3 className="text-[10px] uppercase tracking-[0.15em] text-[#f97316] mb-3 flex items-center gap-2">
+              <Target className="w-3 h-3" />Focus Area
+            </h3>
+            <p className="text-sm text-white/90 mb-1">Corner Exit Patience</p>
+            <p className="text-[10px] text-white/50 leading-relaxed">
+              You're fast on entry but giving time back on exit.
+            </p>
+            <div className="flex items-center justify-between text-[10px] mt-2">
+              <span className="text-white/40">Progress</span>
+              <span className="text-emerald-400 flex items-center gap-1">
+                <TrendingUp size={10} />
+                Improving
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="relative z-10 flex-1 overflow-y-auto">
+        <div className="p-6">
+          {/* Header */}
+          <div className="mb-6">
+            <h1 
+              className="text-xl font-semibold text-white uppercase tracking-wider"
+              style={{ fontFamily: 'Orbitron, sans-serif' }}
+            >
+              {driverName}
+            </h1>
+            <div className="flex items-center gap-4 mt-1">
+              <span className="text-xs text-white/40">Weekly Projection</span>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-emerald-400 font-mono">{stats.weeklyProjection.optimistic}</span>
+                <span className="text-white/20">/</span>
+                <span className="text-white font-mono font-semibold">{stats.weeklyProjection.expected}</span>
+                <span className="text-white/20">/</span>
+                <span className="text-amber-400 font-mono">{stats.weeklyProjection.floor}</span>
+                <span className="text-white/30 text-[10px]">pts</span>
               </div>
             </div>
           </div>
 
-          {/* Middle Column - Recent Form & Season Stats */}
-          <div className="col-span-5 space-y-6">
+          <div className="grid grid-cols-2 gap-6">
             {/* Recent Form */}
-            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded-lg overflow-hidden">
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg overflow-hidden">
               <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
                 <Flag size={14} className="text-[#f97316]" />
                 <h2 
@@ -301,35 +306,8 @@ export function DriverProgress() {
               </div>
             </div>
 
-            {/* Season Stats Grid */}
-            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded-lg overflow-hidden">
-              <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
-                <Trophy size={14} className="text-amber-400" />
-                <h2 
-                  className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/70"
-                  style={{ fontFamily: 'Orbitron, sans-serif' }}
-                >
-                  Season Stats
-                </h2>
-              </div>
-              <div className="grid grid-cols-4 divide-x divide-white/[0.04]">
-                {stats.seasonStats.map((stat, idx) => (
-                  <div key={idx} className="p-3 text-center hover:bg-white/[0.02] transition-colors">
-                    <div className="text-lg font-mono font-semibold text-white">{stat.value}</div>
-                    <div className="text-[9px] uppercase tracking-wider text-white/40">{stat.label}</div>
-                    {stat.subtext && (
-                      <div className="text-[9px] text-emerald-400 mt-0.5">{stat.subtext}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Badges & Focus */}
-          <div className="col-span-3 space-y-6">
             {/* Badges */}
-            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded-lg overflow-hidden">
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg overflow-hidden">
               <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
                 <Zap size={14} className="text-purple-400" />
                 <h2 
@@ -339,7 +317,7 @@ export function DriverProgress() {
                   Badges
                 </h2>
               </div>
-              <div className="p-3 grid grid-cols-3 gap-2">
+              <div className="p-4 grid grid-cols-3 gap-3">
                 {stats.badges.map((badge, idx) => (
                   <div 
                     key={idx}
@@ -359,34 +337,32 @@ export function DriverProgress() {
               </div>
             </div>
 
-            {/* Current Focus */}
-            <div className="bg-gradient-to-br from-[#f97316]/10 to-transparent border border-[#f97316]/30 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Target size={14} className="text-[#f97316]" />
+            {/* Season Stats */}
+            <div className="col-span-2 bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg overflow-hidden">
+              <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                <Trophy size={14} className="text-amber-400" />
                 <h2 
-                  className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#f97316]"
+                  className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/70"
                   style={{ fontFamily: 'Orbitron, sans-serif' }}
                 >
-                  Focus Area
+                  Season Stats
                 </h2>
               </div>
-              <p className="text-sm text-white/90 mb-2">Corner Exit Patience</p>
-              <p className="text-xs text-white/50 leading-relaxed">
-                You're fast on entry but giving time back on exit. Work on waiting for the car to settle.
-              </p>
-              <div className="mt-3 pt-3 border-t border-white/[0.06]">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-white/40">Progress</span>
-                  <span className="text-emerald-400 flex items-center gap-1">
-                    <TrendingUp size={12} />
-                    Improving
-                  </span>
-                </div>
+              <div className="grid grid-cols-6 divide-x divide-white/[0.04]">
+                {stats.seasonStats.map((stat, idx) => (
+                  <div key={idx} className="p-3 text-center hover:bg-white/[0.02] transition-colors">
+                    <div className="text-lg font-mono font-semibold text-white">{stat.value}</div>
+                    <div className="text-[9px] uppercase tracking-wider text-white/40">{stat.label}</div>
+                    {stat.subtext && (
+                      <div className="text-[9px] text-emerald-400 mt-0.5">{stat.subtext}</div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Quick Tips */}
-            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded-lg p-4">
+            {/* This Week */}
+            <div className="col-span-2 bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
                 <AlertTriangle size={14} className="text-amber-400" />
                 <h2 
@@ -396,20 +372,20 @@ export function DriverProgress() {
                   This Week
                 </h2>
               </div>
-              <ul className="space-y-2 text-xs text-white/60">
-                <li className="flex items-start gap-2">
-                  <Car size={12} className="text-white/30 mt-0.5 flex-shrink-0" />
+              <div className="flex gap-6 text-xs text-white/60">
+                <div className="flex items-center gap-2">
+                  <Car size={12} className="text-white/30" />
                   Daytona 24H practice opens Thursday
-                </li>
-                <li className="flex items-start gap-2">
-                  <Clock size={12} className="text-white/30 mt-0.5 flex-shrink-0" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock size={12} className="text-white/30" />
                   2 races scheduled this week
-                </li>
-                <li className="flex items-start gap-2">
-                  <Target size={12} className="text-white/30 mt-0.5 flex-shrink-0" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Target size={12} className="text-white/30" />
                   Top 10 finish = +15 projected pts
-                </li>
-              </ul>
+                </div>
+              </div>
             </div>
           </div>
         </div>
