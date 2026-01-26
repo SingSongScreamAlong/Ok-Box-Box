@@ -300,14 +300,36 @@ export function DriverCockpit() {
           ))}
         </div>
 
-        {/* Crew Message */}
-        <div className="p-3 border-t border-white/[0.06]">
-          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-semibold">Engineer</span>
-              <span className="text-[10px] text-white/30">Just now</span>
+        {/* Team Radio Transcripts - F1 Style */}
+        <div className="border-t border-white/[0.06] flex flex-col">
+          <div className="px-3 py-2 border-b border-white/[0.06] flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">Team Radio</span>
+          </div>
+          <div className="p-2 space-y-2 max-h-32 overflow-hidden">
+            {/* Latest message - highlighted */}
+            <div className="bg-[#f97316]/10 border-l-2 border-l-[#f97316] rounded-r p-2">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-[9px] uppercase tracking-wider text-[#f97316] font-bold">Engineer</span>
+                <span className="text-[9px] text-white/30">LAP 12</span>
+              </div>
+              <p className="text-[11px] text-white/90 leading-tight">"Looking good, keep this pace. Fuel is on target."</p>
             </div>
-            <p className="text-xs text-white/80">Looking good, keep this pace. Fuel is on target.</p>
+            {/* Previous messages */}
+            <div className="bg-white/[0.02] border-l-2 border-l-emerald-500/50 rounded-r p-2 opacity-70">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-[9px] uppercase tracking-wider text-emerald-400 font-bold">Spotter</span>
+                <span className="text-[9px] text-white/30">LAP 11</span>
+              </div>
+              <p className="text-[11px] text-white/70 leading-tight">"Clear behind, gap is 2.4 seconds."</p>
+            </div>
+            <div className="bg-white/[0.02] border-l-2 border-l-cyan-500/50 rounded-r p-2 opacity-50">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-[9px] uppercase tracking-wider text-cyan-400 font-bold">Strategist</span>
+                <span className="text-[9px] text-white/30">LAP 10</span>
+              </div>
+              <p className="text-[11px] text-white/60 leading-tight">"Box window opens in 5 laps."</p>
+            </div>
           </div>
         </div>
       </div>
