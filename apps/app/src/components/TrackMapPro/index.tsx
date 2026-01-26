@@ -121,6 +121,7 @@ export function TrackMapPro({
                     otherCars={otherCars}
                 />
 
+                {/* Turn labels disabled - need accurate track data calibration
                 {trackMetadata && trackMetadata.corners && (
                     <TrackLabels
                         shape={shape}
@@ -128,6 +129,7 @@ export function TrackMapPro({
                         zoom={zoom}
                     />
                 )}
+                */}
 
             </motion.svg>
 
