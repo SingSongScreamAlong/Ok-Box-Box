@@ -121,33 +121,17 @@ export function TrackMapPro({
             <motion.svg
                 viewBox={viewBox}
                 className="w-full h-full pointer-events-auto cursor-grab active:cursor-grabbing"
-                shapeRendering="geometricPrecision" // Critical for anti-aliasing
+                shapeRendering="geometricPrecision"
+                style={{
+                    '--track-stroke': 'var(--panel-border, #334155)',
+                    '--track-bg': 'var(--bg, #0f172a)'
+                } as React.CSSProperties}
             >
-                <defs>
-                    {/* 
-                      LED ROPE FILTERS 
-                      1. glow-soft: The colored atmosphere around the rope.
-                      2. glow-intense: The bright core bloom.
-                    */}
-                    <filter id="glow-soft" x="-50%" y="-50%" width="200%" height="200%">
-                        <feGaussianBlur stdDeviation="8" result="coloredBlur" />
-                        <feMerge>
-                            <feMergeNode in="coloredBlur" />
-                            <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                    </filter>
+                {/* 
+                  REMOVED: Expensive SVG filters (glow-soft, glow-intense) that caused performance issues.
+                  Replaced with clean, solid strokes matching the "Pit Wall" aesthetic.
+                */}
 
-                    <filter id="glow-intense" x="-50%" y="-50%" width="200%" height="200%">
-                        {/* Double blur for smooth falloff */}
-                        <feGaussianBlur stdDeviation="2" result="blur1" />
-                        <feGaussianBlur stdDeviation="5" result="blur2" />
-                        <feMerge>
-                            <feMergeNode in="blur2" />
-                            <feMergeNode in="blur1" />
-                            <feMergeNode in="SourceGraphic" />
-                        </feMerge>
-                    </filter>
-                </defs>
 
                 <TrackVisuals
                     shape={shape}

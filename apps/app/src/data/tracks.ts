@@ -126,7 +126,7 @@ export const TRACK_DATA: Record<string, TrackData> = {
     corners: [
       // Shape 381: Geometrically verified with Shape Analysis
       // T3 (Horseshoe) Apex at xMin (0.325) | T5 Apex at yMax (0.503) | Bus Stop Apex at 0.675
-      { number: 1, name: 'Turn 1', type: 'hairpin', apex: { distance: 1000, x: 800, y: 170, normalizedDistance: 0.175 }, braking: { distance: 900, x: 850, y: 145 }, exit: { distance: 1100, x: 750, y: 185 }, gear: 1, apexSpeed: 60, difficulty: 'hard', notes: 'Heavy braking into infield' },
+      { number: 1, name: 'Turn 1 Tunnel', type: 'hairpin', apex: { distance: 1000, x: 800, y: 170, normalizedDistance: 0.175 }, braking: { distance: 900, x: 850, y: 145 }, exit: { distance: 1100, x: 750, y: 185 }, gear: 1, apexSpeed: 60, difficulty: 'hard', notes: 'Heavy braking into infield' },
       { number: 2, name: 'Turn 2', type: 'right', apex: { distance: 1375, x: 710, y: 175, normalizedDistance: 0.240 }, entry: { distance: 1300, x: 750, y: 185 }, exit: { distance: 1450, x: 650, y: 140 }, gear: 3, apexSpeed: 95, difficulty: 'medium' },
       { number: 3, name: 'Intl Horseshoe', type: 'right', apex: { distance: 1860, x: 500, y: 137, normalizedDistance: 0.325 }, entry: { distance: 1800, x: 600, y: 138 }, exit: { distance: 1950, x: 400, y: 150 }, gear: 3, apexSpeed: 85, difficulty: 'medium', notes: 'International Horseshoe' },
       { number: 4, name: 'Turn 4 (Kink)', type: 'left', apex: { distance: 2350, x: 260, y: 220, normalizedDistance: 0.410 }, braking: { distance: 2300, x: 330, y: 175 }, exit: { distance: 2400, x: 200, y: 280 }, gear: 5, apexSpeed: 140, difficulty: 'easy' },

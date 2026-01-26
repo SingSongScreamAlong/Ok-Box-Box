@@ -171,16 +171,13 @@ export function TrackVisuals({ shape, carPosition, otherCars, telemetry }: Track
                 strokeLinejoin="round"
             />
 
-            {/* Layer 2: The "Atmosphere" (Wide Soft Glow) - Uses filter 1 */}
-            <g filter="url(#glow-soft)" opacity="0.6">
-                {/* Re-using segments here is expensive relative to a single path, 
-                     but necessary for the glow to match the heat color. 
-                     Optimization: Use a wider stroke width for this layer. */}
-                {segments.map((s: any) => React.cloneElement(s, { strokeWidth: "16", key: s.key + '-glow' }))}
+            {/* Layer 2: The "Zone" (Wider stroke for heat) */}
+            <g opacity="0.4">
+                {segments.map((s: any) => React.cloneElement(s, { strokeWidth: "12", key: s.key + '-base' }))}
             </g>
 
-            {/* Layer 3: The "Tube" (Solid Color) - Uses filter 2 for slight bloom */}
-            <g filter="url(#glow-intense)">
+            {/* Layer 3: The "Line" (Sharp Core) */}
+            <g>
                 {segments}
             </g>
 

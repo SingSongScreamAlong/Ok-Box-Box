@@ -57,7 +57,7 @@ export function TrackLabels({ shape, corners, zoom }: TrackLabelsProps) {
                         </text>
 
                         {/* Corner Name (only show if zoomed in) */}
-                        {corner.name && zoom > 1.5 && (
+                        {corner.name && zoom > 0.8 && (
                             <text
                                 textAnchor="middle"
                                 y="5"
