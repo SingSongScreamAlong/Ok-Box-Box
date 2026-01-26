@@ -101,12 +101,12 @@ export function DriverCockpit() {
       <div className="relative flex-1 min-h-0">
         {/* Critical Alerts - Top overlay */}
         {criticalMessages.length > 0 && (
-          <div className="absolute top-12 left-3 right-3 z-30 space-y-1">
+          <div className="absolute top-9 left-2 right-2 z-30">
             {criticalMessages.slice(0, 1).map(msg => (
-              <div key={msg.id} className="border-l-2 border-red-500 bg-red-500/20 backdrop-blur-xl rounded-r px-3 py-2">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                  <span className="text-sm font-semibold text-red-400 truncate">{msg.content}</span>
+              <div key={msg.id} className="border-l-2 border-red-500 bg-red-500/20 backdrop-blur-xl rounded-r px-2 py-1">
+                <div className="flex items-center gap-1.5">
+                  <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0" />
+                  <span className="text-xs font-semibold text-red-400 truncate">{msg.content}</span>
                 </div>
               </div>
             ))}
@@ -129,82 +129,82 @@ export function DriverCockpit() {
         </div>
 
         {/* Top Bar - Track name, status, flag */}
-        <div className="absolute top-0 left-0 right-0 z-20 h-10 px-3 flex items-center justify-between bg-black/50 backdrop-blur-sm border-b border-white/5">
-          <div className="flex items-center gap-3">
-            <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-white/30'}`} />
-            <h1 className="text-sm font-bold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+        <div className="absolute top-0 left-0 right-0 z-20 h-8 px-2 flex items-center justify-between bg-black/60 backdrop-blur-sm border-b border-white/5">
+          <div className="flex items-center gap-2">
+            <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-white/30'}`} />
+            <h1 className="text-xs font-bold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
               {session.trackName || 'Waiting'}
             </h1>
-            <span className="text-[10px] text-white/40 capitalize">{session.sessionType || 'Practice'}</span>
+            <span className="text-[9px] text-white/40 capitalize">{session.sessionType || ''}</span>
             {/* Flag State */}
-            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded bg-black/40 border border-white/10`}>
-              <Flag className={`w-3 h-3 ${flagInfo.textColor}`} />
-              <span className={`text-[10px] font-bold uppercase ${flagInfo.textColor}`}>{flagInfo.label}</span>
+            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/40 border border-white/10`}>
+              <Flag className={`w-2.5 h-2.5 ${flagInfo.textColor}`} />
+              <span className={`text-[9px] font-bold uppercase ${flagInfo.textColor}`}>{flagInfo.label}</span>
             </div>
           </div>
           <button 
             onClick={toggleVoice}
-            className={`p-1.5 rounded transition-colors ${voiceEnabled ? 'bg-orange-500/30 text-orange-400' : 'text-white/40 hover:text-white/60'}`}
+            className={`p-1 rounded transition-colors ${voiceEnabled ? 'bg-orange-500/30 text-orange-400' : 'text-white/40 hover:text-white/60'}`}
           >
-            {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            {voiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
           </button>
         </div>
 
         {/* Position & Lap - Top left */}
-        <div className="absolute top-14 left-3 z-20">
-          <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10">
-            <div className="text-4xl font-bold font-mono tracking-tighter leading-none">
+        <div className="absolute top-10 left-2 z-20">
+          <div className="bg-black/70 backdrop-blur-sm rounded px-2 py-1 border border-white/10">
+            <div className="text-2xl font-bold font-mono tracking-tighter leading-none">
               P{telemetry.position ?? '--'}
             </div>
-            <div className="text-[10px] text-white/50 mt-0.5">Lap {telemetry.lap ?? '--'}</div>
+            <div className="text-[9px] text-white/50">L{telemetry.lap ?? '--'}</div>
           </div>
         </div>
 
         {/* Delta - Top right */}
-        <div className="absolute top-14 right-3 z-20">
-          <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10">
-            <div className={`text-3xl font-bold font-mono tracking-tighter leading-none ${
+        <div className="absolute top-10 right-2 z-20">
+          <div className="bg-black/70 backdrop-blur-sm rounded px-2 py-1 border border-white/10">
+            <div className={`text-xl font-bold font-mono tracking-tighter leading-none ${
               telemetry.delta !== null && telemetry.delta < 0 ? 'text-green-400' : 'text-red-400'
             }`}>
               {telemetry.delta !== null ? `${telemetry.delta > 0 ? '+' : ''}${telemetry.delta.toFixed(2)}` : '--'}
             </div>
-            <div className="text-[10px] text-white/50 mt-0.5">vs Best</div>
+            <div className="text-[9px] text-white/50">delta</div>
           </div>
         </div>
 
         {/* Speed - Bottom center of map area */}
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20">
-          <div className="bg-black/60 backdrop-blur-sm rounded-lg px-4 py-1.5 border border-white/10 text-center">
-            <div className="text-4xl font-bold font-mono tracking-tighter leading-none">
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-20">
+          <div className="bg-black/70 backdrop-blur-sm rounded px-3 py-1 border border-white/10 text-center">
+            <div className="text-2xl font-bold font-mono tracking-tighter leading-none">
               {telemetry.speed !== null ? Math.round(telemetry.speed) : '--'}
             </div>
-            <div className="text-[9px] text-white/50">MPH</div>
+            <div className="text-[8px] text-white/50">MPH</div>
           </div>
         </div>
 
         {/* Lap Times - Bottom left */}
-        <div className="absolute bottom-2 left-3 z-20">
-          <div className="bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1.5 border border-white/10 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-white/40">L:</span>
+        <div className="absolute bottom-1 left-2 z-20">
+          <div className="bg-black/70 backdrop-blur-sm rounded px-1.5 py-1 border border-white/10 text-[10px]">
+            <div className="flex items-center gap-1">
+              <span className="text-white/40">L</span>
               <span className="font-mono">{formatTime(telemetry.lastLap)}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-purple-400">B:</span>
+            <div className="flex items-center gap-1">
+              <span className="text-purple-400">B</span>
               <span className="font-mono text-purple-400">{formatTime(telemetry.bestLap)}</span>
             </div>
           </div>
         </div>
 
         {/* Fuel - Bottom right */}
-        <div className="absolute bottom-2 right-3 z-20">
-          <div className="bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1.5 border border-white/10 text-xs">
-            <div className="flex items-center gap-1.5">
-              <Fuel className={`w-3 h-3 ${
+        <div className="absolute bottom-1 right-2 z-20">
+          <div className="bg-black/70 backdrop-blur-sm rounded px-1.5 py-1 border border-white/10 text-[10px]">
+            <div className="flex items-center gap-1">
+              <Fuel className={`w-2.5 h-2.5 ${
                 telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-green-400'
               }`} />
               <span className="font-mono font-bold">{telemetry.fuel?.toFixed(1) ?? '--'}L</span>
-              <span className={`text-[10px] ${
+              <span className={`text-[9px] ${
                 telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-white/40'
               }`}>
                 ({telemetry.lapsRemaining ?? '--'})
@@ -214,114 +214,110 @@ export function DriverCockpit() {
         </div>
       </div>
 
-      {/* Bottom Panel - Fixed height */}
-      <div className="h-28 border-t border-white/10 bg-[#0a0a0a]">
+      {/* Bottom Panel - Compact */}
+      <div className="h-20 border-t border-white/10 bg-[#0a0a0a]">
         <div className="h-full grid grid-cols-4 divide-x divide-white/5">
           
           {/* Radio Transcripts */}
-          <div className="px-3 py-2 flex flex-col min-w-0">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Radio className="w-3 h-3 text-[#f97316]" />
-              <span className="text-[9px] uppercase tracking-wider text-[#f97316] font-medium">Radio</span>
+          <div className="px-2 py-1.5 flex flex-col min-w-0">
+            <div className="flex items-center gap-1 mb-1">
+              <Radio className="w-2.5 h-2.5 text-[#f97316]" />
+              <span className="text-[8px] uppercase tracking-wider text-[#f97316] font-medium">Radio</span>
             </div>
-            <div className="flex-1 overflow-hidden space-y-1 text-[11px]">
+            <div className="flex-1 overflow-hidden space-y-0.5 text-[10px]">
               {radioTranscripts.length > 0 ? radioTranscripts.slice(0, 2).map((t, i) => (
-                <div key={i} className="flex gap-1.5 leading-tight">
-                  <span className="text-orange-400 flex-shrink-0 font-medium">{t.from}:</span>
-                  <span className="text-white/70 truncate">{t.message}</span>
+                <div key={i} className="flex gap-1 leading-tight truncate">
+                  <span className="text-orange-400 flex-shrink-0">{t.from}:</span>
+                  <span className="text-white/60 truncate">{t.message}</span>
                 </div>
               )) : (
-                <div className="text-white/30 italic text-[10px]">No messages</div>
+                <div className="text-white/30 italic text-[9px]">No messages</div>
               )}
             </div>
           </div>
 
           {/* Pit Strategy */}
-          <div className="px-3 py-2 flex flex-col">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Wrench className="w-3 h-3 text-[#f97316]" />
-              <span className="text-[9px] uppercase tracking-wider text-[#f97316] font-medium">Pit</span>
+          <div className="px-2 py-1.5 flex flex-col">
+            <div className="flex items-center gap-1 mb-1">
+              <Wrench className="w-2.5 h-2.5 text-[#f97316]" />
+              <span className="text-[8px] uppercase tracking-wider text-[#f97316] font-medium">Pit</span>
             </div>
-            <div className="flex-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
-              <div>
-                <div className="text-white/40 text-[9px]">Window</div>
-                <div className="font-mono font-bold text-white/90">L{pitStrategy.plannedPitLap}</div>
+            <div className="flex-1 grid grid-cols-2 gap-x-2 gap-y-0 text-[10px]">
+              <div className="flex justify-between">
+                <span className="text-white/40">Win</span>
+                <span className="font-mono font-bold text-white/90">L{pitStrategy.plannedPitLap}</span>
               </div>
-              <div>
-                <div className="text-white/40 text-[9px]">In</div>
-                <div className={`font-mono font-bold ${
+              <div className="flex justify-between">
+                <span className="text-white/40">In</span>
+                <span className={`font-mono font-bold ${
                   pitStrategy.plannedPitLap - pitStrategy.currentStint <= 3 ? 'text-orange-400' : 'text-white/90'
                 }`}>
                   {Math.max(0, pitStrategy.plannedPitLap - pitStrategy.currentStint)}
-                </div>
+                </span>
               </div>
-              <div>
-                <div className="text-white/40 text-[9px]">Fuel</div>
-                <div className="font-mono text-white/70">{pitStrategy.fuelToAdd}L</div>
+              <div className="flex justify-between">
+                <span className="text-white/40">Fuel</span>
+                <span className="font-mono text-white/70">{pitStrategy.fuelToAdd}L</span>
               </div>
-              <div>
-                <div className="text-white/40 text-[9px]">Tires</div>
-                <div className="font-mono text-green-400">{pitStrategy.tireChange ? '4' : '0'}</div>
+              <div className="flex justify-between">
+                <span className="text-white/40">Tire</span>
+                <span className="font-mono text-green-400">{pitStrategy.tireChange ? '4' : '0'}</span>
               </div>
             </div>
           </div>
 
           {/* Tire Wear */}
-          <div className="px-3 py-2 flex flex-col">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Circle className="w-3 h-3 text-[#f97316]" />
-              <span className="text-[9px] uppercase tracking-wider text-[#f97316] font-medium">Tires</span>
+          <div className="px-2 py-1.5 flex flex-col">
+            <div className="flex items-center gap-1 mb-1">
+              <Circle className="w-2.5 h-2.5 text-[#f97316]" />
+              <span className="text-[8px] uppercase tracking-wider text-[#f97316] font-medium">Tires</span>
             </div>
             <div className="flex-1 flex items-center justify-center">
-              <div className="grid grid-cols-2 gap-x-4 gap-y-0 text-center">
-                <div>
-                  <div className={`text-base font-mono font-bold leading-tight ${getTireColor(tireWear.fl)}`}>{tireWear.fl}</div>
-                  <div className="text-[8px] text-white/30">FL</div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-0 text-center">
+                <div className="flex items-center gap-1">
+                  <span className="text-[8px] text-white/30">FL</span>
+                  <span className={`text-sm font-mono font-bold ${getTireColor(tireWear.fl)}`}>{tireWear.fl}</span>
                 </div>
-                <div>
-                  <div className={`text-base font-mono font-bold leading-tight ${getTireColor(tireWear.fr)}`}>{tireWear.fr}</div>
-                  <div className="text-[8px] text-white/30">FR</div>
+                <div className="flex items-center gap-1">
+                  <span className="text-[8px] text-white/30">FR</span>
+                  <span className={`text-sm font-mono font-bold ${getTireColor(tireWear.fr)}`}>{tireWear.fr}</span>
                 </div>
-                <div>
-                  <div className={`text-base font-mono font-bold leading-tight ${getTireColor(tireWear.rl)}`}>{tireWear.rl}</div>
-                  <div className="text-[8px] text-white/30">RL</div>
+                <div className="flex items-center gap-1">
+                  <span className="text-[8px] text-white/30">RL</span>
+                  <span className={`text-sm font-mono font-bold ${getTireColor(tireWear.rl)}`}>{tireWear.rl}</span>
                 </div>
-                <div>
-                  <div className={`text-base font-mono font-bold leading-tight ${getTireColor(tireWear.rr)}`}>{tireWear.rr}</div>
-                  <div className="text-[8px] text-white/30">RR</div>
+                <div className="flex items-center gap-1">
+                  <span className="text-[8px] text-white/30">RR</span>
+                  <span className={`text-sm font-mono font-bold ${getTireColor(tireWear.rr)}`}>{tireWear.rr}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Spotter & Settings */}
-          <div className="px-3 py-2 flex flex-col">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-1.5">
-                <Settings2 className="w-3 h-3 text-[#f97316]" />
-                <span className="text-[9px] uppercase tracking-wider text-[#f97316] font-medium">Spotter</span>
+          <div className="px-2 py-1.5 flex flex-col">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1">
+                <Settings2 className="w-2.5 h-2.5 text-[#f97316]" />
+                <span className="text-[8px] uppercase tracking-wider text-[#f97316] font-medium">Spotter</span>
               </div>
               <button 
                 onClick={() => setSpotterEnabled(!spotterEnabled)}
-                className={`px-1.5 py-0.5 text-[9px] uppercase tracking-wider rounded transition-colors ${
+                className={`px-1 py-0.5 text-[8px] uppercase rounded transition-colors ${
                   spotterEnabled ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/40'
                 }`}
               >
                 {spotterEnabled ? 'ON' : 'OFF'}
               </button>
             </div>
-            <div className="flex-1 space-y-1 text-[11px]">
+            <div className="flex-1 space-y-0.5 text-[10px]">
               <div className="flex items-center justify-between">
-                <span className="text-white/40">Proximity</span>
-                <span className="text-green-400 font-medium">Clear</span>
+                <span className="text-white/40">Prox</span>
+                <span className="text-green-400">Clear</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-white/40">Mode</span>
-                <span className="text-white/70">Full</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-white/40">Calls</span>
-                <span className="text-white/70">Auto</span>
+                <span className="text-white/60">Full</span>
               </div>
             </div>
           </div>

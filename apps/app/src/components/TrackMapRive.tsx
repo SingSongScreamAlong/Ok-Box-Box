@@ -1,9 +1,10 @@
-import { TrackMap } from './TrackMap';
+import { TrackMapPro } from './TrackMapPro'; // The new Ultimate system
 
-// Re-export as TrackMapRive to maintain compatibility with existing consumers
-// but use the new Programmatic SVG implementation
+// Upgrading the legacy wrapper to use the new PRO system
 export function TrackMapRive(props: any) {
-  return <TrackMap {...props} />;
+  // Pass through all props, TrackMapPro's interface is compatible
+  return <TrackMapPro {...props} />;
 }
 
-export { TrackMap };
+// Also export as TrackMap for cleaner imports
+export { TrackMapPro as TrackMap };
