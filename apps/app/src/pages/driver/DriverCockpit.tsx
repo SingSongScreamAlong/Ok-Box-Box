@@ -38,7 +38,6 @@ export function DriverCockpit() {
   const [spotterEnabled, setSpotterEnabled] = useState(true);
   const [engineerMuted, setEngineerMuted] = useState(false);
   const [spotterMuted, setSpotterMuted] = useState(false);
-  const [showButtonBox, setShowButtonBox] = useState(false);
   const [hudVisible, setHudVisible] = useState(true);
 
   // Speak critical messages automatically
@@ -103,263 +102,245 @@ export function DriverCockpit() {
   return (
     <div className="fixed inset-0 top-14 bottom-10 bg-[#080808] text-white overflow-hidden flex flex-col z-10">
 
-      {/* Track Map Section - fills remaining space */}
-      <div className="relative flex-1 min-h-0">
-        {/* Critical Alerts - Top overlay */}
-        {criticalMessages.length > 0 && (
-          <div className="absolute top-9 left-2 right-2 z-30">
-            {criticalMessages.slice(0, 1).map(msg => (
-              <div key={msg.id} className="border-l-2 border-red-500 bg-red-500/20 backdrop-blur-xl rounded-r px-2 py-1">
-                <div className="flex items-center gap-1.5">
-                  <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0" />
-                  <span className="text-xs font-semibold text-red-400 truncate">{msg.content}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Track Map */}
-        <div className="absolute inset-0 z-0">
-          <TrackMapRive
-            trackId={trackId}
-            showPitLane={true}
-            carPosition={carPosition}
-            currentSector={telemetry.sector || undefined}
-            speed={telemetry.speed || undefined}
-            throttle={telemetry.throttle || undefined}
-            brake={telemetry.brake || undefined}
-            className="w-full h-full"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#080808] via-transparent to-black/30 pointer-events-none" />
-        </div>
-
-        {/* Top Bar - Track name, status, flag */}
-        <div className="absolute top-0 left-0 right-0 z-20 h-8 px-2 flex items-center justify-between bg-black/60 backdrop-blur-sm border-b border-white/5">
-          <div className="flex items-center gap-2">
-            <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-white/30'}`} />
-            <h1 className="text-xs font-bold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-              {session.trackName || 'Waiting'}
-            </h1>
-            <span className="text-[9px] text-white/40 capitalize">{session.sessionType || ''}</span>
-            {/* Flag State */}
-            <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/40 border border-white/10`}>
-              <Flag className={`w-2.5 h-2.5 ${flagInfo.textColor}`} />
-              <span className={`text-[9px] font-bold uppercase ${flagInfo.textColor}`}>{flagInfo.label}</span>
-            </div>
-          </div>
-          <button
-            onClick={toggleVoice}
-            className={`p-1 rounded transition-colors ${voiceEnabled ? 'bg-orange-500/30 text-orange-400' : 'text-white/40 hover:text-white/60'}`}
-          >
-            {voiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-          </button>
-        </div>
-
-        {/* Position & Lap - Top left */}
-        <div className="absolute top-10 left-2 z-20">
-          <div className="bg-black/70 backdrop-blur-sm rounded px-2 py-1 border border-white/10">
-            <div className="text-2xl font-bold font-mono tracking-tighter leading-none">
-              P{telemetry.position ?? '--'}
-            </div>
-            <div className="text-[9px] text-white/50">L{telemetry.lap ?? '--'}</div>
-          </div>
-        </div>
-
-        {/* Delta - Top right */}
-        <div className="absolute top-10 right-2 z-20">
-          <div className="bg-black/70 backdrop-blur-sm rounded px-2 py-1 border border-white/10">
-            <div className={`text-xl font-bold font-mono tracking-tighter leading-none ${telemetry.delta !== null && telemetry.delta < 0 ? 'text-green-400' : 'text-red-400'
-              }`}>
-              {telemetry.delta !== null ? `${telemetry.delta > 0 ? '+' : ''}${telemetry.delta.toFixed(2)}` : '--'}
-            </div>
-            <div className="text-[9px] text-white/50">delta</div>
-          </div>
-        </div>
-
-        {/* Speed - Bottom center of map area */}
-        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-20">
-          <div className="bg-black/70 backdrop-blur-sm rounded px-3 py-1 border border-white/10 text-center">
-            <div className="text-2xl font-bold font-mono tracking-tighter leading-none">
-              {telemetry.speed !== null ? Math.round(telemetry.speed) : '--'}
-            </div>
-            <div className="text-[8px] text-white/50">MPH</div>
-          </div>
-        </div>
-
-        {/* Lap Times - Bottom left */}
-        <div className="absolute bottom-1 left-2 z-20">
-          <div className="bg-black/70 backdrop-blur-sm rounded px-1.5 py-1 border border-white/10 text-[10px]">
-            <div className="flex items-center gap-1">
-              <span className="text-white/40">L</span>
-              <span className="font-mono">{formatTime(telemetry.lastLap)}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-purple-400">B</span>
-              <span className="font-mono text-purple-400">{formatTime(telemetry.bestLap)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Fuel - Bottom right */}
-        <div className="absolute bottom-1 right-2 z-20">
-          <div className="bg-black/70 backdrop-blur-sm rounded px-1.5 py-1 border border-white/10 text-[10px]">
-            <div className="flex items-center gap-1">
-              <Fuel className={`w-2.5 h-2.5 ${telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-green-400'
-                }`} />
-              <span className="font-mono font-bold">{telemetry.fuel?.toFixed(1) ?? '--'}L</span>
-              <span className={`text-[9px] ${telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-white/40'
-                }`}>
-                ({telemetry.lapsRemaining ?? '--'})
+      {/* Main Content - 30/70 split: Button Box / Track Map */}
+      <div className="flex-1 min-h-0 flex">
+        
+        {/* Left Panel - Button Box (30%) */}
+        <div className="w-[30%] border-r border-white/10 bg-[#0a0a0a] flex flex-col">
+          {/* Header */}
+          <div className="px-3 py-2 border-b border-white/10 bg-black/40">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-[#f97316]">Quick Commands</h2>
+            <div className="flex items-center gap-2 mt-1 text-[9px]">
+              <span className={engineerMuted ? 'text-red-400' : 'text-green-400'}>
+                ENG: {engineerMuted ? 'MUTED' : 'LIVE'}
+              </span>
+              <span className={spotterMuted ? 'text-red-400' : 'text-green-400'}>
+                SPT: {spotterMuted ? 'MUTED' : 'LIVE'}
+              </span>
+              <span className={voiceEnabled ? 'text-green-400' : 'text-red-400'}>
+                TTS: {voiceEnabled ? 'ON' : 'OFF'}
               </span>
             </div>
           </div>
+
+          {/* Button Grid */}
+          <div className="flex-1 p-2 overflow-y-auto">
+            <div className="grid grid-cols-2 gap-2">
+              {/* Mute Engineer */}
+              <button
+                onClick={() => setEngineerMuted(!engineerMuted)}
+                className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${
+                  engineerMuted 
+                    ? 'bg-red-500/20 border-red-500/50 text-red-400' 
+                    : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10'
+                }`}
+              >
+                {engineerMuted ? <MicOff className="w-6 h-6 mb-1" /> : <Mic className="w-6 h-6 mb-1" />}
+                <span className="text-[9px] font-medium uppercase tracking-wider text-center leading-tight">
+                  {engineerMuted ? 'Engineer Muted' : 'Mute Engineer'}
+                </span>
+              </button>
+
+              {/* Mute Spotter */}
+              <button
+                onClick={() => setSpotterMuted(!spotterMuted)}
+                className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${
+                  spotterMuted 
+                    ? 'bg-red-500/20 border-red-500/50 text-red-400' 
+                    : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10'
+                }`}
+              >
+                {spotterMuted ? <MessageSquareOff className="w-6 h-6 mb-1" /> : <Car className="w-6 h-6 mb-1" />}
+                <span className="text-[9px] font-medium uppercase tracking-wider text-center leading-tight">
+                  {spotterMuted ? 'Spotter Muted' : 'Mute Spotter'}
+                </span>
+              </button>
+
+              {/* Toggle Voice */}
+              <button
+                onClick={toggleVoice}
+                className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${
+                  !voiceEnabled 
+                    ? 'bg-red-500/20 border-red-500/50 text-red-400' 
+                    : 'bg-green-500/20 border-green-500/50 text-green-400'
+                }`}
+              >
+                {voiceEnabled ? <Volume2 className="w-6 h-6 mb-1" /> : <VolumeX className="w-6 h-6 mb-1" />}
+                <span className="text-[9px] font-medium uppercase tracking-wider text-center leading-tight">
+                  {voiceEnabled ? 'Voice On' : 'Voice Off'}
+                </span>
+              </button>
+
+              {/* Toggle HUD */}
+              <button
+                onClick={() => setHudVisible(!hudVisible)}
+                className={`flex flex-col items-center justify-center p-3 rounded-lg border transition-all ${
+                  !hudVisible 
+                    ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400' 
+                    : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10'
+                }`}
+              >
+                {hudVisible ? <Eye className="w-6 h-6 mb-1" /> : <EyeOff className="w-6 h-6 mb-1" />}
+                <span className="text-[9px] font-medium uppercase tracking-wider text-center leading-tight">
+                  {hudVisible ? 'Hide HUD' : 'Show HUD'}
+                </span>
+              </button>
+
+              {/* Request Fuel Calc */}
+              <button
+                onClick={() => speakText('Calculating fuel requirements', 'normal')}
+                className="flex flex-col items-center justify-center p-3 rounded-lg border bg-white/5 border-white/10 text-white/80 hover:bg-orange-500/20 hover:border-orange-500/50 hover:text-orange-400 transition-all"
+              >
+                <Fuel className="w-6 h-6 mb-1" />
+                <span className="text-[9px] font-medium uppercase tracking-wider text-center leading-tight">Fuel Calc</span>
+              </button>
+
+              {/* Request Pit */}
+              <button
+                onClick={() => speakText('Box this lap, box box', 'critical')}
+                className="flex flex-col items-center justify-center p-3 rounded-lg border bg-white/5 border-white/10 text-white/80 hover:bg-orange-500/20 hover:border-orange-500/50 hover:text-orange-400 transition-all"
+              >
+                <Wrench className="w-6 h-6 mb-1" />
+                <span className="text-[9px] font-medium uppercase tracking-wider text-center leading-tight">Box Box</span>
+              </button>
+
+              {/* Clear Alerts */}
+              <button
+                onClick={() => {/* TODO: clear alerts */}}
+                className="flex flex-col items-center justify-center p-3 rounded-lg border bg-white/5 border-white/10 text-white/80 hover:bg-white/10 transition-all"
+              >
+                <RotateCcw className="w-6 h-6 mb-1" />
+                <span className="text-[9px] font-medium uppercase tracking-wider text-center leading-tight">Clear Alerts</span>
+              </button>
+
+              {/* Focus Mode */}
+              <button
+                onClick={() => {
+                  setEngineerMuted(true);
+                  setSpotterMuted(false);
+                }}
+                className="flex flex-col items-center justify-center p-3 rounded-lg border bg-white/5 border-white/10 text-white/80 hover:bg-purple-500/20 hover:border-purple-500/50 hover:text-purple-400 transition-all"
+              >
+                <Zap className="w-6 h-6 mb-1" />
+                <span className="text-[9px] font-medium uppercase tracking-wider text-center leading-tight">Focus Mode</span>
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Button Box Toggle */}
-        <button
-          onClick={() => setShowButtonBox(!showButtonBox)}
-          className={`absolute top-10 left-1/2 -translate-x-1/2 z-30 px-3 py-1 rounded-full text-[9px] uppercase tracking-wider font-medium transition-all ${
-            showButtonBox 
-              ? 'bg-orange-500 text-black' 
-              : 'bg-black/60 text-white/60 hover:bg-black/80 hover:text-white border border-white/10'
-          }`}
-        >
-          {showButtonBox ? 'Close' : 'Commands'}
-        </button>
+        {/* Right Panel - Track Map (70%) */}
+        <div className="w-[70%] relative">
+          {/* Critical Alerts - Top overlay */}
+          {criticalMessages.length > 0 && (
+            <div className="absolute top-9 left-2 right-2 z-30">
+              {criticalMessages.slice(0, 1).map(msg => (
+                <div key={msg.id} className="border-l-2 border-red-500 bg-red-500/20 backdrop-blur-xl rounded-r px-2 py-1">
+                  <div className="flex items-center gap-1.5">
+                    <AlertTriangle className="w-3 h-3 text-red-400 flex-shrink-0" />
+                    <span className="text-xs font-semibold text-red-400 truncate">{msg.content}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
-        {/* Button Box Overlay */}
-        {showButtonBox && (
-          <div className="absolute inset-0 z-25 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="bg-[#0a0a0a]/95 border border-white/10 rounded-lg p-4 max-w-md w-full mx-4">
-              <div className="text-center mb-4">
-                <h2 className="text-sm font-bold uppercase tracking-wider text-[#f97316]">Quick Commands</h2>
-                <p className="text-[10px] text-white/40 mt-1">Tap to toggle • Large buttons for racing</p>
+          {/* Track Map */}
+          <div className="absolute inset-0 z-0">
+            <TrackMapRive
+              trackId={trackId}
+              showPitLane={true}
+              carPosition={carPosition}
+              currentSector={telemetry.sector || undefined}
+              speed={telemetry.speed || undefined}
+              throttle={telemetry.throttle || undefined}
+              brake={telemetry.brake || undefined}
+              className="w-full h-full"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#080808] via-transparent to-black/30 pointer-events-none" />
+          </div>
+
+          {/* Top Bar - Track name, status, flag */}
+          <div className="absolute top-0 left-0 right-0 z-20 h-8 px-2 flex items-center justify-between bg-black/60 backdrop-blur-sm border-b border-white/5">
+            <div className="flex items-center gap-2">
+              <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-white/30'}`} />
+              <h1 className="text-xs font-bold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                {session.trackName || 'Waiting'}
+              </h1>
+              <span className="text-[9px] text-white/40 capitalize">{session.sessionType || ''}</span>
+              {/* Flag State */}
+              <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/40 border border-white/10`}>
+                <Flag className={`w-2.5 h-2.5 ${flagInfo.textColor}`} />
+                <span className={`text-[9px] font-bold uppercase ${flagInfo.textColor}`}>{flagInfo.label}</span>
               </div>
-              
-              <div className="grid grid-cols-2 gap-3">
-                {/* Mute Engineer */}
-                <button
-                  onClick={() => setEngineerMuted(!engineerMuted)}
-                  className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${
-                    engineerMuted 
-                      ? 'bg-red-500/20 border-red-500/50 text-red-400' 
-                      : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10'
-                  }`}
-                >
-                  {engineerMuted ? <MicOff className="w-8 h-8 mb-2" /> : <Mic className="w-8 h-8 mb-2" />}
-                  <span className="text-xs font-medium uppercase tracking-wider">
-                    {engineerMuted ? 'Engineer Muted' : 'Mute Engineer'}
-                  </span>
-                </button>
+            </div>
+            <button
+              onClick={toggleVoice}
+              className={`p-1 rounded transition-colors ${voiceEnabled ? 'bg-orange-500/30 text-orange-400' : 'text-white/40 hover:text-white/60'}`}
+            >
+              {voiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
+            </button>
+          </div>
 
-                {/* Mute Spotter */}
-                <button
-                  onClick={() => setSpotterMuted(!spotterMuted)}
-                  className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${
-                    spotterMuted 
-                      ? 'bg-red-500/20 border-red-500/50 text-red-400' 
-                      : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10'
-                  }`}
-                >
-                  {spotterMuted ? <MessageSquareOff className="w-8 h-8 mb-2" /> : <Car className="w-8 h-8 mb-2" />}
-                  <span className="text-xs font-medium uppercase tracking-wider">
-                    {spotterMuted ? 'Spotter Muted' : 'Mute Spotter'}
-                  </span>
-                </button>
-
-                {/* Toggle Voice */}
-                <button
-                  onClick={toggleVoice}
-                  className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${
-                    !voiceEnabled 
-                      ? 'bg-red-500/20 border-red-500/50 text-red-400' 
-                      : 'bg-green-500/20 border-green-500/50 text-green-400'
-                  }`}
-                >
-                  {voiceEnabled ? <Volume2 className="w-8 h-8 mb-2" /> : <VolumeX className="w-8 h-8 mb-2" />}
-                  <span className="text-xs font-medium uppercase tracking-wider">
-                    {voiceEnabled ? 'Voice On' : 'Voice Off'}
-                  </span>
-                </button>
-
-                {/* Toggle HUD */}
-                <button
-                  onClick={() => setHudVisible(!hudVisible)}
-                  className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${
-                    !hudVisible 
-                      ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400' 
-                      : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10'
-                  }`}
-                >
-                  {hudVisible ? <Eye className="w-8 h-8 mb-2" /> : <EyeOff className="w-8 h-8 mb-2" />}
-                  <span className="text-xs font-medium uppercase tracking-wider">
-                    {hudVisible ? 'Hide HUD' : 'Show HUD'}
-                  </span>
-                </button>
-
-                {/* Request Fuel Calc */}
-                <button
-                  onClick={() => {
-                    speakText('Calculating fuel requirements', 'normal');
-                    setShowButtonBox(false);
-                  }}
-                  className="flex flex-col items-center justify-center p-4 rounded-lg border bg-white/5 border-white/10 text-white/80 hover:bg-orange-500/20 hover:border-orange-500/50 hover:text-orange-400 transition-all"
-                >
-                  <Fuel className="w-8 h-8 mb-2" />
-                  <span className="text-xs font-medium uppercase tracking-wider">Fuel Calc</span>
-                </button>
-
-                {/* Request Pit */}
-                <button
-                  onClick={() => {
-                    speakText('Box this lap, box box', 'critical');
-                    setShowButtonBox(false);
-                  }}
-                  className="flex flex-col items-center justify-center p-4 rounded-lg border bg-white/5 border-white/10 text-white/80 hover:bg-orange-500/20 hover:border-orange-500/50 hover:text-orange-400 transition-all"
-                >
-                  <Wrench className="w-8 h-8 mb-2" />
-                  <span className="text-xs font-medium uppercase tracking-wider">Box Box</span>
-                </button>
-
-                {/* Clear Alerts */}
-                <button
-                  onClick={() => setShowButtonBox(false)}
-                  className="flex flex-col items-center justify-center p-4 rounded-lg border bg-white/5 border-white/10 text-white/80 hover:bg-white/10 transition-all"
-                >
-                  <RotateCcw className="w-8 h-8 mb-2" />
-                  <span className="text-xs font-medium uppercase tracking-wider">Clear Alerts</span>
-                </button>
-
-                {/* Focus Mode */}
-                <button
-                  onClick={() => {
-                    setEngineerMuted(true);
-                    setSpotterMuted(false);
-                    setShowButtonBox(false);
-                  }}
-                  className="flex flex-col items-center justify-center p-4 rounded-lg border bg-white/5 border-white/10 text-white/80 hover:bg-purple-500/20 hover:border-purple-500/50 hover:text-purple-400 transition-all"
-                >
-                  <Zap className="w-8 h-8 mb-2" />
-                  <span className="text-xs font-medium uppercase tracking-wider">Focus Mode</span>
-                </button>
+          {/* Position & Lap - Top left */}
+          <div className="absolute top-10 left-2 z-20">
+            <div className="bg-black/70 backdrop-blur-sm rounded px-2 py-1 border border-white/10">
+              <div className="text-2xl font-bold font-mono tracking-tighter leading-none">
+                P{telemetry.position ?? '--'}
               </div>
+              <div className="text-[9px] text-white/50">L{telemetry.lap ?? '--'}</div>
+            </div>
+          </div>
 
-              {/* Status indicators */}
-              <div className="mt-4 pt-3 border-t border-white/10 flex justify-center gap-4 text-[9px]">
-                <span className={engineerMuted ? 'text-red-400' : 'text-green-400'}>
-                  ENG: {engineerMuted ? 'MUTED' : 'LIVE'}
-                </span>
-                <span className={spotterMuted ? 'text-red-400' : 'text-green-400'}>
-                  SPT: {spotterMuted ? 'MUTED' : 'LIVE'}
-                </span>
-                <span className={voiceEnabled ? 'text-green-400' : 'text-red-400'}>
-                  TTS: {voiceEnabled ? 'ON' : 'OFF'}
+          {/* Delta - Top right */}
+          <div className="absolute top-10 right-2 z-20">
+            <div className="bg-black/70 backdrop-blur-sm rounded px-2 py-1 border border-white/10">
+              <div className={`text-xl font-bold font-mono tracking-tighter leading-none ${telemetry.delta !== null && telemetry.delta < 0 ? 'text-green-400' : 'text-red-400'
+                }`}>
+                {telemetry.delta !== null ? `${telemetry.delta > 0 ? '+' : ''}${telemetry.delta.toFixed(2)}` : '--'}
+              </div>
+              <div className="text-[9px] text-white/50">delta</div>
+            </div>
+          </div>
+
+          {/* Speed - Bottom center of map area */}
+          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 z-20">
+            <div className="bg-black/70 backdrop-blur-sm rounded px-3 py-1 border border-white/10 text-center">
+              <div className="text-2xl font-bold font-mono tracking-tighter leading-none">
+                {telemetry.speed !== null ? Math.round(telemetry.speed) : '--'}
+              </div>
+              <div className="text-[8px] text-white/50">MPH</div>
+            </div>
+          </div>
+
+          {/* Lap Times - Bottom left */}
+          <div className="absolute bottom-1 left-2 z-20">
+            <div className="bg-black/70 backdrop-blur-sm rounded px-1.5 py-1 border border-white/10 text-[10px]">
+              <div className="flex items-center gap-1">
+                <span className="text-white/40">L</span>
+                <span className="font-mono">{formatTime(telemetry.lastLap)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-purple-400">B</span>
+                <span className="font-mono text-purple-400">{formatTime(telemetry.bestLap)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Fuel - Bottom right */}
+          <div className="absolute bottom-1 right-2 z-20">
+            <div className="bg-black/70 backdrop-blur-sm rounded px-1.5 py-1 border border-white/10 text-[10px]">
+              <div className="flex items-center gap-1">
+                <Fuel className={`w-2.5 h-2.5 ${telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-green-400'
+                  }`} />
+                <span className="font-mono font-bold">{telemetry.fuel?.toFixed(1) ?? '--'}L</span>
+                <span className={`text-[9px] ${telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-white/40'
+                  }`}>
+                  ({telemetry.lapsRemaining ?? '--'})
                 </span>
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Bottom Panel - Compact */}
