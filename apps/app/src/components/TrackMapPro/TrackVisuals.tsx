@@ -30,7 +30,7 @@ export function TrackVisuals({ shape, carPosition, telemetry }: TrackVisualsProp
 
             // Determine color from telemetry
             // If telemetry is shorter/longer, map index
-            let color = '#38bdf8'; // Default Cyan
+            let color = '#ff0000'; // DEMO: RED
 
             if (telemetry && telemetry.length > 0) {
                 // Map current point index 'i' to telemetry index
@@ -56,7 +56,7 @@ export function TrackVisuals({ shape, carPosition, telemetry }: TrackVisualsProp
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     filter="url(#neon-glow)"
-                    opacity="0.9"
+                    opacity="1"
                 />
             );
         }
@@ -65,7 +65,9 @@ export function TrackVisuals({ shape, carPosition, telemetry }: TrackVisualsProp
             const p1 = pts[pts.length - 1];
             const p2 = pts[0];
             // Color from last telemetry point
-            let color = '#38bdf8';
+            // DEMO: Keep consistent red default if no telemetry
+            let color = '#ff0000'; // Default Red for Demo
+
             if (telemetry && telemetry.length > 0) {
                 const val = telemetry[telemetry.length - 1] ?? 0;
                 const hue = val * 120;
@@ -82,7 +84,7 @@ export function TrackVisuals({ shape, carPosition, telemetry }: TrackVisualsProp
                     strokeWidth="6"
                     strokeLinecap="round"
                     filter="url(#neon-glow)"
-                    opacity="0.9"
+                    opacity="1"
                 />
             );
         }

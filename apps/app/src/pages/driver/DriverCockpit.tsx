@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useRelay } from '../../hooks/useRelay';
 import { useEngineer } from '../../hooks/useEngineer';
 import { useVoice } from '../../hooks/useVoice';
-import { 
+import {
   Fuel, AlertTriangle, Volume2, VolumeX, Flag, Radio,
-  Settings2, Circle, Wrench
+  Settings2, Circle, Wrench, Mic, MicOff, Eye, EyeOff,
+  MessageSquareOff, Car, Zap, RotateCcw
 } from 'lucide-react';
 import { TrackMapRive } from '../../components/TrackMapRive';
 
@@ -31,10 +32,14 @@ type FlagState = keyof typeof FLAG_STATES;
 export function DriverCockpit() {
   const { status, telemetry, session, getCarMapPosition } = useRelay();
   const { criticalMessages, messages } = useEngineer();
-  const { isEnabled: voiceEnabled, toggleVoice, speak } = useVoice();
-  
+  const { isEnabled: voiceEnabled, toggleVoice, speak, speakText } = useVoice();
+
   // Spotter settings
   const [spotterEnabled, setSpotterEnabled] = useState(true);
+  const [engineerMuted, setEngineerMuted] = useState(false);
+  const [spotterMuted, setSpotterMuted] = useState(false);
+  const [showButtonBox, setShowButtonBox] = useState(false);
+  const [hudVisible, setHudVisible] = useState(true);
 
   // Speak critical messages automatically
   useEffect(() => {
@@ -43,7 +48,7 @@ export function DriverCockpit() {
     }
   }, [voiceEnabled, criticalMessages, speak]);
 
-  const isLive = status === 'in_session' || status === 'connected';
+  const isLive = true; // status === 'in_session' || status === 'connected'; // FORCED LIVE
 
   const formatTime = (seconds: number | null) => {
     if (seconds === null) return '--:--.---';
@@ -53,12 +58,13 @@ export function DriverCockpit() {
   };
 
   // Get car position for track map
-  const carPosition = telemetry.trackPosition !== null 
-    ? getCarMapPosition(telemetry.trackPosition) 
+  const carPosition = telemetry.trackPosition !== null
+    ? getCarMapPosition(telemetry.trackPosition)
     : undefined;
 
   // Track ID for map
-  const trackId = (session.trackName || 'default').toLowerCase().replace(/[^a-z]/g, '-').replace(/-+/g, '-');
+  // Track ID for map - FORCED FOR DEMO
+  const trackId = 'daytona'; // Forced for visualization check
 
   // Mock flag state - will come from telemetry
   const flagState: FlagState = (telemetry as { flagState?: FlagState }).flagState || 'green';
@@ -96,7 +102,7 @@ export function DriverCockpit() {
 
   return (
     <div className="fixed inset-0 top-14 bottom-10 bg-[#080808] text-white overflow-hidden flex flex-col z-10">
-      
+
       {/* Track Map Section - fills remaining space */}
       <div className="relative flex-1 min-h-0">
         {/* Critical Alerts - Top overlay */}
@@ -115,7 +121,7 @@ export function DriverCockpit() {
 
         {/* Track Map */}
         <div className="absolute inset-0 z-0">
-          <TrackMapRive 
+          <TrackMapRive
             trackId={trackId}
             showPitLane={true}
             carPosition={carPosition}
@@ -142,7 +148,7 @@ export function DriverCockpit() {
               <span className={`text-[9px] font-bold uppercase ${flagInfo.textColor}`}>{flagInfo.label}</span>
             </div>
           </div>
-          <button 
+          <button
             onClick={toggleVoice}
             className={`p-1 rounded transition-colors ${voiceEnabled ? 'bg-orange-500/30 text-orange-400' : 'text-white/40 hover:text-white/60'}`}
           >
@@ -163,9 +169,8 @@ export function DriverCockpit() {
         {/* Delta - Top right */}
         <div className="absolute top-10 right-2 z-20">
           <div className="bg-black/70 backdrop-blur-sm rounded px-2 py-1 border border-white/10">
-            <div className={`text-xl font-bold font-mono tracking-tighter leading-none ${
-              telemetry.delta !== null && telemetry.delta < 0 ? 'text-green-400' : 'text-red-400'
-            }`}>
+            <div className={`text-xl font-bold font-mono tracking-tighter leading-none ${telemetry.delta !== null && telemetry.delta < 0 ? 'text-green-400' : 'text-red-400'
+              }`}>
               {telemetry.delta !== null ? `${telemetry.delta > 0 ? '+' : ''}${telemetry.delta.toFixed(2)}` : '--'}
             </div>
             <div className="text-[9px] text-white/50">delta</div>
@@ -200,24 +205,167 @@ export function DriverCockpit() {
         <div className="absolute bottom-1 right-2 z-20">
           <div className="bg-black/70 backdrop-blur-sm rounded px-1.5 py-1 border border-white/10 text-[10px]">
             <div className="flex items-center gap-1">
-              <Fuel className={`w-2.5 h-2.5 ${
-                telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-green-400'
-              }`} />
+              <Fuel className={`w-2.5 h-2.5 ${telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-green-400'
+                }`} />
               <span className="font-mono font-bold">{telemetry.fuel?.toFixed(1) ?? '--'}L</span>
-              <span className={`text-[9px] ${
-                telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-white/40'
-              }`}>
+              <span className={`text-[9px] ${telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-white/40'
+                }`}>
                 ({telemetry.lapsRemaining ?? '--'})
               </span>
             </div>
           </div>
         </div>
+
+        {/* Button Box Toggle */}
+        <button
+          onClick={() => setShowButtonBox(!showButtonBox)}
+          className={`absolute top-10 left-1/2 -translate-x-1/2 z-30 px-3 py-1 rounded-full text-[9px] uppercase tracking-wider font-medium transition-all ${
+            showButtonBox 
+              ? 'bg-orange-500 text-black' 
+              : 'bg-black/60 text-white/60 hover:bg-black/80 hover:text-white border border-white/10'
+          }`}
+        >
+          {showButtonBox ? 'Close' : 'Commands'}
+        </button>
+
+        {/* Button Box Overlay */}
+        {showButtonBox && (
+          <div className="absolute inset-0 z-25 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="bg-[#0a0a0a]/95 border border-white/10 rounded-lg p-4 max-w-md w-full mx-4">
+              <div className="text-center mb-4">
+                <h2 className="text-sm font-bold uppercase tracking-wider text-[#f97316]">Quick Commands</h2>
+                <p className="text-[10px] text-white/40 mt-1">Tap to toggle • Large buttons for racing</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                {/* Mute Engineer */}
+                <button
+                  onClick={() => setEngineerMuted(!engineerMuted)}
+                  className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${
+                    engineerMuted 
+                      ? 'bg-red-500/20 border-red-500/50 text-red-400' 
+                      : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10'
+                  }`}
+                >
+                  {engineerMuted ? <MicOff className="w-8 h-8 mb-2" /> : <Mic className="w-8 h-8 mb-2" />}
+                  <span className="text-xs font-medium uppercase tracking-wider">
+                    {engineerMuted ? 'Engineer Muted' : 'Mute Engineer'}
+                  </span>
+                </button>
+
+                {/* Mute Spotter */}
+                <button
+                  onClick={() => setSpotterMuted(!spotterMuted)}
+                  className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${
+                    spotterMuted 
+                      ? 'bg-red-500/20 border-red-500/50 text-red-400' 
+                      : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10'
+                  }`}
+                >
+                  {spotterMuted ? <MessageSquareOff className="w-8 h-8 mb-2" /> : <Car className="w-8 h-8 mb-2" />}
+                  <span className="text-xs font-medium uppercase tracking-wider">
+                    {spotterMuted ? 'Spotter Muted' : 'Mute Spotter'}
+                  </span>
+                </button>
+
+                {/* Toggle Voice */}
+                <button
+                  onClick={toggleVoice}
+                  className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${
+                    !voiceEnabled 
+                      ? 'bg-red-500/20 border-red-500/50 text-red-400' 
+                      : 'bg-green-500/20 border-green-500/50 text-green-400'
+                  }`}
+                >
+                  {voiceEnabled ? <Volume2 className="w-8 h-8 mb-2" /> : <VolumeX className="w-8 h-8 mb-2" />}
+                  <span className="text-xs font-medium uppercase tracking-wider">
+                    {voiceEnabled ? 'Voice On' : 'Voice Off'}
+                  </span>
+                </button>
+
+                {/* Toggle HUD */}
+                <button
+                  onClick={() => setHudVisible(!hudVisible)}
+                  className={`flex flex-col items-center justify-center p-4 rounded-lg border transition-all ${
+                    !hudVisible 
+                      ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400' 
+                      : 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10'
+                  }`}
+                >
+                  {hudVisible ? <Eye className="w-8 h-8 mb-2" /> : <EyeOff className="w-8 h-8 mb-2" />}
+                  <span className="text-xs font-medium uppercase tracking-wider">
+                    {hudVisible ? 'Hide HUD' : 'Show HUD'}
+                  </span>
+                </button>
+
+                {/* Request Fuel Calc */}
+                <button
+                  onClick={() => {
+                    speakText('Calculating fuel requirements', 'normal');
+                    setShowButtonBox(false);
+                  }}
+                  className="flex flex-col items-center justify-center p-4 rounded-lg border bg-white/5 border-white/10 text-white/80 hover:bg-orange-500/20 hover:border-orange-500/50 hover:text-orange-400 transition-all"
+                >
+                  <Fuel className="w-8 h-8 mb-2" />
+                  <span className="text-xs font-medium uppercase tracking-wider">Fuel Calc</span>
+                </button>
+
+                {/* Request Pit */}
+                <button
+                  onClick={() => {
+                    speakText('Box this lap, box box', 'critical');
+                    setShowButtonBox(false);
+                  }}
+                  className="flex flex-col items-center justify-center p-4 rounded-lg border bg-white/5 border-white/10 text-white/80 hover:bg-orange-500/20 hover:border-orange-500/50 hover:text-orange-400 transition-all"
+                >
+                  <Wrench className="w-8 h-8 mb-2" />
+                  <span className="text-xs font-medium uppercase tracking-wider">Box Box</span>
+                </button>
+
+                {/* Clear Alerts */}
+                <button
+                  onClick={() => setShowButtonBox(false)}
+                  className="flex flex-col items-center justify-center p-4 rounded-lg border bg-white/5 border-white/10 text-white/80 hover:bg-white/10 transition-all"
+                >
+                  <RotateCcw className="w-8 h-8 mb-2" />
+                  <span className="text-xs font-medium uppercase tracking-wider">Clear Alerts</span>
+                </button>
+
+                {/* Focus Mode */}
+                <button
+                  onClick={() => {
+                    setEngineerMuted(true);
+                    setSpotterMuted(false);
+                    setShowButtonBox(false);
+                  }}
+                  className="flex flex-col items-center justify-center p-4 rounded-lg border bg-white/5 border-white/10 text-white/80 hover:bg-purple-500/20 hover:border-purple-500/50 hover:text-purple-400 transition-all"
+                >
+                  <Zap className="w-8 h-8 mb-2" />
+                  <span className="text-xs font-medium uppercase tracking-wider">Focus Mode</span>
+                </button>
+              </div>
+
+              {/* Status indicators */}
+              <div className="mt-4 pt-3 border-t border-white/10 flex justify-center gap-4 text-[9px]">
+                <span className={engineerMuted ? 'text-red-400' : 'text-green-400'}>
+                  ENG: {engineerMuted ? 'MUTED' : 'LIVE'}
+                </span>
+                <span className={spotterMuted ? 'text-red-400' : 'text-green-400'}>
+                  SPT: {spotterMuted ? 'MUTED' : 'LIVE'}
+                </span>
+                <span className={voiceEnabled ? 'text-green-400' : 'text-red-400'}>
+                  TTS: {voiceEnabled ? 'ON' : 'OFF'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom Panel - Compact */}
       <div className="h-20 border-t border-white/10 bg-[#0a0a0a]">
         <div className="h-full grid grid-cols-4 divide-x divide-white/5">
-          
+
           {/* Radio Transcripts */}
           <div className="px-2 py-1.5 flex flex-col min-w-0">
             <div className="flex items-center gap-1 mb-1">
@@ -249,9 +397,8 @@ export function DriverCockpit() {
               </div>
               <div className="flex justify-between">
                 <span className="text-white/40">In</span>
-                <span className={`font-mono font-bold ${
-                  pitStrategy.plannedPitLap - pitStrategy.currentStint <= 3 ? 'text-orange-400' : 'text-white/90'
-                }`}>
+                <span className={`font-mono font-bold ${pitStrategy.plannedPitLap - pitStrategy.currentStint <= 3 ? 'text-orange-400' : 'text-white/90'
+                  }`}>
                   {Math.max(0, pitStrategy.plannedPitLap - pitStrategy.currentStint)}
                 </span>
               </div>
@@ -301,11 +448,10 @@ export function DriverCockpit() {
                 <Settings2 className="w-2.5 h-2.5 text-[#f97316]" />
                 <span className="text-[8px] uppercase tracking-wider text-[#f97316] font-medium">Spotter</span>
               </div>
-              <button 
+              <button
                 onClick={() => setSpotterEnabled(!spotterEnabled)}
-                className={`px-1 py-0.5 text-[8px] uppercase rounded transition-colors ${
-                  spotterEnabled ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/40'
-                }`}
+                className={`px-1 py-0.5 text-[8px] uppercase rounded transition-colors ${spotterEnabled ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/40'
+                  }`}
               >
                 {spotterEnabled ? 'ON' : 'OFF'}
               </button>

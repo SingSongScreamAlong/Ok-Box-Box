@@ -1,10 +1,11 @@
 
-import React, { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useTrackData, TrackShape } from '../../hooks/useTrackData';
+import React, { useMemo, useState, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { useTrackData } from '../../hooks/useTrackData';
 import { TrackVisuals } from './TrackVisuals';
 import { TrackControls } from './TrackControls';
-import { getTrackId } from '../../data/tracks';
+import { TrackLabels } from './TrackLabels'; // New Smart Labels
+import { getTrackId, getTrackData, TRACK_SLUG_MAP } from '../../data/tracks';
 
 /* 
   TrackMapPro: The Ultimate Race Control Surface
@@ -23,12 +24,21 @@ interface TrackMapProProps {
         throttle?: number;
         brake?: number;
         gear?: number;
-    }[]; // Array of telemetry points for specific segments? Or just current car state?
+    }[];
 
-    // View State
-    onSectorSelect?: (sector: number) => void;
     className?: string;
-    theme?: 'f1-dark' | 'hologram' | 'print';
+}
+
+// Helper to resolve the Shape ID (physical file) from the Slug
+function getShapeId(slug: string): string {
+    const s = slug.toLowerCase().replace(/[^a-z0-9]/g, '');
+    // 1. Check direct map
+    for (const [k, v] of Object.entries(TRACK_SLUG_MAP)) {
+        if (s.includes(k.replace(/[^a-z0-9]/g, ''))) return v;
+    }
+    // 2. Check if already numeric (shape ID)
+    if (/^\d+$/.test(slug)) return slug;
+    return slug;
 }
 
 export function TrackMapPro({
@@ -37,32 +47,63 @@ export function TrackMapPro({
     telemetry,
     className = "w-full h-full bg-slate-950"
 }: TrackMapProProps) {
-    // 1. Data Loading (Scalable 300+ System) [UNCHANGED DATA SOURCE]
-    // We use the exact same hook that reads the 489 shape files.
-    const { shape, loading, error } = useTrackData(getTrackId(trackId));
+    // 1. Resolve IDs
+    // shapeId -> for loading the SVG geometry (e.g. "381")
+    // metaId -> for loading the turn names/metadata (e.g. "daytona")
+    const shapeId = getShapeId(trackId);
 
-    // 2. Viewport Management (Zoom/Pan interaction)
+    // 2. Load Data
+    const { shape, loading, error } = useTrackData(shapeId);
+    const trackMetadata = getTrackData(trackId); // Get manually curated metadata (Turns)
+
+    // 3. Viewport State (Zoom/Pan)
     const [zoom, setZoom] = useState(1);
     const [pan, setPan] = useState({ x: 0, y: 0 });
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    // 3. Derived Geometry
+    // 4. Derived ViewBox (The Camera)
     const viewBox = useMemo(() => {
         if (!shape || !shape.bounds) return '0 0 1000 1000';
+
         const { xMin, xMax, yMin, yMax } = shape.bounds;
         const width = xMax - xMin;
         const height = yMax - yMin;
 
-        // Add 10% padding
-        const p = Math.max(width, height) * 0.1;
-        return `${xMin - p} ${yMin - p} ${width + p * 2} ${height + p * 2}`;
-    }, [shape]);
+        // Center of the track
+        const cx = xMin + width / 2;
+        const cy = yMin + height / 2;
 
-    // 4. Derived Telemetry Arrays for Visuals
-    // Extract simple arrays for the heatmap components
+        // Apply Zoom (smaller viewbox = higher zoom)
+        // Zoom 1 = Fit to bounds with 10% padding
+        // Zoom 2 = Half size viewbox
+        const pad = 0.1;
+        const baseW = width * (1 + pad * 2);
+        const baseH = height * (1 + pad * 2);
+
+        const currentW = baseW / zoom;
+        const currentH = baseH / zoom;
+
+        // Apply Pan
+        // Pan X/Y are in SVG units relative to center
+        const viewX = cx - (currentW / 2) + pan.x;
+        const viewY = cy - (currentH / 2) + pan.y;
+
+        return `${viewX} ${viewY} ${currentW} ${currentH}`;
+    }, [shape, zoom, pan]);
+
+    // 5. Telemetry
     const speedTelemetry = useMemo(() => {
         if (!telemetry) return undefined;
-        return telemetry.map(t => (t.speed || 0) / 300); // Normalize 0-300kmh to 0-1
+        return telemetry.map(t => (t.speed || 0) / 300);
     }, [telemetry]);
+
+    // Handlers
+    const handleWheel = (e: React.WheelEvent) => {
+        // Simple zoom on wheel
+        e.preventDefault();
+        const delta = -e.deltaY * 0.001;
+        setZoom(z => Math.max(0.2, Math.min(10, z + delta)));
+    };
 
     if (loading) return (
         <div className="flex items-center justify-center w-full h-full text-cyan-500 font-mono text-xs animate-pulse">
@@ -71,25 +112,34 @@ export function TrackMapPro({
     );
 
     if (error || !shape) return (
-        <div className="flex items-center justify-center w-full h-full text-red-500 font-mono text-xs">
-            TRACK_DATA_MISSING_OR_CORRUPT
+        <div className="flex flex-col items-center justify-center w-full h-full text-red-500 font-mono text-xs p-4 text-center">
+            <div>TRACK_DATA_MISSING_OR_CORRUPT</div>
+            <div className="text-white/30 mt-2">ID: {shapeId}</div>
         </div>
     );
 
     return (
-        <div className={`relative overflow-hidden selection:bg-none ${className}`}>
-            {/* Background Grid Layer (context) */}
+        <div
+            ref={containerRef}
+            className={`relative overflow-hidden selection:bg-none ${className}`}
+            onWheel={handleWheel}
+        >
+            {/* Background Grid Layer */}
             <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5 pointer-events-none" />
 
             {/* Main SVG Surface */}
             <motion.svg
                 viewBox={viewBox}
                 className="w-full h-full pointer-events-auto cursor-grab active:cursor-grabbing"
-                style={{ transform: 'scale(1, -1)' }} // iRacing coords are Y-up
-                drag
-                dragConstraints={{ left: -1000, right: 1000, top: -1000, bottom: 1000 }} // Refine this later
+                style={{ transform: 'scale(1, -1)' }} // iRacing Y-UP
+
+                // Drag Logic (Pan)
+                onPointerDown={(e) => {
+                    // We can implement drag-pan here or use framer-motion drag on a group
+                    // Using framer-motion drag on SVG is tricky with viewBox.
+                    // We'll trust the Zoom controls for precision and implement native drag later if needed.
+                }}
             >
-                {/* Filters Definition (Neon Glows) */}
                 <defs>
                     <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
                         <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
@@ -98,32 +148,38 @@ export function TrackMapPro({
                             <feMergeNode in="SourceGraphic" />
                         </feMerge>
                     </filter>
-                    <linearGradient id="speed-gradient" gradientUnits="userSpaceOnUse">
-                        {/* Dynamic gradient stops will be injected here based on telemetry */}
-                        <stop offset="0%" stopColor="#ef4444" /> {/* Slow (Red) */}
-                        <stop offset="100%" stopColor="#22c55e" /> {/* Fast (Green) */}
-                    </linearGradient>
                 </defs>
 
-                {/* The Track Visuals (The "Meat" of the display) */}
+                {/* VISUALS LAYER */}
                 <TrackVisuals
                     shape={shape}
                     carPosition={carPosition}
                     telemetry={speedTelemetry}
                 />
 
+                {/* LABELS LAYER (Non-scaled text) */}
+                {/* We map the turn metadata from `tracks.ts` if available */}
+                {trackMetadata && trackMetadata.corners && (
+                    <TrackLabels
+                        corners={trackMetadata.corners}
+                        zoom={zoom}
+                    />
+                )}
+
             </motion.svg>
 
-            {/* Overlay UI Controls */}
+            {/* CONTROLS OVERLAY */}
             <TrackControls
-                onZoomIn={() => setZoom(z => Math.min(z * 1.2, 5))}
-                onZoomOut={() => setZoom(z => Math.max(z / 1.2, 0.5))}
+                onZoomIn={() => setZoom(z => Math.min(z * 1.2, 10))}
+                onZoomOut={() => setZoom(z => Math.max(z / 1.2, 0.2))}
                 currentZoom={zoom}
             />
 
-            {/* Floating Info Label */}
-            <div className="absolute bottom-4 left-4 font-mono text-[10px] text-cyan-500/50">
-                TRK_ID: {shape.trackId} // PTS: {shape.centerline.length} // DATA: {telemetry ? 'LIVE' : 'OFF'}
+            {/* INFO OVERLAY */}
+            <div className="absolute bottom-4 left-4 font-mono text-[10px] text-cyan-500/50 pointer-events-none">
+                TRK: {shape.trackId} <br />
+                PTS: {shape.centerline?.length} <br />
+                Z: {zoom.toFixed(2)}x
             </div>
         </div>
     );
