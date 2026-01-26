@@ -205,7 +205,7 @@ export function DriverCockpit() {
 
           {/* Ok Box Box Pill Logo - Behind Track */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
-            <div className="flex items-center gap-3 scale-[40]">
+            <div className="flex items-center gap-3 scale-[4]">
               <div className="w-2.5 h-8 bg-white rounded-full transform rotate-12" />
               <div className="w-2.5 h-8 bg-[#3b82f6] rounded-full transform rotate-12" />
               <div className="w-2.5 h-8 bg-[#f97316] rounded-full transform rotate-12" />
