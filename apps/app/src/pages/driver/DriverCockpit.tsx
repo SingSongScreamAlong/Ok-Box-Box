@@ -176,10 +176,10 @@ export function DriverCockpit() {
 
       {/* Ok Box Box 3-pill logo - background layer */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
-        <div className="flex gap-4 opacity-[0.04]">
-          <div className="w-12 h-48 bg-white rounded-full transform rotate-12" />
-          <div className="w-12 h-48 bg-[#3b82f6] rounded-full transform rotate-12" />
-          <div className="w-12 h-48 bg-[#f97316] rounded-full transform rotate-12" />
+        <div className="flex gap-8 opacity-[0.04]">
+          <div className="w-24 h-96 bg-white rounded-full transform rotate-12" />
+          <div className="w-24 h-96 bg-[#3b82f6] rounded-full transform rotate-12" />
+          <div className="w-24 h-96 bg-[#f97316] rounded-full transform rotate-12" />
         </div>
       </div>
 
@@ -228,7 +228,7 @@ export function DriverCockpit() {
       )}
 
       {/* Controls - top right */}
-      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-1 bg-black/40 backdrop-blur-sm rounded-full px-2 py-1">
         {/* Engineer mute */}
         <button
           onClick={() => setEngineerMuted(!engineerMuted)}

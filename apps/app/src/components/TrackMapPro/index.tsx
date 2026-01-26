@@ -14,9 +14,20 @@ import { getTrackId, getTrackData, TRACK_SLUG_MAP } from '../../data/tracks';
   - Manages Zoom/Pan and Data Overlays
 */
 
+interface CarPosition {
+    x: number;
+    y: number;
+    trackPercentage?: number;
+    carNumber?: string;
+    driverName?: string;
+    isPlayer?: boolean;
+    color?: string;
+}
+
 interface TrackMapProProps {
     trackId: string;
-    carPosition?: { x: number; y: number; trackPercentage?: number };
+    carPosition?: CarPosition;
+    otherCars?: CarPosition[];
     telemetry?: {
         speed?: number;
         throttle?: number;
@@ -38,6 +49,7 @@ function getShapeId(slug: string): string {
 export function TrackMapPro({
     trackId,
     carPosition,
+    otherCars,
     telemetry,
     className = "w-full h-full bg-slate-950"
 }: TrackMapProProps) {
@@ -139,6 +151,7 @@ export function TrackMapPro({
                 <TrackVisuals
                     shape={shape}
                     carPosition={carPosition}
+                    otherCars={otherCars}
                     telemetry={speedTelemetry}
                 />
 

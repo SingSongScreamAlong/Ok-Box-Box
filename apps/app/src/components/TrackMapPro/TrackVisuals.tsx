@@ -8,13 +8,55 @@ import { TrackShape } from '../../hooks/useTrackData';
   This component renders the track path, using segmented strokes for telemetry heatmaps.
 */
 
+interface CarPosition {
+    x: number;
+    y: number;
+    trackPercentage?: number;
+    carNumber?: string;
+    driverName?: string;
+    isPlayer?: boolean;
+    color?: string;
+}
+
 interface TrackVisualsProps {
     shape: TrackShape;
-    carPosition?: { x: number; y: number; trackPercentage?: number };
+    carPosition?: CarPosition;
+    otherCars?: CarPosition[];
     telemetry?: number[]; // Data points (0-1) matching the centerline resolution roughly
 }
 
-export function TrackVisuals({ shape, carPosition, telemetry }: TrackVisualsProps) {
+export function TrackVisuals({ shape, carPosition, otherCars, telemetry }: TrackVisualsProps) {
+
+    // Calculate coordinates for any car position
+    const getCarCoords = (pos: CarPosition) => {
+        if (!shape.centerline) return null;
+
+        if (pos.x > 1 && pos.y > 1) {
+            return { x: pos.x, y: pos.y };
+        }
+
+        if (pos.trackPercentage !== undefined) {
+            const pct = pos.trackPercentage;
+            const cl = shape.centerline;
+            let idx = cl.findIndex(p => p.distPct >= pct);
+            if (idx === -1) idx = 0;
+
+            const p2 = cl[idx];
+            const p1 = cl[idx === 0 ? cl.length - 1 : idx - 1];
+
+            let d1 = p1.distPct;
+            let d2 = p2.distPct;
+            if (d1 > d2) d1 = 0;
+
+            const ratio = (pct - d1) / (d2 - d1 || 1);
+
+            return {
+                x: p1.x + (p2.x - p1.x) * ratio,
+                y: p1.y + (p2.y - p1.y) * ratio
+            };
+        }
+        return null;
+    };
 
     // 1. Pre-calculate path data for reusable layers
     const fullPathData = useMemo(() => {
@@ -153,16 +195,46 @@ export function TrackVisuals({ shape, carPosition, telemetry }: TrackVisualsProp
                 opacity="0.9"
             />
 
-            {/* Car Marker */}
+            {/* Other Cars - rendered first so player is on top */}
+            {otherCars && otherCars.map((car, idx) => {
+                const coords = getCarCoords(car);
+                if (!coords) return null;
+                const color = car.color || '#94a3b8'; // Default slate
+                return (
+                    <motion.g
+                        key={car.carNumber || idx}
+                        initial={{ x: coords.x, y: coords.y }}
+                        animate={{ x: coords.x, y: coords.y }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                    >
+                        <circle r="18" fill={color} fillOpacity="0.15" stroke={color} strokeWidth="1" />
+                        <circle r="4" fill={color} />
+                        {car.carNumber && (
+                            <text
+                                y="-22"
+                                textAnchor="middle"
+                                fill={color}
+                                fontSize="12"
+                                fontFamily="monospace"
+                                fontWeight="bold"
+                            >
+                                {car.carNumber}
+                            </text>
+                        )}
+                    </motion.g>
+                );
+            })}
+
+            {/* Player Car Marker - on top */}
             {carCoords && (
                 <motion.g
                     initial={{ x: carCoords.x, y: carCoords.y }}
                     animate={{ x: carCoords.x, y: carCoords.y }}
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                 >
-                    {/* Simplified marker to not distract from the rope */}
-                    <circle r="25" fill="#38bdf8" fillOpacity="0.2" stroke="#38bdf8" strokeWidth="1" />
-                    <circle r="6" fill="white" filter="url(#glow-intense)" />
+                    {/* Player marker - larger and brighter */}
+                    <circle r="25" fill="#38bdf8" fillOpacity="0.2" stroke="#38bdf8" strokeWidth="2" />
+                    <circle r="8" fill="white" filter="url(#glow-intense)" />
                 </motion.g>
             )}
         </>
