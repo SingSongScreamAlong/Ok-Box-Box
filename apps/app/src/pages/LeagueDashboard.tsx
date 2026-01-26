@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getLeague, getUserLeagueRole, getLeagueMembers, League, LeagueMembership } from '../lib/leagues';
 import { getLeagueEvents, Event } from '../lib/events';
-import { Settings, Users, ArrowLeft, Calendar, Plus } from 'lucide-react';
+import { Settings, Users, ArrowLeft, Calendar, Plus, AlertTriangle } from 'lucide-react';
 
 export function LeagueDashboard() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -117,6 +117,32 @@ export function LeagueDashboard() {
         </div>
 
         <div className="grid gap-6">
+          {/* Steward Actions - for admins/stewards */}
+          {(role === 'owner' || role === 'admin' || role === 'steward') && (
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded p-6 shadow-lg shadow-black/20">
+              <div className="flex items-center justify-between mb-4">
+                <h2 
+                  className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#f97316]"
+                  style={{ fontFamily: 'Orbitron, sans-serif' }}
+                >
+                  Steward Actions
+                </h2>
+              </div>
+              <div className="flex gap-3">
+                <Link
+                  to={`/league/${leagueId}/incidents`}
+                  className="flex items-center gap-2 px-4 py-3 bg-white/[0.03] border border-white/[0.10] rounded hover:border-[#f97316]/50 hover:bg-white/[0.05] transition-all"
+                >
+                  <AlertTriangle size={16} className="text-[#f97316]" />
+                  <div>
+                    <p className="text-sm text-white font-medium">Incident Queue</p>
+                    <p className="text-[10px] text-white/40">Review pending incidents</p>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Events */}
           <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded p-6 shadow-lg shadow-black/20">
             <div className="flex items-center justify-between mb-4">
