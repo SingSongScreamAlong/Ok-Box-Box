@@ -2,6 +2,15 @@ import { createContext, useContext, useState, useEffect, useCallback, ReactNode 
 
 export type RelayStatus = 'disconnected' | 'connecting' | 'connected' | 'in_session';
 
+export interface CarMapPosition {
+  trackPercentage: number;
+  carNumber?: string;
+  driverName?: string;
+  position?: number;
+  color?: string;
+  isPlayer?: boolean;
+}
+
 export interface TelemetryData {
   lapTime: number | null;
   lastLap: number | null;
@@ -21,6 +30,8 @@ export interface TelemetryData {
   trackPosition: number | null; // 0-1 position around track (LapDistPct)
   sector: number | null; // Current sector 1, 2, or 3
   inPit: boolean;
+  // Other cars on track
+  otherCars: CarMapPosition[];
 }
 
 export interface SessionInfo {
@@ -48,6 +59,7 @@ const defaultTelemetry: TelemetryData = {
   trackPosition: null,
   sector: null,
   inPit: false,
+  otherCars: [],
 };
 
 const defaultSession: SessionInfo = {
@@ -153,6 +165,15 @@ export function RelayProvider({ children }: { children: ReactNode }) {
           const throttle = cornerFactor > 0 ? 85 : 50;
           const brake = cornerFactor < -0.05 ? 70 : 0;
           
+          // Generate mock other cars spread around track
+          const mockOtherCars: CarMapPosition[] = [
+            { trackPercentage: (trackPos + 0.05) % 1, carNumber: '44', position: position - 1, color: '#ef4444' },
+            { trackPercentage: (trackPos + 0.12) % 1, carNumber: '77', position: position - 2, color: '#22c55e' },
+            { trackPercentage: (trackPos + 0.25) % 1, carNumber: '33', position: position - 3, color: '#3b82f6' },
+            { trackPercentage: (trackPos - 0.08 + 1) % 1, carNumber: '11', position: position + 1, color: '#f97316' },
+            { trackPercentage: (trackPos - 0.15 + 1) % 1, carNumber: '55', position: position + 2, color: '#a855f7' },
+          ];
+
           setTelemetry({
             lapTime: trackPos * 95, // Approximate lap time based on position
             lastLap: lastLap,
@@ -171,6 +192,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
             trackPosition: trackPos,
             sector: sector,
             inPit: false,
+            otherCars: mockOtherCars,
           });
         }, 1000); // Update every 1 second - much calmer
 
@@ -275,6 +297,15 @@ export function RelayProvider({ children }: { children: ReactNode }) {
                 const throttle = cornerFactor > 0 ? 85 : 50;
                 const brake = cornerFactor < -0.05 ? 70 : 0;
                 
+                // Generate mock other cars spread around track
+                const mockOtherCars: CarMapPosition[] = [
+                  { trackPercentage: (trackPos + 0.05) % 1, carNumber: '44', position: position - 1, color: '#ef4444' },
+                  { trackPercentage: (trackPos + 0.12) % 1, carNumber: '77', position: position - 2, color: '#22c55e' },
+                  { trackPercentage: (trackPos + 0.25) % 1, carNumber: '33', position: position - 3, color: '#3b82f6' },
+                  { trackPercentage: (trackPos - 0.08 + 1) % 1, carNumber: '11', position: position + 1, color: '#f97316' },
+                  { trackPercentage: (trackPos - 0.15 + 1) % 1, carNumber: '55', position: position + 2, color: '#a855f7' },
+                ];
+
                 setTelemetry({
                   lapTime: trackPos * 95,
                   lastLap: lastLap,
@@ -293,6 +324,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
                   trackPosition: trackPos,
                   sector: sector,
                   inPit: false,
+                  otherCars: mockOtherCars,
                 });
               }, 1000);
 

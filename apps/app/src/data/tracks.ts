@@ -123,7 +123,18 @@ export const TRACK_DATA: Record<string, TrackData> = {
       { number: 2, name: 'Sector 2', startDistance: 1910, endDistance: 3820 },
       { number: 3, name: 'Sector 3', startDistance: 3820, endDistance: 5730 }
     ],
-    corners: [],
+    corners: [
+      { number: 1, name: 'Turn 1', type: 'hairpin', apex: { distance: 200, x: 70, y: 235, normalizedDistance: 0.035 }, braking: { distance: 100, x: 30, y: 220 }, exit: { distance: 300, x: 100, y: 295 }, gear: 1, apexSpeed: 60, difficulty: 'hard', notes: 'Heavy braking off oval' },
+      { number: 2, name: 'Turn 2', type: 'right', apex: { distance: 500, x: 130, y: 335, normalizedDistance: 0.087 }, entry: { distance: 400, x: 100, y: 295 }, exit: { distance: 600, x: 165, y: 375 }, gear: 3, apexSpeed: 95, difficulty: 'medium' },
+      { number: 3, name: 'Turn 3 (Kink)', type: 'left', apex: { distance: 800, x: 200, y: 405, normalizedDistance: 0.140 }, entry: { distance: 700, x: 165, y: 375 }, exit: { distance: 900, x: 250, y: 425 }, gear: 5, apexSpeed: 140, difficulty: 'easy', notes: 'Flat out kink' },
+      { number: 4, name: 'Turn 4', type: 'left', apex: { distance: 1100, x: 300, y: 430, normalizedDistance: 0.192 }, braking: { distance: 1000, x: 250, y: 425 }, exit: { distance: 1200, x: 360, y: 430 }, gear: 2, apexSpeed: 75, difficulty: 'medium' },
+      { number: 5, name: 'Turn 5', type: 'right', apex: { distance: 1400, x: 400, y: 425, normalizedDistance: 0.244 }, entry: { distance: 1300, x: 360, y: 430 }, exit: { distance: 1500, x: 445, y: 375 }, gear: 3, apexSpeed: 100, difficulty: 'medium', notes: 'Exit critical for oval' },
+      { number: 6, name: 'Turn 6 (Oval 1)', type: 'left-kink', apex: { distance: 2000, x: 460, y: 330, normalizedDistance: 0.349 }, entry: { distance: 1800, x: 445, y: 375 }, exit: { distance: 2200, x: 460, y: 180 }, gear: 6, apexSpeed: 180, difficulty: 'easy', notes: 'On to banking' },
+      { number: 7, name: 'Bus Stop Entry', type: 'chicane', apex: { distance: 3000, x: 450, y: 135, normalizedDistance: 0.523 }, braking: { distance: 2900, x: 440, y: 100 }, exit: { distance: 3100, x: 390, y: 65 }, gear: 3, apexSpeed: 90, difficulty: 'hard', notes: 'Brake at 150 board' },
+      { number: 8, name: 'Bus Stop Exit', type: 'chicane', apex: { distance: 3200, x: 390, y: 65, normalizedDistance: 0.558 }, entry: { distance: 3100, x: 390, y: 65 }, exit: { distance: 3300, x: 350, y: 55 }, gear: 3, apexSpeed: 95, difficulty: 'hard' },
+      { number: 9, name: 'Turn 9 (Oval 3)', type: 'left-kink', apex: { distance: 4000, x: 240, y: 70, normalizedDistance: 0.698 }, entry: { distance: 3800, x: 310, y: 50 }, exit: { distance: 4200, x: 175, y: 115 }, gear: 6, apexSpeed: 190, difficulty: 'easy' },
+      { number: 10, name: 'Turn 10 (Oval 4)', type: 'left-kink', apex: { distance: 4800, x: 100, y: 220, normalizedDistance: 0.837 }, entry: { distance: 4600, x: 145, y: 165 }, exit: { distance: 5000, x: 30, y: 220 }, gear: 6, apexSpeed: 195, difficulty: 'easy', notes: 'Tri-oval start' },
+    ],
     svg: {
       viewBox: '0 0 500 450',
       path: 'M 30,220 L 100,220 C 120,220 130,210 135,195 L 145,165 C 155,140 175,115 200,95 L 240,70 C 270,55 310,50 350,55 L 390,65 C 420,75 440,100 450,135 L 460,180 C 470,230 470,280 460,330 L 445,375 C 430,405 400,425 360,430 L 300,430 C 250,425 200,405 165,375 L 130,335 C 100,295 80,260 70,235 L 50,225 C 40,222 30,220 30,220 Z'
@@ -302,7 +313,7 @@ export function getTrackData(trackName: string): TrackData | null {
 // Get track ID from name - returns numeric iRacing ID for shape file loading
 export function getTrackId(trackName: string): string {
   const normalized = trackName.toLowerCase().replace(/[^a-z0-9]/g, '');
-  
+
   // First check TRACK_SLUG_MAP for direct slug match
   for (const [slug, id] of Object.entries(TRACK_SLUG_MAP)) {
     const slugNorm = slug.replace(/-/g, '');
@@ -310,18 +321,18 @@ export function getTrackId(trackName: string): string {
       return id; // Return the numeric ID
     }
   }
-  
+
   // Check if it's already a numeric ID
   if (/^\d+$/.test(trackName)) {
     return trackName;
   }
-  
+
   // Fallback: try to find in TRACK_DATA and use slug map
   const track = getTrackData(trackName);
   if (track?.id && TRACK_SLUG_MAP[track.id]) {
     return TRACK_SLUG_MAP[track.id];
   }
-  
+
   // Last resort - return as-is (will likely fail to load)
   return trackName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
 }
