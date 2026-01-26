@@ -204,11 +204,11 @@ export function DriverCockpit() {
           </div>
 
           {/* Ok Box Box Pill Logo - Behind Track */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.08]">
-            <div className="flex flex-col gap-3 scale-[4]">
-              <div className="w-24 h-6 bg-white rounded-full" />
-              <div className="w-24 h-6 bg-[#3b82f6] rounded-full" />
-              <div className="w-24 h-6 bg-[#f97316] rounded-full" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.06]">
+            <div className="flex gap-2 transform rotate-12 scale-[6]">
+              <div className="w-3 h-12 bg-white rounded-full" />
+              <div className="w-3 h-12 bg-[#3b82f6] rounded-full" />
+              <div className="w-3 h-12 bg-[#f97316] rounded-full" />
             </div>
           </div>
 
