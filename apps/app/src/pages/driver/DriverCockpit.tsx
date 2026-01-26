@@ -70,10 +70,10 @@ export function DriverCockpit() {
   const deltaColor = activeTelemetry.delta < 0 ? 'text-emerald-400' : activeTelemetry.delta > 0 ? 'text-red-400' : 'text-white/50';
 
   return (
-    <div className="h-[calc(100vh-9rem)] flex relative bg-[#0e0e0e] overflow-hidden">
+    <div className="h-[calc(100vh-9rem)] flex relative bg-[#0a0a0a] overflow-hidden">
       
       {/* Left Sidebar - Race Info */}
-      <div className="w-64 border-r border-white/[0.06] bg-[#0e0e0e]/80 backdrop-blur-xl flex flex-col flex-shrink-0 overflow-hidden">
+      <div className="w-64 border-r border-white/[0.08] bg-[#111111]/90 backdrop-blur-xl flex flex-col flex-shrink-0 overflow-hidden">
         
         {/* Header */}
         <div className="p-4 border-b border-white/[0.06]">
@@ -95,7 +95,7 @@ export function DriverCockpit() {
           <h3 className="text-[10px] uppercase tracking-[0.15em] text-emerald-400 mb-3 flex items-center gap-2">
             <Flag className="w-3 h-3" />Race Position
           </h3>
-          <div className="bg-white/[0.02] rounded p-4 border border-white/[0.06]">
+          <div className="bg-white/[0.03] rounded p-4 border border-white/[0.08] backdrop-blur-sm">
             <div className="text-5xl font-bold text-white/90 font-mono">
               P{activeTelemetry.position}
             </div>
@@ -115,11 +115,11 @@ export function DriverCockpit() {
             <Clock className="w-3 h-3" />Lap Times
           </h3>
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs bg-white/[0.02] rounded p-3 border border-white/[0.06]">
+            <div className="flex items-center justify-between text-xs bg-white/[0.03] rounded p-3 border border-white/[0.08] backdrop-blur-sm">
               <span className="text-white/50">Last Lap</span>
               <span className="text-white/90 font-mono">{activeTelemetry.lastLap}</span>
             </div>
-            <div className="flex items-center justify-between text-xs bg-white/[0.02] rounded p-3 border border-white/[0.06]">
+            <div className="flex items-center justify-between text-xs bg-white/[0.03] rounded p-3 border border-white/[0.08] backdrop-blur-sm">
               <span className="text-white/50">Best Lap</span>
               <span className="text-emerald-400 font-mono">{activeTelemetry.bestLap}</span>
             </div>
@@ -131,7 +131,7 @@ export function DriverCockpit() {
           <h3 className="text-[10px] uppercase tracking-[0.15em] text-emerald-400 mb-3 flex items-center gap-2">
             <Fuel className="w-3 h-3" />Race Status
           </h3>
-          <div className="space-y-3 bg-white/[0.02] rounded p-3 border border-white/[0.06]">
+          <div className="space-y-3 bg-white/[0.03] rounded p-3 border border-white/[0.08] backdrop-blur-sm">
             <div className="flex items-center justify-between text-xs">
               <span className="text-white/40">Fuel Remaining</span>
               <span className="text-white/80 font-mono">{activeTelemetry.fuel?.toFixed(1)}L</span>
@@ -227,7 +227,7 @@ export function DriverCockpit() {
       </div>
 
       {/* Right Sidebar - Leaderboard */}
-      <div className="w-72 border-l border-white/[0.06] bg-[#0e0e0e]/80 backdrop-blur-xl flex flex-col">
+      <div className="w-72 border-l border-white/[0.08] bg-[#111111]/90 backdrop-blur-xl flex flex-col">
         
         {/* Header */}
         <div className="p-4 border-b border-white/[0.06]">
@@ -262,7 +262,7 @@ export function DriverCockpit() {
             <div 
               key={entry.pos}
               className={`flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.04] ${
-                entry.isPlayer ? 'bg-[#f97316]/10 border-l-2 border-l-[#f97316]' : 'hover:bg-white/[0.02]'
+                entry.isPlayer ? 'bg-cyan-500/10 border-l-2 border-l-cyan-500' : 'hover:bg-white/[0.02]'
               }`}
             >
               {/* Position */}
@@ -292,7 +292,7 @@ export function DriverCockpit() {
               {/* Gap */}
               <div className={`text-xs font-mono ${
                 entry.pos === 1 ? 'text-white/40' : 
-                entry.isPlayer ? 'text-[#f97316]' : 'text-white/50'
+                entry.isPlayer ? 'text-cyan-400' : 'text-white/50'
               }`}>
                 {entry.gap}
               </div>
@@ -304,7 +304,7 @@ export function DriverCockpit() {
         <div className="border-t border-white/[0.06] flex flex-col">
           <div className="px-3 py-2 border-b border-white/[0.06] flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">Team Radio</span>
+            <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-semibold">Team Radio</span>
           </div>
           <div className="p-2 space-y-2 max-h-32 overflow-hidden">
             {/* Latest message - highlighted */}

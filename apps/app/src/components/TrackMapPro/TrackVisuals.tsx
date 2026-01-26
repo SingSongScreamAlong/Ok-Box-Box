@@ -132,22 +132,22 @@ export function TrackVisuals({ shape, carPosition, otherCars }: TrackVisualsProp
                 strokeLinejoin="round"
             />
 
-            {/* Layer 4: Racing line - orange accent */}
+            {/* Layer 4: Racing line - neutral white glow */}
             <path
                 d={fullPathData}
-                stroke="#f97316"
+                stroke="rgba(255,255,255,0.5)"
                 strokeWidth="3"
                 fill="none"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                opacity="0.7"
+                opacity="0.6"
                 filter="url(#trackGlow)"
             />
 
-            {/* Layer 5: Center line - white highlight */}
+            {/* Layer 5: Center line - subtle white highlight */}
             <path
                 d={fullPathData}
-                stroke="rgba(255,255,255,0.4)"
+                stroke="rgba(255,255,255,0.25)"
                 strokeWidth="1"
                 fill="none"
                 strokeLinecap="round"
@@ -174,7 +174,7 @@ export function TrackVisuals({ shape, carPosition, otherCars }: TrackVisualsProp
                 );
             })}
 
-            {/* Player Car Marker */}
+            {/* Player Car Marker - cyan/teal accent for visibility */}
             {carCoords && (
                 <motion.g
                     initial={{ x: carCoords.x, y: carCoords.y }}
@@ -182,11 +182,11 @@ export function TrackVisuals({ shape, carPosition, otherCars }: TrackVisualsProp
                     transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                 >
                     {/* Outer glow ring */}
-                    <circle r="24" fill="#f97316" fillOpacity="0.15" />
+                    <circle r="24" fill="#06b6d4" fillOpacity="0.15" />
                     {/* Middle ring */}
-                    <circle r="16" fill="none" stroke="#f97316" strokeWidth="2" opacity="0.6" />
+                    <circle r="16" fill="none" stroke="#06b6d4" strokeWidth="2" opacity="0.6" />
                     {/* Inner bright dot */}
-                    <circle r="8" fill="#f97316" filter="url(#carGlow)" />
+                    <circle r="8" fill="#06b6d4" filter="url(#carGlow)" />
                     {/* Center highlight */}
                     <circle r="3" fill="white" opacity="0.9" />
                 </motion.g>
