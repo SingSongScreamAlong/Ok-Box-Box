@@ -1,12 +1,11 @@
 
-import React, { useMemo, useState, useRef } from 'react';
+import { useMemo, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useTrackData } from '../../hooks/useTrackData';
 import { TrackVisuals } from './TrackVisuals';
 import { TrackControls } from './TrackControls';
 import { TrackLabels } from './TrackLabels';
-import { TrackGhosts } from './TrackGhosts';
-import { getTrackId, getTrackData, TRACK_SLUG_MAP } from '../../data/tracks';
+import { getTrackData, TRACK_SLUG_MAP } from '../../data/tracks';
 
 /* 
   TrackMapPro: The Ultimate Race Control Surface
@@ -59,7 +58,7 @@ export function TrackMapPro({
     const trackMetadata = getTrackData(trackId);
 
     const [zoom, setZoom] = useState(1);
-    const [pan, setPan] = useState({ x: 0, y: 0 });
+    const [pan] = useState({ x: 0, y: 0 });
     const containerRef = useRef<HTMLDivElement>(null);
 
     const viewBox = useMemo(() => {
@@ -84,12 +83,7 @@ export function TrackMapPro({
         return `${viewX} ${viewY} ${currentW} ${currentH}`;
     }, [shape, zoom, pan]);
 
-    // Telemetry Normalization
-    const speedTelemetry = useMemo(() => {
-        if (!telemetry) return undefined;
-        return telemetry.map(t => (t.speed || 0) / 300);
-    }, [telemetry]);
-
+    
     const handleWheel = (e: React.WheelEvent) => {
         e.preventDefault();
         const delta = -e.deltaY * 0.001;
@@ -115,34 +109,16 @@ export function TrackMapPro({
             className={`relative overflow-hidden selection:bg-none ${className}`}
             onWheel={handleWheel}
         >
-            <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5 pointer-events-none" />
-
-            {/* Main SVG Surface - rendering optimized */}
+            {/* Main SVG Surface */}
             <motion.svg
                 viewBox={viewBox}
                 className="w-full h-full pointer-events-auto cursor-grab active:cursor-grabbing"
                 shapeRendering="geometricPrecision"
-                style={{
-                    '--track-stroke': 'var(--panel-border, #334155)',
-                    '--track-bg': 'var(--bg, #0f172a)'
-                } as React.CSSProperties}
             >
-                {/* 
-                  REMOVED: Expensive SVG filters (glow-soft, glow-intense) that caused performance issues.
-                  Replaced with clean, solid strokes matching the "Pit Wall" aesthetic.
-                */}
-
-
                 <TrackVisuals
                     shape={shape}
                     carPosition={carPosition}
-                    telemetry={speedTelemetry}
-                />
-
-                <TrackGhosts
-                    shape={shape}
-                    opponents={otherCars}
-                    zoom={zoom}
+                    otherCars={otherCars}
                 />
 
                 {trackMetadata && trackMetadata.corners && (
@@ -161,8 +137,8 @@ export function TrackMapPro({
                 currentZoom={zoom}
             />
 
-            <div className="absolute bottom-4 left-4 font-mono text-[10px] text-cyan-500/50 pointer-events-none">
-                {shape.trackId} // {zoom.toFixed(1)}x
+            <div className="absolute bottom-4 left-4 font-mono text-[10px] text-white/30 pointer-events-none">
+                {shape.trackId}
             </div>
         </div>
     );
