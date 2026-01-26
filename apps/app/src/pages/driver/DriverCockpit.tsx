@@ -199,6 +199,30 @@ export function DriverCockpit() {
               <span className="text-sm text-[#f97316] font-semibold">KPH</span>
             </div>
           </div>
+
+          {/* Bottom Left Controls */}
+          <div className="absolute bottom-4 left-4">
+            <div className="bg-[#0e0e0e]/80 backdrop-blur-xl border border-white/[0.08] rounded-lg p-1.5 flex items-center gap-1">
+              <button
+                onClick={toggleVoice}
+                className={`p-2 rounded transition-all ${
+                  voiceEnabled 
+                    ? 'bg-[#f97316]/20 text-[#f97316]' 
+                    : 'text-white/40 hover:text-white/70 hover:bg-white/[0.06]'
+                }`}
+                title={voiceEnabled ? 'Mute Voice' : 'Enable Voice'}
+              >
+                {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              </button>
+              <div className="w-px h-5 bg-white/[0.08]" />
+              <button
+                className="p-2 rounded text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-all"
+                title="Settings"
+              >
+                <MapPin className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
