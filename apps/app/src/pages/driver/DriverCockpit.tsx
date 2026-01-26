@@ -88,6 +88,7 @@ export function DriverCockpit() {
   }, [isLive, telemetry.lap, telemetry.delta, session.sessionType]);
 
   // Get context-appropriate guidance
+  // All states use orange as primary accent to match app theme
   const getContextGuidance = () => {
     switch (driverContext) {
       case 'warmup':
@@ -95,24 +96,24 @@ export function DriverCockpit() {
           icon: Wind,
           label: 'Building Rhythm',
           message: 'Get settled. Find your marks. No pressure.',
-          color: 'text-blue-400',
-          bg: 'bg-blue-500/10 border-blue-500/20'
+          color: 'text-orange-400',
+          bg: 'bg-white/[0.02] border-white/10'
         };
       case 'push':
         return {
           icon: Zap,
           label: 'Clean Air',
           message: messages.find(m => m.urgency === 'important')?.content || driverAssessment || 'Drive your line.',
-          color: 'text-green-400',
-          bg: 'bg-green-500/10 border-green-500/20'
+          color: 'text-orange-400',
+          bg: 'bg-white/[0.02] border-white/10'
         };
       case 'traffic':
         return {
           icon: Shield,
           label: 'Traffic Ahead',
           message: 'Pick your battles. Survive first.',
-          color: 'text-yellow-400',
-          bg: 'bg-yellow-500/10 border-yellow-500/20'
+          color: 'text-orange-400',
+          bg: 'bg-white/[0.02] border-white/10'
         };
       case 'degradation':
         return {
@@ -120,23 +121,23 @@ export function DriverCockpit() {
           label: 'Manage the Moment',
           message: 'Stay smooth. Consistency over pace.',
           color: 'text-orange-400',
-          bg: 'bg-orange-500/10 border-orange-500/20'
+          bg: 'bg-white/[0.02] border-white/10'
         };
       case 'cooldown':
         return {
           icon: CheckCircle,
           label: 'Session Complete',
           message: 'Good work. Review when ready.',
-          color: 'text-purple-400',
-          bg: 'bg-purple-500/10 border-purple-500/20'
+          color: 'text-orange-400',
+          bg: 'bg-white/[0.02] border-white/10'
         };
       default:
         return {
           icon: Radio,
           label: 'Standing By',
           message: 'Ready when you are.',
-          color: 'text-white/40',
-          bg: 'bg-white/5 border-white/10'
+          color: 'text-orange-400',
+          bg: 'bg-white/[0.02] border-white/10'
         };
     }
   };
@@ -247,16 +248,16 @@ export function DriverCockpit() {
               </div>
 
               {/* PRIMARY GUIDANCE - The one thing that matters */}
-              <div className={`rounded-2xl border p-8 ${guidance.bg}`}>
-                <div className="flex items-start gap-5">
-                  <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${guidance.bg}`}>
-                    <GuidanceIcon className={`w-7 h-7 ${guidance.color}`} />
+              <div className="bg-white/[0.02] border border-white/10 rounded-xl p-6">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <GuidanceIcon className="w-6 h-6 text-orange-400" />
                   </div>
                   <div className="flex-1">
-                    <div className={`text-xs uppercase tracking-wider mb-2 ${guidance.color}`}>
+                    <div className="text-xs uppercase tracking-wider mb-2 text-orange-400">
                       {guidance.label}
                     </div>
-                    <div className="text-xl font-medium leading-relaxed">
+                    <div className="text-lg font-medium leading-relaxed text-white">
                       {guidance.message}
                     </div>
                   </div>
