@@ -300,17 +300,14 @@ export function DriverCockpit() {
           ))}
         </div>
 
-        {/* Footer Stats */}
-        <div className="p-4 border-t border-white/[0.06]">
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="bg-white/[0.02] rounded p-2 border border-white/[0.06]">
-              <span className="text-white/40 block text-[10px] uppercase">Cars in Class</span>
-              <span className="text-white/80 font-mono">24</span>
+        {/* Crew Message */}
+        <div className="p-3 border-t border-white/[0.06]">
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-semibold">Engineer</span>
+              <span className="text-[10px] text-white/30">Just now</span>
             </div>
-            <div className="bg-white/[0.02] rounded p-2 border border-white/[0.06]">
-              <span className="text-white/40 block text-[10px] uppercase">Lap</span>
-              <span className="text-white/80 font-mono">12 / 45</span>
-            </div>
+            <p className="text-xs text-white/80">Looking good, keep this pace. Fuel is on target.</p>
           </div>
         </div>
       </div>
