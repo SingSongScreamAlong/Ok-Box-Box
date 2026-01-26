@@ -6,7 +6,7 @@ import { fetchUpcomingRaces, UpcomingRace } from '../../../lib/driverService';
 import { 
   Eye, Send, ArrowLeft, Calendar,
   Settings2, ChevronRight, Loader2,
-  Car, Users, AlertTriangle, MapPin
+  Car, Users, AlertTriangle, MapPin, Wrench, BarChart3
 } from 'lucide-react';
 
 interface Message {
@@ -125,6 +125,34 @@ export function SpotterChat() {
             </div>
           </div>
         </div>
+        
+        {/* Crew Navigation Tabs */}
+        <div className="p-3 border-b border-white/[0.06]">
+          <div className="flex gap-1">
+            <Link 
+              to="/driver/crew/engineer"
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded text-xs font-medium bg-white/[0.03] text-white/50 border border-white/[0.08] hover:bg-white/[0.06] hover:text-white/70 transition-colors"
+            >
+              <Wrench className="w-3 h-3" />
+              Engineer
+            </Link>
+            <Link 
+              to="/driver/crew/spotter"
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded text-xs font-medium bg-[#f97316]/20 text-[#f97316] border border-[#f97316]/30"
+            >
+              <Eye className="w-3 h-3" />
+              Spotter
+            </Link>
+            <Link 
+              to="/driver/crew/analyst"
+              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded text-xs font-medium bg-white/[0.03] text-white/50 border border-white/[0.08] hover:bg-white/[0.06] hover:text-white/70 transition-colors"
+            >
+              <BarChart3 className="w-3 h-3" />
+              Analyst
+            </Link>
+          </div>
+        </div>
+        
         <div className="p-4 border-b border-white/[0.06]">
           <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
             <Calendar className="w-3 h-3" />Upcoming Races
