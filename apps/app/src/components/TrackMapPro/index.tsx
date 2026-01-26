@@ -108,7 +108,6 @@ export function TrackMapPro({
             <motion.svg
                 viewBox={viewBox}
                 className="w-full h-full pointer-events-auto cursor-grab active:cursor-grabbing"
-                style={{ transform: 'scale(1, -1)' }}
                 shapeRendering="geometricPrecision" // Critical for anti-aliasing
             >
                 <defs>
