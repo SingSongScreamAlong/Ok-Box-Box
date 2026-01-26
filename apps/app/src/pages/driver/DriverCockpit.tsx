@@ -95,7 +95,7 @@ export function DriverCockpit() {
   };
 
   return (
-    <div className="h-[calc(100vh-8.5rem)] -m-4 md:-m-6 bg-[#080808] text-white overflow-hidden flex flex-col">
+    <div className="fixed inset-0 top-14 bottom-10 bg-[#080808] text-white overflow-hidden flex flex-col z-10">
       
       {/* Track Map Section - fills remaining space */}
       <div className="relative flex-1 min-h-0">
