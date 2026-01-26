@@ -73,29 +73,29 @@ export function DriverCockpit() {
     <div className="h-[calc(100vh-9rem)] flex relative bg-[#0a0a0a] overflow-hidden">
       
       {/* Background Video - Left Side of Page */}
-      <div className="absolute left-0 top-0 bottom-0 w-64 overflow-hidden opacity-20 pointer-events-none z-0">
+      <div className="absolute left-0 top-0 bottom-0 w-64 overflow-hidden opacity-40 pointer-events-none z-[1]">
         <video
           autoPlay
           loop
           muted
           playsInline
           className="w-full h-full object-cover"
-          src="https://assets.mixkit.co/videos/preview/mixkit-race-car-driving-on-a-track-at-night-1213-large.mp4"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0a0a0a]" />
+        >
+          <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
+        </video>
       </div>
       
       {/* Background Video - Right Side of Page */}
-      <div className="absolute right-0 top-0 bottom-0 w-72 overflow-hidden opacity-20 pointer-events-none z-0">
+      <div className="absolute right-0 top-0 bottom-0 w-72 overflow-hidden opacity-40 pointer-events-none z-[1]">
         <video
           autoPlay
           loop
           muted
           playsInline
           className="w-full h-full object-cover"
-          src="https://assets.mixkit.co/videos/preview/mixkit-race-car-driving-on-a-track-at-night-1213-large.mp4"
-        />
-        <div className="absolute inset-0 bg-gradient-to-l from-transparent to-[#0a0a0a]" />
+        >
+          <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
+        </video>
       </div>
 
       {/* Left Sidebar - Race Info */}
