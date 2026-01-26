@@ -79,7 +79,7 @@ export function DriverCockpit() {
         <div className="p-4 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/[0.04] border border-white/[0.08] rounded flex items-center justify-center">
-              <MapPin className="w-5 h-5 text-[#f97316]" />
+              <MapPin className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-wider text-white/90" style={{ fontFamily: 'Orbitron, sans-serif' }}>
@@ -92,7 +92,7 @@ export function DriverCockpit() {
 
         {/* Position Card */}
         <div className="p-4 border-b border-white/[0.06]">
-          <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+          <h3 className="text-[10px] uppercase tracking-[0.15em] text-emerald-400 mb-3 flex items-center gap-2">
             <Flag className="w-3 h-3" />Race Position
           </h3>
           <div className="bg-white/[0.02] rounded p-4 border border-white/[0.06]">
@@ -111,7 +111,7 @@ export function DriverCockpit() {
 
         {/* Lap Times */}
         <div className="p-4 border-b border-white/[0.06]">
-          <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+          <h3 className="text-[10px] uppercase tracking-[0.15em] text-emerald-400 mb-3 flex items-center gap-2">
             <Clock className="w-3 h-3" />Lap Times
           </h3>
           <div className="space-y-2">
@@ -121,14 +121,14 @@ export function DriverCockpit() {
             </div>
             <div className="flex items-center justify-between text-xs bg-white/[0.02] rounded p-3 border border-white/[0.06]">
               <span className="text-white/50">Best Lap</span>
-              <span className="text-[#f97316] font-mono">{activeTelemetry.bestLap}</span>
+              <span className="text-emerald-400 font-mono">{activeTelemetry.bestLap}</span>
             </div>
           </div>
         </div>
 
         {/* Fuel & Laps */}
         <div className="p-4 flex-1">
-          <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+          <h3 className="text-[10px] uppercase tracking-[0.15em] text-emerald-400 mb-3 flex items-center gap-2">
             <Fuel className="w-3 h-3" />Race Status
           </h3>
           <div className="space-y-3 bg-white/[0.02] rounded p-3 border border-white/[0.06]">
