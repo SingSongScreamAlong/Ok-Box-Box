@@ -5,6 +5,7 @@ import { useTrackData } from '../../hooks/useTrackData';
 import { TrackVisuals } from './TrackVisuals';
 import { TrackControls } from './TrackControls';
 import { TrackLabels } from './TrackLabels';
+import { TrackGhosts } from './TrackGhosts';
 import { getTrackId, getTrackData, TRACK_SLUG_MAP } from '../../data/tracks';
 
 /* 
@@ -151,12 +152,18 @@ export function TrackMapPro({
                 <TrackVisuals
                     shape={shape}
                     carPosition={carPosition}
-                    otherCars={otherCars}
                     telemetry={speedTelemetry}
+                />
+
+                <TrackGhosts
+                    shape={shape}
+                    opponents={otherCars}
+                    zoom={zoom}
                 />
 
                 {trackMetadata && trackMetadata.corners && (
                     <TrackLabels
+                        shape={shape}
                         corners={trackMetadata.corners}
                         zoom={zoom}
                     />

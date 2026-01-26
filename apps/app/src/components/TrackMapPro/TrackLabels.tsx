@@ -1,24 +1,33 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { TrackCorner } from '../../data/tracks'; // Assuming this interface is exported
+import { TrackCorner } from '../../data/tracks';
+import { TrackShape } from '../../hooks/useTrackData';
+import { getPointAtPercentage } from '../../utils/trackMath';
 
 interface TrackLabelsProps {
+    shape: TrackShape;
     corners: TrackCorner[];
     zoom: number;
 }
 
-export function TrackLabels({ corners, zoom }: TrackLabelsProps) {
-    if (!corners || corners.length === 0) return null;
+export function TrackLabels({ shape, corners, zoom }: TrackLabelsProps) {
+    if (!corners || corners.length === 0 || !shape) return null;
 
-    // Scale font size inversely to zoom to keep text readable but not huge
-    // Base size 12px -> at 2x zoom effectively 6px in track units
+    // Scale font size inversely to zoom
     const scale = 1 / Math.max(zoom, 0.5);
 
     return (
         <g className="pointer-events-none">
             {corners.map((corner, i) => {
-                if (!corner.apex) return null;
+                // Use normalized distance to find point on track
+                // If corner doesn't have normalizedDistance, fallback? 
+                // Currently tracks.ts has normalizedDistance for all.
+                const pct = corner.apex.normalizedDistance;
+                if (pct === undefined) return null;
+
+                const pos = getPointAtPercentage(shape, pct);
+                if (!pos) return null;
 
                 return (
                     <motion.g
@@ -26,7 +35,7 @@ export function TrackLabels({ corners, zoom }: TrackLabelsProps) {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ delay: 0.5 + i * 0.05 }}
-                        transform={`translate(${corner.apex.x}, ${corner.apex.y}) scale(${scale}, -${scale})`} // Flip Y for text
+                        transform={`translate(${pos.x}, ${pos.y}) scale(${scale}, -${scale})`}
                     >
                         {/* Label Background/Glow for readability */}
                         <text
@@ -47,7 +56,7 @@ export function TrackLabels({ corners, zoom }: TrackLabelsProps) {
                             {corner.number}
                         </text>
 
-                        {/* Corner Name (only show if zoomed in or sparse) */}
+                        {/* Corner Name (only show if zoomed in) */}
                         {corner.name && zoom > 1.5 && (
                             <text
                                 textAnchor="middle"
