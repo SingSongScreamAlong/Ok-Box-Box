@@ -70,10 +70,10 @@ export function DriverCockpit() {
   const deltaColor = activeTelemetry.delta < 0 ? 'text-emerald-400' : activeTelemetry.delta > 0 ? 'text-red-400' : 'text-white/50';
 
   return (
-    <div className="h-[calc(100vh-6rem)] flex relative bg-[#0e0e0e]">
+    <div className="h-[calc(100vh-6rem)] flex relative bg-[#0e0e0e] overflow-hidden">
       
       {/* Left Sidebar - Race Info */}
-      <div className="w-64 border-r border-white/[0.06] bg-[#0e0e0e]/80 backdrop-blur-xl flex flex-col">
+      <div className="w-64 border-r border-white/[0.06] bg-[#0e0e0e]/80 backdrop-blur-xl flex flex-col flex-shrink-0 overflow-hidden">
         
         {/* Header */}
         <div className="p-4 border-b border-white/[0.06]">
@@ -245,7 +245,7 @@ export function DriverCockpit() {
         </div>
 
         {/* Leaderboard List */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-hidden">
           {/* Demo leaderboard data */}
           {[
             { pos: 1, num: '1', driver: 'M. Verstappen', gap: 'Leader', color: '#1e3a8a' },
