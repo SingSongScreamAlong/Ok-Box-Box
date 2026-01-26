@@ -167,22 +167,9 @@ export function TrackVisuals({ shape, carPosition, otherCars }: TrackVisualsProp
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                     >
                         {/* Outer ring */}
-                        <circle r="16" fill="none" stroke={color} strokeWidth="2" opacity="0.3" />
+                        <circle r="12" fill="none" stroke={color} strokeWidth="1.5" opacity="0.4" />
                         {/* Inner dot */}
-                        <circle r="6" fill={color} opacity="0.9" />
-                        {/* Car number label */}
-                        {car.carNumber && (
-                            <text
-                                y="-24"
-                                textAnchor="middle"
-                                fill="rgba(255,255,255,0.7)"
-                                fontSize="14"
-                                fontFamily="ui-monospace, monospace"
-                                fontWeight="600"
-                            >
-                                {car.carNumber}
-                            </text>
-                        )}
+                        <circle r="5" fill={color} opacity="0.9" />
                     </motion.g>
                 );
             })}

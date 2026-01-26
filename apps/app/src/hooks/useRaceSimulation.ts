@@ -33,8 +33,8 @@ export function useRaceSimulation({ trackLength = 5730, baseLapTime = 100, isPla
     // Initialize Ghosts once
     useEffect(() => {
         setOpponents([
-            { id: 'ghost1', name: 'VER', trackPercentage: 0.05, speed: 0, color: '#1e3a8a', isGhost: true }, // Ahead
-            { id: 'ghost2', name: 'HAM', trackPercentage: 0.98, speed: 0, color: '#06b6d4', isGhost: true }, // Behind
+            { id: 'ghost1', name: '44', trackPercentage: 0.05, speed: 0, color: '#ef4444', isGhost: true }, // Ahead
+            { id: 'ghost2', name: '77', trackPercentage: 0.98, speed: 0, color: '#22c55e', isGhost: true }, // Behind
         ]);
     }, []);
 
