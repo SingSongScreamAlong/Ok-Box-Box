@@ -2,10 +2,14 @@
 // Source: packages/dashboard/src/data/trackData/*.shape.json
 
 // Map slugs to iRacing shape IDs for the TrackMap component
+// NOTE: Shape files are from iRacing telemetry. Some may be outdated.
+// To update: capture new telemetry data from iRacing and regenerate shape files.
 export const TRACK_SLUG_MAP: Record<string, string> = {
-  // Daytona
-  'daytona': '381',        // Daytona Road Course 2020? (Verifying ID)
+  // Daytona - 381 is the old NASCAR road config with bus stop chicane
+  // TODO: Need to capture fresh telemetry for current 24h layout
+  'daytona': '381',        // Daytona Road Course (older layout with bus stop)
   'daytona-road': '381',
+  'daytona-24h': '381',    // Same file for now - needs update
   'daytona-oval': '191',
 
   // Watkins Glen
