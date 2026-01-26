@@ -174,18 +174,12 @@ export function DriverCockpit() {
   return (
     <div className="fixed inset-0 top-14 bottom-10 bg-[#080808] text-white overflow-hidden z-10">
 
-      {/* Ok Box Box logo - background layer */}
+      {/* Ok Box Box 3-pill logo - background layer */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
-        <div className="text-center opacity-[0.03]">
-          <div className="text-[12vw] font-bold tracking-tighter leading-[0.85]" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-            OK,
-          </div>
-          <div className="text-[12vw] font-bold tracking-tighter leading-[0.85]" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-            BOX
-          </div>
-          <div className="text-[12vw] font-bold tracking-tighter leading-[0.85]" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-            BOX
-          </div>
+        <div className="flex gap-4 opacity-[0.04]">
+          <div className="w-12 h-48 bg-white rounded-full transform rotate-12" />
+          <div className="w-12 h-48 bg-[#3b82f6] rounded-full transform rotate-12" />
+          <div className="w-12 h-48 bg-[#f97316] rounded-full transform rotate-12" />
         </div>
       </div>
 
