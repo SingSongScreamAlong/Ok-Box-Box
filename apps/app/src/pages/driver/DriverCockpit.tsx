@@ -177,6 +177,41 @@ export function DriverCockpit() {
 
         {/* Track Map Area */}
         <div className="flex-1 relative">
+          {/* Background Video - Left Side */}
+          <div className="absolute left-0 top-0 bottom-0 w-1/4 overflow-hidden opacity-20 pointer-events-none">
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+              src="https://assets.mixkit.co/videos/preview/mixkit-race-car-driving-on-a-track-at-night-1213-large.mp4"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0a0a0a]" />
+          </div>
+          
+          {/* Background Video - Right Side */}
+          <div className="absolute right-0 top-0 bottom-0 w-1/4 overflow-hidden opacity-20 pointer-events-none">
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+              src="https://assets.mixkit.co/videos/preview/mixkit-race-car-driving-on-a-track-at-night-1213-large.mp4"
+            />
+            <div className="absolute inset-0 bg-gradient-to-l from-transparent to-[#0a0a0a]" />
+          </div>
+
+          {/* Ok Box Box Pill Logo - Behind Track */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-[0.03]">
+            <div className="flex gap-4 transform rotate-12 scale-[3]">
+              <div className="w-8 h-32 bg-white rounded-full" />
+              <div className="w-8 h-32 bg-[#3b82f6] rounded-full" />
+              <div className="w-8 h-32 bg-[#f97316] rounded-full" />
+            </div>
+          </div>
+
           <TrackMap
             trackId={trackId}
             carPosition={activeTelemetry.carPosition}
