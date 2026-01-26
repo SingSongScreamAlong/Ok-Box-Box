@@ -9,7 +9,6 @@ import {
   TrendingUp, TrendingDown, Minus, MapPin
 } from 'lucide-react';
 import { TrackMap } from '../../components/TrackMapRive';
-import { ObbBrandMark } from '../../components/brand/ObbBrandMark';
 
 /**
  * DriverCockpit - Glanceable Second Monitor / iPad View
@@ -204,10 +203,12 @@ export function DriverCockpit() {
             <div className="absolute inset-0 bg-gradient-to-l from-transparent to-[#0a0a0a]" />
           </div>
 
-          {/* Ok Box Box Pill Logo - Behind Track */}
+          {/* Ok Box Box Pill Logo - Behind Track - stripes only */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
-            <div className="transform scale-[8]">
-              <ObbBrandMark size="lg" showTagline={false} />
+            <div className="flex gap-2 transform scale-[8]">
+              <div className="w-2 h-7 bg-white rounded-full transform rotate-12" />
+              <div className="w-2 h-7 bg-[#3b82f6] rounded-full transform rotate-12" />
+              <div className="w-2 h-7 bg-[#f97316] rounded-full transform rotate-12" />
             </div>
           </div>
 
