@@ -174,8 +174,23 @@ export function DriverCockpit() {
   return (
     <div className="fixed inset-0 top-14 bottom-10 bg-[#080808] text-white overflow-hidden z-10">
 
+      {/* Ok Box Box logo - background layer */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
+        <div className="text-center opacity-[0.03]">
+          <div className="text-[12vw] font-bold tracking-tighter leading-[0.85]" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+            OK,
+          </div>
+          <div className="text-[12vw] font-bold tracking-tighter leading-[0.85]" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+            BOX
+          </div>
+          <div className="text-[12vw] font-bold tracking-tighter leading-[0.85]" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+            BOX
+          </div>
+        </div>
+      </div>
+
       {/* Full-screen Track Map - the visual anchor */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 z-[1]">
         <TrackMapRive
           trackId={trackId}
           showPitLane={true}
