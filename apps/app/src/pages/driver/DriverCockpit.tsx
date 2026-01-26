@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useRelay } from '../../hooks/useRelay';
 import { useEngineer } from '../../hooks/useEngineer';
 import { useVoice } from '../../hooks/useVoice';
@@ -9,37 +9,23 @@ import {
   MessageSquare,
   Volume2,
   VolumeX,
-  ChevronRight,
-  Shield,
-  Zap,
-  Wind,
-  Brain,
-  CheckCircle
+  Fuel,
+  Flag,
+  Clock,
+  Wrench,
+  Eye,
+  Gauge,
+  ArrowLeft,
+  Timer,
+  Zap
 } from 'lucide-react';
 
 /**
- * DriverCockpit - Adaptive Decision Surface
+ * DriverCockpit - Race-Ready Decision Surface
  * 
- * NOT a dashboard. NOT a telemetry screen. NOT a HUD clone.
- * 
- * This is an adaptive decision surface whose sole purpose is to help
- * the driver make better decisions in the moment they are being made.
- * 
- * If information does not reduce uncertainty, guide judgment, or influence
- * an immediate decision, it does not belong here by default.
- * 
- * The surface adapts to driver context:
- * - Warmup: Calm, sparse, avoid pressure
- * - Push: Validate progress, warn early, stay quiet
- * - Traffic: Spatial awareness, behavioral tags, spotter-led
- * - Degradation: Reduce load, de-emphasize time, gentle truth
- * - Cooldown: Synthesize, reinforce identity, provide clarity
- * 
- * SILENCE IS CONFIDENCE. The best compliment: "It only talks when it matters."
+ * Designed for use DURING a race with large, easy-to-click buttons.
+ * Matches the Crew page layout and styling.
  */
-
-// Driver context types
-type DriverContext = 'warmup' | 'push' | 'traffic' | 'degradation' | 'cooldown' | 'idle';
 
 export function DriverCockpit() {
   const { status, telemetry, session } = useRelay();
@@ -47,7 +33,6 @@ export function DriverCockpit() {
     criticalMessages,
     messages,
     driverAssessment,
-    engineerKnowledge,
     loading: engineerLoading 
   } = useEngineer();
   const { isEnabled: voiceEnabled, toggleVoice, speak } = useVoice();
@@ -61,151 +46,174 @@ export function DriverCockpit() {
 
   const isLive = status === 'in_session' || status === 'connected';
 
-  // Determine driver context based on session state
-  const driverContext = useMemo((): DriverContext => {
-    if (!isLive) return 'idle';
-    
-    const lap = telemetry.lap ?? 0;
-    const sessionType = session.sessionType;
-    
-    // Early laps = warmup
-    if (lap <= 2) return 'warmup';
-    
-    // TODO: Detect traffic from proximity data
-    // For now, use position changes as proxy
-    
-    // TODO: Detect degradation from lap time trends
-    // For now, check if delta is consistently positive
-    if (telemetry.delta && telemetry.delta > 0.5) return 'degradation';
-    
-    // Race with good position = push
-    if (sessionType === 'race' || sessionType === 'qualifying') {
-      return 'push';
-    }
-    
-    // Practice default = push (building pace)
-    return 'push';
-  }, [isLive, telemetry.lap, telemetry.delta, session.sessionType]);
-
-  // Get context-appropriate guidance
-  // All states use orange as primary accent to match app theme
-  const getContextGuidance = () => {
-    switch (driverContext) {
-      case 'warmup':
-        return {
-          icon: Wind,
-          label: 'Building Rhythm',
-          message: 'Get settled. Find your marks. No pressure.',
-          color: 'text-orange-400',
-          bg: 'bg-white/[0.02] border-white/10'
-        };
-      case 'push':
-        return {
-          icon: Zap,
-          label: 'Clean Air',
-          message: messages.find(m => m.urgency === 'important')?.content || driverAssessment || 'Drive your line.',
-          color: 'text-orange-400',
-          bg: 'bg-white/[0.02] border-white/10'
-        };
-      case 'traffic':
-        return {
-          icon: Shield,
-          label: 'Traffic Ahead',
-          message: 'Pick your battles. Survive first.',
-          color: 'text-orange-400',
-          bg: 'bg-white/[0.02] border-white/10'
-        };
-      case 'degradation':
-        return {
-          icon: Brain,
-          label: 'Manage the Moment',
-          message: 'Stay smooth. Consistency over pace.',
-          color: 'text-orange-400',
-          bg: 'bg-white/[0.02] border-white/10'
-        };
-      case 'cooldown':
-        return {
-          icon: CheckCircle,
-          label: 'Session Complete',
-          message: 'Good work. Review when ready.',
-          color: 'text-orange-400',
-          bg: 'bg-white/[0.02] border-white/10'
-        };
-      default:
-        return {
-          icon: Radio,
-          label: 'Standing By',
-          message: 'Ready when you are.',
-          color: 'text-orange-400',
-          bg: 'bg-white/[0.02] border-white/10'
-        };
-    }
+  const formatTime = (seconds: number | null) => {
+    if (seconds === null) return '--:--.---';
+    const mins = Math.floor(seconds / 60);
+    const secs = (seconds % 60).toFixed(3);
+    return `${mins}:${secs.padStart(6, '0')}`;
   };
 
-  const guidance = getContextGuidance();
-  const GuidanceIcon = guidance.icon;
-
-  // Determine what to show based on context
-  // Rule: If the driver is not making a decision, hide the data
-  const shouldShowDelta = driverContext === 'push' && telemetry.delta !== null;
-  const shouldShowFuel = telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 5;
-  const shouldShowPosition = session.sessionType === 'race' && driverContext !== 'warmup';
+  // Quick actions for during the race - large buttons
+  const quickActions = [
+    { label: 'Fuel Status', icon: Fuel, action: () => speak({ id: 'fuel', content: `${telemetry.lapsRemaining ?? 'Unknown'} laps of fuel remaining`, urgency: 'normal' as const }) },
+    { label: 'Gap Report', icon: Timer, action: () => speak({ id: 'gap', content: 'Checking gaps...', urgency: 'normal' as const }) },
+    { label: 'Weather', icon: Eye, action: () => speak({ id: 'weather', content: 'Checking weather conditions...', urgency: 'normal' as const }) },
+    { label: 'Pit Window', icon: Wrench, action: () => speak({ id: 'pit', content: 'Calculating optimal pit window...', urgency: 'normal' as const }) },
+  ];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col">
-      
-      {/* CRITICAL ALERTS - Always visible, interrupt everything */}
-      {criticalMessages.length > 0 && (
-        <div className="px-6 pt-6">
-          {criticalMessages.map(msg => (
-            <div 
-              key={msg.id}
-              className="mb-4 border-l-4 border-red-500 bg-red-500/10 backdrop-blur-xl rounded-r-lg px-5 py-4"
-            >
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                <span className="font-semibold text-red-400">{msg.content}</span>
+    <div className="h-[calc(100vh-4rem)] flex relative">
+      {/* Background */}
+      <div className="absolute inset-0 bg-[#0e0e0e]" />
+
+      {/* Sidebar */}
+      <div className="relative z-10 w-72 border-r border-white/[0.06] bg-[#0e0e0e]/80 backdrop-blur-xl flex flex-col">
+        <div className="p-4 border-b border-white/[0.06]">
+          <Link to="/driver/home" className="flex items-center gap-2 text-white/50 hover:text-white text-xs mb-4 transition-colors">
+            <ArrowLeft className="w-3 h-3" />Back to Operations
+          </Link>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/[0.04] border border-white/[0.08] rounded flex items-center justify-center">
+              <Gauge className="w-5 h-5 text-orange-400" />
+            </div>
+            <div>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-white/90">Cockpit</h2>
+              <p className="text-[10px] text-white/40 uppercase tracking-wider">Live Session</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Session Info */}
+        <div className="p-4 border-b border-white/[0.06]">
+          <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+            <Flag className="w-3 h-3" />Current Session
+          </h3>
+          {isLive ? (
+            <div className="space-y-3 bg-white/[0.02] rounded p-3 border border-white/[0.06]">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-xs text-white/80">{session.trackName || 'On Track'}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/40">Session</span>
+                <span className="text-white/80 font-medium capitalize">{session.sessionType || 'Practice'}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/40">Lap</span>
+                <span className="text-white/80 font-medium">{telemetry.lap ?? '--'}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/40">Position</span>
+                <span className="text-white/80 font-medium">P{telemetry.position ?? '--'}</span>
               </div>
             </div>
-          ))}
+          ) : (
+            <div className="text-xs text-white/40 italic">Not connected</div>
+          )}
         </div>
-      )}
 
-      {/* MAIN CONTENT - Centered, breathing space */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-xl">
-          
-          {/* ============================================ */}
-          {/* DISCONNECTED STATE */}
-          {/* ============================================ */}
-          {!isLive && status !== 'connecting' && (
-            <div className="text-center">
-              <div className="w-24 h-24 mx-auto mb-8 bg-orange-500/10 backdrop-blur-xl border border-orange-500/20 rounded-full flex items-center justify-center">
-                <Radio className="w-12 h-12 text-orange-400" />
+        {/* Lap Times */}
+        {isLive && (
+          <div className="p-4 border-b border-white/[0.06]">
+            <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+              <Clock className="w-3 h-3" />Lap Times
+            </h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-white/40">Last Lap</span>
+                <span className="text-sm font-mono text-white/80">{formatTime(telemetry.lastLap)}</span>
               </div>
-              <h2 className="text-2xl font-medium mb-3">Your Engineer</h2>
-              <p className="text-white/50 mb-10">
-                {engineerLoading ? 'Loading...' : 'Standing by. Start iRacing to connect.'}
-              </p>
-
-              {/* What the Engineer Knows - Only if meaningful */}
-              {!engineerLoading && engineerKnowledge.length > 0 && (
-                <div className="bg-white/[0.02] border border-white/10 rounded-xl p-6 mb-10 text-left">
-                  <div className="text-xs uppercase tracking-wider text-orange-400/80 mb-4">What I Know About You</div>
-                  <div className="space-y-3">
-                    {engineerKnowledge.slice(0, 3).map((knowledge, idx) => (
-                      <div key={idx} className="text-sm text-white/60">
-                        {knowledge}
-                      </div>
-                    ))}
-                  </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-white/40">Best Lap</span>
+                <span className="text-sm font-mono text-purple-400">{formatTime(telemetry.bestLap)}</span>
+              </div>
+              {telemetry.delta !== null && (
+                <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
+                  <span className="text-xs text-white/40">Delta</span>
+                  <span className={`text-sm font-mono font-bold ${telemetry.delta < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                    {telemetry.delta > 0 ? '+' : ''}{telemetry.delta.toFixed(3)}s
+                  </span>
                 </div>
               )}
+            </div>
+          </div>
+        )}
 
-              <div className="flex items-center justify-center gap-4">
+        {/* Fuel */}
+        {isLive && (
+          <div className="p-4 flex-1">
+            <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+              <Fuel className="w-3 h-3" />Fuel
+            </h3>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-white/40">Remaining</span>
+                <span className="text-sm font-mono text-white/80">{telemetry.fuel?.toFixed(1) ?? '--'} L</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-white/40">Laps Left</span>
+                <span className={`text-sm font-mono font-bold ${
+                  telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-white/80'
+                }`}>
+                  {telemetry.lapsRemaining ?? '--'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Main Content Area */}
+      <div className="relative z-10 flex-1 flex flex-col">
+        {/* Header */}
+        <div className="h-12 border-b border-white/[0.06] bg-[#0e0e0e]/60 backdrop-blur-xl flex items-center justify-between px-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-white/30'}`} />
+            <span className="text-sm text-white/70">
+              {isLive ? `${session.trackName || 'On Track'} • ${session.sessionType || 'Session'}` : 'Waiting for connection...'}
+            </span>
+          </div>
+          <button 
+            onClick={toggleVoice}
+            className={`p-2 rounded transition-colors ${voiceEnabled ? 'bg-orange-500/20 text-orange-400' : 'text-white/30 hover:text-white/50 hover:bg-white/[0.04]'}`}
+            title={voiceEnabled ? 'Voice On' : 'Voice Off'}
+          >
+            {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
+        </div>
+
+        {/* Critical Alerts */}
+        {criticalMessages.length > 0 && (
+          <div className="p-4 space-y-2">
+            {criticalMessages.map(msg => (
+              <div 
+                key={msg.id}
+                className="border-l-4 border-red-500 bg-red-500/10 rounded-r px-4 py-3"
+              >
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                  <span className="font-semibold text-red-400">{msg.content}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div className="flex-1 p-6 overflow-y-auto">
+          {!isLive && status !== 'connecting' && (
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-20 h-20 mx-auto mb-6 bg-orange-500/10 border border-orange-500/20 rounded-full flex items-center justify-center">
+                  <Radio className="w-10 h-10 text-orange-400" />
+                </div>
+                <h2 className="text-xl font-medium mb-2">Standing By</h2>
+                <p className="text-white/50 mb-6">
+                  {engineerLoading ? 'Loading...' : 'Start iRacing to connect.'}
+                </p>
                 <Link 
                   to="/driver/crew/engineer"
-                  className="flex items-center gap-2 px-5 py-2.5 bg-orange-500/20 border border-orange-500/30 rounded-lg text-sm hover:bg-orange-500/30 transition-colors"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-orange-500/20 border border-orange-500/30 rounded text-sm hover:bg-orange-500/30 transition-colors"
                 >
                   <MessageSquare className="w-4 h-4" />
                   Talk to Engineer
@@ -214,135 +222,76 @@ export function DriverCockpit() {
             </div>
           )}
 
-          {/* ============================================ */}
-          {/* CONNECTING STATE */}
-          {/* ============================================ */}
           {status === 'connecting' && (
-            <div className="text-center">
-              <div className="w-16 h-16 mx-auto mb-6 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-yellow-400">Connecting...</p>
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-orange-400">Connecting to iRacing...</p>
+              </div>
             </div>
           )}
 
-          {/* ============================================ */}
-          {/* LIVE SESSION - Adaptive Decision Surface */}
-          {/* ============================================ */}
           {isLive && (
-            <div className="space-y-8">
-              
-              {/* CONTEXT INDICATOR - Small, unobtrusive */}
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2 text-white/40">
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  <span>{session.trackName || 'On Track'}</span>
-                  <span className="text-white/20">•</span>
-                  <span className="capitalize">{session.sessionType || 'Session'}</span>
+            <div className="space-y-6">
+              {/* Engineer Message */}
+              <div className="bg-white/[0.02] border border-white/[0.06] rounded p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap className="w-4 h-4 text-orange-400" />
+                  <span className="text-[10px] uppercase tracking-wider text-orange-400">Current Focus</span>
                 </div>
-                <button 
-                  onClick={toggleVoice}
-                  className={`p-2 rounded-lg transition-colors ${voiceEnabled ? 'text-orange-400' : 'text-white/30 hover:text-white/50'}`}
-                  title={voiceEnabled ? 'Voice On' : 'Voice Off'}
-                >
-                  {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                </button>
+                <p className="text-lg text-white/90 leading-relaxed">
+                  {messages.find(m => m.urgency === 'important')?.content || driverAssessment || "I'm still learning your style. Give me a few more sessions."}
+                </p>
               </div>
 
-              {/* PRIMARY GUIDANCE - The one thing that matters */}
-              <div className="bg-white/[0.02] border border-white/10 rounded-xl p-6">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <GuidanceIcon className="w-6 h-6 text-orange-400" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-xs uppercase tracking-wider mb-2 text-orange-400">
-                      {guidance.label}
-                    </div>
-                    <div className="text-lg font-medium leading-relaxed text-white">
-                      {guidance.message}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* CONTEXTUAL DATA - Only what reduces uncertainty */}
-              <div className="flex items-center justify-center gap-8 text-center">
-                
-                {/* Delta - Only in push mode */}
-                {shouldShowDelta && (
-                  <div>
-                    <div className={`text-4xl font-mono font-bold ${
-                      telemetry.delta! < 0 ? 'text-green-400' : 'text-red-400'
-                    }`}>
-                      {telemetry.delta! > 0 ? '+' : ''}{telemetry.delta!.toFixed(2)}s
-                    </div>
-                    <div className="text-xs text-white/30 mt-1">vs personal best</div>
-                  </div>
-                )}
-
-                {/* Position - Only in race, not warmup */}
-                {shouldShowPosition && (
-                  <div>
-                    <div className="text-4xl font-mono font-bold text-white">
-                      P{telemetry.position ?? '--'}
-                    </div>
-                    <div className="text-xs text-white/30 mt-1">position</div>
-                  </div>
-                )}
-
-                {/* Fuel - Only when actionable */}
-                {shouldShowFuel && (
-                  <div>
-                    <div className={`text-4xl font-mono font-bold ${
-                      telemetry.lapsRemaining! < 3 ? 'text-red-400' : 'text-yellow-400'
-                    }`}>
-                      {telemetry.lapsRemaining}
-                    </div>
-                    <div className="text-xs text-white/30 mt-1">laps of fuel</div>
-                  </div>
-                )}
-
-                {/* If nothing to show, that's intentional */}
-                {!shouldShowDelta && !shouldShowPosition && !shouldShowFuel && (
-                  <div className="text-white/20 text-sm">
-                    No action required
-                  </div>
-                )}
-              </div>
-
-              {/* ENGINEER VOICE - Only if there's something to say */}
-              {messages.filter(m => m.urgency !== 'critical').length > 0 && (
-                <div className="pt-4 border-t border-white/5">
-                  <div className="text-xs text-white/30 mb-3">Engineer</div>
-                  {messages.filter(m => m.urgency !== 'critical').slice(0, 1).map(msg => (
-                    <div 
-                      key={msg.id}
-                      className="text-white/60 text-sm"
+              {/* Large Quick Action Buttons - Easy to click during race */}
+              <div>
+                <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-4">Quick Actions</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {quickActions.map(action => (
+                    <button
+                      key={action.label}
+                      onClick={action.action}
+                      className="h-24 bg-white/[0.02] border border-white/[0.08] rounded-lg hover:bg-white/[0.06] hover:border-white/20 transition-all duration-200 flex flex-col items-center justify-center gap-3"
                     >
-                      {msg.content}
-                    </div>
+                      <action.icon className="w-8 h-8 text-orange-400" />
+                      <span className="text-sm font-medium text-white/80">{action.label}</span>
+                    </button>
                   ))}
                 </div>
-              )}
+              </div>
 
+              {/* Crew Links - Large buttons */}
+              <div>
+                <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-4">Talk to Crew</h3>
+                <div className="grid grid-cols-3 gap-4">
+                  <Link
+                    to="/driver/crew/engineer"
+                    className="h-20 bg-white/[0.02] border border-white/[0.08] rounded-lg hover:bg-white/[0.06] hover:border-orange-500/30 transition-all duration-200 flex flex-col items-center justify-center gap-2"
+                  >
+                    <Wrench className="w-6 h-6 text-white/60" />
+                    <span className="text-xs font-medium text-white/70">Engineer</span>
+                  </Link>
+                  <Link
+                    to="/driver/crew/spotter"
+                    className="h-20 bg-white/[0.02] border border-white/[0.08] rounded-lg hover:bg-white/[0.06] hover:border-orange-500/30 transition-all duration-200 flex flex-col items-center justify-center gap-2"
+                  >
+                    <Eye className="w-6 h-6 text-white/60" />
+                    <span className="text-xs font-medium text-white/70">Spotter</span>
+                  </Link>
+                  <Link
+                    to="/driver/crew/analyst"
+                    className="h-20 bg-white/[0.02] border border-white/[0.08] rounded-lg hover:bg-white/[0.06] hover:border-orange-500/30 transition-all duration-200 flex flex-col items-center justify-center gap-2"
+                  >
+                    <MessageSquare className="w-6 h-6 text-white/60" />
+                    <span className="text-xs font-medium text-white/70">Analyst</span>
+                  </Link>
+                </div>
+              </div>
             </div>
           )}
-
         </div>
       </div>
-
-      {/* FOOTER - Minimal, out of the way */}
-      <div className="px-6 py-4 flex items-center justify-between text-xs text-white/20">
-        <div className="flex items-center gap-4">
-          <Link to="/driver/sessions" className="hover:text-white/40 transition-colors flex items-center gap-1">
-            Sessions <ChevronRight className="w-3 h-3" />
-          </Link>
-          <Link to="/driver/crew/engineer" className="hover:text-white/40 transition-colors flex items-center gap-1">
-            Engineer <ChevronRight className="w-3 h-3" />
-          </Link>
-        </div>
-        <span>Cockpit</span>
-      </div>
-
     </div>
   );
 }
