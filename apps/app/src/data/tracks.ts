@@ -295,8 +295,29 @@ export function getTrackData(trackName: string): TrackData | null {
   return null;
 }
 
-// Get track ID from name
+// Get track ID from name - returns numeric iRacing ID for shape file loading
 export function getTrackId(trackName: string): string {
+  const normalized = trackName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  
+  // First check TRACK_SLUG_MAP for direct slug match
+  for (const [slug, id] of Object.entries(TRACK_SLUG_MAP)) {
+    const slugNorm = slug.replace(/-/g, '');
+    if (normalized.includes(slugNorm) || slugNorm.includes(normalized)) {
+      return id; // Return the numeric ID
+    }
+  }
+  
+  // Check if it's already a numeric ID
+  if (/^\d+$/.test(trackName)) {
+    return trackName;
+  }
+  
+  // Fallback: try to find in TRACK_DATA and use slug map
   const track = getTrackData(trackName);
-  return track?.id || trackName.toLowerCase().replace(/[^a-z]/g, '-').replace(/-+/g, '-');
+  if (track?.id && TRACK_SLUG_MAP[track.id]) {
+    return TRACK_SLUG_MAP[track.id];
+  }
+  
+  // Last resort - return as-is (will likely fail to load)
+  return trackName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
 }
