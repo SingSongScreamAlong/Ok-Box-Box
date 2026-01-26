@@ -36,6 +36,7 @@ import { LeagueSettings } from './pages/LeagueSettings';
 import { LeagueIncidents } from './pages/LeagueIncidents';
 import { LeagueIncidentDetail } from './pages/LeagueIncidentDetail';
 import { LeagueRulebook } from './pages/LeagueRulebook';
+import { LeaguePenalties } from './pages/LeaguePenalties';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -129,6 +130,7 @@ function App() {
         <Route path="/league/:leagueId/incidents" element={<ProtectedRoute><LeagueIncidents /></ProtectedRoute>} />
         <Route path="/league/:leagueId/incident/:incidentId" element={<ProtectedRoute><LeagueIncidentDetail /></ProtectedRoute>} />
         <Route path="/league/:leagueId/rulebook/:rulebookId" element={<ProtectedRoute><LeagueRulebook /></ProtectedRoute>} />
+        <Route path="/league/:leagueId/penalties" element={<ProtectedRoute><LeaguePenalties /></ProtectedRoute>} />
 
         {/* Redirects */}
         <Route path="/dashboard" element={<Navigate to="/driver/home" replace />} />

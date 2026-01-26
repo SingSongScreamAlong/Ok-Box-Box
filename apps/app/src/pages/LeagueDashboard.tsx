@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getLeague, getUserLeagueRole, getLeagueMembers, League, LeagueMembership } from '../lib/leagues';
 import { getLeagueEvents, Event } from '../lib/events';
-import { Settings, Users, ArrowLeft, Calendar, Plus, AlertTriangle } from 'lucide-react';
+import { Settings, Users, ArrowLeft, Calendar, Plus, AlertTriangle, Flag } from 'lucide-react';
 
 export function LeagueDashboard() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -137,6 +137,16 @@ export function LeagueDashboard() {
                   <div>
                     <p className="text-sm text-white font-medium">Incident Queue</p>
                     <p className="text-[10px] text-white/40">Review pending incidents</p>
+                  </div>
+                </Link>
+                <Link
+                  to={`/league/${leagueId}/penalties`}
+                  className="flex items-center gap-2 px-4 py-3 bg-white/[0.03] border border-white/[0.10] rounded hover:border-red-500/50 hover:bg-white/[0.05] transition-all"
+                >
+                  <Flag size={16} className="text-red-400" />
+                  <div>
+                    <p className="text-sm text-white font-medium">Penalties</p>
+                    <p className="text-[10px] text-white/40">Manage driver penalties</p>
                   </div>
                 </Link>
               </div>
