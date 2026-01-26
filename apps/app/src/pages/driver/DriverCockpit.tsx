@@ -95,18 +95,18 @@ export function DriverCockpit() {
   };
 
   return (
-    <div className="h-screen bg-[#0a0a0a] text-white overflow-hidden flex flex-col">
+    <div className="h-screen bg-[#080808] text-white overflow-hidden flex flex-col">
       
-      {/* Track Map Section - 4/5 height */}
-      <div className="relative flex-1" style={{ height: '80%' }}>
+      {/* Track Map Section - fills remaining space */}
+      <div className="relative flex-1 min-h-0">
         {/* Critical Alerts - Top overlay */}
         {criticalMessages.length > 0 && (
-          <div className="absolute top-4 left-4 right-4 z-30 space-y-2">
-            {criticalMessages.map(msg => (
-              <div key={msg.id} className="border-l-4 border-red-500 bg-red-500/20 backdrop-blur-xl rounded-r px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                  <span className="font-semibold text-red-400">{msg.content}</span>
+          <div className="absolute top-12 left-3 right-3 z-30 space-y-1">
+            {criticalMessages.slice(0, 1).map(msg => (
+              <div key={msg.id} className="border-l-2 border-red-500 bg-red-500/20 backdrop-blur-xl rounded-r px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                  <span className="text-sm font-semibold text-red-400 truncate">{msg.content}</span>
                 </div>
               </div>
             ))}
@@ -125,198 +125,203 @@ export function DriverCockpit() {
             brake={telemetry.brake || undefined}
             className="w-full h-full"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-transparent to-black/20 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#080808] via-transparent to-black/30 pointer-events-none" />
         </div>
 
         {/* Top Bar - Track name, status, flag */}
-        <div className="absolute top-0 left-0 right-0 z-20 p-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-white/30'}`} />
-              <div>
-                <h1 className="text-lg font-bold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                  {session.trackName || 'Waiting for Session'}
-                </h1>
-                <div className="text-xs text-white/50 capitalize">{session.sessionType || 'Practice'}</div>
-              </div>
-            </div>
+        <div className="absolute top-0 left-0 right-0 z-20 h-10 px-3 flex items-center justify-between bg-black/50 backdrop-blur-sm border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-white/30'}`} />
+            <h1 className="text-sm font-bold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+              {session.trackName || 'Waiting'}
+            </h1>
+            <span className="text-[10px] text-white/40 capitalize">{session.sessionType || 'Practice'}</span>
             {/* Flag State */}
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/40 backdrop-blur-sm border border-white/10`}>
-              <Flag className={`w-4 h-4 ${flagInfo.textColor}`} />
-              <span className={`text-sm font-bold uppercase tracking-wider ${flagInfo.textColor}`}>{flagInfo.label}</span>
+            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded bg-black/40 border border-white/10`}>
+              <Flag className={`w-3 h-3 ${flagInfo.textColor}`} />
+              <span className={`text-[10px] font-bold uppercase ${flagInfo.textColor}`}>{flagInfo.label}</span>
             </div>
           </div>
           <button 
             onClick={toggleVoice}
-            className={`p-3 rounded-lg backdrop-blur-sm transition-colors ${voiceEnabled ? 'bg-orange-500/30 text-orange-400' : 'bg-black/30 text-white/40 hover:text-white/60'}`}
+            className={`p-1.5 rounded transition-colors ${voiceEnabled ? 'bg-orange-500/30 text-orange-400' : 'text-white/40 hover:text-white/60'}`}
           >
-            {voiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
           </button>
         </div>
 
         {/* Position & Lap - Top left */}
-        <div className="absolute top-20 left-4 z-20">
-          <div className="bg-black/40 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-            <div className="text-5xl font-bold font-mono tracking-tighter">
+        <div className="absolute top-14 left-3 z-20">
+          <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10">
+            <div className="text-4xl font-bold font-mono tracking-tighter leading-none">
               P{telemetry.position ?? '--'}
             </div>
-            <div className="text-sm text-white/50 mt-1">Lap {telemetry.lap ?? '--'}</div>
+            <div className="text-[10px] text-white/50 mt-0.5">Lap {telemetry.lap ?? '--'}</div>
           </div>
         </div>
 
         {/* Delta - Top right */}
-        <div className="absolute top-20 right-4 z-20">
-          <div className="bg-black/40 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-            <div className={`text-4xl font-bold font-mono tracking-tighter ${
+        <div className="absolute top-14 right-3 z-20">
+          <div className="bg-black/60 backdrop-blur-sm rounded-lg px-3 py-2 border border-white/10">
+            <div className={`text-3xl font-bold font-mono tracking-tighter leading-none ${
               telemetry.delta !== null && telemetry.delta < 0 ? 'text-green-400' : 'text-red-400'
             }`}>
-              {telemetry.delta !== null ? `${telemetry.delta > 0 ? '+' : ''}${telemetry.delta.toFixed(2)}s` : '--'}
+              {telemetry.delta !== null ? `${telemetry.delta > 0 ? '+' : ''}${telemetry.delta.toFixed(2)}` : '--'}
             </div>
-            <div className="text-sm text-white/50 mt-1">vs Best</div>
+            <div className="text-[10px] text-white/50 mt-0.5">vs Best</div>
           </div>
         </div>
 
         {/* Speed - Bottom center of map area */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20">
-          <div className="bg-black/40 backdrop-blur-sm rounded-xl px-6 py-3 border border-white/10 text-center">
-            <div className="text-5xl font-bold font-mono tracking-tighter">
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20">
+          <div className="bg-black/60 backdrop-blur-sm rounded-lg px-4 py-1.5 border border-white/10 text-center">
+            <div className="text-4xl font-bold font-mono tracking-tighter leading-none">
               {telemetry.speed !== null ? Math.round(telemetry.speed) : '--'}
             </div>
-            <div className="text-xs text-white/50">mph</div>
+            <div className="text-[9px] text-white/50">MPH</div>
+          </div>
+        </div>
+
+        {/* Lap Times - Bottom left */}
+        <div className="absolute bottom-2 left-3 z-20">
+          <div className="bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1.5 border border-white/10 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-white/40">L:</span>
+              <span className="font-mono">{formatTime(telemetry.lastLap)}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-purple-400">B:</span>
+              <span className="font-mono text-purple-400">{formatTime(telemetry.bestLap)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Fuel - Bottom right */}
+        <div className="absolute bottom-2 right-3 z-20">
+          <div className="bg-black/60 backdrop-blur-sm rounded-lg px-2 py-1.5 border border-white/10 text-xs">
+            <div className="flex items-center gap-1.5">
+              <Fuel className={`w-3 h-3 ${
+                telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-green-400'
+              }`} />
+              <span className="font-mono font-bold">{telemetry.fuel?.toFixed(1) ?? '--'}L</span>
+              <span className={`text-[10px] ${
+                telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-white/40'
+              }`}>
+                ({telemetry.lapsRemaining ?? '--'})
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom Panel - 1/5 height */}
-      <div className="h-[20%] border-t border-white/[0.08] bg-[#0e0e0e]/95 backdrop-blur-xl">
-        <div className="h-full grid grid-cols-4 gap-px bg-white/[0.04]">
+      {/* Bottom Panel - Fixed height */}
+      <div className="h-28 border-t border-white/10 bg-[#0a0a0a]">
+        <div className="h-full grid grid-cols-4 divide-x divide-white/5">
           
           {/* Radio Transcripts */}
-          <div className="bg-[#0e0e0e] p-3 flex flex-col">
-            <div className="flex items-center gap-2 mb-2">
-              <Radio className="w-3.5 h-3.5 text-[#f97316]" />
-              <span className="text-[10px] uppercase tracking-[0.15em] text-[#f97316]">Radio</span>
+          <div className="px-3 py-2 flex flex-col min-w-0">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Radio className="w-3 h-3 text-[#f97316]" />
+              <span className="text-[9px] uppercase tracking-wider text-[#f97316] font-medium">Radio</span>
             </div>
-            <div className="flex-1 overflow-y-auto space-y-1.5 text-xs">
-              {radioTranscripts.length > 0 ? radioTranscripts.map((t, i) => (
-                <div key={i} className="flex gap-2">
-                  <span className="text-white/30 flex-shrink-0">{t.time}</span>
-                  <span className="text-orange-400 flex-shrink-0">{t.from}:</span>
+            <div className="flex-1 overflow-hidden space-y-1 text-[11px]">
+              {radioTranscripts.length > 0 ? radioTranscripts.slice(0, 2).map((t, i) => (
+                <div key={i} className="flex gap-1.5 leading-tight">
+                  <span className="text-orange-400 flex-shrink-0 font-medium">{t.from}:</span>
                   <span className="text-white/70 truncate">{t.message}</span>
                 </div>
               )) : (
-                <div className="text-white/30 italic">No radio messages</div>
+                <div className="text-white/30 italic text-[10px]">No messages</div>
               )}
             </div>
           </div>
 
           {/* Pit Strategy */}
-          <div className="bg-[#0e0e0e] p-3 flex flex-col">
-            <div className="flex items-center gap-2 mb-2">
-              <Wrench className="w-3.5 h-3.5 text-[#f97316]" />
-              <span className="text-[10px] uppercase tracking-[0.15em] text-[#f97316]">Pit Strategy</span>
+          <div className="px-3 py-2 flex flex-col">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Wrench className="w-3 h-3 text-[#f97316]" />
+              <span className="text-[9px] uppercase tracking-wider text-[#f97316] font-medium">Pit</span>
             </div>
-            <div className="flex-1 grid grid-cols-2 gap-2 text-xs">
+            <div className="flex-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
               <div>
-                <div className="text-white/40">Pit Window</div>
-                <div className="text-lg font-mono font-bold text-white/90">Lap {pitStrategy.plannedPitLap}</div>
+                <div className="text-white/40 text-[9px]">Window</div>
+                <div className="font-mono font-bold text-white/90">L{pitStrategy.plannedPitLap}</div>
               </div>
               <div>
-                <div className="text-white/40">Laps to Pit</div>
-                <div className={`text-lg font-mono font-bold ${
+                <div className="text-white/40 text-[9px]">In</div>
+                <div className={`font-mono font-bold ${
                   pitStrategy.plannedPitLap - pitStrategy.currentStint <= 3 ? 'text-orange-400' : 'text-white/90'
                 }`}>
                   {Math.max(0, pitStrategy.plannedPitLap - pitStrategy.currentStint)}
                 </div>
               </div>
               <div>
-                <div className="text-white/40">Fuel Add</div>
-                <div className="text-sm font-mono text-white/70">{pitStrategy.fuelToAdd}L</div>
+                <div className="text-white/40 text-[9px]">Fuel</div>
+                <div className="font-mono text-white/70">{pitStrategy.fuelToAdd}L</div>
               </div>
               <div>
-                <div className="text-white/40">Tires</div>
-                <div className="text-sm font-mono text-green-400">{pitStrategy.tireChange ? 'Change' : 'No Change'}</div>
+                <div className="text-white/40 text-[9px]">Tires</div>
+                <div className="font-mono text-green-400">{pitStrategy.tireChange ? '4' : '0'}</div>
               </div>
             </div>
           </div>
 
           {/* Tire Wear */}
-          <div className="bg-[#0e0e0e] p-3 flex flex-col">
-            <div className="flex items-center gap-2 mb-2">
-              <Circle className="w-3.5 h-3.5 text-[#f97316]" />
-              <span className="text-[10px] uppercase tracking-[0.15em] text-[#f97316]">Tire Wear</span>
+          <div className="px-3 py-2 flex flex-col">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Circle className="w-3 h-3 text-[#f97316]" />
+              <span className="text-[9px] uppercase tracking-wider text-[#f97316] font-medium">Tires</span>
             </div>
             <div className="flex-1 flex items-center justify-center">
-              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-center">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-0 text-center">
                 <div>
-                  <div className={`text-xl font-mono font-bold ${getTireColor(tireWear.fl)}`}>{tireWear.fl}%</div>
-                  <div className="text-[10px] text-white/40">FL</div>
+                  <div className={`text-base font-mono font-bold leading-tight ${getTireColor(tireWear.fl)}`}>{tireWear.fl}</div>
+                  <div className="text-[8px] text-white/30">FL</div>
                 </div>
                 <div>
-                  <div className={`text-xl font-mono font-bold ${getTireColor(tireWear.fr)}`}>{tireWear.fr}%</div>
-                  <div className="text-[10px] text-white/40">FR</div>
+                  <div className={`text-base font-mono font-bold leading-tight ${getTireColor(tireWear.fr)}`}>{tireWear.fr}</div>
+                  <div className="text-[8px] text-white/30">FR</div>
                 </div>
                 <div>
-                  <div className={`text-xl font-mono font-bold ${getTireColor(tireWear.rl)}`}>{tireWear.rl}%</div>
-                  <div className="text-[10px] text-white/40">RL</div>
+                  <div className={`text-base font-mono font-bold leading-tight ${getTireColor(tireWear.rl)}`}>{tireWear.rl}</div>
+                  <div className="text-[8px] text-white/30">RL</div>
                 </div>
                 <div>
-                  <div className={`text-xl font-mono font-bold ${getTireColor(tireWear.rr)}`}>{tireWear.rr}%</div>
-                  <div className="text-[10px] text-white/40">RR</div>
+                  <div className={`text-base font-mono font-bold leading-tight ${getTireColor(tireWear.rr)}`}>{tireWear.rr}</div>
+                  <div className="text-[8px] text-white/30">RR</div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Fuel & Spotter Settings */}
-          <div className="bg-[#0e0e0e] p-3 flex flex-col">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Fuel className="w-3.5 h-3.5 text-[#f97316]" />
-                <span className="text-[10px] uppercase tracking-[0.15em] text-[#f97316]">Fuel & Spotter</span>
+          {/* Spotter & Settings */}
+          <div className="px-3 py-2 flex flex-col">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center gap-1.5">
+                <Settings2 className="w-3 h-3 text-[#f97316]" />
+                <span className="text-[9px] uppercase tracking-wider text-[#f97316] font-medium">Spotter</span>
               </div>
-              <button className="text-white/30 hover:text-white/60 transition-colors">
-                <Settings2 className="w-3.5 h-3.5" />
+              <button 
+                onClick={() => setSpotterEnabled(!spotterEnabled)}
+                className={`px-1.5 py-0.5 text-[9px] uppercase tracking-wider rounded transition-colors ${
+                  spotterEnabled ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/40'
+                }`}
+              >
+                {spotterEnabled ? 'ON' : 'OFF'}
               </button>
             </div>
-            <div className="flex-1 space-y-2">
-              {/* Fuel */}
+            <div className="flex-1 space-y-1 text-[11px]">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Fuel className={`w-4 h-4 ${
-                    telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-green-400'
-                  }`} />
-                  <span className="text-xs text-white/50">Fuel</span>
-                </div>
-                <div className="text-right">
-                  <span className="text-lg font-mono font-bold">{telemetry.fuel?.toFixed(1) ?? '--'}L</span>
-                  <span className={`text-xs ml-2 ${
-                    telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-white/40'
-                  }`}>
-                    ({telemetry.lapsRemaining ?? '--'} laps)
-                  </span>
-                </div>
+                <span className="text-white/40">Proximity</span>
+                <span className="text-green-400 font-medium">Clear</span>
               </div>
-              {/* Spotter Toggle */}
               <div className="flex items-center justify-between">
-                <span className="text-xs text-white/50">Spotter</span>
-                <button 
-                  onClick={() => setSpotterEnabled(!spotterEnabled)}
-                  className={`px-2 py-0.5 text-[10px] uppercase tracking-wider rounded transition-colors ${
-                    spotterEnabled ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-white/40'
-                  }`}
-                >
-                  {spotterEnabled ? 'ON' : 'OFF'}
-                </button>
+                <span className="text-white/40">Mode</span>
+                <span className="text-white/70">Full</span>
               </div>
-              {/* Lap Times */}
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-white/40">Last</span>
-                <span className="font-mono">{formatTime(telemetry.lastLap)}</span>
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-purple-400">Best</span>
-                <span className="font-mono text-purple-400">{formatTime(telemetry.bestLap)}</span>
+              <div className="flex items-center justify-between">
+                <span className="text-white/40">Calls</span>
+                <span className="text-white/70">Auto</span>
               </div>
             </div>
           </div>
