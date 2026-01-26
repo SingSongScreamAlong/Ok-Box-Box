@@ -6,7 +6,7 @@ import { useVoice } from '../../hooks/useVoice';
 import { useRaceSimulation } from '../../hooks/useRaceSimulation';
 import { 
   Volume2, VolumeX, Gauge, Fuel, Flag, Clock, 
-  TrendingUp, TrendingDown, Minus, MapPin, Radio
+  TrendingUp, TrendingDown, Minus, MapPin
 } from 'lucide-react';
 import { TrackMap } from '../../components/TrackMapRive';
 
@@ -202,60 +202,91 @@ export function DriverCockpit() {
         </div>
       </div>
 
-      {/* Right Sidebar - Crew Comms */}
-      <div className="w-64 border-l border-white/[0.06] bg-[#0e0e0e]/80 backdrop-blur-xl flex flex-col">
+      {/* Right Sidebar - Leaderboard */}
+      <div className="w-72 border-l border-white/[0.06] bg-[#0e0e0e]/80 backdrop-blur-xl flex flex-col">
         
         {/* Header */}
         <div className="p-4 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/[0.04] border border-white/[0.08] rounded flex items-center justify-center">
-              <Radio className="w-5 h-5 text-white/70" />
+              <Flag className="w-5 h-5 text-white/70" />
             </div>
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-wider text-white/90" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                Crew Radio
+                Leaderboard
               </h2>
-              <p className="text-[10px] text-white/40 uppercase tracking-wider">Communications</p>
+              <p className="text-[10px] text-white/40 uppercase tracking-wider">Live Standings</p>
             </div>
           </div>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 p-4 overflow-y-auto">
-          <div className="space-y-3">
-            <div className="bg-white/[0.02] rounded p-3 border border-white/[0.06]">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] uppercase tracking-wider text-emerald-400">Spotter</span>
-                <span className="text-[10px] text-white/30">2s ago</span>
+        {/* Leaderboard List */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Demo leaderboard data */}
+          {[
+            { pos: 1, num: '1', driver: 'M. Verstappen', gap: 'Leader', color: '#1e3a8a' },
+            { pos: 2, num: '11', driver: 'S. Perez', gap: '+2.4s', color: '#1e3a8a' },
+            { pos: 3, num: '44', driver: 'L. Hamilton', gap: '+5.1s', color: '#06b6d4', isPlayer: true },
+            { pos: 4, num: '63', driver: 'G. Russell', gap: '+7.8s', color: '#06b6d4' },
+            { pos: 5, num: '16', driver: 'C. Leclerc', gap: '+12.3s', color: '#dc2626' },
+            { pos: 6, num: '55', driver: 'C. Sainz', gap: '+14.9s', color: '#dc2626' },
+            { pos: 7, num: '4', driver: 'L. Norris', gap: '+18.2s', color: '#f97316' },
+            { pos: 8, num: '81', driver: 'O. Piastri', gap: '+21.5s', color: '#f97316' },
+            { pos: 9, num: '14', driver: 'F. Alonso', gap: '+25.8s', color: '#22c55e' },
+            { pos: 10, num: '18', driver: 'L. Stroll', gap: '+28.1s', color: '#22c55e' },
+          ].map((entry) => (
+            <div 
+              key={entry.pos}
+              className={`flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.04] ${
+                entry.isPlayer ? 'bg-[#f97316]/10 border-l-2 border-l-[#f97316]' : 'hover:bg-white/[0.02]'
+              }`}
+            >
+              {/* Position */}
+              <div className={`w-6 text-center font-mono text-sm font-bold ${
+                entry.pos === 1 ? 'text-yellow-400' : 
+                entry.pos === 2 ? 'text-gray-300' : 
+                entry.pos === 3 ? 'text-amber-600' : 'text-white/50'
+              }`}>
+                {entry.pos}
               </div>
-              <p className="text-xs text-white/70">Clear all around, good pace.</p>
-            </div>
-            <div className="bg-white/[0.02] rounded p-3 border border-white/[0.06]">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] uppercase tracking-wider text-[#f97316]">Engineer</span>
-                <span className="text-[10px] text-white/30">15s ago</span>
+              
+              {/* Car Number with team color */}
+              <div 
+                className="w-8 h-6 rounded text-[10px] font-mono font-bold flex items-center justify-center text-white"
+                style={{ backgroundColor: entry.color }}
+              >
+                {entry.num}
               </div>
-              <p className="text-xs text-white/70">Fuel looks good for the stint. Keep this pace.</p>
-            </div>
-            <div className="bg-white/[0.02] rounded p-3 border border-white/[0.06]">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] uppercase tracking-wider text-emerald-400">Spotter</span>
-                <span className="text-[10px] text-white/30">45s ago</span>
+              
+              {/* Driver Name */}
+              <div className="flex-1 min-w-0">
+                <span className={`text-xs truncate ${entry.isPlayer ? 'text-white font-semibold' : 'text-white/70'}`}>
+                  {entry.driver}
+                </span>
               </div>
-              <p className="text-xs text-white/70">Car behind backing off, you've got the gap.</p>
+              
+              {/* Gap */}
+              <div className={`text-xs font-mono ${
+                entry.pos === 1 ? 'text-white/40' : 
+                entry.isPlayer ? 'text-[#f97316]' : 'text-white/50'
+              }`}>
+                {entry.gap}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
 
-        {/* Quick Actions */}
+        {/* Footer Stats */}
         <div className="p-4 border-t border-white/[0.06]">
-          <div className="grid grid-cols-2 gap-2">
-            <button className="px-3 py-2 text-[10px] uppercase tracking-wider border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 hover:bg-white/[0.04] rounded transition-all">
-              Pit Request
-            </button>
-            <button className="px-3 py-2 text-[10px] uppercase tracking-wider border border-white/[0.08] text-white/50 hover:text-white/80 hover:border-white/20 hover:bg-white/[0.04] rounded transition-all">
-              Fuel Calc
-            </button>
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="bg-white/[0.02] rounded p-2 border border-white/[0.06]">
+              <span className="text-white/40 block text-[10px] uppercase">Cars in Class</span>
+              <span className="text-white/80 font-mono">24</span>
+            </div>
+            <div className="bg-white/[0.02] rounded p-2 border border-white/[0.06]">
+              <span className="text-white/40 block text-[10px] uppercase">Lap</span>
+              <span className="text-white/80 font-mono">12 / 45</span>
+            </div>
           </div>
         </div>
       </div>
