@@ -37,6 +37,7 @@ import { LeagueIncidents } from './pages/LeagueIncidents';
 import { LeagueIncidentDetail } from './pages/LeagueIncidentDetail';
 import { LeagueRulebook } from './pages/LeagueRulebook';
 import { LeaguePenalties } from './pages/LeaguePenalties';
+import { DriverProgress } from './pages/driver/DriverProgress';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -99,6 +100,7 @@ function App() {
           <Route path="crew/engineer" element={<EngineerChat />} />
           <Route path="crew/spotter" element={<SpotterChat />} />
           <Route path="crew/analyst" element={<AnalystChat />} />
+          <Route path="progress" element={<DriverProgress />} />
           <Route path="settings/hud" element={<DriverHUD />} />
           <Route path="settings/voice" element={<DriverVoice />} />
         </Route>
