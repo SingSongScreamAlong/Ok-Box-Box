@@ -124,19 +124,18 @@ export const TRACK_DATA: Record<string, TrackData> = {
       { number: 3, name: 'Sector 3', startDistance: 3820, endDistance: 5730 }
     ],
     corners: [
-      // Shape 381: Start at tri-oval (right), counter-clockwise through infield, bus stop (top), back to oval
-      // Visual: Bus stop at TOP, infield LEFT, oval RIGHT. Y-axis inverted in render.
-      // distPct 0 = tri-oval start, ~0.17 = bus stop, ~0.32 = left hairpin, ~0.50 = bottom, ~0.85 = oval banking
-      { number: 1, name: 'Turn 1', type: 'hairpin', apex: { distance: 200, x: 800, y: 170, normalizedDistance: 0.070 }, braking: { distance: 100, x: 850, y: 145 }, exit: { distance: 300, x: 750, y: 185 }, gear: 1, apexSpeed: 60, difficulty: 'hard', notes: 'Heavy braking into infield' },
-      { number: 2, name: 'Turn 2', type: 'right', apex: { distance: 500, x: 710, y: 175, normalizedDistance: 0.100 }, entry: { distance: 400, x: 750, y: 185 }, exit: { distance: 600, x: 650, y: 140 }, gear: 3, apexSpeed: 95, difficulty: 'medium' },
-      { number: 3, name: 'Turn 3 (Kink)', type: 'left', apex: { distance: 800, x: 500, y: 137, normalizedDistance: 0.130 }, entry: { distance: 700, x: 600, y: 138 }, exit: { distance: 900, x: 400, y: 150 }, gear: 5, apexSpeed: 140, difficulty: 'easy', notes: 'Flat out kink' },
-      { number: 4, name: 'Turn 4', type: 'left', apex: { distance: 1100, x: 260, y: 220, normalizedDistance: 0.165 }, braking: { distance: 1000, x: 330, y: 175 }, exit: { distance: 1200, x: 200, y: 280 }, gear: 2, apexSpeed: 75, difficulty: 'medium' },
-      { number: 5, name: 'Turn 5', type: 'right', apex: { distance: 1400, x: 160, y: 420, normalizedDistance: 0.190 }, entry: { distance: 1300, x: 175, y: 350 }, exit: { distance: 1500, x: 165, y: 500 }, gear: 3, apexSpeed: 100, difficulty: 'medium', notes: 'Exit critical for back straight' },
-      { number: 6, name: 'Turn 6 (Horseshoe)', type: 'left-kink', apex: { distance: 2000, x: 200, y: 750, normalizedDistance: 0.290 }, entry: { distance: 1800, x: 175, y: 600 }, exit: { distance: 2200, x: 250, y: 850 }, gear: 6, apexSpeed: 180, difficulty: 'easy', notes: 'Left onto back straight' },
-      { number: 7, name: 'Bus Stop Entry', type: 'chicane', apex: { distance: 3000, x: 600, y: 940, normalizedDistance: 0.440 }, braking: { distance: 2900, x: 500, y: 930 }, exit: { distance: 3100, x: 700, y: 920 }, gear: 3, apexSpeed: 90, difficulty: 'hard', notes: 'Brake at 150 board' },
-      { number: 8, name: 'Bus Stop Exit', type: 'chicane', apex: { distance: 3200, x: 850, y: 880, normalizedDistance: 0.500 }, entry: { distance: 3100, x: 750, y: 900 }, exit: { distance: 3300, x: 950, y: 850 }, gear: 3, apexSpeed: 95, difficulty: 'hard' },
-      { number: 9, name: 'NASCAR 3', type: 'left-kink', apex: { distance: 4000, x: 1400, y: 540, normalizedDistance: 0.620 }, entry: { distance: 3800, x: 1300, y: 620 }, exit: { distance: 4200, x: 1500, y: 450 }, gear: 6, apexSpeed: 190, difficulty: 'easy' },
-      { number: 10, name: 'NASCAR 4', type: 'left-kink', apex: { distance: 4800, x: 1600, y: 400, normalizedDistance: 0.870 }, entry: { distance: 4600, x: 1550, y: 420 }, exit: { distance: 5000, x: 1700, y: 500 }, gear: 6, apexSpeed: 195, difficulty: 'easy', notes: 'Tri-oval kink' },
+      // Shape 381: Geometrically verified with Shape Analysis
+      // T3 (Horseshoe) Apex at xMin (0.325) | T5 Apex at yMax (0.503) | Bus Stop Apex at 0.675
+      { number: 1, name: 'Turn 1', type: 'hairpin', apex: { distance: 1000, x: 800, y: 170, normalizedDistance: 0.175 }, braking: { distance: 900, x: 850, y: 145 }, exit: { distance: 1100, x: 750, y: 185 }, gear: 1, apexSpeed: 60, difficulty: 'hard', notes: 'Heavy braking into infield' },
+      { number: 2, name: 'Turn 2', type: 'right', apex: { distance: 1375, x: 710, y: 175, normalizedDistance: 0.240 }, entry: { distance: 1300, x: 750, y: 185 }, exit: { distance: 1450, x: 650, y: 140 }, gear: 3, apexSpeed: 95, difficulty: 'medium' },
+      { number: 3, name: 'Intl Horseshoe', type: 'right', apex: { distance: 1860, x: 500, y: 137, normalizedDistance: 0.325 }, entry: { distance: 1800, x: 600, y: 138 }, exit: { distance: 1950, x: 400, y: 150 }, gear: 3, apexSpeed: 85, difficulty: 'medium', notes: 'International Horseshoe' },
+      { number: 4, name: 'Turn 4 (Kink)', type: 'left', apex: { distance: 2350, x: 260, y: 220, normalizedDistance: 0.410 }, braking: { distance: 2300, x: 330, y: 175 }, exit: { distance: 2400, x: 200, y: 280 }, gear: 5, apexSpeed: 140, difficulty: 'easy' },
+      { number: 5, name: 'Turn 5', type: 'right', apex: { distance: 2880, x: 160, y: 420, normalizedDistance: 0.503 }, entry: { distance: 2800, x: 175, y: 350 }, exit: { distance: 2950, x: 165, y: 500 }, gear: 3, apexSpeed: 100, difficulty: 'medium', notes: 'Exit to banking' },
+      { number: 6, name: 'Turn 6', type: 'left-kink', apex: { distance: 3200, x: 200, y: 750, normalizedDistance: 0.560 }, entry: { distance: 3100, x: 175, y: 600 }, exit: { distance: 3300, x: 250, y: 850 }, gear: 6, apexSpeed: 180, difficulty: 'easy', notes: 'Banking entry' },
+      { number: 9, name: 'Bus Stop', type: 'chicane', apex: { distance: 3870, x: 600, y: 940, normalizedDistance: 0.675 }, braking: { distance: 3800, x: 500, y: 930 }, exit: { distance: 3950, x: 700, y: 920 }, gear: 3, apexSpeed: 90, difficulty: 'hard', notes: 'Le Mans Chicane' },
+      { number: 10, name: 'Bus Stop Exit', type: 'chicane', apex: { distance: 3950, x: 850, y: 880, normalizedDistance: 0.690 }, entry: { distance: 3900, x: 750, y: 900 }, exit: { distance: 4000, x: 950, y: 850 }, gear: 3, apexSpeed: 100, difficulty: 'hard' },
+      { number: 11, name: 'NASCAR 3', type: 'left-kink', apex: { distance: 4700, x: 1400, y: 540, normalizedDistance: 0.820 }, entry: { distance: 4600, x: 1300, y: 620 }, exit: { distance: 4800, x: 1500, y: 450 }, gear: 6, apexSpeed: 190, difficulty: 'easy' },
+      { number: 12, name: 'NASCAR 4', type: 'left-kink', apex: { distance: 5200, x: 1600, y: 400, normalizedDistance: 0.910 }, entry: { distance: 5100, x: 1550, y: 420 }, exit: { distance: 5300, x: 1700, y: 500 }, gear: 6, apexSpeed: 195, difficulty: 'easy', notes: 'Start/Finish' },
     ],
     svg: {
       viewBox: '0 0 500 450',

@@ -4,37 +4,20 @@ import { useRelay } from '../../hooks/useRelay';
 import { useEngineer } from '../../hooks/useEngineer';
 import { useVoice } from '../../hooks/useVoice';
 import { useRaceSimulation } from '../../hooks/useRaceSimulation'; // NEW: Simulation Engine
-import {
-  Fuel, AlertTriangle, Volume2, VolumeX, Flag, Radio,
-  Settings2, Circle, Wrench
-} from 'lucide-react';
+import { Volume2, VolumeX } from 'lucide-react';
 import { TrackMap } from '../../components/TrackMapRive'; // Using the Pro wrapper
 
 /**
  * DriverCockpit - Glanceable Second Monitor / iPad View
  */
 
-// Flag state colors and labels
-const FLAG_STATES = {
-  green: { color: 'bg-green-500', label: 'GREEN', textColor: 'text-green-400' },
-  yellow: { color: 'bg-yellow-500', label: 'YELLOW', textColor: 'text-yellow-400' },
-  white: { color: 'bg-white', label: 'WHITE', textColor: 'text-white' },
-  checkered: { color: 'bg-white', label: 'CHECKERED', textColor: 'text-white' },
-  red: { color: 'bg-red-500', label: 'RED', textColor: 'text-red-400' },
-  blue: { color: 'bg-blue-500', label: 'BLUE', textColor: 'text-blue-400' },
-  black: { color: 'bg-black border border-white', label: 'BLACK', textColor: 'text-white' },
-} as const;
-
-type FlagState = keyof typeof FLAG_STATES;
 
 export function DriverCockpit() {
-  const { status, telemetry: realTelemetry, session, getCarMapPosition } = useRelay();
-  const { criticalMessages, messages } = useEngineer();
+  const { status, telemetry: realTelemetry, getCarMapPosition } = useRelay();
+  const { criticalMessages } = useEngineer();
   const { isEnabled: voiceEnabled, toggleVoice, speak } = useVoice();
 
-  // Spotter settings
-  const [spotterEnabled, setSpotterEnabled] = useState(true);
-
+  
   // DEMO MODE STATE
   // If not connected to iRacing, use the Simulation Hook
   const isDemo = status !== 'connected' && status !== 'in_session';
@@ -64,17 +47,9 @@ export function DriverCockpit() {
 
   const isLive = true; // status === 'in_session' || status === 'connected'; // FORCED LIVE
 
-  const formatTime = (seconds: number | null) => {
-    if (seconds === null) return '--:--.---';
-    const mins = Math.floor(seconds / 60);
-    const secs = (seconds % 60).toFixed(3);
-    return `${mins}:${secs.padStart(6, '0')}`;
-  };
-
+  
   // Track ID for map
   const trackId = 'daytona'; // Forced for Demo
-  const flagState = 'green';
-  const flagInfo = FLAG_STATES[flagState];
 
   // TELEMETRY HISTORY FOR HEATMAP
   // In a real app we'd buffer this. For Sim, we just pass current speed for now 
@@ -103,7 +78,7 @@ export function DriverCockpit() {
   }, []);
 
   return (
-    <div className="fixed inset-0 top-14 bottom-10 bg-[#080808] text-white overflow-hidden flex flex-col z-10">
+    <div className="fixed inset-0 top-14 bottom-10 bg-[#0e0e0e] text-white overflow-hidden flex flex-col z-10">
 
       {/* Track Map Section - fills remaining space */}
       <div className="relative flex-1 min-h-0">
@@ -117,44 +92,47 @@ export function DriverCockpit() {
               ? simOpponents.map(o => ({ x: 0, y: 0, trackPercentage: o.trackPercentage, carNumber: o.name, color: o.color }))
               : realTelemetry.otherCars?.map(o => ({ x: 0, y: 0, trackPercentage: o.trackPercentage, carNumber: o.carNumber, color: o.color }))
             }
-            telemetry={heatmapData} // Pass the fake heatmap
+            telemetry={heatmapData}
             className="w-full h-full"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#080808] via-transparent to-black/30 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e0e] via-transparent to-[#0e0e0e]/40 pointer-events-none" />
         </div>
 
         {/* Top Bar - Track name, status, flag */}
-        <div className="absolute top-0 left-0 right-0 z-20 h-8 px-2 flex items-center justify-between bg-black/60 backdrop-blur-sm border-b border-white/5">
-          <div className="flex items-center gap-2">
-            <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-white/30'}`} />
-            <h1 className="text-xs font-bold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-              Daytona International Speedway <span className="text-white/30 text-[9px] ml-1">DEMO SIMULATION</span>
+        <div className="absolute top-0 left-0 right-0 z-20 h-12 px-4 flex items-center justify-between bg-[#0e0e0e]/80 backdrop-blur-xl border-b border-white/[0.06]">
+          <div className="flex items-center gap-3">
+            <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-400 animate-pulse' : 'bg-white/30'}`} />
+            <h1 className="text-sm font-semibold uppercase tracking-wider text-white/90" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+              Daytona International Speedway
             </h1>
+            <span className="text-[10px] text-white/40 uppercase tracking-wider bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.06]">Demo Simulation</span>
           </div>
-          <button
-            onClick={toggleVoice}
-            className={`p-1 rounded transition-colors ${voiceEnabled ? 'bg-orange-500/30 text-orange-400' : 'text-white/40 hover:text-white/60'}`}
-          >
-            {voiceEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleVoice}
+              className={`p-2 rounded transition-all duration-200 ${voiceEnabled ? 'bg-[#f97316]/20 text-[#f97316] border border-[#f97316]/30' : 'text-white/40 hover:text-white/70 hover:bg-white/[0.04] border border-white/[0.06]'}`}
+            >
+              {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+            </button>
+          </div>
         </div>
 
-        {/* Speed Stats Overlay for Demo */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20">
-          <div className="font-mono text-6xl font-bold tracking-tighter text-white drop-shadow-lg">
-            {Math.round(activeTelemetry.speed ?? 0)}
-            <span className="text-sm text-cyan-500 ml-2">KPH</span>
+        {/* Speed Stats Overlay */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20">
+          <div className="bg-[#0e0e0e]/80 backdrop-blur-xl border border-white/[0.08] rounded-lg px-8 py-4">
+            <div className="font-mono text-6xl font-bold tracking-tighter text-white/90">
+              {Math.round(activeTelemetry.speed ?? 0)}
+              <span className="text-sm text-[#f97316] ml-2 font-semibold">KPH</span>
+            </div>
           </div>
         </div>
 
       </div>
 
-      {/* Bottom Panel - Compact */}
-      <div className="h-20 border-t border-white/10 bg-[#0a0a0a]">
-        {/* ... (Keep existing bottom panel code for Pit/Radio/Tires) ... */}
-        {/* Simplified for this file update to avoid context overflow, typically we keep it */}
-        <div className="flex items-center justify-center h-full text-white/20 text-xs">
-          RACE CONTROL SYSTEMS ONLINE
+      {/* Bottom Panel - Crew Style */}
+      <div className="h-16 border-t border-white/[0.06] bg-[#0e0e0e]/80 backdrop-blur-xl">
+        <div className="flex items-center justify-center h-full">
+          <span className="text-[10px] uppercase tracking-[0.2em] text-white/30">Race Control Systems Online</span>
         </div>
       </div>
 
