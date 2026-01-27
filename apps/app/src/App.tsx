@@ -54,6 +54,9 @@ import { DriverVoice } from './pages/driver/DriverVoice';
 import { DriverComparison } from './pages/pitwall/DriverComparison';
 import { StintPlanner } from './pages/pitwall/StintPlanner';
 import { BroadcastGraphics } from './pages/league/BroadcastGraphics';
+import { CreateEvent } from './pages/CreateEvent';
+import { EventView } from './pages/EventView';
+import { DriverProfilePage as PitwallDriverProfile } from './pages/pitwall/DriverProfile';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -149,6 +152,7 @@ function App() {
           <Route path="pitwall/reports" element={<PitwallReports />} />
           <Route path="pitwall/setups" element={<PitwallSetups />} />
           <Route path="pitwall/incidents" element={<TeamIncidents />} />
+          <Route path="pitwall/driver/:driverId" element={<PitwallDriverProfile />} />
         </Route>
 
         {/* League Tier routes */}
@@ -165,9 +169,12 @@ function App() {
           <Route path="broadcast" element={<BroadcastGraphics />} />
           <Route path="protests" element={<LeagueProtests />} />
           <Route path="steward-console" element={<StewardConsole />} />
+          <Route path="create-event" element={<CreateEvent />} />
         </Route>
         {/* Public timing page - no auth required */}
         <Route path="/league/:leagueId/timing" element={<PublicTiming />} />
+        {/* Event view */}
+        <Route path="/event/:eventId" element={<ProtectedRoute><EventView /></ProtectedRoute>} />
 
         {/* Redirects */}
         <Route path="/dashboard" element={<Navigate to="/driver/home" replace />} />

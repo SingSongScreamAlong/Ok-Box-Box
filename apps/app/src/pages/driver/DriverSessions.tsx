@@ -1,16 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchDriverSessions, DriverSessionSummary, getDisciplineLabel } from '../../lib/driverService';
 import { Calendar, MapPin, Flag, Trophy, AlertTriangle, Loader2 } from 'lucide-react';
 
 export function DriverSessions() {
   const [sessions, setSessions] = useState<DriverSessionSummary[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     fetchDriverSessions().then((data) => {
       setSessions(data);
       setLoading(false);
     });
+  }, []);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.6;
+    }
   }, []);
 
   if (loading) {
@@ -23,12 +30,22 @@ export function DriverSessions() {
 
   return (
     <div className="relative min-h-[calc(100vh-8rem)]">
-      {/* Background */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
-        style={{ backgroundImage: 'url(/images/system-bg.jpg)' }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-black" />
+      {/* Background video */}
+      <div className="fixed inset-0 z-0">
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="w-full h-full object-cover opacity-70"
+        >
+          <source src="/videos/bg-1.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/80 via-[#0e0e0e]/60 to-[#0e0e0e]/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />
+      </div>
 
       <div className="relative z-10 max-w-6xl mx-auto space-y-6 py-6">
         {/* Header */}
@@ -43,7 +60,7 @@ export function DriverSessions() {
         </div>
 
       {/* Sessions Table */}
-      <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm overflow-hidden shadow-xl">
+      <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded overflow-hidden shadow-lg shadow-black/20">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -137,25 +154,25 @@ export function DriverSessions() {
       {/* Summary */}
       {sessions && sessions.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm p-5 shadow-lg hover:bg-black/50 transition-all duration-200">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-5 shadow-lg shadow-black/20 hover:bg-white/[0.05] transition-all duration-200">
             <div className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-2">Total Sessions</div>
-            <div className="text-3xl font-mono font-bold" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{sessions.length}</div>
+            <div className="text-3xl font-mono font-bold">{sessions.length}</div>
           </div>
-          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm p-5 shadow-lg hover:bg-black/50 transition-all duration-200">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-5 shadow-lg shadow-black/20 hover:bg-white/[0.05] transition-all duration-200">
             <div className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-2">Avg Finish</div>
-            <div className="text-3xl font-mono font-bold" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
+            <div className="text-3xl font-mono font-bold">
               {(sessions.reduce((acc, s) => acc + (s.finishPos ?? 0), 0) / sessions.length).toFixed(1)}
             </div>
           </div>
-          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm p-5 shadow-lg hover:bg-black/50 transition-all duration-200">
-            <div className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-2">Best Finish</div>
-            <div className="text-3xl font-mono font-bold text-green-400" style={{ textShadow: '0 2px 10px rgba(34,197,94,0.3)' }}>
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-[#f97316]/30 rounded p-5 shadow-lg shadow-[#f97316]/10 hover:bg-white/[0.05] transition-all duration-200">
+            <div className="text-[10px] uppercase tracking-[0.15em] text-[#f97316] mb-2">Best Finish</div>
+            <div className="text-3xl font-mono font-bold text-[#f97316]">
               P{Math.min(...sessions.map(s => s.finishPos ?? 99))}
             </div>
           </div>
-          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm p-5 shadow-lg hover:bg-black/50 transition-all duration-200">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-5 shadow-lg shadow-black/20 hover:bg-white/[0.05] transition-all duration-200">
             <div className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-2">Total Incidents</div>
-            <div className="text-3xl font-mono font-bold" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>
+            <div className="text-3xl font-mono font-bold">
               {sessions.reduce((acc, s) => acc + (s.incidents ?? 0), 0)}
             </div>
           </div>

@@ -1,16 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchDriverProfile, DriverIdentityProfile, getDisciplineLabel, getLicenseColor } from '../../lib/driverService';
 import { Award, Shield, TrendingUp, Loader2 } from 'lucide-react';
 
 export function DriverRatings() {
   const [profile, setProfile] = useState<DriverIdentityProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     fetchDriverProfile().then((data) => {
       setProfile(data);
       setLoading(false);
     });
+  }, []);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.6;
+    }
   }, []);
 
   if (loading) {
@@ -33,12 +40,22 @@ export function DriverRatings() {
 
   return (
     <div className="relative min-h-[calc(100vh-8rem)]">
-      {/* Background */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
-        style={{ backgroundImage: 'url(/images/system-bg.jpg)' }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-black" />
+      {/* Background video */}
+      <div className="fixed inset-0 z-0">
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="w-full h-full object-cover opacity-70"
+        >
+          <source src="/videos/bg-1.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/80 via-[#0e0e0e]/60 to-[#0e0e0e]/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />
+      </div>
 
       <div className="relative z-10 max-w-6xl mx-auto space-y-6 py-6">
         {/* Header */}
@@ -54,7 +71,7 @@ export function DriverRatings() {
 
         {/* Overall Ratings */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-black/40 backdrop-blur-md border border-green-500/30 rounded-sm p-6 shadow-lg shadow-green-500/10 hover:bg-black/50 transition-all duration-200">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-green-500/30 rounded p-6 shadow-lg shadow-green-500/10 hover:bg-white/[0.05] transition-all duration-200">
             <div className="flex items-center gap-2 mb-4">
               <Shield className="w-5 h-5 text-green-400" />
               <span className="text-[10px] uppercase tracking-[0.15em] text-green-400">Overall Safety Rating</span>
@@ -66,7 +83,7 @@ export function DriverRatings() {
               Across all disciplines
             </div>
           </div>
-          <div className="bg-black/40 backdrop-blur-md border border-blue-500/30 rounded-sm p-6 shadow-lg shadow-blue-500/10 hover:bg-black/50 transition-all duration-200">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-blue-500/30 rounded p-6 shadow-lg shadow-blue-500/10 hover:bg-white/[0.05] transition-all duration-200">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp className="w-5 h-5 text-blue-400" />
               <span className="text-[10px] uppercase tracking-[0.15em] text-blue-400">Overall iRating</span>
@@ -81,7 +98,7 @@ export function DriverRatings() {
         </div>
 
         {/* License Cards */}
-        <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm p-6 shadow-xl">
+        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-6 shadow-lg shadow-black/20">
           <div className="flex items-center gap-2 mb-6">
             <Award className="w-5 h-5 text-white/60" />
             <span 
@@ -96,7 +113,7 @@ export function DriverRatings() {
             {profile.licenses.map((license) => (
               <div 
                 key={license.discipline}
-                className="relative bg-black/30 border border-white/10 rounded-sm p-5 overflow-hidden hover:bg-black/40 hover:border-white/20 transition-all duration-200"
+                className="relative bg-white/[0.02] border border-white/[0.08] rounded p-5 overflow-hidden hover:bg-white/[0.04] hover:border-white/20 transition-all duration-200"
               >
                 {/* License Class Badge */}
                 <div 
@@ -158,7 +175,7 @@ export function DriverRatings() {
         </div>
 
         {/* License Legend */}
-        <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm p-4 shadow-lg">
+        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
           <div className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-3">License Classes</div>
           <div className="flex flex-wrap gap-4">
             {['R', 'D', 'C', 'B', 'A', 'Pro'].map((cls) => (

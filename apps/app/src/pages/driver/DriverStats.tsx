@@ -1,16 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { fetchDriverStats, DriverStatsSnapshot, getDisciplineLabel } from '../../lib/driverService';
 import { BarChart3, Trophy, Medal, Flag, TrendingUp, Loader2 } from 'lucide-react';
 
 export function DriverStats() {
   const [stats, setStats] = useState<DriverStatsSnapshot[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     fetchDriverStats().then((data) => {
       setStats(data);
       setLoading(false);
     });
+  }, []);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.6;
+    }
   }, []);
 
   if (loading) {
@@ -28,12 +35,22 @@ export function DriverStats() {
 
   return (
     <div className="relative min-h-[calc(100vh-8rem)]">
-      {/* Background */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
-        style={{ backgroundImage: 'url(/images/winter-testing-bg.jpg)' }}
-      />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-black" />
+      {/* Background video */}
+      <div className="fixed inset-0 z-0">
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="w-full h-full object-cover opacity-70"
+        >
+          <source src="/videos/bg-1.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/80 via-[#0e0e0e]/60 to-[#0e0e0e]/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />
+      </div>
 
       <div className="relative z-10 max-w-6xl mx-auto space-y-6 py-6">
         {/* Header */}
@@ -49,38 +66,38 @@ export function DriverStats() {
 
         {/* Overall Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm p-6 shadow-lg hover:bg-black/50 transition-all duration-200">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-6 shadow-lg shadow-black/20 hover:bg-white/[0.05] transition-all duration-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] uppercase tracking-[0.15em] text-white/50">Total Starts</span>
               <Flag className="w-4 h-4 text-white/30" />
             </div>
-            <div className="text-3xl font-mono font-bold" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{totalStarts}</div>
+            <div className="text-3xl font-mono font-bold">{totalStarts}</div>
           </div>
-          <div className="bg-black/40 backdrop-blur-md border border-[#f97316]/40 rounded-sm p-6 shadow-lg shadow-[#f97316]/10 hover:bg-black/50 transition-all duration-200">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-[#f97316]/30 rounded p-6 shadow-lg shadow-[#f97316]/10 hover:bg-white/[0.05] transition-all duration-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] uppercase tracking-[0.15em] text-[#f97316]">Wins</span>
               <Trophy className="w-4 h-4 text-[#f97316]" />
             </div>
-            <div className="text-3xl font-mono font-bold text-[#f97316]" style={{ textShadow: '0 2px 10px rgba(249,115,22,0.3)' }}>{totalWins}</div>
+            <div className="text-3xl font-mono font-bold text-[#f97316]">{totalWins}</div>
           </div>
-          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm p-6 shadow-lg hover:bg-black/50 transition-all duration-200">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-6 shadow-lg shadow-black/20 hover:bg-white/[0.05] transition-all duration-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] uppercase tracking-[0.15em] text-white/50">Top 5s</span>
               <Medal className="w-4 h-4 text-white/30" />
             </div>
-            <div className="text-3xl font-mono font-bold" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{totalTop5s}</div>
+            <div className="text-3xl font-mono font-bold">{totalTop5s}</div>
           </div>
-          <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm p-6 shadow-lg hover:bg-black/50 transition-all duration-200">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-6 shadow-lg shadow-black/20 hover:bg-white/[0.05] transition-all duration-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] uppercase tracking-[0.15em] text-white/50">Poles</span>
               <TrendingUp className="w-4 h-4 text-white/30" />
             </div>
-            <div className="text-3xl font-mono font-bold" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.3)' }}>{totalPoles}</div>
+            <div className="text-3xl font-mono font-bold">{totalPoles}</div>
           </div>
         </div>
 
         {/* Stats by Discipline */}
-        <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-sm p-6 shadow-xl">
+        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-6 shadow-lg shadow-black/20">
           <div className="flex items-center gap-2 mb-6">
             <BarChart3 className="w-5 h-5 text-white/60" />
             <span 
@@ -95,7 +112,7 @@ export function DriverStats() {
             {stats?.map((stat) => (
               <div 
                 key={stat.discipline} 
-                className="bg-black/30 border border-white/10 rounded-sm p-5 hover:bg-black/40 hover:border-white/20 transition-all duration-200"
+                className="bg-white/[0.02] border border-white/[0.08] rounded p-5 hover:bg-white/[0.04] hover:border-white/20 transition-all duration-200"
               >
                 <div className="flex items-center justify-between mb-4">
                   <span 
