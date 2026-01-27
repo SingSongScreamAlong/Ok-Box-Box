@@ -125,20 +125,27 @@ export function PitwallHome() {
   const [drivers] = useState<TeamDriver[]>(mockTeamDrivers);
   const [masterVolume, setMasterVolume] = useState(75);
   
-  // Radio channels state - F1-style comms panel
+  // Radio channels state - F1-style comms panel grouped by driver
   const [radioChannels, setRadioChannels] = useState<RadioChannel[]>([
-    // Driver channels
+    // Alex group
     { id: 'alex-driver', name: 'Alex Rivera', shortName: 'ALEX', type: 'driver', volume: 100, muted: false, active: true, speaking: false, color: '#22c55e' },
+    { id: 'alex-eng', name: 'Alex Engineer', shortName: 'ENG', type: 'crew', volume: 100, muted: false, active: true, speaking: true, color: '#22c55e' },
+    { id: 'alex-spot', name: 'Alex Spotter', shortName: 'SPOT', type: 'crew', volume: 90, muted: false, active: true, speaking: false, color: '#22c55e' },
+    // Jordan group
     { id: 'jordan-driver', name: 'Jordan Chen', shortName: 'JORDAN', type: 'driver', volume: 80, muted: false, active: false, speaking: false, color: '#3b82f6' },
+    { id: 'jordan-eng', name: 'Jordan Engineer', shortName: 'ENG', type: 'crew', volume: 60, muted: false, active: false, speaking: false, color: '#3b82f6' },
+    { id: 'jordan-spot', name: 'Jordan Spotter', shortName: 'SPOT', type: 'crew', volume: 60, muted: false, active: false, speaking: false, color: '#3b82f6' },
+    // Sam group
     { id: 'sam-driver', name: 'Sam Williams', shortName: 'SAM', type: 'driver', volume: 80, muted: false, active: false, speaking: false, color: '#f97316' },
+    { id: 'sam-eng', name: 'Sam Engineer', shortName: 'ENG', type: 'crew', volume: 60, muted: false, active: false, speaking: false, color: '#f97316' },
+    { id: 'sam-spot', name: 'Sam Spotter', shortName: 'SPOT', type: 'crew', volume: 60, muted: false, active: false, speaking: false, color: '#f97316' },
+    // Casey group
     { id: 'casey-driver', name: 'Casey Morgan', shortName: 'CASEY', type: 'driver', volume: 80, muted: true, active: false, speaking: false, color: '#a855f7' },
-    // Crew channels (Spotter/Engineer per driver)
-    { id: 'alex-eng', name: 'Alex Engineer', shortName: 'A ENG', type: 'crew', volume: 100, muted: false, active: true, speaking: true, color: '#22c55e' },
-    { id: 'alex-spot', name: 'Alex Spotter', shortName: 'A SPOT', type: 'crew', volume: 90, muted: false, active: true, speaking: false, color: '#22c55e' },
-    { id: 'jordan-eng', name: 'Jordan Engineer', shortName: 'J ENG', type: 'crew', volume: 60, muted: false, active: false, speaking: false, color: '#3b82f6' },
-    { id: 'jordan-spot', name: 'Jordan Spotter', shortName: 'J SPOT', type: 'crew', volume: 60, muted: false, active: false, speaking: false, color: '#3b82f6' },
+    { id: 'casey-eng', name: 'Casey Engineer', shortName: 'ENG', type: 'crew', volume: 60, muted: true, active: false, speaking: false, color: '#a855f7' },
+    { id: 'casey-spot', name: 'Casey Spotter', shortName: 'SPOT', type: 'crew', volume: 60, muted: true, active: false, speaking: false, color: '#a855f7' },
     // Team channels
-    { id: 'team-all', name: 'Team All', shortName: 'TEAM', type: 'team', volume: 100, muted: false, active: true, speaking: false },
+    { id: 'team-all', name: 'All Team', shortName: 'TEAM', type: 'team', volume: 100, muted: false, active: true, speaking: false },
+    { id: 'all-drivers', name: 'All Drivers', shortName: 'ALL DRV', type: 'team', volume: 100, muted: false, active: false, speaking: false },
     { id: 'strategy', name: 'Strategy', shortName: 'STRAT', type: 'team', volume: 50, muted: false, active: false, speaking: false },
     { id: 'pitcrew', name: 'Pit Crew', shortName: 'PIT', type: 'team', volume: 70, muted: false, active: false, speaking: false },
     // Race control
@@ -193,12 +200,6 @@ export function PitwallHome() {
   };
 
   // Radio channel handlers
-  const toggleChannelMute = (channelId: string) => {
-    setRadioChannels(prev => prev.map(ch => 
-      ch.id === channelId ? { ...ch, muted: !ch.muted } : ch
-    ));
-  };
-
   const toggleChannelActive = (channelId: string) => {
     setRadioChannels(prev => prev.map(ch => 
       ch.id === channelId ? { ...ch, active: !ch.active } : ch
@@ -261,82 +262,211 @@ export function PitwallHome() {
             </div>
           </div>
 
-          {/* Team Radio - Minimal Strip */}
-          <div className="mb-4 bg-black/40 backdrop-blur-sm border border-white/[0.06] rounded-sm overflow-hidden">
-            <div className="px-3 py-1.5 border-b border-white/[0.06] flex items-center justify-between">
+          {/* Team Radio - F1 Style LED Panel */}
+          <div className="mb-4 bg-[#1a1a1a] border border-[#333] rounded overflow-hidden" style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+            {/* Header */}
+            <div className="px-3 py-2 bg-[#0f0f0f] border-b border-[#333] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Radio size={12} className="text-white/30" />
-                <span className="text-[9px] uppercase tracking-[0.2em] text-white/30 font-medium">Team Radio</span>
-                <span className="text-[8px] px-1.5 py-0.5 bg-green-500/10 text-green-500/70 border border-green-500/20 rounded-sm font-medium">LIVE</span>
+                <Radio size={14} className="text-amber-500/70" />
+                <span className="text-[10px] uppercase tracking-[0.15em] text-white/50 font-semibold">Team Radio</span>
+                <span className="text-[9px] px-2 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded font-medium">LIVE</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[9px] text-white/20">Master Vol</span>
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] text-white/30">Master</span>
                 <input 
                   type="range" 
                   min="0" 
                   max="100" 
                   value={masterVolume}
                   onChange={(e) => setMasterVolume(Number(e.target.value))}
-                  className="w-16 h-[2px] bg-white/10 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:h-2 [&::-webkit-slider-thumb]:bg-white/50 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:hover:bg-white/70"
+                  className="w-20 h-1 bg-[#333] rounded appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-amber-500 [&::-webkit-slider-thumb]:rounded-full"
                 />
-                <span className="text-[9px] text-white/30 font-mono w-6">{masterVolume}%</span>
+                <span className="text-[10px] text-amber-500/70 font-mono w-8">{masterVolume}%</span>
               </div>
             </div>
             
-            {/* Channel Strip - Compact Horizontal */}
-            <div className="px-2 py-2 flex gap-1.5 overflow-x-auto">
-              {radioChannels.map(channel => (
-                <div 
-                  key={channel.id}
-                  className={`flex-shrink-0 flex items-center gap-1.5 px-2 py-1 rounded-sm cursor-pointer transition-all ${
-                    channel.speaking 
-                      ? 'bg-green-500/15 border border-green-500/30' 
-                      : channel.active 
-                        ? 'bg-white/[0.04] border border-white/10' 
-                        : channel.muted 
-                          ? 'bg-red-500/5 border border-red-500/10 opacity-40' 
-                          : 'bg-transparent border border-transparent hover:bg-white/[0.02] hover:border-white/[0.06]'
-                  }`}
-                  onClick={() => toggleChannelActive(channel.id)}
-                >
-                  {/* Speaking/Volume indicator - single dot */}
-                  <div 
-                    className={`w-1.5 h-1.5 rounded-full transition-all ${
-                      channel.speaking 
-                        ? 'bg-green-400 shadow-[0_0_6px_rgba(34,197,94,0.6)]' 
-                        : channel.muted 
-                          ? 'bg-red-500/50' 
-                          : channel.active 
-                            ? 'bg-white/40' 
-                            : 'bg-white/15'
-                    }`}
-                  />
-                  
-                  {/* Channel name */}
-                  <span 
-                    className={`text-[9px] font-mono font-medium tracking-wide ${
-                      channel.speaking 
-                        ? 'text-green-400' 
-                        : channel.active 
-                          ? 'text-white/80' 
-                          : channel.muted 
-                            ? 'text-red-400/60' 
-                            : 'text-white/40'
-                    }`}
-                    style={{ borderLeft: channel.color ? `1.5px solid ${channel.color}40` : 'none', paddingLeft: channel.color ? '4px' : '0' }}
-                  >
-                    {channel.shortName}
-                  </span>
-                  
-                  {/* Mute button - only show on hover or if muted */}
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); toggleChannelMute(channel.id); }}
-                    className={`p-0.5 rounded-sm transition-all ${channel.muted ? 'text-red-400/70' : 'text-white/20 hover:text-white/40'}`}
-                  >
-                    {channel.muted ? <VolumeX size={9} /> : <Volume2 size={9} />}
-                  </button>
+            {/* Driver Groups - F1 Style Grid */}
+            <div className="p-3">
+              {/* Row 1: Driver Names */}
+              <div className="flex gap-2 mb-2">
+                {/* Driver columns */}
+                {['alex', 'jordan', 'sam', 'casey'].map(driverKey => {
+                  const driverChannel = radioChannels.find(ch => ch.id === `${driverKey}-driver`);
+                  if (!driverChannel) return null;
+                  return (
+                    <div key={driverKey} className="flex-1">
+                      <button
+                        onClick={() => toggleChannelActive(driverChannel.id)}
+                        className={`w-full h-9 rounded border-2 transition-all font-mono text-[11px] font-bold tracking-wider ${
+                          driverChannel.speaking
+                            ? 'bg-green-500/20 border-green-500 text-green-400 shadow-[0_0_12px_rgba(34,197,94,0.4)]'
+                            : driverChannel.active
+                              ? 'bg-[#2a2a2a] border-amber-500/60 text-amber-400'
+                              : driverChannel.muted
+                                ? 'bg-[#1a1a1a] border-red-500/40 text-red-500/50'
+                                : 'bg-[#1a1a1a] border-[#444] text-white/40 hover:border-[#555] hover:text-white/60'
+                        }`}
+                        style={{ 
+                          textShadow: driverChannel.active || driverChannel.speaking ? '0 0 8px currentColor' : 'none',
+                          borderLeft: `3px solid ${driverChannel.color}`
+                        }}
+                      >
+                        {driverChannel.shortName}
+                      </button>
+                    </div>
+                  );
+                })}
+                
+                {/* Team buttons */}
+                <div className="flex-1">
+                  {(() => {
+                    const ch = radioChannels.find(c => c.id === 'all-drivers');
+                    if (!ch) return null;
+                    return (
+                      <button
+                        onClick={() => toggleChannelActive(ch.id)}
+                        className={`w-full h-9 rounded border-2 transition-all font-mono text-[10px] font-bold tracking-wider ${
+                          ch.active
+                            ? 'bg-[#2a2a2a] border-cyan-500/60 text-cyan-400'
+                            : 'bg-[#1a1a1a] border-[#444] text-white/40 hover:border-[#555] hover:text-white/60'
+                        }`}
+                        style={{ textShadow: ch.active ? '0 0 8px currentColor' : 'none' }}
+                      >
+                        {ch.shortName}
+                      </button>
+                    );
+                  })()}
                 </div>
-              ))}
+                <div className="flex-1">
+                  {(() => {
+                    const ch = radioChannels.find(c => c.id === 'team-all');
+                    if (!ch) return null;
+                    return (
+                      <button
+                        onClick={() => toggleChannelActive(ch.id)}
+                        className={`w-full h-9 rounded border-2 transition-all font-mono text-[10px] font-bold tracking-wider ${
+                          ch.active
+                            ? 'bg-[#2a2a2a] border-yellow-500/60 text-yellow-400'
+                            : 'bg-[#1a1a1a] border-[#444] text-white/40 hover:border-[#555] hover:text-white/60'
+                        }`}
+                        style={{ textShadow: ch.active ? '0 0 8px currentColor' : 'none' }}
+                      >
+                        {ch.shortName}
+                      </button>
+                    );
+                  })()}
+                </div>
+              </div>
+              
+              {/* Row 2: Engineer | Spotter for each driver */}
+              <div className="flex gap-2">
+                {['alex', 'jordan', 'sam', 'casey'].map(driverKey => {
+                  const engChannel = radioChannels.find(ch => ch.id === `${driverKey}-eng`);
+                  const spotChannel = radioChannels.find(ch => ch.id === `${driverKey}-spot`);
+                  if (!engChannel || !spotChannel) return null;
+                  return (
+                    <div key={driverKey} className="flex-1 flex gap-1">
+                      {/* Engineer */}
+                      <button
+                        onClick={() => toggleChannelActive(engChannel.id)}
+                        className={`flex-1 h-7 rounded border transition-all font-mono text-[9px] font-semibold tracking-wide ${
+                          engChannel.speaking
+                            ? 'bg-green-500/20 border-green-500 text-green-400 shadow-[0_0_8px_rgba(34,197,94,0.3)]'
+                            : engChannel.active
+                              ? 'bg-[#252525] border-amber-500/40 text-amber-400/80'
+                              : engChannel.muted
+                                ? 'bg-[#181818] border-red-500/30 text-red-500/40'
+                                : 'bg-[#181818] border-[#3a3a3a] text-white/30 hover:border-[#4a4a4a] hover:text-white/50'
+                        }`}
+                        style={{ textShadow: engChannel.active || engChannel.speaking ? '0 0 6px currentColor' : 'none' }}
+                      >
+                        ENG
+                      </button>
+                      {/* Spotter */}
+                      <button
+                        onClick={() => toggleChannelActive(spotChannel.id)}
+                        className={`flex-1 h-7 rounded border transition-all font-mono text-[9px] font-semibold tracking-wide ${
+                          spotChannel.speaking
+                            ? 'bg-green-500/20 border-green-500 text-green-400 shadow-[0_0_8px_rgba(34,197,94,0.3)]'
+                            : spotChannel.active
+                              ? 'bg-[#252525] border-amber-500/40 text-amber-400/80'
+                              : spotChannel.muted
+                                ? 'bg-[#181818] border-red-500/30 text-red-500/40'
+                                : 'bg-[#181818] border-[#3a3a3a] text-white/30 hover:border-[#4a4a4a] hover:text-white/50'
+                        }`}
+                        style={{ textShadow: spotChannel.active || spotChannel.speaking ? '0 0 6px currentColor' : 'none' }}
+                      >
+                        SPOT
+                      </button>
+                    </div>
+                  );
+                })}
+                
+                {/* Strategy & Pit buttons */}
+                <div className="flex-1">
+                  {(() => {
+                    const ch = radioChannels.find(c => c.id === 'strategy');
+                    if (!ch) return null;
+                    return (
+                      <button
+                        onClick={() => toggleChannelActive(ch.id)}
+                        className={`w-full h-7 rounded border transition-all font-mono text-[9px] font-semibold tracking-wide ${
+                          ch.active
+                            ? 'bg-[#252525] border-purple-500/40 text-purple-400/80'
+                            : 'bg-[#181818] border-[#3a3a3a] text-white/30 hover:border-[#4a4a4a] hover:text-white/50'
+                        }`}
+                        style={{ textShadow: ch.active ? '0 0 6px currentColor' : 'none' }}
+                      >
+                        STRAT
+                      </button>
+                    );
+                  })()}
+                </div>
+                <div className="flex-1">
+                  {(() => {
+                    const ch = radioChannels.find(c => c.id === 'pitcrew');
+                    if (!ch) return null;
+                    return (
+                      <button
+                        onClick={() => toggleChannelActive(ch.id)}
+                        className={`w-full h-7 rounded border transition-all font-mono text-[9px] font-semibold tracking-wide ${
+                          ch.active
+                            ? 'bg-[#252525] border-blue-500/40 text-blue-400/80'
+                            : 'bg-[#181818] border-[#3a3a3a] text-white/30 hover:border-[#4a4a4a] hover:text-white/50'
+                        }`}
+                        style={{ textShadow: ch.active ? '0 0 6px currentColor' : 'none' }}
+                      >
+                        PIT
+                      </button>
+                    );
+                  })()}
+                </div>
+              </div>
+              
+              {/* Row 3: Race Control */}
+              <div className="flex gap-2 mt-2">
+                <div className="flex-[4]" /> {/* Spacer */}
+                <div className="flex-1">
+                  {(() => {
+                    const ch = radioChannels.find(c => c.id === 'race-ctrl');
+                    if (!ch) return null;
+                    return (
+                      <button
+                        onClick={() => toggleChannelActive(ch.id)}
+                        className={`w-full h-7 rounded border transition-all font-mono text-[9px] font-bold tracking-wide ${
+                          ch.active
+                            ? 'bg-red-500/20 border-red-500/60 text-red-400'
+                            : 'bg-[#181818] border-[#3a3a3a] text-white/30 hover:border-red-500/30 hover:text-red-400/50'
+                        }`}
+                        style={{ textShadow: ch.active ? '0 0 8px currentColor' : 'none' }}
+                      >
+                        ##RACE##
+                      </button>
+                    );
+                  })()}
+                </div>
+                <div className="flex-1" /> {/* Spacer */}
+              </div>
             </div>
           </div>
 
