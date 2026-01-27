@@ -4,6 +4,7 @@ import { Radio, Zap, Fuel, Video, VideoOff, Maximize2, Volume2, VolumeX, Users, 
 import { getTeam, Team } from '../../lib/teams';
 import { PitwallWelcome, useFirstTimeExperience } from '../../components/PitwallWelcome';
 import { useRelay } from '../../hooks/useRelay';
+import { TrackMap } from '../../components/TrackMap';
 
 // Radio channel interface for F1-style comms panel
 interface RadioChannel {
@@ -868,142 +869,13 @@ export function PitwallHome() {
               {/* Track Map Visualization */}
               <div className="mt-4 grid grid-cols-4 gap-4">
                 <div className="col-span-3 bg-black/60 rounded p-4 relative" style={{ minHeight: '220px' }}>
-                  <svg viewBox="0 0 500 200" className="w-full h-full">
-                    {/* Daytona Tri-Oval with Road Course - accurate shape */}
-                    <defs>
-                      <linearGradient id="trackGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#2a2a2a" />
-                        <stop offset="50%" stopColor="#3a3a3a" />
-                        <stop offset="100%" stopColor="#2a2a2a" />
-                      </linearGradient>
-                    </defs>
-                    
-                    {/* Main tri-oval banking */}
-                    <path 
-                      d="M 80,140 
-                         Q 20,140 20,100 
-                         Q 20,60 80,50 
-                         L 200,35 
-                         Q 250,30 300,35 
-                         L 420,50 
-                         Q 480,60 480,100 
-                         Q 480,140 420,140 
-                         L 300,155 
-                         Q 250,160 200,155 
-                         Z"
-                      fill="none" 
-                      stroke="url(#trackGradient)" 
-                      strokeWidth="14"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    
-                    {/* Track center line */}
-                    <path 
-                      d="M 80,140 
-                         Q 20,140 20,100 
-                         Q 20,60 80,50 
-                         L 200,35 
-                         Q 250,30 300,35 
-                         L 420,50 
-                         Q 480,60 480,100 
-                         Q 480,140 420,140 
-                         L 300,155 
-                         Q 250,160 200,155 
-                         Z"
-                      fill="none" 
-                      stroke="#555" 
-                      strokeWidth="1"
-                      strokeDasharray="6,4"
-                    />
-                    
-                    {/* Infield road course section */}
-                    <path
-                      d="M 180,155 
-                         L 180,120 
-                         Q 180,100 200,100 
-                         L 280,100 
-                         Q 300,100 300,85 
-                         L 300,70 
-                         Q 300,55 280,55 
-                         L 220,55 
-                         Q 200,55 200,75 
-                         L 200,90 
-                         Q 200,110 180,110 
-                         L 140,110 
-                         Q 120,110 120,130 
-                         L 120,155"
-                      fill="none"
-                      stroke="#333"
-                      strokeWidth="8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    
-                    {/* Start/Finish line on front stretch */}
-                    <line x1="250" y1="148" x2="250" y2="162" stroke="#fff" strokeWidth="2" />
-                    <text x="250" y="175" textAnchor="middle" fill="#666" fontSize="9" fontWeight="bold">S/F</text>
-                    
-                    {/* Turn markers */}
-                    <circle cx="50" cy="100" r="2" fill="#f97316" />
-                    <text x="35" y="100" textAnchor="middle" fill="#f97316" fontSize="7">T1</text>
-                    
-                    <circle cx="80" cy="50" r="2" fill="#f97316" />
-                    <text x="80" y="40" textAnchor="middle" fill="#f97316" fontSize="7">T2</text>
-                    
-                    <circle cx="420" cy="50" r="2" fill="#f97316" />
-                    <text x="420" y="40" textAnchor="middle" fill="#f97316" fontSize="7">T3</text>
-                    
-                    <circle cx="450" cy="100" r="2" fill="#f97316" />
-                    <text x="465" y="100" textAnchor="middle" fill="#f97316" fontSize="7">T4</text>
-                    
-                    {/* Sector markers */}
-                    <circle cx="450" cy="70" r="3" fill="#3b82f6" />
-                    <text x="470" y="73" fill="#3b82f6" fontSize="8">S1</text>
-                    
-                    <circle cx="50" cy="120" r="3" fill="#3b82f6" />
-                    <text x="30" y="123" fill="#3b82f6" fontSize="8">S2</text>
-                    
-                    <circle cx="150" cy="155" r="3" fill="#3b82f6" />
-                    <text x="150" y="170" textAnchor="middle" fill="#3b82f6" fontSize="8">S3</text>
-                    
-                    {/* Driver positions on track - positioned along the tri-oval */}
-                    {drivers.filter(d => d.isActive).slice(0, 6).map((driver, idx) => {
-                      // Position cars along the track path
-                      const positions = [
-                        { x: 250, y: 155 },  // P1 - near S/F
-                        { x: 350, y: 145 },  // P2 - front stretch
-                        { x: 450, y: 100 },  // P3 - T4
-                        { x: 400, y: 50 },   // P4 - back stretch
-                        { x: 250, y: 32 },   // P5 - tri-oval kink
-                        { x: 100, y: 50 },   // P6 - T2
-                      ];
-                      const pos = positions[idx] || { x: 50, y: 100 };
-                      const isTeamCar = driver.id === 'd1' || driver.id === 'd2';
-                      return (
-                        <g key={driver.id}>
-                          <circle 
-                            cx={pos.x} 
-                            cy={pos.y} 
-                            r="12" 
-                            fill={isTeamCar ? '#3b82f6' : '#444'} 
-                            stroke={isTeamCar ? '#60a5fa' : '#666'} 
-                            strokeWidth="2"
-                          />
-                          <text 
-                            x={pos.x} 
-                            y={pos.y + 4} 
-                            textAnchor="middle" 
-                            fill="#fff" 
-                            fontSize="9" 
-                            fontWeight="bold"
-                          >
-                            {driver.carNumber}
-                          </text>
-                        </g>
-                      );
-                    })}
-                  </svg>
+                  {/* Use the TrackMap component from cockpit */}
+                  <TrackMap 
+                    trackId="191" 
+                    carPosition={{ x: 0, y: 0, trackPercentage: 0.72 }}
+                    currentSector={2}
+                    className="w-full h-full"
+                  />
                   
                   {/* Track info overlay */}
                   <div className="absolute bottom-2 left-3 text-[9px] text-white/40">
