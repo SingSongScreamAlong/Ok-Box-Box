@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getTeam, getUserTeamRole, getTeamMembers, Team, TeamMembership } from '../lib/teams';
 import { 
-  Users, Radio, Target, BarChart3,
-  Play, GitCompare, Calendar, Fuel, AlertTriangle
+  Users, Radio, Target, BarChart3, Loader2,
+  Play, GitCompare, Calendar, Fuel, Crown, Shield, User
 } from 'lucide-react';
 import { WeatherWidget } from '../components/WeatherWidget';
 
@@ -16,12 +16,19 @@ export function TeamDashboard() {
   const [role, setRole] = useState<'owner' | 'manager' | 'member' | null>(null);
   const [members, setMembers] = useState<TeamMembership[]>([]);
   const [loading, setLoading] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (teamId && user) {
       loadTeamData();
     }
   }, [teamId, user]);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.6;
+    }
+  }, []);
 
   const loadTeamData = async () => {
     if (!teamId || !user) return;
@@ -43,10 +50,29 @@ export function TeamDashboard() {
     setLoading(false);
   };
 
+  const getRoleIcon = (r: string) => {
+    switch (r) {
+      case 'owner': return Crown;
+      case 'manager': return Shield;
+      default: return User;
+    }
+  };
+
+  const getRoleColor = (r: string) => {
+    switch (r) {
+      case 'owner': return 'text-[#f97316] bg-[#f97316]/10 border-[#f97316]/30';
+      case 'manager': return 'text-[#3b82f6] bg-[#3b82f6]/10 border-[#3b82f6]/30';
+      default: return 'text-white/60 bg-white/5 border-white/10';
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-white/50">Loading team...</div>
+      <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-[#3b82f6]" />
+          <span className="text-white/50 text-sm">Loading team...</span>
+        </div>
       </div>
     );
   }
@@ -56,26 +82,46 @@ export function TeamDashboard() {
   }
 
   const isOwnerOrManager = role === 'owner' || role === 'manager';
+  const RoleIcon = getRoleIcon(role || 'member');
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      {/* Page Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <h1 
-            className="text-lg uppercase tracking-[0.15em] font-semibold text-white"
-            style={{ fontFamily: 'Orbitron, sans-serif' }}
-          >
-            Dashboard
-          </h1>
-          <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-[#3b82f6]/20 text-[#3b82f6] border border-[#3b82f6]/30 font-semibold">
-            {role}
-          </span>
-        </div>
-        <p className="text-xs text-white/50">Team overview and quick access</p>
+    <div className="min-h-[calc(100vh-8rem)] relative">
+      {/* Background video */}
+      <div className="fixed inset-0 z-0">
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="w-full h-full object-cover opacity-70"
+        >
+          <source src="/videos/team-bg.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/90 via-[#0e0e0e]/70 to-[#0e0e0e]/50" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/90" />
       </div>
 
-      <div className="grid gap-6">
+      <div className="relative z-10 p-6 max-w-5xl mx-auto">
+        {/* Page Header */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <h1 
+              className="text-2xl uppercase tracking-[0.2em] font-bold text-white"
+              style={{ fontFamily: 'Orbitron, sans-serif' }}
+            >
+              Dashboard
+            </h1>
+            <span className={`inline-flex items-center gap-1.5 text-[10px] uppercase tracking-wider px-2.5 py-1 rounded font-semibold border ${getRoleColor(role || 'member')}`}>
+              <RoleIcon className="w-3 h-3" />
+              {role}
+            </span>
+          </div>
+          <p className="text-sm text-white/50">Team overview and quick access to pitwall tools</p>
+        </div>
+
+        <div className="grid gap-6">
           {/* Quick Actions Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <Link 
@@ -232,5 +278,6 @@ export function TeamDashboard() {
           </div>
         </div>
       </div>
+    </div>
   );
 }
