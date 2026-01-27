@@ -478,10 +478,15 @@ export function PitwallHome() {
                 </div>
               </div>
               
-              {/* Row 3: Race Control */}
+              {/* Row 3: Race Control - aligned under STRAT/PIT */}
               <div className="flex gap-2 mt-2">
-                <div className="flex-[4]" /> {/* Spacer */}
-                <div className="flex-1">
+                {/* 4 driver column spacers */}
+                <div className="flex-1" />
+                <div className="flex-1" />
+                <div className="flex-1" />
+                <div className="flex-1" />
+                {/* Race control spans the last 2 columns (where ALL DRV and TEAM are) */}
+                <div className="flex-1 flex gap-1">
                   {(() => {
                     const ch = radioChannels.find(c => c.id === 'race-ctrl');
                     if (!ch) return null;
@@ -500,7 +505,7 @@ export function PitwallHome() {
                     );
                   })()}
                 </div>
-                <div className="flex-1" /> {/* Spacer */}
+                <div className="flex-1" />
               </div>
             </div>
           </div>
