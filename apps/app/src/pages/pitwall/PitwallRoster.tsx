@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { UserPlus, Search, Filter, Users, Crown, Wrench, User, Link2, LinkIcon, Mail, Bell, X, Target } from 'lucide-react';
+import { UserPlus, Search, Filter, Users, Crown, Wrench, User, Link2, LinkIcon, Mail, Bell, X, Target, Loader2 } from 'lucide-react';
 
 // Types from legacy
 interface DriverSummary {
@@ -340,6 +340,7 @@ export function PitwallRoster() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
   
   useEffect(() => {
     const fetchRoster = async () => {
@@ -352,6 +353,12 @@ export function PitwallRoster() {
     };
     fetchRoster();
   }, [teamId]);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.6;
+    }
+  }, []);
 
   const filteredMembers = roster?.members.filter(m =>
     m.display_name.toLowerCase().includes(filter.toLowerCase()) ||
@@ -367,8 +374,11 @@ export function PitwallRoster() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-[400px]">
-        <div className="text-white/50">Loading roster...</div>
+      <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-pink-400" />
+          <span className="text-white/50 text-sm">Loading roster...</span>
+        </div>
       </div>
     );
   }
@@ -376,9 +386,27 @@ export function PitwallRoster() {
   if (!roster) return null;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto min-h-full">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
+    <div className="min-h-[calc(100vh-8rem)] relative">
+      {/* Background video */}
+      <div className="fixed inset-0 z-0">
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="w-full h-full object-cover opacity-50"
+        >
+          <source src="/videos/team-bg.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/95 via-[#0e0e0e]/80 to-[#0e0e0e]/70" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/95" />
+      </div>
+
+      <div className="relative z-10 p-6 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
         <div>
           <h1 
             className="text-xl font-bold tracking-wide uppercase text-white"
@@ -543,6 +571,7 @@ export function PitwallRoster() {
         onClose={() => setShowInviteModal(false)} 
         teamName={roster.team_name} 
       />
+      </div>
     </div>
   );
 }
