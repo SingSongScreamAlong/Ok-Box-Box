@@ -896,29 +896,21 @@ export function PitwallHome() {
             </div>
           </div>
 
-          {/* Tire Wear Panel */}
+          {/* Tire Wear Panel - Compact inline */}
           {currentDriver?.tireWear && (
-            <div className="bg-white/[0.03] border border-white/10 rounded p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Thermometer size={14} className="text-white/40" />
-                <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Tire Condition</span>
+            <div className="bg-white/[0.03] border border-white/10 rounded px-4 py-2 flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Thermometer size={12} className="text-white/40" />
+                <span className="text-[9px] uppercase tracking-wider text-white/40 font-semibold">Tires</span>
               </div>
-              <div className="grid grid-cols-4 gap-4">
+              <div className="flex items-center gap-3">
                 {['FL', 'FR', 'RL', 'RR'].map((pos, i) => {
                   const wear = currentDriver.tireWear ? [currentDriver.tireWear.fl, currentDriver.tireWear.fr, currentDriver.tireWear.rl, currentDriver.tireWear.rr][i] : null;
                   const wearColor = wear !== null ? (wear > 80 ? 'text-green-400' : wear > 50 ? 'text-yellow-400' : 'text-red-400') : 'text-white/30';
                   return (
-                    <div key={pos} className="text-center">
-                      <div className="text-[10px] text-white/40 mb-1">{pos}</div>
-                      <div className={`text-xl font-mono font-bold ${wearColor}`}>
-                        {wear !== null ? `${wear}%` : '—'}
-                      </div>
-                      <div className="mt-1 h-1 bg-white/10 rounded overflow-hidden">
-                        <div 
-                          className={`h-full ${wear !== null ? (wear > 80 ? 'bg-green-500' : wear > 50 ? 'bg-yellow-500' : 'bg-red-500') : 'bg-white/10'}`}
-                          style={{ width: `${wear || 0}%` }}
-                        />
-                      </div>
+                    <div key={pos} className="flex items-center gap-1">
+                      <span className="text-[9px] text-white/30">{pos}</span>
+                      <span className={`text-xs font-mono font-bold ${wearColor}`}>{wear !== null ? `${wear}%` : '—'}</span>
                     </div>
                   );
                 })}
