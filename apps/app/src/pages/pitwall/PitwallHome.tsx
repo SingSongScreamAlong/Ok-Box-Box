@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Radio, Zap, Fuel, Video, VideoOff, Maximize2, Volume2, VolumeX, Users, Gauge, Thermometer, Clock, Flag, AlertTriangle, ChevronRight, BarChart3, Target, GitCompare, Calendar } from 'lucide-react';
+import { Radio, Zap, Fuel, Video, VideoOff, Maximize2, Volume2, VolumeX, Users, Gauge, Thermometer, Clock, Flag, AlertTriangle, ChevronRight, BarChart3, Target, GitCompare, Calendar, Monitor, MessageSquare } from 'lucide-react';
 import { getTeam, Team } from '../../lib/teams';
 import { PitwallWelcome, useFirstTimeExperience } from '../../components/PitwallWelcome';
 import { useRelay } from '../../hooks/useRelay';
@@ -124,6 +124,8 @@ export function PitwallHome() {
   const [expandedCamera, setExpandedCamera] = useState(false);
   const [drivers] = useState<TeamDriver[]>(mockTeamDrivers);
   const [masterVolume, setMasterVolume] = useState(75);
+  const [patchToHUD, setPatchToHUD] = useState(false);
+  const [patchToDiscord, setPatchToDiscord] = useState(false);
   
   // Radio channels state - F1-style comms panel grouped by driver
   const [radioChannels, setRadioChannels] = useState<RadioChannel[]>([
@@ -271,17 +273,50 @@ export function PitwallHome() {
                 <span className="text-[10px] uppercase tracking-[0.15em] text-white/50 font-semibold">Team Radio</span>
                 <span className="text-[9px] px-2 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded font-medium">LIVE</span>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-[10px] text-white/30">Master</span>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="100" 
-                  value={masterVolume}
-                  onChange={(e) => setMasterVolume(Number(e.target.value))}
-                  className="w-20 h-1 bg-[#333] rounded appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-amber-500 [&::-webkit-slider-thumb]:rounded-full"
-                />
-                <span className="text-[10px] text-amber-500/70 font-mono w-8">{masterVolume}%</span>
+              <div className="flex items-center gap-4">
+                {/* Patch Controls */}
+                <div className="flex items-center gap-2 border-r border-[#333] pr-4">
+                  <button
+                    onClick={() => setPatchToHUD(!patchToHUD)}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-semibold uppercase tracking-wide transition-all ${
+                      patchToHUD
+                        ? 'bg-cyan-500/20 border border-cyan-500/50 text-cyan-400'
+                        : 'bg-[#252525] border border-[#444] text-white/40 hover:border-[#555] hover:text-white/60'
+                    }`}
+                    title="Patch active channels to Driver HUD overlay"
+                  >
+                    <Monitor size={12} />
+                    <span>HUD</span>
+                    {patchToHUD && <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse" />}
+                  </button>
+                  <button
+                    onClick={() => setPatchToDiscord(!patchToDiscord)}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-[9px] font-semibold uppercase tracking-wide transition-all ${
+                      patchToDiscord
+                        ? 'bg-indigo-500/20 border border-indigo-500/50 text-indigo-400'
+                        : 'bg-[#252525] border border-[#444] text-white/40 hover:border-[#555] hover:text-white/60'
+                    }`}
+                    title="Patch active channels to Discord voice"
+                  >
+                    <MessageSquare size={12} />
+                    <span>Discord</span>
+                    {patchToDiscord && <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse" />}
+                  </button>
+                </div>
+                
+                {/* Master Volume */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-white/30">Master</span>
+                  <input 
+                    type="range" 
+                    min="0" 
+                    max="100" 
+                    value={masterVolume}
+                    onChange={(e) => setMasterVolume(Number(e.target.value))}
+                    className="w-20 h-1 bg-[#333] rounded appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-amber-500 [&::-webkit-slider-thumb]:rounded-full"
+                  />
+                  <span className="text-[10px] text-amber-500/70 font-mono w-8">{masterVolume}%</span>
+                </div>
               </div>
             </div>
             
