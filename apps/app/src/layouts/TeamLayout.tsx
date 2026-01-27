@@ -59,7 +59,7 @@ export function TeamLayout() {
 
   const navItems = [
     { to: `/team/${teamId}`, icon: Radio, label: 'Dashboard', end: true },
-    { to: `/team/${teamId}/pitwall`, icon: Target, label: 'Pit Wall', desc: 'Comms & Cameras' },
+    { to: `/team/${teamId}/pitwall`, icon: Target, label: 'Pit Wall', desc: 'Comms & Cameras', end: true },
     { to: `/team/${teamId}/pitwall/race`, icon: Play, label: 'Race', desc: 'Timing & Standings' },
     { to: `/team/${teamId}/pitwall/strategy`, icon: BarChart3, label: 'Strategy' },
     { to: `/team/${teamId}/pitwall/roster`, icon: Users, label: 'Roster' },
