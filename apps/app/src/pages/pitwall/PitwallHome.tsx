@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Radio, Zap, Fuel, Video, VideoOff, Maximize2, Volume2, VolumeX, Users, Gauge, Thermometer, Clock, Flag, AlertTriangle, ChevronRight, BarChart3, Target, GitCompare, Calendar, Monitor, MessageSquare } from 'lucide-react';
+import { Radio, Zap, Fuel, Video, VideoOff, Maximize2, Volume2, VolumeX, Users, Gauge, Thermometer, Clock, Flag, AlertTriangle, ChevronRight, BarChart3, Target, Monitor, MessageSquare, Settings } from 'lucide-react';
 import { getTeam, Team } from '../../lib/teams';
 import { PitwallWelcome, useFirstTimeExperience } from '../../components/PitwallWelcome';
 import { useRelay } from '../../hooks/useRelay';
@@ -126,7 +126,7 @@ export function PitwallHome() {
   const [masterVolume, setMasterVolume] = useState(75);
   const [patchToHUD, setPatchToHUD] = useState(false);
   const [patchToDiscord, setPatchToDiscord] = useState(false);
-  const [activePanel, setActivePanel] = useState<'strategy' | 'compare' | 'practice' | 'planning' | null>(null);
+  const [activePanel, setActivePanel] = useState<'strategy' | 'drivers' | 'race' | 'setup' | null>(null);
   
   // Radio channels state - F1-style comms panel grouped by driver
   const [radioChannels, setRadioChannels] = useState<RadioChannel[]>([
@@ -533,60 +533,60 @@ export function PitwallHome() {
               </div>
             </button>
             <button 
-              onClick={() => setActivePanel(activePanel === 'compare' ? null : 'compare')}
+              onClick={() => setActivePanel(activePanel === 'drivers' ? null : 'drivers')}
               className={`text-left rounded p-4 transition-all group ${
-                activePanel === 'compare' 
+                activePanel === 'drivers' 
                   ? 'bg-cyan-500/20 border-2 border-cyan-500/60' 
                   : 'bg-white/[0.03] border border-white/10 hover:border-cyan-500/50 hover:bg-white/[0.05]'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <GitCompare size={18} className="text-cyan-400" />
+                  <Users size={18} className="text-cyan-400" />
                   <div>
-                    <div className="text-sm font-medium text-white">Compare</div>
-                    <div className="text-[10px] text-white/40">Driver telemetry</div>
+                    <div className="text-sm font-medium text-white">Drivers</div>
+                    <div className="text-[10px] text-white/40">Team & telemetry</div>
                   </div>
                 </div>
-                <ChevronRight size={16} className={`transition-transform ${activePanel === 'compare' ? 'rotate-90 text-cyan-400' : 'text-white/20 group-hover:text-white/50'}`} />
+                <ChevronRight size={16} className={`transition-transform ${activePanel === 'drivers' ? 'rotate-90 text-cyan-400' : 'text-white/20 group-hover:text-white/50'}`} />
               </div>
             </button>
             <button 
-              onClick={() => setActivePanel(activePanel === 'practice' ? null : 'practice')}
+              onClick={() => setActivePanel(activePanel === 'race' ? null : 'race')}
               className={`text-left rounded p-4 transition-all group ${
-                activePanel === 'practice' 
+                activePanel === 'race' 
                   ? 'bg-blue-500/20 border-2 border-blue-500/60' 
                   : 'bg-white/[0.03] border border-white/10 hover:border-blue-500/50 hover:bg-white/[0.05]'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <BarChart3 size={18} className="text-blue-400" />
+                  <Flag size={18} className="text-blue-400" />
                   <div>
-                    <div className="text-sm font-medium text-white">Practice</div>
-                    <div className="text-[10px] text-white/40">Session analysis</div>
+                    <div className="text-sm font-medium text-white">Race</div>
+                    <div className="text-[10px] text-white/40">Live session</div>
                   </div>
                 </div>
-                <ChevronRight size={16} className={`transition-transform ${activePanel === 'practice' ? 'rotate-90 text-blue-400' : 'text-white/20 group-hover:text-white/50'}`} />
+                <ChevronRight size={16} className={`transition-transform ${activePanel === 'race' ? 'rotate-90 text-blue-400' : 'text-white/20 group-hover:text-white/50'}`} />
               </div>
             </button>
             <button 
-              onClick={() => setActivePanel(activePanel === 'planning' ? null : 'planning')}
+              onClick={() => setActivePanel(activePanel === 'setup' ? null : 'setup')}
               className={`text-left rounded p-4 transition-all group ${
-                activePanel === 'planning' 
+                activePanel === 'setup' 
                   ? 'bg-indigo-500/20 border-2 border-indigo-500/60' 
                   : 'bg-white/[0.03] border border-white/10 hover:border-indigo-500/50 hover:bg-white/[0.05]'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Calendar size={18} className="text-indigo-400" />
+                  <Settings size={18} className="text-indigo-400" />
                   <div>
-                    <div className="text-sm font-medium text-white">Planning</div>
-                    <div className="text-[10px] text-white/40">Event schedule</div>
+                    <div className="text-sm font-medium text-white">Setup</div>
+                    <div className="text-[10px] text-white/40">Car configuration</div>
                   </div>
                 </div>
-                <ChevronRight size={16} className={`transition-transform ${activePanel === 'planning' ? 'rotate-90 text-indigo-400' : 'text-white/20 group-hover:text-white/50'}`} />
+                <ChevronRight size={16} className={`transition-transform ${activePanel === 'setup' ? 'rotate-90 text-indigo-400' : 'text-white/20 group-hover:text-white/50'}`} />
               </div>
             </button>
           </div>
@@ -621,90 +621,89 @@ export function PitwallHome() {
             </div>
           )}
 
-          {activePanel === 'compare' && (
+          {activePanel === 'drivers' && (
             <div className="mb-4 bg-cyan-500/10 border-2 border-cyan-500/40 rounded p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <GitCompare size={20} className="text-cyan-400" />
-                  <h3 className="text-lg font-semibold text-white">Driver Comparison</h3>
+                  <Users size={20} className="text-cyan-400" />
+                  <h3 className="text-lg font-semibold text-white">Team Drivers</h3>
                 </div>
                 <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-black/40 rounded p-4">
-                  <div className="text-sm font-medium text-white mb-3">Alex Rivera vs Jordan Chen</div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs"><span className="text-white/40">Best Lap</span><span className="text-green-400">-0.451s</span></div>
-                    <div className="flex justify-between text-xs"><span className="text-white/40">Avg Pace</span><span className="text-green-400">-0.234s</span></div>
-                    <div className="flex justify-between text-xs"><span className="text-white/40">Consistency</span><span className="text-cyan-400">±0.3s</span></div>
+              <div className="grid grid-cols-4 gap-4">
+                {drivers.map(driver => (
+                  <div key={driver.id} className="bg-black/40 rounded p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-6 h-6 flex items-center justify-center text-[10px] font-bold border ${driver.isActive ? 'bg-green-500/20 border-green-500/30 text-green-400' : 'bg-white/5 border-white/10 text-white/40'}`}>
+                        {driver.carNumber}
+                      </div>
+                      <div className="text-sm font-medium text-white">{driver.name}</div>
+                    </div>
+                    <div className="space-y-1 text-xs">
+                      <div className="flex justify-between"><span className="text-white/40">Status</span><span className={driver.isActive ? 'text-green-400' : 'text-white/30'}>{driver.isActive ? 'In Session' : 'Offline'}</span></div>
+                      <div className="flex justify-between"><span className="text-white/40">Position</span><span className="text-white">{driver.isActive ? `P${driver.position}` : '—'}</span></div>
+                      <div className="flex justify-between"><span className="text-white/40">Best Lap</span><span className="text-purple-400">{driver.bestLap ? formatLapTime(driver.bestLap) : '—'}</span></div>
+                    </div>
                   </div>
-                </div>
-                <div className="bg-black/40 rounded p-4">
-                  <div className="text-sm font-medium text-white mb-3">Sector Analysis</div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs"><span className="text-white/40">S1</span><span className="text-green-400">Alex +0.1s</span></div>
-                    <div className="flex justify-between text-xs"><span className="text-white/40">S2</span><span className="text-red-400">Jordan +0.2s</span></div>
-                    <div className="flex justify-between text-xs"><span className="text-white/40">S3</span><span className="text-green-400">Alex +0.35s</span></div>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           )}
 
-          {activePanel === 'practice' && (
+          {activePanel === 'race' && (
             <div className="mb-4 bg-blue-500/10 border-2 border-blue-500/40 rounded p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <BarChart3 size={20} className="text-blue-400" />
-                  <h3 className="text-lg font-semibold text-white">Practice Analysis</h3>
+                  <Flag size={20} className="text-blue-400" />
+                  <h3 className="text-lg font-semibold text-white">Race Control</h3>
                 </div>
                 <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
               </div>
               <div className="grid grid-cols-4 gap-4">
                 <div className="bg-black/40 rounded p-4 text-center">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Laps Run</div>
-                  <div className="text-2xl font-mono text-white">47</div>
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Session</div>
+                  <div className="text-xl font-mono text-green-400">RACE</div>
                 </div>
                 <div className="bg-black/40 rounded p-4 text-center">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Best Lap</div>
-                  <div className="text-2xl font-mono text-purple-400">1:37.891</div>
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Lap</div>
+                  <div className="text-2xl font-mono text-white">47<span className="text-white/30">/65</span></div>
                 </div>
                 <div className="bg-black/40 rounded p-4 text-center">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Avg Pace</div>
-                  <div className="text-2xl font-mono text-white">1:38.456</div>
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Time Remaining</div>
+                  <div className="text-2xl font-mono text-white">1:24:32</div>
                 </div>
                 <div className="bg-black/40 rounded p-4 text-center">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Consistency</div>
-                  <div className="text-2xl font-mono text-green-400">±0.4s</div>
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Flag</div>
+                  <div className="text-xl font-mono text-green-400">GREEN</div>
                 </div>
               </div>
             </div>
           )}
 
-          {activePanel === 'planning' && (
+          {activePanel === 'setup' && (
             <div className="mb-4 bg-indigo-500/10 border-2 border-indigo-500/40 rounded p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <Calendar size={20} className="text-indigo-400" />
-                  <h3 className="text-lg font-semibold text-white">Event Planning</h3>
+                  <Settings size={20} className="text-indigo-400" />
+                  <h3 className="text-lg font-semibold text-white">Car Setup</h3>
                 </div>
                 <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Current Event</div>
-                  <div className="text-lg font-medium text-white">Daytona 24H</div>
-                  <div className="text-xs text-white/30 mt-1">Round 1 of 8</div>
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Current Setup</div>
+                  <div className="text-lg font-medium text-white">Daytona Quali v3</div>
+                  <div className="text-xs text-white/30 mt-1">Last modified 2h ago</div>
                 </div>
                 <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Driver Stints</div>
-                  <div className="text-lg font-medium text-white">Alex → Jordan → Sam</div>
-                  <div className="text-xs text-white/30 mt-1">2hr rotation</div>
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Tire Pressure</div>
+                  <div className="text-lg font-medium text-white">F: 26.5 / R: 25.8</div>
+                  <div className="text-xs text-white/30 mt-1">PSI cold</div>
                 </div>
                 <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Next Pit</div>
-                  <div className="text-lg font-medium text-indigo-400">~45 min</div>
-                  <div className="text-xs text-white/30 mt-1">Driver change: Jordan</div>
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Fuel Load</div>
+                  <div className="text-lg font-medium text-indigo-400">48.2 L</div>
+                  <div className="text-xs text-white/30 mt-1">~18 laps range</div>
                 </div>
               </div>
             </div>
