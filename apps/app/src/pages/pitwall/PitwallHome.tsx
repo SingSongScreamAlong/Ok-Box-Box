@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Radio, Zap, Fuel, Video, VideoOff, Maximize2, Volume2, VolumeX, Users, Gauge, Thermometer, Clock, Flag, AlertTriangle, ChevronRight, BarChart3, Target, Monitor, MessageSquare, Settings } from 'lucide-react';
+import { Radio, Zap, Fuel, Video, VideoOff, Maximize2, Volume2, VolumeX, Users, Gauge, Thermometer, Clock, Flag, AlertTriangle, ChevronRight, Target, Monitor, MessageSquare, Settings, MapPin } from 'lucide-react';
 import { getTeam, Team } from '../../lib/teams';
 import { PitwallWelcome, useFirstTimeExperience } from '../../components/PitwallWelcome';
 import { useRelay } from '../../hooks/useRelay';
@@ -126,7 +126,7 @@ export function PitwallHome() {
   const [masterVolume, setMasterVolume] = useState(75);
   const [patchToHUD, setPatchToHUD] = useState(false);
   const [patchToDiscord, setPatchToDiscord] = useState(false);
-  const [activePanel, setActivePanel] = useState<'strategy' | 'drivers' | 'race' | 'setup' | null>(null);
+  const [activePanel, setActivePanel] = useState<'strategy' | 'drivers' | 'trackmap' | 'setup' | null>(null);
   
   // Radio channels state - F1-style comms panel grouped by driver
   const [radioChannels, setRadioChannels] = useState<RadioChannel[]>([
@@ -552,22 +552,22 @@ export function PitwallHome() {
               </div>
             </button>
             <button 
-              onClick={() => setActivePanel(activePanel === 'race' ? null : 'race')}
+              onClick={() => setActivePanel(activePanel === 'trackmap' ? null : 'trackmap')}
               className={`text-left rounded p-4 transition-all group ${
-                activePanel === 'race' 
+                activePanel === 'trackmap' 
                   ? 'bg-blue-500/20 border-2 border-blue-500/60' 
                   : 'bg-white/[0.03] border border-white/10 hover:border-blue-500/50 hover:bg-white/[0.05]'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Flag size={18} className="text-blue-400" />
+                  <MapPin size={18} className="text-blue-400" />
                   <div>
-                    <div className="text-sm font-medium text-white">Race</div>
-                    <div className="text-[10px] text-white/40">Live session</div>
+                    <div className="text-sm font-medium text-white">Track Map</div>
+                    <div className="text-[10px] text-white/40">Live positions</div>
                   </div>
                 </div>
-                <ChevronRight size={16} className={`transition-transform ${activePanel === 'race' ? 'rotate-90 text-blue-400' : 'text-white/20 group-hover:text-white/50'}`} />
+                <ChevronRight size={16} className={`transition-transform ${activePanel === 'trackmap' ? 'rotate-90 text-blue-400' : 'text-white/20 group-hover:text-white/50'}`} />
               </div>
             </button>
             <button 
@@ -650,31 +650,67 @@ export function PitwallHome() {
             </div>
           )}
 
-          {activePanel === 'race' && (
+          {activePanel === 'trackmap' && (
             <div className="mb-4 bg-blue-500/10 border-2 border-blue-500/40 rounded p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <Flag size={20} className="text-blue-400" />
-                  <h3 className="text-lg font-semibold text-white">Race Control</h3>
+                  <MapPin size={20} className="text-blue-400" />
+                  <h3 className="text-lg font-semibold text-white">Track Map</h3>
                 </div>
                 <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
               </div>
-              <div className="grid grid-cols-4 gap-4">
-                <div className="bg-black/40 rounded p-4 text-center">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Session</div>
-                  <div className="text-xl font-mono text-green-400">RACE</div>
+              <div className="grid grid-cols-3 gap-4">
+                {/* Track Map Visualization */}
+                <div className="col-span-2 bg-black/60 rounded p-4 relative" style={{ minHeight: '280px' }}>
+                  {/* Simplified oval track shape */}
+                  <svg viewBox="0 0 400 200" className="w-full h-full">
+                    {/* Track outline */}
+                    <ellipse cx="200" cy="100" rx="180" ry="80" fill="none" stroke="#333" strokeWidth="20" />
+                    <ellipse cx="200" cy="100" rx="180" ry="80" fill="none" stroke="#444" strokeWidth="2" strokeDasharray="10,5" />
+                    
+                    {/* Start/Finish line */}
+                    <line x1="200" y1="20" x2="200" y2="40" stroke="#fff" strokeWidth="3" />
+                    
+                    {/* Driver positions on track */}
+                    {drivers.filter(d => d.isActive).map((driver, idx) => {
+                      const angle = (idx * 90 + 45) * (Math.PI / 180);
+                      const x = 200 + 180 * Math.cos(angle);
+                      const y = 100 + 80 * Math.sin(angle);
+                      return (
+                        <g key={driver.id}>
+                          <circle cx={x} cy={y} r="12" fill={driver.id === 'd1' ? '#22c55e' : '#3b82f6'} />
+                          <text x={x} y={y + 4} textAnchor="middle" fill="#fff" fontSize="10" fontWeight="bold">
+                            {driver.carNumber}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                  
+                  {/* Track info overlay */}
+                  <div className="absolute bottom-2 left-2 text-[9px] text-white/40">
+                    Daytona International Speedway
+                  </div>
                 </div>
-                <div className="bg-black/40 rounded p-4 text-center">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Lap</div>
-                  <div className="text-2xl font-mono text-white">47<span className="text-white/30">/65</span></div>
-                </div>
-                <div className="bg-black/40 rounded p-4 text-center">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Time Remaining</div>
-                  <div className="text-2xl font-mono text-white">1:24:32</div>
-                </div>
-                <div className="bg-black/40 rounded p-4 text-center">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Flag</div>
-                  <div className="text-xl font-mono text-green-400">GREEN</div>
+                
+                {/* Position List */}
+                <div className="bg-black/40 rounded p-3">
+                  <div className="text-[10px] uppercase text-white/40 mb-3 font-semibold">Live Positions</div>
+                  <div className="space-y-2">
+                    {drivers.filter(d => d.isActive).sort((a, b) => (a.position || 99) - (b.position || 99)).map(driver => (
+                      <div key={driver.id} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="w-5 h-5 flex items-center justify-center bg-white/10 rounded text-[10px] font-bold text-white">
+                            P{driver.position}
+                          </span>
+                          <span className="text-white/70">#{driver.carNumber}</span>
+                        </div>
+                        <span className={`font-mono ${driver.delta && driver.delta < 0 ? 'text-green-400' : 'text-white/50'}`}>
+                          {driver.gap || '—'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
