@@ -9,6 +9,23 @@ export interface League {
   updated_at: string;
 }
 
+// Demo league for testing
+export const DEMO_LEAGUE: League = {
+  id: 'demo',
+  name: 'IMSA Endurance Series',
+  description: 'Multi-class endurance racing championship featuring GT3, GTP, and LMP2 classes.',
+  owner_id: 'demo-owner',
+  created_at: '2025-09-01T00:00:00Z',
+  updated_at: '2026-01-15T00:00:00Z'
+};
+
+export const DEMO_LEAGUE_MEMBERS: LeagueMembership[] = [
+  { id: 'm1', league_id: 'demo', user_id: 'demo-owner', role: 'owner', joined_at: '2025-09-01T00:00:00Z' },
+  { id: 'm2', league_id: 'demo', user_id: 'steward-1', role: 'steward', joined_at: '2025-09-15T00:00:00Z' },
+  { id: 'm3', league_id: 'demo', user_id: 'steward-2', role: 'steward', joined_at: '2025-10-01T00:00:00Z' },
+  { id: 'm4', league_id: 'demo', user_id: 'admin-1', role: 'admin', joined_at: '2025-09-10T00:00:00Z' },
+];
+
 export interface LeagueMembership {
   id: string;
   league_id: string;
@@ -39,8 +56,11 @@ export async function getUserLeagues(userId: string): Promise<LeagueWithRole[]> 
     .select('league_id, role')
     .eq('user_id', userId);
 
+  // Always include demo league
+  const demoLeague: LeagueWithRole = { ...DEMO_LEAGUE, role: 'owner' };
+
   if (membershipError || !memberships?.length) {
-    return [];
+    return [demoLeague];
   }
 
   const leagueIds = memberships.map(m => m.league_id);
@@ -51,17 +71,24 @@ export async function getUserLeagues(userId: string): Promise<LeagueWithRole[]> 
     .in('id', leagueIds);
 
   if (leaguesError || !leagues) {
-    return [];
+    return [demoLeague];
   }
 
-  return leagues.map(league => ({
+  const userLeagues = leagues.map(league => ({
     ...league,
     role: memberships.find(m => m.league_id === league.id)?.role || 'member'
   }));
+
+  return [demoLeague, ...userLeagues];
 }
 
 // Get a single league by ID
 export async function getLeague(leagueId: string): Promise<League | null> {
+  // Return demo league for demo ID
+  if (leagueId === 'demo') {
+    return DEMO_LEAGUE;
+  }
+
   const { data, error } = await supabase
     .from('leagues')
     .select('*')
@@ -78,6 +105,11 @@ export async function getLeague(leagueId: string): Promise<League | null> {
 
 // Get user's role in a league
 export async function getUserLeagueRole(leagueId: string, userId: string): Promise<'owner' | 'admin' | 'steward' | 'member' | null> {
+  // Return owner role for demo league
+  if (leagueId === 'demo') {
+    return 'owner';
+  }
+
   const { data, error } = await supabase
     .from('league_memberships')
     .select('role')
@@ -160,6 +192,11 @@ export async function deleteLeague(leagueId: string): Promise<{ error: string | 
 
 // Get league members
 export async function getLeagueMembers(leagueId: string): Promise<LeagueMembership[]> {
+  // Return demo members for demo league
+  if (leagueId === 'demo') {
+    return DEMO_LEAGUE_MEMBERS;
+  }
+
   const { data, error } = await supabase
     .from('league_memberships')
     .select('*')

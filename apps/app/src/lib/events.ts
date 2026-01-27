@@ -13,6 +13,58 @@ export interface Event {
   updated_at: string;
 }
 
+// Demo events for testing
+export const DEMO_EVENTS: Event[] = [
+  {
+    id: 'e1',
+    league_id: 'demo',
+    name: 'Daytona 24 Hours',
+    description: 'Season opener endurance race',
+    track_name: 'Daytona International Speedway',
+    scheduled_at: '2026-01-25T14:00:00Z',
+    status: 'scheduled',
+    created_by: 'demo-owner',
+    created_at: '2025-12-01T00:00:00Z',
+    updated_at: '2025-12-01T00:00:00Z'
+  },
+  {
+    id: 'e2',
+    league_id: 'demo',
+    name: 'Sebring 12 Hours',
+    description: 'Round 2 of the championship',
+    track_name: 'Sebring International Raceway',
+    scheduled_at: '2026-03-15T10:00:00Z',
+    status: 'scheduled',
+    created_by: 'demo-owner',
+    created_at: '2025-12-01T00:00:00Z',
+    updated_at: '2025-12-01T00:00:00Z'
+  },
+  {
+    id: 'e3',
+    league_id: 'demo',
+    name: 'Spa 6 Hours',
+    description: 'European round',
+    track_name: 'Circuit de Spa-Francorchamps',
+    scheduled_at: '2026-05-10T12:00:00Z',
+    status: 'scheduled',
+    created_by: 'demo-owner',
+    created_at: '2025-12-01T00:00:00Z',
+    updated_at: '2025-12-01T00:00:00Z'
+  },
+  {
+    id: 'e4',
+    league_id: 'demo',
+    name: 'Pre-Season Test',
+    description: 'Official pre-season testing',
+    track_name: 'Daytona International Speedway',
+    scheduled_at: '2026-01-10T14:00:00Z',
+    status: 'completed',
+    created_by: 'demo-owner',
+    created_at: '2025-11-15T00:00:00Z',
+    updated_at: '2026-01-10T20:00:00Z'
+  }
+];
+
 export interface EventEntry {
   id: string;
   event_id: string;
@@ -26,6 +78,11 @@ export interface EventEntry {
 
 // Get events for a league
 export async function getLeagueEvents(leagueId: string): Promise<Event[]> {
+  // Return demo events for demo league
+  if (leagueId === 'demo') {
+    return DEMO_EVENTS;
+  }
+
   const { data, error } = await supabase
     .from('events')
     .select('*')

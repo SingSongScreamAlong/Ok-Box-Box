@@ -1,5 +1,125 @@
 import { supabase } from './supabase';
 
+// Demo incidents for testing
+export const DEMO_INCIDENTS: Incident[] = [
+  {
+    id: 'inc1',
+    session_id: 'sess1',
+    incident_type: 'contact',
+    contact_type: 'side_by_side',
+    severity: 'medium',
+    severity_score: 6,
+    lap_number: 23,
+    session_time_ms: 2340000,
+    track_position: 0.45,
+    corner_name: 'Turn 1',
+    involved_drivers: [
+      { driverId: 'd1', driverName: 'Alex Rivera', carNumber: '42', role: 'victim', faultProbability: 0.2 },
+      { driverId: 'd5', driverName: 'Marcus Thompson', carNumber: '17', role: 'aggressor', faultProbability: 0.8 }
+    ],
+    fault_attribution: { 'd5': 0.8, 'd1': 0.2 },
+    ai_recommendation: 'Drive Through Penalty',
+    ai_confidence: 0.85,
+    ai_reasoning: 'Car #17 made contact while attempting an overtake with insufficient overlap. Clear case of causing a collision.',
+    telemetry_snapshot: {},
+    replay_timestamp_ms: 2340000,
+    status: 'pending',
+    reviewed_by: null,
+    reviewed_at: null,
+    steward_notes: null,
+    created_at: '2026-01-15T16:30:00Z',
+    updated_at: '2026-01-15T16:30:00Z',
+    session: { track_name: 'Daytona International Speedway', session_type: 'race' }
+  },
+  {
+    id: 'inc2',
+    session_id: 'sess1',
+    incident_type: 'unsafe_rejoin',
+    contact_type: null,
+    severity: 'heavy',
+    severity_score: 8,
+    lap_number: 45,
+    session_time_ms: 4500000,
+    track_position: 0.72,
+    corner_name: 'Bus Stop',
+    involved_drivers: [
+      { driverId: 'd6', driverName: 'Elena Rodriguez', carNumber: '88', role: 'aggressor', faultProbability: 1.0 },
+      { driverId: 'd7', driverName: 'James Wilson', carNumber: '23', role: 'victim', faultProbability: 0 }
+    ],
+    fault_attribution: { 'd6': 1.0 },
+    ai_recommendation: 'Stop and Go Penalty',
+    ai_confidence: 0.92,
+    ai_reasoning: 'Car #88 rejoined the track unsafely after going off, causing contact with Car #23.',
+    telemetry_snapshot: {},
+    replay_timestamp_ms: 4500000,
+    status: 'reviewing',
+    reviewed_by: 'steward-1',
+    reviewed_at: null,
+    steward_notes: 'Reviewing telemetry data',
+    created_at: '2026-01-15T17:15:00Z',
+    updated_at: '2026-01-15T17:20:00Z',
+    session: { track_name: 'Daytona International Speedway', session_type: 'race' }
+  },
+  {
+    id: 'inc3',
+    session_id: 'sess1',
+    incident_type: 'blocking',
+    contact_type: null,
+    severity: 'light',
+    severity_score: 3,
+    lap_number: 12,
+    session_time_ms: 1200000,
+    track_position: 0.15,
+    corner_name: 'Turn 3',
+    involved_drivers: [
+      { driverId: 'd8', driverName: 'Carlos Mendez', carNumber: '55', role: 'aggressor', faultProbability: 0.7 },
+      { driverId: 'd9', driverName: 'Sarah Chen', carNumber: '31', role: 'victim', faultProbability: 0.3 }
+    ],
+    fault_attribution: { 'd8': 0.7, 'd9': 0.3 },
+    ai_recommendation: 'Warning',
+    ai_confidence: 0.65,
+    ai_reasoning: 'Borderline blocking - Car #55 made a late defensive move but within acceptable limits.',
+    telemetry_snapshot: {},
+    replay_timestamp_ms: 1200000,
+    status: 'no_action',
+    reviewed_by: 'steward-2',
+    reviewed_at: '2026-01-15T15:00:00Z',
+    steward_notes: 'Racing incident, no further action required.',
+    created_at: '2026-01-15T14:45:00Z',
+    updated_at: '2026-01-15T15:00:00Z',
+    session: { track_name: 'Daytona International Speedway', session_type: 'race' }
+  },
+  {
+    id: 'inc4',
+    session_id: 'sess1',
+    incident_type: 'causing_collision',
+    contact_type: 'rear_end',
+    severity: 'critical',
+    severity_score: 10,
+    lap_number: 67,
+    session_time_ms: 6700000,
+    track_position: 0.88,
+    corner_name: 'International Horseshoe',
+    involved_drivers: [
+      { driverId: 'd10', driverName: 'Mike Johnson', carNumber: '7', role: 'aggressor', faultProbability: 0.95 },
+      { driverId: 'd11', driverName: 'Tom Anderson', carNumber: '12', role: 'victim', faultProbability: 0.05 }
+    ],
+    fault_attribution: { 'd10': 0.95, 'd11': 0.05 },
+    ai_recommendation: 'Disqualification',
+    ai_confidence: 0.88,
+    ai_reasoning: 'Deliberate contact from behind causing race-ending damage to Car #12.',
+    telemetry_snapshot: {},
+    replay_timestamp_ms: 6700000,
+    status: 'penalty_issued',
+    reviewed_by: 'steward-1',
+    reviewed_at: '2026-01-15T18:30:00Z',
+    steward_notes: 'Disqualified from event. 3 penalty points added to license.',
+    created_at: '2026-01-15T18:00:00Z',
+    updated_at: '2026-01-15T18:30:00Z',
+    session: { track_name: 'Daytona International Speedway', session_type: 'race' }
+  }
+];
+
 export interface Incident {
   id: string;
   session_id: string | null;
@@ -52,6 +172,21 @@ export async function getLeagueIncidents(
   leagueId: string,
   filters: IncidentFilters = {}
 ): Promise<Incident[]> {
+  // Return demo incidents for demo league
+  if (leagueId === 'demo') {
+    let incidents = [...DEMO_INCIDENTS];
+    if (filters.status) {
+      incidents = incidents.filter(i => i.status === filters.status);
+    }
+    if (filters.severity) {
+      incidents = incidents.filter(i => i.severity === filters.severity);
+    }
+    if (filters.type) {
+      incidents = incidents.filter(i => i.incident_type === filters.type);
+    }
+    return incidents;
+  }
+
   let query = supabase
     .from('incidents')
     .select(`
