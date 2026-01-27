@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useTheme } from '../../hooks/useTheme';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Activity, Clock, Target, Trophy, CheckCircle2, CircleDot, Users, Calendar, TrendingUp, TrendingDown, Zap, Brain, AlertTriangle, Award, Flame, Shield } from 'lucide-react';
 
@@ -297,8 +296,6 @@ export function DriverProfilePage() {
   const [milestones, setMilestones] = useState<DevelopmentMilestone[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'coaching' | 'history'>('overview');
-  const { isDark } = useTheme();
-
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -340,28 +337,11 @@ export function DriverProfilePage() {
   }
 
   return (
-    <div className={`p-6 max-w-7xl mx-auto min-h-screen relative overflow-hidden ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
-      {/* Ambient background layer - ultra-slow gradient drift (3 min loop) */}
-      <div 
-        className={`absolute inset-0 pointer-events-none ${isDark ? 'opacity-[0.03]' : 'opacity-[0.02]'}`}
-        style={{
-          background: isDark
-            ? 'radial-gradient(ellipse 80% 60% at 20% 30%, rgba(255,255,255,0.05) 0%, transparent 60%), radial-gradient(ellipse 70% 50% at 80% 70%, rgba(255,255,255,0.03) 0%, transparent 60%)'
-            : 'radial-gradient(ellipse 80% 60% at 20% 30%, rgba(0,0,0,0.15) 0%, transparent 60%), radial-gradient(ellipse 70% 50% at 80% 70%, rgba(0,0,0,0.1) 0%, transparent 60%)',
-          animation: 'ambientDrift 180s ease-in-out infinite alternate',
-        }}
-      />
-      <style>{`
-        @keyframes ambientDrift {
-          0% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(1.5%, 0.5%) scale(1.01); }
-          100% { transform: translate(-0.5%, 1%) scale(1.005); }
-        }
-      `}</style>
+    <div className="p-6 max-w-7xl mx-auto min-h-full">
       {/* Back Link */}
       <Link
         to={`/team/${teamId}/pitwall/roster`}
-        className="inline-flex items-center gap-1 text-sm text-black/40 hover:text-black mb-6"
+        className="inline-flex items-center gap-1 text-sm text-white/40 hover:text-white mb-6"
       >
         <ChevronLeft size={16} />
         Back to Roster

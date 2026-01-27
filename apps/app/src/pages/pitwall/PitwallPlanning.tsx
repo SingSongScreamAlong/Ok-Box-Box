@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useTheme } from '../../hooks/useTheme';
 import { useParams } from 'react-router-dom';
 import { Calendar, Users, Clock, Plus, ChevronDown, ChevronUp, Flag, AlertCircle, Edit, Trash2, UserPlus } from 'lucide-react';
 
@@ -103,8 +102,6 @@ export function PitwallPlanning() {
   const [drivers, setDrivers] = useState<DriverAvailability[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
-  const { isDark } = useTheme();
-
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -133,34 +130,17 @@ export function PitwallPlanning() {
   const upcomingEvents = events.filter(e => e.status !== 'completed');
 
   return (
-    <div className={`p-6 max-w-7xl mx-auto min-h-screen relative overflow-hidden ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
-      {/* Ambient background layer - ultra-slow gradient drift (3 min loop) */}
-      <div 
-        className={`absolute inset-0 pointer-events-none ${isDark ? 'opacity-[0.03]' : 'opacity-[0.02]'}`}
-        style={{
-          background: isDark
-            ? 'radial-gradient(ellipse 80% 60% at 20% 30%, rgba(255,255,255,0.05) 0%, transparent 60%), radial-gradient(ellipse 70% 50% at 80% 70%, rgba(255,255,255,0.03) 0%, transparent 60%)'
-            : 'radial-gradient(ellipse 80% 60% at 20% 30%, rgba(0,0,0,0.15) 0%, transparent 60%), radial-gradient(ellipse 70% 50% at 80% 70%, rgba(0,0,0,0.1) 0%, transparent 60%)',
-          animation: 'ambientDrift 180s ease-in-out infinite alternate',
-        }}
-      />
-      <style>{`
-        @keyframes ambientDrift {
-          0% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(1.5%, 0.5%) scale(1.01); }
-          100% { transform: translate(-0.5%, 1%) scale(1.005); }
-        }
-      `}</style>
+    <div className="p-6 max-w-7xl mx-auto min-h-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 
-            className={`text-xl font-bold tracking-wide uppercase ${isDark ? 'text-white' : 'text-[#0a0a0a]'}`}
+            className="text-xl font-bold tracking-wide uppercase text-white"
             style={{ fontFamily: 'Orbitron, sans-serif' }}
           >
             Planning
           </h1>
-          <p className={`text-sm mt-1 ${isDark ? 'text-white/50' : 'text-black/50'}`}>Event scheduling & driver assignments</p>
+          <p className="text-sm mt-1 text-white/50">Event scheduling & driver assignments</p>
         </div>
         <button className="flex items-center gap-2 border border-white/20 text-white px-4 py-2 text-xs font-semibold uppercase tracking-wider hover:bg-white/5 transition-colors">
           <Plus size={14} />
