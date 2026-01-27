@@ -864,6 +864,79 @@ export function PitwallHome() {
                   <div className="text-[9px] text-blue-400/70 mt-2">Rec: Save tires for defense</div>
                 </div>
               </div>
+              
+              {/* Track Map Visualization */}
+              <div className="mt-4 grid grid-cols-4 gap-4">
+                <div className="col-span-3 bg-black/60 rounded p-4 relative" style={{ minHeight: '200px' }}>
+                  <svg viewBox="0 0 400 150" className="w-full h-full">
+                    {/* Track outline - oval */}
+                    <ellipse cx="200" cy="75" rx="180" ry="60" fill="none" stroke="#333" strokeWidth="16" />
+                    <ellipse cx="200" cy="75" rx="180" ry="60" fill="none" stroke="#444" strokeWidth="1" strokeDasharray="8,4" />
+                    
+                    {/* Start/Finish line */}
+                    <line x1="200" y1="15" x2="200" y2="30" stroke="#fff" strokeWidth="2" />
+                    <text x="200" y="12" textAnchor="middle" fill="#666" fontSize="8">S/F</text>
+                    
+                    {/* Sector markers */}
+                    <circle cx="380" cy="75" r="3" fill="#666" />
+                    <text x="392" y="78" fill="#555" fontSize="7">S1</text>
+                    <circle cx="200" cy="135" r="3" fill="#666" />
+                    <text x="200" y="148" textAnchor="middle" fill="#555" fontSize="7">S2</text>
+                    <circle cx="20" cy="75" r="3" fill="#666" />
+                    <text x="8" y="78" textAnchor="end" fill="#555" fontSize="7">S3</text>
+                    
+                    {/* Driver positions on track */}
+                    {drivers.filter(d => d.isActive).map((driver, idx) => {
+                      const angle = ((driver.position || idx) * 45 + 90) * (Math.PI / 180);
+                      const x = 200 + 180 * Math.cos(angle);
+                      const y = 75 + 60 * Math.sin(angle);
+                      const isTeamCar = driver.id === 'd1' || driver.id === 'd2';
+                      return (
+                        <g key={driver.id}>
+                          <circle cx={x} cy={y} r="10" fill={isTeamCar ? '#3b82f6' : '#555'} stroke={isTeamCar ? '#60a5fa' : '#666'} strokeWidth="1" />
+                          <text x={x} y={y + 3} textAnchor="middle" fill="#fff" fontSize="8" fontWeight="bold">
+                            {driver.carNumber}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                  
+                  {/* Track info overlay */}
+                  <div className="absolute bottom-2 left-3 text-[9px] text-white/40">
+                    Daytona International Speedway • Lap 47/65
+                  </div>
+                  <div className="absolute top-2 right-3 flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-blue-500" />
+                      <span className="text-[8px] text-white/50">Team</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <div className="w-2 h-2 rounded-full bg-gray-500" />
+                      <span className="text-[8px] text-white/50">Others</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Live Standings */}
+                <div className="bg-black/40 rounded p-3">
+                  <div className="text-[10px] uppercase text-white/40 mb-2 font-semibold">Live Standings</div>
+                  <div className="space-y-1.5">
+                    {drivers.filter(d => d.isActive).sort((a, b) => (a.position || 99) - (b.position || 99)).slice(0, 8).map(driver => {
+                      const isTeamCar = driver.id === 'd1' || driver.id === 'd2';
+                      return (
+                        <div key={driver.id} className={`flex items-center justify-between text-[10px] ${isTeamCar ? 'text-blue-400' : 'text-white/50'}`}>
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-4 font-mono font-bold">P{driver.position}</span>
+                            <span className="font-mono">#{driver.carNumber}</span>
+                          </div>
+                          <span className="font-mono text-[9px]">{driver.gap || 'Leader'}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
