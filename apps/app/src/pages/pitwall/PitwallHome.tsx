@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Radio, Target, BarChart3, Users, Clock, Zap, TrendingUp } from 'lucide-react';
+import { Radio, Target, BarChart3, Users, Clock, Zap, TrendingUp, Play, GitCompare, Fuel } from 'lucide-react';
 import { getTeam, Team } from '../../lib/teams';
 import { PitwallWelcome, useFirstTimeExperience } from '../../components/PitwallWelcome';
 import { useRelay } from '../../hooks/useRelay';
@@ -11,7 +11,6 @@ export function PitwallHome() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const { hasSeenWelcome, markAsSeen } = useFirstTimeExperience('pitwall');
   const { status, telemetry, session, connect } = useRelay();
-  const videoRef = useRef<HTMLVideoElement>(null);
   const breatheRef = useRef<HTMLDivElement>(null);
 
   // Derive connection state from relay status
@@ -19,12 +18,6 @@ export function PitwallHome() {
   const sessionState = status === 'in_session' 
     ? (session.sessionType === 'qualifying' ? 'qual' : session.sessionType || 'practice')
     : 'offline';
-
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
-    }
-  }, []);
 
   useEffect(() => {
     if (teamId) {
@@ -71,10 +64,13 @@ export function PitwallHome() {
 
   // Department tiles - these are rooms, not buttons
   const departments = [
+    { icon: Play, label: 'Race Viewer', sublabel: 'Live Telemetry', desc: 'Stints, driver rotation, live race data', path: 'race' },
     { icon: Target, label: 'Strategy', sublabel: 'Race Engineering', desc: 'Fuel calc, pit windows, tire strategy', path: 'strategy' },
     { icon: BarChart3, label: 'Practice', sublabel: 'Session Analysis', desc: 'Lap times, telemetry, driver comparison', path: 'practice' },
     { icon: Users, label: 'Roster', sublabel: 'Driver Profiles', desc: 'Team members, stats, development', path: 'roster' },
     { icon: Clock, label: 'Planning', sublabel: 'Event Schedule', desc: 'Upcoming races, availability, prep', path: 'planning' },
+    { icon: GitCompare, label: 'Compare', sublabel: 'Driver Analysis', desc: 'Side-by-side lap and telemetry comparison', path: 'compare' },
+    { icon: Fuel, label: 'Stint Planner', sublabel: 'Endurance Strategy', desc: 'Multi-driver stint planning and fuel calc', path: 'stint-planner' },
   ];
 
   return (
@@ -84,24 +80,7 @@ export function PitwallHome() {
         <PitwallWelcome teamName={team?.name || 'Your Team'} onComplete={markAsSeen} />
       )}
 
-      <div className="min-h-screen relative overflow-hidden">
-        {/* Background video - more visible */}
-        <div className="fixed inset-0 z-0">
-          <video
-            ref={videoRef}
-            autoPlay
-            loop
-            muted
-            playsInline
-            preload="auto"
-            className="w-full h-full object-cover opacity-70"
-          >
-            <source src="/videos/team-bg.mp4" type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/80 via-[#0e0e0e]/60 to-[#0e0e0e]/40" />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />
-        </div>
-        
+      <div className="min-h-full relative overflow-hidden">
         {/* CSS Keyframes for animations */}
         <style>{`
           @keyframes ambientDrift {

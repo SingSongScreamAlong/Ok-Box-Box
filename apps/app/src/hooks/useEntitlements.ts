@@ -31,6 +31,7 @@ export interface UserEntitlements {
     teamRoster: boolean;
     teamStrategy: boolean;
     teamReports: boolean;
+    teamIncidents: boolean;
     shareLinks: boolean;
     
     // League tier
@@ -54,6 +55,7 @@ const FREE_ENTITLEMENTS: UserEntitlements = {
     teamRoster: false,
     teamStrategy: false,
     teamReports: false,
+    teamIncidents: false,
     shareLinks: false,
     leagueManagement: false,
     leagueEvents: false,
@@ -83,6 +85,7 @@ const TEAM_ENTITLEMENTS: UserEntitlements = {
     teamRoster: true,
     teamStrategy: true,
     teamReports: true,
+    teamIncidents: true,
     shareLinks: true,
   },
   expiresAt: null,

@@ -2,7 +2,10 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { AuthLayout } from './layouts/AuthLayout';
 import { DriverLayout } from './layouts/DriverLayout';
+import { TeamLayout } from './layouts/TeamLayout';
+import { LeagueLayout } from './layouts/LeagueLayout';
 import { RelayProvider } from './hooks/useRelay';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Login } from './pages/auth/Login';
 import { Signup } from './pages/auth/Signup';
 import { ForgotPassword } from './pages/auth/ForgotPassword';
@@ -12,8 +15,6 @@ import { DriverCockpit } from './pages/driver/DriverCockpit';
 import { DriverSessions } from './pages/driver/DriverSessions';
 import { DriverStats } from './pages/driver/DriverStats';
 import { DriverRatings } from './pages/driver/DriverRatings';
-import { DriverHUD } from './pages/driver/DriverHUD';
-import { DriverVoice } from './pages/driver/DriverVoice';
 import { DriverProfilePage } from './pages/driver/DriverProfilePage';
 import { EngineerChat } from './pages/driver/crew/EngineerChat';
 import { SpotterChat } from './pages/driver/crew/SpotterChat';
@@ -29,6 +30,11 @@ import { PitwallStrategy } from './pages/pitwall/PitwallStrategy';
 import { PitwallPractice } from './pages/pitwall/PitwallPractice';
 import { PitwallRoster } from './pages/pitwall/PitwallRoster';
 import { PitwallPlanning } from './pages/pitwall/PitwallPlanning';
+import { PitwallEvents } from './pages/pitwall/PitwallEvents';
+import { PitwallReports } from './pages/pitwall/PitwallReports';
+import { PitwallSetups } from './pages/pitwall/PitwallSetups';
+import { TeamRaceViewer } from './pages/pitwall/TeamRaceViewer';
+import { TeamIncidents } from './pages/pitwall/TeamIncidents';
 import { Leagues } from './pages/Leagues';
 import { CreateLeague } from './pages/CreateLeague';
 import { LeagueDashboard } from './pages/LeagueDashboard';
@@ -37,7 +43,17 @@ import { LeagueIncidents } from './pages/LeagueIncidents';
 import { LeagueIncidentDetail } from './pages/LeagueIncidentDetail';
 import { LeagueRulebook } from './pages/LeagueRulebook';
 import { LeaguePenalties } from './pages/LeaguePenalties';
+import { LeagueChampionship } from './pages/LeagueChampionship';
+import { LeagueProtests } from './pages/LeagueProtests';
+import { StewardConsole } from './pages/league/StewardConsole';
+import { PublicTiming } from './pages/league/PublicTiming';
 import { DriverProgress } from './pages/driver/DriverProgress';
+import { ReplayViewer } from './pages/driver/ReplayViewer';
+import { DriverHUD } from './pages/driver/DriverHUD';
+import { DriverVoice } from './pages/driver/DriverVoice';
+import { DriverComparison } from './pages/pitwall/DriverComparison';
+import { StintPlanner } from './pages/pitwall/StintPlanner';
+import { BroadcastGraphics } from './pages/league/BroadcastGraphics';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -77,6 +93,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 function App() {
   return (
+    <ErrorBoundary>
     <RelayProvider>
       <Routes>
         {/* Auth routes */}
@@ -101,6 +118,7 @@ function App() {
           <Route path="crew/spotter" element={<SpotterChat />} />
           <Route path="crew/analyst" element={<AnalystChat />} />
           <Route path="progress" element={<DriverProgress />} />
+          <Route path="replay/:sessionId" element={<ReplayViewer />} />
           <Route path="settings/hud" element={<DriverHUD />} />
           <Route path="settings/voice" element={<DriverVoice />} />
         </Route>
@@ -116,23 +134,40 @@ function App() {
         {/* Team Tier routes */}
         <Route path="/teams" element={<ProtectedRoute><Teams /></ProtectedRoute>} />
         <Route path="/create-team" element={<ProtectedRoute><CreateTeam /></ProtectedRoute>} />
-        <Route path="/team/:teamId" element={<ProtectedRoute><TeamDashboard /></ProtectedRoute>} />
-        <Route path="/team/:teamId/settings" element={<ProtectedRoute><TeamSettings /></ProtectedRoute>} />
-        <Route path="/team/:teamId/pitwall" element={<ProtectedRoute><PitwallHome /></ProtectedRoute>} />
-        <Route path="/team/:teamId/pitwall/strategy" element={<ProtectedRoute><PitwallStrategy /></ProtectedRoute>} />
-        <Route path="/team/:teamId/pitwall/practice" element={<ProtectedRoute><PitwallPractice /></ProtectedRoute>} />
-        <Route path="/team/:teamId/pitwall/roster" element={<ProtectedRoute><PitwallRoster /></ProtectedRoute>} />
-        <Route path="/team/:teamId/pitwall/planning" element={<ProtectedRoute><PitwallPlanning /></ProtectedRoute>} />
+        <Route path="/team/:teamId" element={<ProtectedRoute><TeamLayout /></ProtectedRoute>}>
+          <Route index element={<TeamDashboard />} />
+          <Route path="settings" element={<TeamSettings />} />
+          <Route path="pitwall" element={<PitwallHome />} />
+          <Route path="pitwall/strategy" element={<PitwallStrategy />} />
+          <Route path="pitwall/practice" element={<PitwallPractice />} />
+          <Route path="pitwall/roster" element={<PitwallRoster />} />
+          <Route path="pitwall/planning" element={<PitwallPlanning />} />
+          <Route path="pitwall/race" element={<TeamRaceViewer />} />
+          <Route path="pitwall/compare" element={<DriverComparison />} />
+          <Route path="pitwall/stint-planner" element={<StintPlanner />} />
+          <Route path="pitwall/events" element={<PitwallEvents />} />
+          <Route path="pitwall/reports" element={<PitwallReports />} />
+          <Route path="pitwall/setups" element={<PitwallSetups />} />
+          <Route path="pitwall/incidents" element={<TeamIncidents />} />
+        </Route>
 
         {/* League Tier routes */}
         <Route path="/leagues" element={<ProtectedRoute><Leagues /></ProtectedRoute>} />
         <Route path="/create-league" element={<ProtectedRoute><CreateLeague /></ProtectedRoute>} />
-        <Route path="/league/:leagueId" element={<ProtectedRoute><LeagueDashboard /></ProtectedRoute>} />
-        <Route path="/league/:leagueId/settings" element={<ProtectedRoute><LeagueSettings /></ProtectedRoute>} />
-        <Route path="/league/:leagueId/incidents" element={<ProtectedRoute><LeagueIncidents /></ProtectedRoute>} />
-        <Route path="/league/:leagueId/incident/:incidentId" element={<ProtectedRoute><LeagueIncidentDetail /></ProtectedRoute>} />
-        <Route path="/league/:leagueId/rulebook/:rulebookId" element={<ProtectedRoute><LeagueRulebook /></ProtectedRoute>} />
-        <Route path="/league/:leagueId/penalties" element={<ProtectedRoute><LeaguePenalties /></ProtectedRoute>} />
+        <Route path="/league/:leagueId" element={<ProtectedRoute><LeagueLayout /></ProtectedRoute>}>
+          <Route index element={<LeagueDashboard />} />
+          <Route path="settings" element={<LeagueSettings />} />
+          <Route path="incidents" element={<LeagueIncidents />} />
+          <Route path="incident/:incidentId" element={<LeagueIncidentDetail />} />
+          <Route path="rulebook/:rulebookId" element={<LeagueRulebook />} />
+          <Route path="penalties" element={<LeaguePenalties />} />
+          <Route path="championship" element={<LeagueChampionship />} />
+          <Route path="broadcast" element={<BroadcastGraphics />} />
+          <Route path="protests" element={<LeagueProtests />} />
+          <Route path="steward-console" element={<StewardConsole />} />
+        </Route>
+        {/* Public timing page - no auth required */}
+        <Route path="/league/:leagueId/timing" element={<PublicTiming />} />
 
         {/* Redirects */}
         <Route path="/dashboard" element={<Navigate to="/driver/home" replace />} />
@@ -140,6 +175,7 @@ function App() {
         <Route path="*" element={<Navigate to="/driver/home" replace />} />
       </Routes>
     </RelayProvider>
+    </ErrorBoundary>
   );
 }
 

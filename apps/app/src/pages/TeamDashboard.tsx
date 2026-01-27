@@ -1,8 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getTeam, getUserTeamRole, getTeamMembers, Team, TeamMembership } from '../lib/teams';
-import { Settings, Users, ArrowLeft } from 'lucide-react';
+import { 
+  Users, Radio, Target, BarChart3,
+  Play, GitCompare, Calendar, Fuel, AlertTriangle
+} from 'lucide-react';
+import { WeatherWidget } from '../components/WeatherWidget';
 
 export function TeamDashboard() {
   const { teamId } = useParams<{ teamId: string }>();
@@ -12,19 +16,12 @@ export function TeamDashboard() {
   const [role, setRole] = useState<'owner' | 'manager' | 'member' | null>(null);
   const [members, setMembers] = useState<TeamMembership[]>([]);
   const [loading, setLoading] = useState(true);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (teamId && user) {
       loadTeamData();
     }
   }, [teamId, user]);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
-    }
-  }, []);
 
   const loadTeamData = async () => {
     if (!teamId || !user) return;
@@ -48,7 +45,7 @@ export function TeamDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center">
         <div className="text-white/50">Loading team...</div>
       </div>
     );
@@ -61,84 +58,114 @@ export function TeamDashboard() {
   const isOwnerOrManager = role === 'owner' || role === 'manager';
 
   return (
-    <div className="min-h-screen relative">
-      {/* Background video - more visible */}
-      <div className="fixed inset-0 z-0">
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="w-full h-full object-cover opacity-70"
-        >
-          <source src="/videos/team-bg.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/80 via-[#0e0e0e]/60 to-[#0e0e0e]/40" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />
+    <div className="p-6 max-w-5xl mx-auto">
+      {/* Page Header */}
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-1">
+          <h1 
+            className="text-lg uppercase tracking-[0.15em] font-semibold text-white"
+            style={{ fontFamily: 'Orbitron, sans-serif' }}
+          >
+            Dashboard
+          </h1>
+          <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-[#3b82f6]/20 text-[#3b82f6] border border-[#3b82f6]/30 font-semibold">
+            {role}
+          </span>
+        </div>
+        <p className="text-xs text-white/50">Team overview and quick access</p>
       </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto px-6 py-12">
-        {/* Back link */}
-        <Link to="/teams" className="inline-flex items-center gap-2 text-xs text-white/50 hover:text-white mb-6 transition-colors">
-          <ArrowLeft size={14} />
-          Back to Teams
-        </Link>
-
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 
-                className="text-xl uppercase tracking-[0.15em] font-semibold text-white"
-                style={{ fontFamily: 'Orbitron, sans-serif' }}
-              >
-                {team.name}
-              </h1>
-              <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 bg-[#f97316]/20 text-[#f97316] border border-[#f97316]/30 font-semibold">
-                {role}
-              </span>
-            </div>
-            <p className="text-sm text-white/50">
-              Team Dashboard
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link to={`/team/${teamId}/pitwall`} className="btn btn-primary text-xs flex items-center gap-2">
-              Pit Wall →
+      <div className="grid gap-6">
+          {/* Quick Actions Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Link 
+              to={`/team/${teamId}/pitwall`}
+              className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded p-4 hover:border-[#f97316]/50 hover:bg-white/[0.05] transition-all group"
+            >
+              <Radio size={20} className="text-[#f97316] mb-2" />
+              <p className="text-sm font-medium text-white">Pit Wall</p>
+              <p className="text-[10px] text-white/40 mt-1">Live operations</p>
             </Link>
-            {isOwnerOrManager && (
-              <Link to={`/team/${teamId}/settings`} className="btn btn-outline text-xs flex items-center gap-2">
-                <Settings size={14} />
-                Settings
-              </Link>
-            )}
+            <Link 
+              to={`/team/${teamId}/pitwall/race`}
+              className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded p-4 hover:border-green-500/50 hover:bg-white/[0.05] transition-all group"
+            >
+              <Play size={20} className="text-green-400 mb-2" />
+              <p className="text-sm font-medium text-white">Race Viewer</p>
+              <p className="text-[10px] text-white/40 mt-1">Live telemetry</p>
+            </Link>
+            <Link 
+              to={`/team/${teamId}/pitwall/strategy`}
+              className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded p-4 hover:border-purple-500/50 hover:bg-white/[0.05] transition-all group"
+            >
+              <Target size={20} className="text-purple-400 mb-2" />
+              <p className="text-sm font-medium text-white">Strategy</p>
+              <p className="text-[10px] text-white/40 mt-1">Race engineering</p>
+            </Link>
+            <Link 
+              to={`/team/${teamId}/pitwall/practice`}
+              className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded p-4 hover:border-blue-500/50 hover:bg-white/[0.05] transition-all group"
+            >
+              <BarChart3 size={20} className="text-blue-400 mb-2" />
+              <p className="text-sm font-medium text-white">Practice</p>
+              <p className="text-[10px] text-white/40 mt-1">Session analysis</p>
+            </Link>
           </div>
-        </div>
 
-        <div className="grid gap-6">
-          {/* Pit Wall Quick Access */}
-          <Link 
-            to={`/team/${teamId}/pitwall`}
-            className="block bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded p-6 hover:border-white/20 hover:bg-white/[0.05] transition-all shadow-lg shadow-black/20 group"
-          >
+          {/* Tools Grid */}
+          <div>
             <h2 
-              className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#f97316] mb-4"
+              className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/40 mb-3"
               style={{ fontFamily: 'Orbitron, sans-serif' }}
             >
-              Pit Wall
+              Team Tools
             </h2>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-white/70 mb-1">Team Operations Center</p>
-                <p className="text-xs text-white/40">
-                  Live timing, strategy, practice analysis, and race coordination
-                </p>
-              </div>
-              <span className="text-white/50 group-hover:text-white group-hover:translate-x-1 transition-all">→</span>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <Link 
+                to={`/team/${teamId}/pitwall/compare`}
+                className="bg-white/[0.03] border border-white/[0.10] rounded p-4 hover:border-cyan-500/50 hover:bg-white/[0.05] transition-all"
+              >
+                <GitCompare size={18} className="text-cyan-400 mb-2" />
+                <p className="text-sm text-white">Driver Comparison</p>
+                <p className="text-[10px] text-white/40 mt-1">Compare lap data</p>
+              </Link>
+              <Link 
+                to={`/team/${teamId}/pitwall/stint-planner`}
+                className="bg-white/[0.03] border border-white/[0.10] rounded p-4 hover:border-amber-500/50 hover:bg-white/[0.05] transition-all"
+              >
+                <Fuel size={18} className="text-amber-400 mb-2" />
+                <p className="text-sm text-white">Stint Planner</p>
+                <p className="text-[10px] text-white/40 mt-1">Endurance strategy</p>
+              </Link>
+              <Link 
+                to={`/team/${teamId}/pitwall/roster`}
+                className="bg-white/[0.03] border border-white/[0.10] rounded p-4 hover:border-pink-500/50 hover:bg-white/[0.05] transition-all"
+              >
+                <Users size={18} className="text-pink-400 mb-2" />
+                <p className="text-sm text-white">Roster</p>
+                <p className="text-[10px] text-white/40 mt-1">Driver profiles</p>
+              </Link>
+              <Link 
+                to={`/team/${teamId}/pitwall/planning`}
+                className="bg-white/[0.03] border border-white/[0.10] rounded p-4 hover:border-indigo-500/50 hover:bg-white/[0.05] transition-all"
+              >
+                <Calendar size={18} className="text-indigo-400 mb-2" />
+                <p className="text-sm text-white">Planning</p>
+                <p className="text-[10px] text-white/40 mt-1">Event schedule</p>
+              </Link>
             </div>
-          </Link>
+          </div>
+
+          {/* Weather Widget */}
+          <div>
+            <h2 
+              className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/40 mb-3"
+              style={{ fontFamily: 'Orbitron, sans-serif' }}
+            >
+              Track Conditions
+            </h2>
+            <WeatherWidget variant="full" trackName="Next Event Track" />
+          </div>
 
           {/* Team Members */}
           <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-6 shadow-lg shadow-black/20">
@@ -205,6 +232,5 @@ export function TeamDashboard() {
           </div>
         </div>
       </div>
-    </div>
   );
 }

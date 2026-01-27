@@ -1,67 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   TrendingUp, Target, Clock, ArrowLeft,
   ChevronRight, CheckCircle2, Circle, Lightbulb, BookOpen,
-  Flame, Zap, MessageSquare, Play, BarChart2
+  Flame, Zap, MessageSquare, Play, BarChart2, Loader2
 } from 'lucide-react';
-
-interface Skill {
-  name: string;
-  level: number;
-  maxLevel: number;
-  progress: number;
-  status: 'mastered' | 'learning' | 'next' | 'locked';
-  description: string;
-}
-
-interface FocusArea {
-  id: string;
-  title: string;
-  description: string;
-  insight: string;
-  evidence: string;
-  progress: number;
-  drills: { name: string; completed: boolean }[];
-  recentImprovement?: string;
-}
-
-interface LearningMoment {
-  session: string;
-  date: string;
-  insight: string;
-  improvement: string;
-  metric?: { label: string; before: string; after: string };
-}
-
-interface Goal {
-  id: string;
-  title: string;
-  target: string;
-  current: number;
-  max: number;
-  deadline?: string;
-}
-
-interface DevelopmentData {
-  currentPhase: string;
-  phaseProgress: number;
-  weeklyFocus: string;
-  focusAreas: FocusArea[];
-  skillTree: {
-    category: string;
-    skills: Skill[];
-  }[];
-  learningMoments: LearningMoment[];
-  goals: Goal[];
-  coachingNotes: string[];
-  nextSession: {
-    focus: string;
-    drills: string[];
-    reminder: string;
-  };
-}
+import { 
+  fetchDevelopmentData, 
+  updateDrillCompletion,
+  type DevelopmentData,
+  type Skill
+} from '../../lib/driverDevelopment';
 
 const mockData: DevelopmentData = {
   currentPhase: 'Consistency Building',
@@ -194,11 +144,47 @@ function getSkillStatusColor(status: Skill['status']) {
 
 export function DriverProgress() {
   const { user } = useAuth();
-  const [data] = useState<DevelopmentData>(mockData);
-  const [expandedFocus, setExpandedFocus] = useState<string | null>(data.focusAreas[0]?.id || null);
+  const [data, setData] = useState<DevelopmentData>(mockData);
+  const [loading, setLoading] = useState(true);
+  const [expandedFocus, setExpandedFocus] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<'focus' | 'skills' | 'journey'>('focus');
 
   const driverName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
+
+  // Fetch development data on mount
+  useEffect(() => {
+    fetchDevelopmentData().then(devData => {
+      setData(devData);
+      setExpandedFocus(devData.focusAreas[0]?.id || null);
+      setLoading(false);
+    });
+  }, []);
+
+  // Handle drill completion toggle
+  const handleDrillToggle = async (focusAreaId: string, drillName: string, completed: boolean) => {
+    // Optimistic update
+    setData(prev => ({
+      ...prev,
+      focusAreas: prev.focusAreas.map(fa => 
+        fa.id === focusAreaId 
+          ? { ...fa, drills: fa.drills.map(d => d.name === drillName ? { ...d, completed } : d) }
+          : fa
+      )
+    }));
+    // Sync with server (fire and forget)
+    updateDrillCompletion(focusAreaId, drillName, completed);
+  };
+
+  if (loading) {
+    return (
+      <div className="h-[calc(100vh-8rem)] flex items-center justify-center bg-[#0e0e0e]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-[#f97316]" />
+          <span className="text-white/50 text-sm">Loading development data...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-[calc(100vh-8rem)] flex relative">

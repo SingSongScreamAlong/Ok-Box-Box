@@ -6,12 +6,14 @@ import { useTheme } from '../hooks/useTheme';
 
 const navItems = [
   { to: '', label: 'Home', end: true },
-  { to: 'roster', label: 'Roster' },
-  { to: 'events', label: 'Events' },
-  { to: 'planning', label: 'Planning' },
-  { to: 'setups', label: 'Setups' },
+  { to: 'race', label: 'Race Viewer' },
   { to: 'strategy', label: 'Strategy' },
   { to: 'practice', label: 'Practice' },
+  { to: 'compare', label: 'Compare' },
+  { to: 'stint-planner', label: 'Stint Planner' },
+  { to: 'roster', label: 'Roster' },
+  { to: 'planning', label: 'Planning' },
+  { to: 'events', label: 'Events' },
   { to: 'reports', label: 'Reports' },
 ];
 
