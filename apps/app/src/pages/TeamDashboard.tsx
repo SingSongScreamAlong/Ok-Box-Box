@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getTeam, getUserTeamRole, getTeamMembers, Team, TeamMembership } from '../lib/teams';
 import { 
   Users, Radio, Target, BarChart3, Loader2,
-  Play, GitCompare, Calendar, Fuel, Crown, Shield, User
+  Play, GitCompare, Calendar, Fuel, Crown, Shield, User, Clock, Flag
 } from 'lucide-react';
 import { WeatherWidget } from '../components/WeatherWidget';
 
@@ -122,24 +122,54 @@ export function TeamDashboard() {
         </div>
 
         <div className="grid gap-6">
-          {/* Quick Actions Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Primary Views - Pit Wall vs Race */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-2">
             <Link 
               to={`/team/${teamId}/pitwall`}
-              className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded p-4 hover:border-[#f97316]/50 hover:bg-white/[0.05] transition-all group"
+              className="bg-white/[0.03] backdrop-blur-xl border border-[#f97316]/30 rounded p-5 hover:border-[#f97316]/60 hover:bg-white/[0.05] transition-all group"
             >
-              <Radio size={20} className="text-[#f97316] mb-2" />
-              <p className="text-sm font-medium text-white">Pit Wall</p>
-              <p className="text-[10px] text-white/40 mt-1">Live operations</p>
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-[#f97316]/10 border border-[#f97316]/30 rounded flex items-center justify-center flex-shrink-0">
+                  <Radio size={24} className="text-[#f97316]" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-semibold text-white mb-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>Pit Wall</p>
+                  <p className="text-xs text-white/60 leading-relaxed">
+                    <span className="text-[#f97316]">Team command center.</span> Radio communications with drivers, spotters & engineers. Live driver camera feeds. Real-time telemetry overlays.
+                  </p>
+                  <div className="flex items-center gap-3 mt-3 text-[10px] text-white/40">
+                    <span className="flex items-center gap-1"><Radio size={10} /> Comms</span>
+                    <span className="flex items-center gap-1"><Play size={10} /> Cameras</span>
+                    <span className="flex items-center gap-1"><Users size={10} /> Crew</span>
+                  </div>
+                </div>
+              </div>
             </Link>
             <Link 
               to={`/team/${teamId}/pitwall/race`}
-              className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded p-4 hover:border-green-500/50 hover:bg-white/[0.05] transition-all group"
+              className="bg-white/[0.03] backdrop-blur-xl border border-green-500/30 rounded p-5 hover:border-green-500/60 hover:bg-white/[0.05] transition-all group"
             >
-              <Play size={20} className="text-green-400 mb-2" />
-              <p className="text-sm font-medium text-white">Race Viewer</p>
-              <p className="text-[10px] text-white/40 mt-1">Live telemetry</p>
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-green-500/10 border border-green-500/30 rounded flex items-center justify-center flex-shrink-0">
+                  <Play size={24} className="text-green-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-base font-semibold text-white mb-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>Race</p>
+                  <p className="text-xs text-white/60 leading-relaxed">
+                    <span className="text-green-400">Timing & standings view.</span> Live lap times, gaps, positions. Stint management for endurance races. Fuel calculations and pit windows.
+                  </p>
+                  <div className="flex items-center gap-3 mt-3 text-[10px] text-white/40">
+                    <span className="flex items-center gap-1"><Clock size={10} /> Timing</span>
+                    <span className="flex items-center gap-1"><Flag size={10} /> Standings</span>
+                    <span className="flex items-center gap-1"><Fuel size={10} /> Stints</span>
+                  </div>
+                </div>
+              </div>
             </Link>
+          </div>
+
+          {/* Secondary Quick Actions */}
+          <div className="grid grid-cols-2 lg:grid-cols-2 gap-3">
             <Link 
               to={`/team/${teamId}/pitwall/strategy`}
               className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded p-4 hover:border-purple-500/50 hover:bg-white/[0.05] transition-all group"

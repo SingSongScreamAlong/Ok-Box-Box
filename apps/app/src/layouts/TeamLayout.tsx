@@ -59,8 +59,8 @@ export function TeamLayout() {
 
   const navItems = [
     { to: `/team/${teamId}`, icon: Radio, label: 'Dashboard', end: true },
-    { to: `/team/${teamId}/pitwall`, icon: Target, label: 'Pit Wall' },
-    { to: `/team/${teamId}/pitwall/race`, icon: Play, label: 'Race' },
+    { to: `/team/${teamId}/pitwall`, icon: Target, label: 'Pit Wall', desc: 'Comms & Cameras' },
+    { to: `/team/${teamId}/pitwall/race`, icon: Play, label: 'Race', desc: 'Timing & Standings' },
     { to: `/team/${teamId}/pitwall/strategy`, icon: BarChart3, label: 'Strategy' },
     { to: `/team/${teamId}/pitwall/roster`, icon: Users, label: 'Roster' },
   ];
@@ -120,13 +120,13 @@ export function TeamLayout() {
 
             {/* Main Nav */}
             <nav className="flex items-center gap-1">
-              {navItems.map(({ to, icon: Icon, label, end }) => (
+              {navItems.map(({ to, icon: Icon, label, desc, end }) => (
                 <NavLink
                   key={to}
                   to={to}
                   end={end}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-wider transition-colors ${
+                    `group relative flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-wider transition-colors ${
                       isActive
                         ? 'text-[#3b82f6] bg-[#3b82f6]/10'
                         : 'text-white/60 hover:text-white hover:bg-white/5'
@@ -135,6 +135,11 @@ export function TeamLayout() {
                 >
                   <Icon className="w-4 h-4" />
                   <span className="hidden lg:inline">{label}</span>
+                  {desc && (
+                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-1 px-2 py-1 bg-[#1a1a1a] border border-white/20 text-[9px] text-white/70 whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 normal-case tracking-normal">
+                      {desc}
+                    </span>
+                  )}
                 </NavLink>
               ))}
               

@@ -248,7 +248,7 @@ export function PitwallHome() {
                 >
                   Pit Wall
                 </h1>
-                <p className="text-xs mt-0.5 text-white/50">{team?.name || 'Team'} • Live Telemetry & Cameras</p>
+                <p className="text-xs mt-0.5 text-white/50">{team?.name || 'Team'} • Team Radio, Driver Cameras & Live Comms</p>
               </div>
             </div>
             <div className="flex items-center gap-3">

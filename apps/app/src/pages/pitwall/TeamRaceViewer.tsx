@@ -241,7 +241,7 @@ export function TeamRaceViewer() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <div className="text-[10px] font-semibold text-white/40 uppercase tracking-[0.2em] mb-1">
-              Team Race Viewer
+              Race Timing & Standings
             </div>
             <h1 className="text-2xl font-bold text-white uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
               {session.eventName}
