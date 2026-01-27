@@ -46,7 +46,7 @@ export function DriverStats() {
           preload="auto"
           className="w-full h-full object-cover opacity-70"
         >
-          <source src="/videos/bg-1.mp4" type="video/mp4" />
+          <source src="/videos/bg-3.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/80 via-[#0e0e0e]/60 to-[#0e0e0e]/40" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />

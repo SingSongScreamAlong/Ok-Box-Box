@@ -121,7 +121,7 @@ export function BroadcastGraphics() {
           playsInline
           className="w-full h-full object-cover opacity-50"
         >
-          <source src="/videos/team-bg.mp4" type="video/mp4" />
+          <source src="/videos/league-bg.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/95 via-[#0e0e0e]/80 to-[#0e0e0e]/60" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/95" />

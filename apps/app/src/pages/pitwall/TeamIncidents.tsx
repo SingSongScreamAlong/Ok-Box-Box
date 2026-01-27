@@ -206,7 +206,7 @@ export function TeamIncidents() {
           preload="auto"
           className="w-full h-full object-cover opacity-40"
         >
-          <source src="/videos/bg-1.mp4" type="video/mp4" />
+          <source src="/videos/bg-3.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/70 via-[#0a0a0a]/50 to-[#0a0a0a]/90" />
       </div>

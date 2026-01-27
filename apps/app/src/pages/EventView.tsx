@@ -115,7 +115,7 @@ export function EventView() {
           preload="auto"
           className="w-full h-full object-cover opacity-90"
         >
-          <source src="/videos/bg-1.mp4" type="video/mp4" />
+          <source src="/videos/bg-3.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/40" />
       </div>
