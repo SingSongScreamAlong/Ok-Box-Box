@@ -261,6 +261,64 @@ const mockPerformance: Record<string, { pace: number; consistency: number; risk:
   'd4': { pace: 58, consistency: 65, risk: 45, posGained: -0.3 }
 };
 
+// Team Goals - shared objectives that apply to drivers
+interface TeamGoal {
+  id: string;
+  title: string;
+  description: string;
+  category: 'championship' | 'event' | 'development' | 'safety';
+  target_date?: string;
+  status: 'active' | 'achieved' | 'at_risk';
+  assigned_drivers: string[]; // driver_ids
+  progress_pct?: number;
+  created_by: string;
+}
+
+const mockTeamGoals: TeamGoal[] = [
+  {
+    id: 'tg1',
+    title: 'Win Daytona 24 Hours',
+    description: 'Secure overall victory at the 2026 Daytona 24 Hours endurance race',
+    category: 'event',
+    target_date: '2026-01-25',
+    status: 'active',
+    assigned_drivers: ['d1', 'd2', 'd3', 'd4'],
+    progress_pct: 65,
+    created_by: 'Team Management'
+  },
+  {
+    id: 'tg2',
+    title: 'Team Safety Rating > 4.0',
+    description: 'All drivers maintain safety rating above 4.0 average',
+    category: 'safety',
+    status: 'at_risk',
+    assigned_drivers: ['d1', 'd2', 'd3', 'd4'],
+    progress_pct: 72,
+    created_by: 'Team Management'
+  },
+  {
+    id: 'tg3',
+    title: 'Rookie Development Program',
+    description: 'Casey reaches 2500 iRating and C license by end of Q1',
+    category: 'development',
+    target_date: '2026-03-31',
+    status: 'active',
+    assigned_drivers: ['d4'],
+    progress_pct: 45,
+    created_by: 'Team Principal'
+  },
+  {
+    id: 'tg4',
+    title: 'GT3 Championship Top 3',
+    description: 'Finish in top 3 of the IMSA GT3 championship standings',
+    category: 'championship',
+    status: 'active',
+    assigned_drivers: ['d1', 'd2'],
+    progress_pct: 80,
+    created_by: 'Team Management'
+  }
+];
+
 // License class colors
 const licenseColors: Record<string, string> = {
   'R': 'bg-red-600', 'D': 'bg-orange-500', 'C': 'bg-yellow-500', 'B': 'bg-green-500', 'A': 'bg-blue-500', 'Pro': 'bg-black border border-white'
@@ -294,6 +352,7 @@ export function DriverProfilePage() {
   const [performance, setPerformance] = useState<{ pace: number; consistency: number; risk: number; posGained: number } | null>(null);
   const [coachingInsights, setCoachingInsights] = useState<AICoachingInsight[]>([]);
   const [milestones, setMilestones] = useState<DevelopmentMilestone[]>([]);
+  const [teamGoals, setTeamGoals] = useState<TeamGoal[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'coaching' | 'history'>('overview');
   useEffect(() => {
@@ -311,6 +370,8 @@ export function DriverProfilePage() {
         setPerformance(mockPerformance[driverId] || null);
         setCoachingInsights(mockCoachingInsights[driverId] || []);
         setMilestones(mockMilestones[driverId] || []);
+        // Filter team goals that apply to this driver
+        setTeamGoals(mockTeamGoals.filter(g => g.assigned_drivers.includes(driverId)));
       }
       setLoading(false);
     };
@@ -593,6 +654,80 @@ export function DriverProfilePage() {
                     <div className={`text-xs capitalize ${statusColor}`}>
                       {target.status.replace('_', ' ')}
                     </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Team Goals Section */}
+      {teamGoals.length > 0 && (
+        <div className="bg-[#0a0a0a] mb-6" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.15)' }}>
+          <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users size={16} className="text-[#3b82f6]" />
+              <span 
+                className="font-medium text-sm uppercase tracking-wider text-white"
+                style={{ fontFamily: 'Orbitron, sans-serif' }}
+              >
+                Team Goals
+              </span>
+            </div>
+            <span className="text-xs text-white/40">{teamGoals.filter(g => g.status === 'achieved').length}/{teamGoals.length} achieved</span>
+          </div>
+          <div className="divide-y divide-white/5">
+            {teamGoals.map(goal => {
+              const statusColors: Record<string, { text: string; bg: string; border: string }> = {
+                active: { text: 'text-[#3b82f6]', bg: 'bg-[#3b82f6]/10', border: 'border-[#3b82f6]/30' },
+                achieved: { text: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/30' },
+                at_risk: { text: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/30' }
+              };
+              const categoryIcons: Record<string, string> = {
+                championship: '🏆',
+                event: '🏁',
+                development: '📈',
+                safety: '🛡️'
+              };
+              const colors = statusColors[goal.status] || statusColors.active;
+              
+              return (
+                <div key={goal.id} className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      <div className={`w-8 h-8 ${colors.bg} flex items-center justify-center text-lg`}>
+                        {categoryIcons[goal.category] || '🎯'}
+                      </div>
+                      <div>
+                        <div className="font-medium text-white">{goal.title}</div>
+                        <div className="text-xs text-white/50 mt-0.5">{goal.description}</div>
+                        <div className="flex items-center gap-3 mt-2">
+                          <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 border ${colors.bg} ${colors.text} ${colors.border}`}>
+                            {goal.status.replace('_', ' ')}
+                          </span>
+                          {goal.target_date && (
+                            <span className="text-[10px] text-white/30">
+                              Target: {new Date(goal.target_date).toLocaleDateString()}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-white/30">
+                            By {goal.created_by}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    {goal.progress_pct !== undefined && (
+                      <div className="text-right">
+                        <div className={`text-lg font-mono font-bold ${colors.text}`}>{goal.progress_pct}%</div>
+                        <div className="w-20 h-1.5 bg-white/10 mt-1">
+                          <div 
+                            className={`h-full ${goal.status === 'at_risk' ? 'bg-red-500' : goal.status === 'achieved' ? 'bg-green-500' : 'bg-[#3b82f6]'}`}
+                            style={{ width: `${goal.progress_pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
