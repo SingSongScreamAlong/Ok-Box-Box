@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Radio, Zap, Fuel, Video, VideoOff, Maximize2, Volume2, VolumeX, Users, Gauge, Thermometer, Clock, Flag, AlertTriangle, ChevronRight, BarChart3, Target, GitCompare, Calendar, Monitor, MessageSquare } from 'lucide-react';
 import { getTeam, Team } from '../../lib/teams';
 import { PitwallWelcome, useFirstTimeExperience } from '../../components/PitwallWelcome';
@@ -126,6 +126,7 @@ export function PitwallHome() {
   const [masterVolume, setMasterVolume] = useState(75);
   const [patchToHUD, setPatchToHUD] = useState(false);
   const [patchToDiscord, setPatchToDiscord] = useState(false);
+  const [activePanel, setActivePanel] = useState<'strategy' | 'compare' | 'practice' | 'planning' | null>(null);
   
   // Radio channels state - F1-style comms panel grouped by driver
   const [radioChannels, setRadioChannels] = useState<RadioChannel[]>([
@@ -510,11 +511,15 @@ export function PitwallHome() {
             </div>
           </div>
 
-          {/* Quick Access Tools Row */}
+          {/* Quick Access Tools Row - Toggle Buttons */}
           <div className="mb-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <Link 
-              to={`/team/${teamId}/pitwall/strategy`}
-              className="bg-white/[0.03] border border-white/10 rounded p-4 hover:border-purple-500/50 hover:bg-white/[0.05] transition-all group"
+            <button 
+              onClick={() => setActivePanel(activePanel === 'strategy' ? null : 'strategy')}
+              className={`text-left rounded p-4 transition-all group ${
+                activePanel === 'strategy' 
+                  ? 'bg-purple-500/20 border-2 border-purple-500/60' 
+                  : 'bg-white/[0.03] border border-white/10 hover:border-purple-500/50 hover:bg-white/[0.05]'
+              }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -524,12 +529,16 @@ export function PitwallHome() {
                     <div className="text-[10px] text-white/40">Pit windows & fuel</div>
                   </div>
                 </div>
-                <ChevronRight size={16} className="text-white/20 group-hover:text-white/50 transition-colors" />
+                <ChevronRight size={16} className={`transition-transform ${activePanel === 'strategy' ? 'rotate-90 text-purple-400' : 'text-white/20 group-hover:text-white/50'}`} />
               </div>
-            </Link>
-            <Link 
-              to={`/team/${teamId}/pitwall/compare`}
-              className="bg-white/[0.03] border border-white/10 rounded p-4 hover:border-cyan-500/50 hover:bg-white/[0.05] transition-all group"
+            </button>
+            <button 
+              onClick={() => setActivePanel(activePanel === 'compare' ? null : 'compare')}
+              className={`text-left rounded p-4 transition-all group ${
+                activePanel === 'compare' 
+                  ? 'bg-cyan-500/20 border-2 border-cyan-500/60' 
+                  : 'bg-white/[0.03] border border-white/10 hover:border-cyan-500/50 hover:bg-white/[0.05]'
+              }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -539,12 +548,16 @@ export function PitwallHome() {
                     <div className="text-[10px] text-white/40">Driver telemetry</div>
                   </div>
                 </div>
-                <ChevronRight size={16} className="text-white/20 group-hover:text-white/50 transition-colors" />
+                <ChevronRight size={16} className={`transition-transform ${activePanel === 'compare' ? 'rotate-90 text-cyan-400' : 'text-white/20 group-hover:text-white/50'}`} />
               </div>
-            </Link>
-            <Link 
-              to={`/team/${teamId}/pitwall/practice`}
-              className="bg-white/[0.03] border border-white/10 rounded p-4 hover:border-blue-500/50 hover:bg-white/[0.05] transition-all group"
+            </button>
+            <button 
+              onClick={() => setActivePanel(activePanel === 'practice' ? null : 'practice')}
+              className={`text-left rounded p-4 transition-all group ${
+                activePanel === 'practice' 
+                  ? 'bg-blue-500/20 border-2 border-blue-500/60' 
+                  : 'bg-white/[0.03] border border-white/10 hover:border-blue-500/50 hover:bg-white/[0.05]'
+              }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -554,12 +567,16 @@ export function PitwallHome() {
                     <div className="text-[10px] text-white/40">Session analysis</div>
                   </div>
                 </div>
-                <ChevronRight size={16} className="text-white/20 group-hover:text-white/50 transition-colors" />
+                <ChevronRight size={16} className={`transition-transform ${activePanel === 'practice' ? 'rotate-90 text-blue-400' : 'text-white/20 group-hover:text-white/50'}`} />
               </div>
-            </Link>
-            <Link 
-              to={`/team/${teamId}/pitwall/planning`}
-              className="bg-white/[0.03] border border-white/10 rounded p-4 hover:border-indigo-500/50 hover:bg-white/[0.05] transition-all group"
+            </button>
+            <button 
+              onClick={() => setActivePanel(activePanel === 'planning' ? null : 'planning')}
+              className={`text-left rounded p-4 transition-all group ${
+                activePanel === 'planning' 
+                  ? 'bg-indigo-500/20 border-2 border-indigo-500/60' 
+                  : 'bg-white/[0.03] border border-white/10 hover:border-indigo-500/50 hover:bg-white/[0.05]'
+              }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -569,12 +586,132 @@ export function PitwallHome() {
                     <div className="text-[10px] text-white/40">Event schedule</div>
                   </div>
                 </div>
-                <ChevronRight size={16} className="text-white/20 group-hover:text-white/50 transition-colors" />
+                <ChevronRight size={16} className={`transition-transform ${activePanel === 'planning' ? 'rotate-90 text-indigo-400' : 'text-white/20 group-hover:text-white/50'}`} />
               </div>
-            </Link>
+            </button>
           </div>
 
-          {/* Main Grid: Camera + Telemetry */}
+          {/* Conditional Panel Content */}
+          {activePanel === 'strategy' && (
+            <div className="mb-4 bg-purple-500/10 border-2 border-purple-500/40 rounded p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Target size={20} className="text-purple-400" />
+                  <h3 className="text-lg font-semibold text-white">Race Strategy</h3>
+                </div>
+                <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Pit Window</div>
+                  <div className="text-2xl font-mono text-purple-400">Lap 18-22</div>
+                  <div className="text-xs text-white/30 mt-1">Optimal based on fuel & tire deg</div>
+                </div>
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Fuel Required</div>
+                  <div className="text-2xl font-mono text-white">48.2<span className="text-sm text-white/40 ml-1">L</span></div>
+                  <div className="text-xs text-white/30 mt-1">+2L reserve included</div>
+                </div>
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Tire Strategy</div>
+                  <div className="text-2xl font-mono text-amber-400">M → H</div>
+                  <div className="text-xs text-white/30 mt-1">Medium start, Hard finish</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activePanel === 'compare' && (
+            <div className="mb-4 bg-cyan-500/10 border-2 border-cyan-500/40 rounded p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <GitCompare size={20} className="text-cyan-400" />
+                  <h3 className="text-lg font-semibold text-white">Driver Comparison</h3>
+                </div>
+                <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-sm font-medium text-white mb-3">Alex Rivera vs Jordan Chen</div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs"><span className="text-white/40">Best Lap</span><span className="text-green-400">-0.451s</span></div>
+                    <div className="flex justify-between text-xs"><span className="text-white/40">Avg Pace</span><span className="text-green-400">-0.234s</span></div>
+                    <div className="flex justify-between text-xs"><span className="text-white/40">Consistency</span><span className="text-cyan-400">±0.3s</span></div>
+                  </div>
+                </div>
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-sm font-medium text-white mb-3">Sector Analysis</div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs"><span className="text-white/40">S1</span><span className="text-green-400">Alex +0.1s</span></div>
+                    <div className="flex justify-between text-xs"><span className="text-white/40">S2</span><span className="text-red-400">Jordan +0.2s</span></div>
+                    <div className="flex justify-between text-xs"><span className="text-white/40">S3</span><span className="text-green-400">Alex +0.35s</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activePanel === 'practice' && (
+            <div className="mb-4 bg-blue-500/10 border-2 border-blue-500/40 rounded p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <BarChart3 size={20} className="text-blue-400" />
+                  <h3 className="text-lg font-semibold text-white">Practice Analysis</h3>
+                </div>
+                <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
+              </div>
+              <div className="grid grid-cols-4 gap-4">
+                <div className="bg-black/40 rounded p-4 text-center">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Laps Run</div>
+                  <div className="text-2xl font-mono text-white">47</div>
+                </div>
+                <div className="bg-black/40 rounded p-4 text-center">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Best Lap</div>
+                  <div className="text-2xl font-mono text-purple-400">1:37.891</div>
+                </div>
+                <div className="bg-black/40 rounded p-4 text-center">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Avg Pace</div>
+                  <div className="text-2xl font-mono text-white">1:38.456</div>
+                </div>
+                <div className="bg-black/40 rounded p-4 text-center">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Consistency</div>
+                  <div className="text-2xl font-mono text-green-400">±0.4s</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activePanel === 'planning' && (
+            <div className="mb-4 bg-indigo-500/10 border-2 border-indigo-500/40 rounded p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Calendar size={20} className="text-indigo-400" />
+                  <h3 className="text-lg font-semibold text-white">Event Planning</h3>
+                </div>
+                <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Current Event</div>
+                  <div className="text-lg font-medium text-white">Daytona 24H</div>
+                  <div className="text-xs text-white/30 mt-1">Round 1 of 8</div>
+                </div>
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Driver Stints</div>
+                  <div className="text-lg font-medium text-white">Alex → Jordan → Sam</div>
+                  <div className="text-xs text-white/30 mt-1">2hr rotation</div>
+                </div>
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Next Pit</div>
+                  <div className="text-lg font-medium text-indigo-400">~45 min</div>
+                  <div className="text-xs text-white/30 mt-1">Driver change: Jordan</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Main Grid: Camera + Telemetry - Only show when no panel active */}
+          {!activePanel && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
             {/* Driver Camera Feed - Large */}
             <div className="lg:col-span-2 bg-black border border-white/10 rounded overflow-hidden relative" style={{ minHeight: '400px' }}>
@@ -691,6 +828,7 @@ export function PitwallHome() {
               </div>
             </div>
           </div>
+          )}
 
           {/* Telemetry Panels Row */}
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
