@@ -1,9 +1,22 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { Radio, Zap, Fuel, Video, VideoOff, Maximize2, Volume2, VolumeX, Users, Gauge, Thermometer, Clock, Flag, AlertTriangle } from 'lucide-react';
+import { useParams, Link } from 'react-router-dom';
+import { Radio, Zap, Fuel, Video, VideoOff, Maximize2, Volume2, VolumeX, Users, Gauge, Thermometer, Clock, Flag, AlertTriangle, Mic, MicOff, Headphones, ChevronRight, BarChart3, Target, GitCompare, Calendar } from 'lucide-react';
 import { getTeam, Team } from '../../lib/teams';
 import { PitwallWelcome, useFirstTimeExperience } from '../../components/PitwallWelcome';
 import { useRelay } from '../../hooks/useRelay';
+
+// Radio channel interface for F1-style comms panel
+interface RadioChannel {
+  id: string;
+  name: string;
+  shortName: string;
+  type: 'driver' | 'crew' | 'team' | 'race';
+  volume: number;
+  muted: boolean;
+  active: boolean;
+  speaking: boolean;
+  color?: string;
+}
 
 // Mock driver data for team telemetry view
 interface TeamDriver {
@@ -110,6 +123,27 @@ export function PitwallHome() {
   const [cameraAudio, setCameraAudio] = useState(false);
   const [expandedCamera, setExpandedCamera] = useState(false);
   const [drivers] = useState<TeamDriver[]>(mockTeamDrivers);
+  const [masterVolume, setMasterVolume] = useState(75);
+  
+  // Radio channels state - F1-style comms panel
+  const [radioChannels, setRadioChannels] = useState<RadioChannel[]>([
+    // Driver channels
+    { id: 'alex-driver', name: 'Alex Rivera', shortName: 'ALEX', type: 'driver', volume: 100, muted: false, active: true, speaking: false, color: '#22c55e' },
+    { id: 'jordan-driver', name: 'Jordan Chen', shortName: 'JORDAN', type: 'driver', volume: 80, muted: false, active: false, speaking: false, color: '#3b82f6' },
+    { id: 'sam-driver', name: 'Sam Williams', shortName: 'SAM', type: 'driver', volume: 80, muted: false, active: false, speaking: false, color: '#f97316' },
+    { id: 'casey-driver', name: 'Casey Morgan', shortName: 'CASEY', type: 'driver', volume: 80, muted: true, active: false, speaking: false, color: '#a855f7' },
+    // Crew channels (Spotter/Engineer per driver)
+    { id: 'alex-eng', name: 'Alex Engineer', shortName: 'A ENG', type: 'crew', volume: 100, muted: false, active: true, speaking: true, color: '#22c55e' },
+    { id: 'alex-spot', name: 'Alex Spotter', shortName: 'A SPOT', type: 'crew', volume: 90, muted: false, active: true, speaking: false, color: '#22c55e' },
+    { id: 'jordan-eng', name: 'Jordan Engineer', shortName: 'J ENG', type: 'crew', volume: 60, muted: false, active: false, speaking: false, color: '#3b82f6' },
+    { id: 'jordan-spot', name: 'Jordan Spotter', shortName: 'J SPOT', type: 'crew', volume: 60, muted: false, active: false, speaking: false, color: '#3b82f6' },
+    // Team channels
+    { id: 'team-all', name: 'Team All', shortName: 'TEAM', type: 'team', volume: 100, muted: false, active: true, speaking: false },
+    { id: 'strategy', name: 'Strategy', shortName: 'STRAT', type: 'team', volume: 50, muted: false, active: false, speaking: false },
+    { id: 'pitcrew', name: 'Pit Crew', shortName: 'PIT', type: 'team', volume: 70, muted: false, active: false, speaking: false },
+    // Race control
+    { id: 'race-ctrl', name: 'Race Control', shortName: 'RACE', type: 'race', volume: 100, muted: false, active: false, speaking: false, color: '#ef4444' },
+  ]);
 
   // Derive connection state from relay status
   const isConnected = status === 'connected' || status === 'in_session';
@@ -156,6 +190,25 @@ export function PitwallHome() {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toFixed(3).padStart(6, '0')}`;
+  };
+
+  // Radio channel handlers
+  const toggleChannelMute = (channelId: string) => {
+    setRadioChannels(prev => prev.map(ch => 
+      ch.id === channelId ? { ...ch, muted: !ch.muted } : ch
+    ));
+  };
+
+  const setChannelVolume = (channelId: string, volume: number) => {
+    setRadioChannels(prev => prev.map(ch => 
+      ch.id === channelId ? { ...ch, volume } : ch
+    ));
+  };
+
+  const toggleChannelActive = (channelId: string) => {
+    setRadioChannels(prev => prev.map(ch => 
+      ch.id === channelId ? { ...ch, active: !ch.active } : ch
+    ));
   };
 
   const activeDriver = drivers.find(d => d.id === selectedDriver) || drivers[0];
@@ -212,6 +265,164 @@ export function PitwallHome() {
                 {sessionState.toUpperCase()}
               </span>
             </div>
+          </div>
+
+          {/* F1-Style Radio Communications Panel */}
+          <div className="mb-4 bg-[#1a1a1a] border border-white/10 rounded overflow-hidden">
+            <div className="px-4 py-2 bg-[#0f0f0f] border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Headphones size={14} className="text-white/50" />
+                <span className="text-[10px] uppercase tracking-[0.15em] text-white/50 font-semibold">Team Radio</span>
+                <span className="text-[10px] px-2 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded">LIVE</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] text-white/30">Master Vol</span>
+                <input 
+                  type="range" 
+                  min="0" 
+                  max="100" 
+                  value={masterVolume}
+                  onChange={(e) => setMasterVolume(Number(e.target.value))}
+                  className="w-20 h-1 bg-white/20 rounded appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full"
+                />
+                <span className="text-[10px] text-white/50 font-mono w-8">{masterVolume}%</span>
+              </div>
+            </div>
+            
+            {/* Channel Grid - F1 Style */}
+            <div className="p-3 grid grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2">
+              {radioChannels.map(channel => (
+                <div 
+                  key={channel.id}
+                  className={`relative bg-[#0a0a0a] border rounded p-2 transition-all cursor-pointer ${
+                    channel.active 
+                      ? 'border-white/30 shadow-lg' 
+                      : channel.muted 
+                        ? 'border-red-500/30 opacity-50' 
+                        : 'border-white/10 hover:border-white/20'
+                  }`}
+                  onClick={() => toggleChannelActive(channel.id)}
+                >
+                  {/* Volume indicator lights */}
+                  <div className="flex gap-0.5 mb-1.5">
+                    {[...Array(5)].map((_, i) => (
+                      <div 
+                        key={i}
+                        className={`h-1 flex-1 rounded-sm transition-all ${
+                          channel.speaking 
+                            ? 'bg-green-400 animate-pulse' 
+                            : channel.volume > i * 20 
+                              ? channel.muted ? 'bg-red-500/50' : 'bg-amber-500/70'
+                              : 'bg-white/10'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  
+                  {/* Channel name display */}
+                  <div 
+                    className={`text-[10px] font-mono font-bold tracking-wider px-1 py-1 rounded text-center ${
+                      channel.speaking 
+                        ? 'bg-green-500/30 text-green-300' 
+                        : channel.active 
+                          ? 'bg-white/10 text-white' 
+                          : channel.muted 
+                            ? 'bg-red-500/20 text-red-400' 
+                            : 'text-white/50'
+                    }`}
+                    style={{ 
+                      textShadow: channel.speaking ? '0 0 10px rgba(34,197,94,0.5)' : 'none',
+                      borderLeft: channel.color ? `2px solid ${channel.color}` : 'none'
+                    }}
+                  >
+                    {channel.shortName}
+                  </div>
+                  
+                  {/* Mute/Volume control */}
+                  <div className="flex items-center justify-between mt-1.5">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); toggleChannelMute(channel.id); }}
+                      className={`p-1 rounded transition-colors ${channel.muted ? 'bg-red-500/20 text-red-400' : 'hover:bg-white/10 text-white/40'}`}
+                    >
+                      {channel.muted ? <MicOff size={10} /> : <Mic size={10} />}
+                    </button>
+                    <input 
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={channel.volume}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => setChannelVolume(channel.id, Number(e.target.value))}
+                      className="w-12 h-0.5 bg-white/20 rounded appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:h-2 [&::-webkit-slider-thumb]:bg-white/70 [&::-webkit-slider-thumb]:rounded-full"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick Access Tools Row */}
+          <div className="mb-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Link 
+              to={`/team/${teamId}/pitwall/strategy`}
+              className="bg-white/[0.03] border border-white/10 rounded p-4 hover:border-purple-500/50 hover:bg-white/[0.05] transition-all group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Target size={18} className="text-purple-400" />
+                  <div>
+                    <div className="text-sm font-medium text-white">Strategy</div>
+                    <div className="text-[10px] text-white/40">Pit windows & fuel</div>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-white/20 group-hover:text-white/50 transition-colors" />
+              </div>
+            </Link>
+            <Link 
+              to={`/team/${teamId}/pitwall/compare`}
+              className="bg-white/[0.03] border border-white/10 rounded p-4 hover:border-cyan-500/50 hover:bg-white/[0.05] transition-all group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <GitCompare size={18} className="text-cyan-400" />
+                  <div>
+                    <div className="text-sm font-medium text-white">Compare</div>
+                    <div className="text-[10px] text-white/40">Driver telemetry</div>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-white/20 group-hover:text-white/50 transition-colors" />
+              </div>
+            </Link>
+            <Link 
+              to={`/team/${teamId}/pitwall/practice`}
+              className="bg-white/[0.03] border border-white/10 rounded p-4 hover:border-blue-500/50 hover:bg-white/[0.05] transition-all group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <BarChart3 size={18} className="text-blue-400" />
+                  <div>
+                    <div className="text-sm font-medium text-white">Practice</div>
+                    <div className="text-[10px] text-white/40">Session analysis</div>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-white/20 group-hover:text-white/50 transition-colors" />
+              </div>
+            </Link>
+            <Link 
+              to={`/team/${teamId}/pitwall/planning`}
+              className="bg-white/[0.03] border border-white/10 rounded p-4 hover:border-indigo-500/50 hover:bg-white/[0.05] transition-all group"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Calendar size={18} className="text-indigo-400" />
+                  <div>
+                    <div className="text-sm font-medium text-white">Planning</div>
+                    <div className="text-[10px] text-white/40">Event schedule</div>
+                  </div>
+                </div>
+                <ChevronRight size={16} className="text-white/20 group-hover:text-white/50 transition-colors" />
+              </div>
+            </Link>
           </div>
 
           {/* Main Grid: Camera + Telemetry */}
