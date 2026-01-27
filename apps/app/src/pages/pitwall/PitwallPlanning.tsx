@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Calendar, Users, Clock, Plus, ChevronDown, ChevronUp, Flag, AlertCircle, Edit, Trash2, UserPlus } from 'lucide-react';
+import { Calendar, Users, Clock, Plus, ChevronDown, ChevronUp, Flag, AlertCircle, Edit, Trash2, UserPlus, Loader2 } from 'lucide-react';
 
 // Types from legacy
 interface PlanEvent {
@@ -102,6 +102,8 @@ export function PitwallPlanning() {
   const [drivers, setDrivers] = useState<DriverAvailability[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -115,14 +117,23 @@ export function PitwallPlanning() {
     fetchData();
   }, [teamId]);
 
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.6;
+    }
+  }, []);
+
   const toggleEvent = (eventId: string) => {
     setExpandedEvent(expandedEvent === eventId ? null : eventId);
   };
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-[400px]">
-        <div className="text-white/50">Loading planning...</div>
+      <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+          <span className="text-white/50 text-sm">Loading planning...</span>
+        </div>
       </div>
     );
   }
@@ -130,7 +141,25 @@ export function PitwallPlanning() {
   const upcomingEvents = events.filter(e => e.status !== 'completed');
 
   return (
-    <div className="p-6 max-w-7xl mx-auto min-h-full">
+    <div className="min-h-[calc(100vh-8rem)] relative">
+      {/* Background video */}
+      <div className="fixed inset-0 z-0">
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="w-full h-full object-cover opacity-50"
+        >
+          <source src="/videos/bg-3.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/95 via-[#0e0e0e]/80 to-[#0e0e0e]/70" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/95" />
+      </div>
+
+      <div className="relative z-10 p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -142,7 +171,7 @@ export function PitwallPlanning() {
           </h1>
           <p className="text-sm mt-1 text-white/50">Event scheduling & driver assignments</p>
         </div>
-        <button className="flex items-center gap-2 border border-white/20 text-white px-4 py-2 text-xs font-semibold uppercase tracking-wider hover:bg-white/5 transition-colors">
+        <button className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] text-white px-4 py-2 text-xs font-semibold uppercase tracking-wider hover:bg-white/[0.06] transition-colors">
           <Plus size={14} />
           Add Event
         </button>
@@ -151,7 +180,7 @@ export function PitwallPlanning() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Event List */}
         <div className="lg:col-span-2">
-          <div className="bg-[#0a0a0a]" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.15)' }}>
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded">
             <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Calendar size={16} className="text-white/40" />
@@ -205,7 +234,7 @@ export function PitwallPlanning() {
                               return (
                                 <div
                                   key={i}
-                                  className="w-6 h-6 bg-white/10 border-2 border-[#0a0a0a] flex items-center justify-center text-[10px] font-bold text-white/70"
+                                  className="w-6 h-6 bg-white/10 border-2 border-[#0e0e0e] rounded-full flex items-center justify-center text-[10px] font-bold text-white/70"
                                   title={driver?.display_name}
                                 >
                                   {driver?.display_name.charAt(0)}
@@ -213,7 +242,7 @@ export function PitwallPlanning() {
                               );
                             })}
                             {event.drivers.length > 3 && (
-                              <div className="w-6 h-6 bg-white/5 border-2 border-[#0a0a0a] flex items-center justify-center text-[10px] text-white/50">
+                              <div className="w-6 h-6 bg-white/5 border-2 border-[#0e0e0e] rounded-full flex items-center justify-center text-[10px] text-white/50">
                                 +{event.drivers.length - 3}
                               </div>
                             )}
@@ -232,7 +261,7 @@ export function PitwallPlanning() {
 
                     {/* Expanded Detail Panel */}
                     {isExpanded && (
-                      <div className="px-4 pb-4 bg-[#0a0a0a] border-t border-white/10">
+                      <div className="px-4 pb-4 bg-black/20 border-t border-white/10">
                         <div className="pt-4 space-y-4">
                           {/* Notes */}
                           {event.notes && (
@@ -291,7 +320,7 @@ export function PitwallPlanning() {
         </div>
 
         {/* Driver Availability */}
-        <div className="border border-white/10">
+        <div className="bg-white/[0.03] border border-white/[0.06] rounded">
           <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2">
             <Users size={16} className="text-[#f97316]" />
             <span 
@@ -318,6 +347,7 @@ export function PitwallPlanning() {
             ))}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

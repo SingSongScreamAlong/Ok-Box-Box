@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Timer, Clock, CheckCircle, Plus, TrendingUp, TrendingDown, Zap, BarChart3, Activity, AlertTriangle, Target, Layers } from 'lucide-react';
+import { Timer, Clock, CheckCircle, Plus, TrendingUp, TrendingDown, Zap, BarChart3, Activity, AlertTriangle, Target, Layers, Loader2 } from 'lucide-react';
 
 // Types - comprehensive practice/telemetry modeling
 interface RunPlan {
@@ -157,6 +157,7 @@ export function PitwallPractice() {
   const [loading, setLoading] = useState(true);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'sectors' | 'telemetry'>('overview');
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -171,6 +172,12 @@ export function PitwallPractice() {
     fetchData();
   }, [teamId]);
 
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.6;
+    }
+  }, []);
+
   // Find best lap and theoretical best across all drivers
   const bestOverall = stints.reduce((best, s) => (!best || s.best_lap_ms < best.ms) ? { time: s.best_lap, ms: s.best_lap_ms, driver: s.driver_name } : best, { time: '', ms: Infinity, driver: '' });
   const theoreticalBest = stints.reduce((best, s) => (!best || s.theoretical_best < best) ? s.theoretical_best : best, '');
@@ -182,14 +189,35 @@ export function PitwallPractice() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-[400px]">
-        <div className="text-white/50">Loading practice...</div>
+      <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+          <span className="text-white/50 text-sm">Loading practice...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 min-h-full">
+    <div className="min-h-[calc(100vh-8rem)] relative">
+      {/* Background video */}
+      <div className="fixed inset-0 z-0">
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="w-full h-full object-cover opacity-50"
+        >
+          <source src="/videos/bg-3.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/95 via-[#0e0e0e]/80 to-[#0e0e0e]/70" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/95" />
+      </div>
+
+      <div className="relative z-10 p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
@@ -208,32 +236,32 @@ export function PitwallPractice() {
 
       {/* Session Stats Bar */}
       <div className="grid grid-cols-6 gap-3 mb-6">
-        <div className="bg-[#0a0a0a] p-3 text-center" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.15)' }}>
+        <div className="bg-white/[0.03] border border-white/[0.06] rounded p-3 text-center">
           <div className="text-[10px] text-white/40 uppercase tracking-wider">Session Best</div>
           <div className="text-xl font-bold text-purple-400 font-mono">{bestOverall.time}</div>
           <div className="text-[10px] text-white/30">{bestOverall.driver}</div>
         </div>
-        <div className="bg-[#0a0a0a] p-3 text-center" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.15)' }}>
+        <div className="bg-white/[0.03] border border-white/[0.06] rounded p-3 text-center">
           <div className="text-[10px] text-white/40 uppercase tracking-wider">Theoretical</div>
           <div className="text-xl font-bold text-[#3b82f6] font-mono">{theoreticalBest}</div>
           <div className="text-[10px] text-white/30">Combined sectors</div>
         </div>
-        <div className="bg-[#0a0a0a] p-3 text-center" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.15)' }}>
+        <div className="bg-white/[0.03] border border-white/[0.06] rounded p-3 text-center">
           <div className="text-[10px] text-white/40 uppercase tracking-wider">Total Laps</div>
           <div className="text-xl font-bold text-white font-mono">{totalLaps}</div>
           <div className="text-[10px] text-white/30">{stints.length} drivers</div>
         </div>
-        <div className="bg-[#0a0a0a] p-3 text-center" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.15)' }}>
+        <div className="bg-white/[0.03] border border-white/[0.06] rounded p-3 text-center">
           <div className="text-[10px] text-white/40 uppercase tracking-wider">Avg Fuel/Lap</div>
           <div className="text-xl font-bold text-[#f97316] font-mono">{avgFuelPerLap}L</div>
           <div className="text-[10px] text-white/30">Team average</div>
         </div>
-        <div className="bg-[#0a0a0a] p-3 text-center" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.15)' }}>
+        <div className="bg-white/[0.03] border border-white/[0.06] rounded p-3 text-center">
           <div className="text-[10px] text-white/40 uppercase tracking-wider">Track Temp</div>
           <div className="text-xl font-bold text-white font-mono">36°C</div>
           <div className="text-[10px] text-white/30">Optimal</div>
         </div>
-        <div className="bg-[#0a0a0a] p-3 text-center" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.15)' }}>
+        <div className="bg-white/[0.03] border border-white/[0.06] rounded p-3 text-center">
           <div className="text-[10px] text-white/40 uppercase tracking-wider">Incidents</div>
           <div className={`text-xl font-bold font-mono ${totalIncidents === 0 ? 'text-green-400' : totalIncidents <= 2 ? 'text-yellow-400' : 'text-red-400'}`}>{totalIncidents}x</div>
           <div className="text-[10px] text-white/30">Session total</div>
@@ -244,7 +272,7 @@ export function PitwallPractice() {
         {/* Main Content */}
         <div className="xl:col-span-3 space-y-6">
           {/* Tab Navigation */}
-          <div className="flex gap-1 bg-[#0a0a0a] p-1 w-fit" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.15)' }}>
+          <div className="flex gap-1 bg-white/[0.03] border border-white/[0.06] rounded p-1 w-fit">
             {(['overview', 'sectors', 'telemetry'] as const).map(tab => (
               <button
                 key={tab}
@@ -260,10 +288,10 @@ export function PitwallPractice() {
 
           {/* Overview Tab - Driver Comparison */}
           {activeTab === 'overview' && (
-            <div className="bg-[#0a0a0a]" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.15)' }}>
+            <div className="bg-white/[0.03] border border-white/[0.06] rounded">
               <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <BarChart3 size={16} className="text-white/40" />
+                  <BarChart3 size={16} className="text-cyan-400" />
                   <span className="font-medium text-sm uppercase tracking-wider text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>
                     Driver Comparison
                   </span>
@@ -272,7 +300,7 @@ export function PitwallPractice() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-[#0a0a0a] text-white/50 text-[10px] font-semibold uppercase tracking-widest">
+                    <tr className="bg-black/20 text-white/50 text-[10px] font-semibold uppercase tracking-widest">
                       <th className="text-left py-3 px-4">Driver</th>
                       <th className="text-right py-3 px-3">Laps</th>
                       <th className="text-right py-3 px-3">Best</th>
@@ -556,6 +584,7 @@ export function PitwallPractice() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

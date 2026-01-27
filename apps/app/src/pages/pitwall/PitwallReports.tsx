@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { FileText, Sparkles, ChevronRight } from 'lucide-react';
+import { FileText, Sparkles, ChevronRight, Loader2 } from 'lucide-react';
 
 // Types from legacy
 interface TeamDebrief {
@@ -101,6 +101,8 @@ export function PitwallReports() {
   const [selectedDebrief, setSelectedDebrief] = useState<TeamDebrief | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingDebrief, setLoadingDebrief] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   useEffect(() => {
     const fetchEvents = async () => {
       setLoading(true);
@@ -113,6 +115,12 @@ export function PitwallReports() {
     fetchEvents();
   }, [teamId]);
 
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = 0.6;
+    }
+  }, []);
+
   const fetchDebrief = async (eventId: string) => {
     setLoadingDebrief(true);
     if (teamId === 'demo') {
@@ -124,14 +132,35 @@ export function PitwallReports() {
 
   if (loading) {
     return (
-      <div className="p-6 flex items-center justify-center min-h-[400px]">
-        <div className="text-white/50">Loading reports...</div>
+      <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-purple-400" />
+          <span className="text-white/50 text-sm">Loading reports...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto min-h-full">
+    <div className="min-h-[calc(100vh-8rem)] relative">
+      {/* Background video */}
+      <div className="fixed inset-0 z-0">
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="w-full h-full object-cover opacity-50"
+        >
+          <source src="/videos/bg-3.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/95 via-[#0e0e0e]/80 to-[#0e0e0e]/70" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/95" />
+      </div>
+
+      <div className="relative z-10 p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-6">
         <h1 
@@ -146,9 +175,9 @@ export function PitwallReports() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Events List */}
         <div className="lg:col-span-1">
-          <div className="bg-[#0a0a0a]" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.15)' }}>
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded">
             <div className="px-4 py-3 border-b border-white/10 flex items-center gap-2">
-              <Sparkles size={14} className="text-white/40" />
+              <Sparkles size={14} className="text-purple-400" />
               <span 
                 className="font-medium text-sm uppercase tracking-wider text-white"
                 style={{ fontFamily: 'Orbitron, sans-serif' }}
@@ -190,9 +219,9 @@ export function PitwallReports() {
         {/* Debrief Display */}
         <div className="lg:col-span-2">
           {loadingDebrief ? (
-            <div className="bg-[#0a0a0a] p-12 text-center text-white/50" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.15)' }}>Loading debrief...</div>
+            <div className="bg-white/[0.03] border border-white/[0.06] rounded p-12 text-center text-white/50">Loading debrief...</div>
           ) : selectedDebrief ? (
-            <div className="bg-[#0a0a0a]" style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.15)' }}>
+            <div className="bg-white/[0.03] border border-white/[0.06] rounded">
               <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
                 <div>
                   <div className="font-medium text-white">{selectedDebrief.event_name}</div>
@@ -208,7 +237,7 @@ export function PitwallReports() {
               <div className="p-5 space-y-6">
                 {/* Team Summary */}
                 {selectedDebrief.team_summary && (
-                  <div className="p-4 bg-[#0a0a0a] border border-white/10">
+                  <div className="p-4 bg-black/20 border border-white/10 rounded">
                     <h3 className="text-xs font-medium text-white/50 uppercase tracking-wider mb-3">Team Summary</h3>
                     <p className="text-sm text-white/70 mb-4">{selectedDebrief.team_summary.overall_observation}</p>
 
@@ -237,7 +266,7 @@ export function PitwallReports() {
                   <h3 className="text-xs font-medium text-white/40 uppercase tracking-wider mb-3">Driver Analysis</h3>
                   <div className="space-y-3">
                     {selectedDebrief.driver_summaries.map(d => (
-                      <div key={d.driver_profile_id} className="p-4 bg-[#0a0a0a] border border-white/10">
+                      <div key={d.driver_profile_id} className="p-4 bg-black/20 border border-white/10 rounded">
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 bg-[#f97316] flex items-center justify-center text-[10px] font-bold text-black">
@@ -257,12 +286,13 @@ export function PitwallReports() {
               </div>
             </div>
           ) : (
-            <div className="border border-white/10 p-12 text-center">
+            <div className="bg-white/[0.03] border border-white/[0.06] rounded p-12 text-center">
               <FileText className="mx-auto text-white/20 mb-2" size={32} />
               <p className="text-white/40">Select an event to view its debrief</p>
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
