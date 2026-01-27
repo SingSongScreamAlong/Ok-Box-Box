@@ -12,8 +12,7 @@ import { ForgotPassword } from './pages/auth/ForgotPassword';
 import { ResetPassword } from './pages/auth/ResetPassword';
 import { AuthCallback } from './pages/auth/AuthCallback';
 import { DriverCockpit } from './pages/driver/DriverCockpit';
-import { DriverSessions } from './pages/driver/DriverSessions';
-import { DriverStats } from './pages/driver/DriverStats';
+import { DriverHistory } from './pages/driver/DriverHistory';
 import { DriverRatings } from './pages/driver/DriverRatings';
 import { DriverProfilePage } from './pages/driver/DriverProfilePage';
 import { EngineerChat } from './pages/driver/crew/EngineerChat';
@@ -113,8 +112,7 @@ function App() {
           <Route index element={<DriverCockpit />} />
           <Route path="home" element={<DriverCockpit />} />
           <Route path="cockpit" element={<DriverCockpit />} />
-          <Route path="sessions" element={<DriverSessions />} />
-          <Route path="stats" element={<DriverStats />} />
+          <Route path="history" element={<DriverHistory />} />
           <Route path="ratings" element={<DriverRatings />} />
           <Route path="profile" element={<DriverProfilePage />} />
           <Route path="crew/engineer" element={<EngineerChat />} />
