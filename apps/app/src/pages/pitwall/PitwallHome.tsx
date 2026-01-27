@@ -597,25 +597,75 @@ export function PitwallHome() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Target size={20} className="text-purple-400" />
-                  <h3 className="text-lg font-semibold text-white">Race Strategy</h3>
+                  <h3 className="text-lg font-semibold text-white">Strategy Analytics</h3>
                 </div>
                 <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
+                {/* Undercut/Overcut Analysis */}
                 <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Pit Window</div>
-                  <div className="text-2xl font-mono text-purple-400">Lap 18-22</div>
-                  <div className="text-xs text-white/30 mt-1">Optimal based on fuel & tire deg</div>
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Undercut Window</div>
+                  <div className="text-xl font-mono text-green-400">3.2s</div>
+                  <div className="text-[10px] text-white/30 mt-1">Pit now gains vs P2</div>
+                  <div className="mt-2 h-1 bg-white/10 rounded overflow-hidden">
+                    <div className="h-full bg-green-500" style={{ width: '75%' }} />
+                  </div>
+                  <div className="text-[9px] text-green-400/70 mt-1">75% confidence</div>
                 </div>
+                
+                {/* Tire Degradation Projection */}
                 <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Fuel Required</div>
-                  <div className="text-2xl font-mono text-white">48.2<span className="text-sm text-white/40 ml-1">L</span></div>
-                  <div className="text-xs text-white/30 mt-1">+2L reserve included</div>
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Tire Cliff ETA</div>
+                  <div className="text-xl font-mono text-amber-400">~6 laps</div>
+                  <div className="text-[10px] text-white/30 mt-1">Based on deg rate: 0.12s/lap</div>
+                  <div className="mt-2 flex gap-1">
+                    {[1,2,3,4,5,6,7,8].map(i => (
+                      <div key={i} className={`flex-1 h-3 rounded-sm ${i <= 6 ? 'bg-amber-500/60' : 'bg-white/10'}`} />
+                    ))}
+                  </div>
+                  <div className="text-[9px] text-amber-400/70 mt-1">Grip loss accelerating</div>
                 </div>
+                
+                {/* Optimal Pit Lap Calculator */}
                 <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Tire Strategy</div>
-                  <div className="text-2xl font-mono text-amber-400">M → H</div>
-                  <div className="text-xs text-white/30 mt-1">Medium start, Hard finish</div>
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Optimal Pit Lap</div>
+                  <div className="text-xl font-mono text-purple-400">Lap 19</div>
+                  <div className="text-[10px] text-white/30 mt-1">Balances tire life + track pos</div>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Lap 18</span>
+                      <span className="text-yellow-400">-0.8s net</span>
+                    </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Lap 19</span>
+                      <span className="text-green-400">+1.2s net ★</span>
+                    </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Lap 20</span>
+                      <span className="text-yellow-400">+0.4s net</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Traffic Analysis */}
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Pit Exit Traffic</div>
+                  <div className="text-xl font-mono text-green-400">CLEAR</div>
+                  <div className="text-[10px] text-white/30 mt-1">No cars in pit window</div>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Behind you</span>
+                      <span className="text-white/70">P4 @ +8.3s</span>
+                    </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Pit delta</span>
+                      <span className="text-white/70">~22s</span>
+                    </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Exit pos</span>
+                      <span className="text-green-400">P3 (hold)</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -626,26 +676,108 @@ export function PitwallHome() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Users size={20} className="text-cyan-400" />
-                  <h3 className="text-lg font-semibold text-white">Team Drivers</h3>
+                  <h3 className="text-lg font-semibold text-white">Driver Performance Analytics</h3>
                 </div>
                 <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
               </div>
               <div className="grid grid-cols-4 gap-4">
-                {drivers.map(driver => (
-                  <div key={driver.id} className="bg-black/40 rounded p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={`w-6 h-6 flex items-center justify-center text-[10px] font-bold border ${driver.isActive ? 'bg-green-500/20 border-green-500/30 text-green-400' : 'bg-white/5 border-white/10 text-white/40'}`}>
-                        {driver.carNumber}
+                {/* Sector Comparison */}
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Sector Comparison</div>
+                  <div className="text-[10px] text-white/50 mb-2">Alex vs Team Best</div>
+                  <div className="space-y-2">
+                    <div>
+                      <div className="flex justify-between text-[9px] mb-1">
+                        <span className="text-white/40">S1</span>
+                        <span className="text-green-400">-0.12s</span>
                       </div>
-                      <div className="text-sm font-medium text-white">{driver.name}</div>
+                      <div className="h-1.5 bg-white/10 rounded overflow-hidden">
+                        <div className="h-full bg-green-500" style={{ width: '95%' }} />
+                      </div>
                     </div>
-                    <div className="space-y-1 text-xs">
-                      <div className="flex justify-between"><span className="text-white/40">Status</span><span className={driver.isActive ? 'text-green-400' : 'text-white/30'}>{driver.isActive ? 'In Session' : 'Offline'}</span></div>
-                      <div className="flex justify-between"><span className="text-white/40">Position</span><span className="text-white">{driver.isActive ? `P${driver.position}` : '—'}</span></div>
-                      <div className="flex justify-between"><span className="text-white/40">Best Lap</span><span className="text-purple-400">{driver.bestLap ? formatLapTime(driver.bestLap) : '—'}</span></div>
+                    <div>
+                      <div className="flex justify-between text-[9px] mb-1">
+                        <span className="text-white/40">S2</span>
+                        <span className="text-red-400">+0.24s</span>
+                      </div>
+                      <div className="h-1.5 bg-white/10 rounded overflow-hidden">
+                        <div className="h-full bg-red-500" style={{ width: '78%' }} />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[9px] mb-1">
+                        <span className="text-white/40">S3</span>
+                        <span className="text-green-400">-0.08s</span>
+                      </div>
+                      <div className="h-1.5 bg-white/10 rounded overflow-hidden">
+                        <div className="h-full bg-green-500" style={{ width: '92%' }} />
+                      </div>
                     </div>
                   </div>
-                ))}
+                  <div className="text-[9px] text-cyan-400/70 mt-2">Focus: T5-T7 braking</div>
+                </div>
+                
+                {/* Consistency Analysis */}
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Consistency Score</div>
+                  <div className="text-xl font-mono text-cyan-400">94.2%</div>
+                  <div className="text-[10px] text-white/30 mt-1">Last 10 laps σ: ±0.18s</div>
+                  <div className="mt-2 flex items-end gap-0.5 h-8">
+                    {[0.2, 0.1, 0.15, 0.08, 0.12, 0.1, 0.18, 0.14, 0.09, 0.11].map((v, i) => (
+                      <div key={i} className="flex-1 bg-cyan-500/60 rounded-t" style={{ height: `${v * 200}%` }} />
+                    ))}
+                  </div>
+                  <div className="text-[9px] text-white/40 mt-1">Lap variance (lower = better)</div>
+                </div>
+                
+                {/* Pace Trend */}
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Pace Trend</div>
+                  <div className="text-xl font-mono text-green-400">↑ Improving</div>
+                  <div className="text-[10px] text-white/30 mt-1">-0.3s over last 5 laps</div>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Lap 43</span>
+                      <span className="text-white/70">1:38.42</span>
+                    </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Lap 44</span>
+                      <span className="text-white/70">1:38.31</span>
+                    </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Lap 45</span>
+                      <span className="text-white/70">1:38.24</span>
+                    </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Lap 46</span>
+                      <span className="text-white/70">1:38.18</span>
+                    </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Lap 47</span>
+                      <span className="text-green-400">1:38.12 ★</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Driver Fatigue / Stint Analysis */}
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Stint Fatigue Index</div>
+                  <div className="text-xl font-mono text-amber-400">72%</div>
+                  <div className="text-[10px] text-white/30 mt-1">Reaction time +4ms avg</div>
+                  <div className="mt-2 h-2 bg-white/10 rounded overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-green-500 via-amber-500 to-red-500" style={{ width: '72%' }} />
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Stint length</span>
+                      <span className="text-white/70">1h 42m</span>
+                    </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Rec. swap</span>
+                      <span className="text-amber-400">~25 min</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -655,62 +787,81 @@ export function PitwallHome() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <MapPin size={20} className="text-blue-400" />
-                  <h3 className="text-lg font-semibold text-white">Track Map</h3>
+                  <h3 className="text-lg font-semibold text-white">Track Position Analytics</h3>
                 </div>
                 <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
               </div>
-              <div className="grid grid-cols-3 gap-4">
-                {/* Track Map Visualization */}
-                <div className="col-span-2 bg-black/60 rounded p-4 relative" style={{ minHeight: '280px' }}>
-                  {/* Simplified oval track shape */}
-                  <svg viewBox="0 0 400 200" className="w-full h-full">
-                    {/* Track outline */}
-                    <ellipse cx="200" cy="100" rx="180" ry="80" fill="none" stroke="#333" strokeWidth="20" />
-                    <ellipse cx="200" cy="100" rx="180" ry="80" fill="none" stroke="#444" strokeWidth="2" strokeDasharray="10,5" />
-                    
-                    {/* Start/Finish line */}
-                    <line x1="200" y1="20" x2="200" y2="40" stroke="#fff" strokeWidth="3" />
-                    
-                    {/* Driver positions on track */}
-                    {drivers.filter(d => d.isActive).map((driver, idx) => {
-                      const angle = (idx * 90 + 45) * (Math.PI / 180);
-                      const x = 200 + 180 * Math.cos(angle);
-                      const y = 100 + 80 * Math.sin(angle);
-                      return (
-                        <g key={driver.id}>
-                          <circle cx={x} cy={y} r="12" fill={driver.id === 'd1' ? '#22c55e' : '#3b82f6'} />
-                          <text x={x} y={y + 4} textAnchor="middle" fill="#fff" fontSize="10" fontWeight="bold">
-                            {driver.carNumber}
-                          </text>
-                        </g>
-                      );
-                    })}
-                  </svg>
-                  
-                  {/* Track info overlay */}
-                  <div className="absolute bottom-2 left-2 text-[9px] text-white/40">
-                    Daytona International Speedway
+              <div className="grid grid-cols-4 gap-4">
+                {/* Gap Trend Analysis */}
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Gap to P2 Trend</div>
+                  <div className="text-xl font-mono text-red-400">↓ Closing</div>
+                  <div className="text-[10px] text-white/30 mt-1">-0.8s over 5 laps</div>
+                  <div className="mt-2 flex items-end gap-0.5 h-8">
+                    {[2.8, 2.6, 2.4, 2.2, 2.0].map((v, i) => (
+                      <div key={i} className="flex-1 bg-red-500/60 rounded-t" style={{ height: `${v * 15}%` }} />
+                    ))}
+                  </div>
+                  <div className="text-[9px] text-red-400/70 mt-1">P2 gaining 0.16s/lap</div>
+                </div>
+                
+                {/* Traffic Prediction */}
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Traffic Ahead</div>
+                  <div className="text-xl font-mono text-amber-400">2 cars</div>
+                  <div className="text-[10px] text-white/30 mt-1">Backmarkers in ~3 laps</div>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">#77</span>
+                      <span className="text-white/70">+12.4s (1.2s slower)</span>
+                    </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">#34</span>
+                      <span className="text-white/70">+18.1s (0.8s slower)</span>
+                    </div>
+                  </div>
+                  <div className="text-[9px] text-amber-400/70 mt-1">Blue flags expected T3</div>
+                </div>
+                
+                {/* Battle Analysis */}
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Battle Zones</div>
+                  <div className="space-y-2 mt-2">
+                    <div className="p-2 bg-red-500/20 border border-red-500/30 rounded">
+                      <div className="text-[10px] text-red-400 font-semibold">P2 vs P3</div>
+                      <div className="text-[9px] text-white/50">Gap: 0.4s • DRS range</div>
+                    </div>
+                    <div className="p-2 bg-amber-500/20 border border-amber-500/30 rounded">
+                      <div className="text-[10px] text-amber-400 font-semibold">P5 vs P6</div>
+                      <div className="text-[9px] text-white/50">Gap: 1.1s • Closing</div>
+                    </div>
+                    <div className="p-2 bg-white/5 border border-white/10 rounded">
+                      <div className="text-[10px] text-white/50 font-semibold">P8-P12</div>
+                      <div className="text-[9px] text-white/30">Train forming</div>
+                    </div>
                   </div>
                 </div>
                 
-                {/* Position List */}
-                <div className="bg-black/40 rounded p-3">
-                  <div className="text-[10px] uppercase text-white/40 mb-3 font-semibold">Live Positions</div>
-                  <div className="space-y-2">
-                    {drivers.filter(d => d.isActive).sort((a, b) => (a.position || 99) - (b.position || 99)).map(driver => (
-                      <div key={driver.id} className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 flex items-center justify-center bg-white/10 rounded text-[10px] font-bold text-white">
-                            P{driver.position}
-                          </span>
-                          <span className="text-white/70">#{driver.carNumber}</span>
-                        </div>
-                        <span className={`font-mono ${driver.delta && driver.delta < 0 ? 'text-green-400' : 'text-white/50'}`}>
-                          {driver.gap || '—'}
-                        </span>
-                      </div>
-                    ))}
+                {/* Position Change Probability */}
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Position Outlook</div>
+                  <div className="text-xl font-mono text-amber-400">DEFEND</div>
+                  <div className="text-[10px] text-white/30 mt-1">P2 threat level: HIGH</div>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Overtake P2</span>
+                      <span className="text-white/50">12% (gap too big)</span>
+                    </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Hold P3</span>
+                      <span className="text-amber-400">64%</span>
+                    </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Lose to P4</span>
+                      <span className="text-green-400">8%</span>
+                    </div>
                   </div>
+                  <div className="text-[9px] text-blue-400/70 mt-2">Rec: Save tires for defense</div>
                 </div>
               </div>
             </div>
@@ -721,25 +872,127 @@ export function PitwallHome() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Settings size={20} className="text-indigo-400" />
-                  <h3 className="text-lg font-semibold text-white">Car Setup</h3>
+                  <h3 className="text-lg font-semibold text-white">Setup Performance Analytics</h3>
                 </div>
                 <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-4 gap-4">
+                {/* Balance Analysis */}
                 <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Current Setup</div>
-                  <div className="text-lg font-medium text-white">Daytona Quali v3</div>
-                  <div className="text-xs text-white/30 mt-1">Last modified 2h ago</div>
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Balance Tendency</div>
+                  <div className="text-xl font-mono text-amber-400">UNDERSTEER</div>
+                  <div className="text-[10px] text-white/30 mt-1">Detected in T3, T7, T11</div>
+                  <div className="mt-2 relative h-3 bg-white/10 rounded">
+                    <div className="absolute inset-y-0 left-1/2 w-0.5 bg-white/30" />
+                    <div className="absolute top-0 bottom-0 left-[58%] w-3 h-3 bg-amber-500 rounded-full" />
+                  </div>
+                  <div className="flex justify-between text-[8px] text-white/30 mt-1">
+                    <span>Oversteer</span>
+                    <span>Neutral</span>
+                    <span>Understeer</span>
+                  </div>
+                  <div className="text-[9px] text-indigo-400/70 mt-2">Try: +0.5 rear wing</div>
                 </div>
+                
+                {/* Setup vs Lap Time Correlation */}
                 <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Tire Pressure</div>
-                  <div className="text-lg font-medium text-white">F: 26.5 / R: 25.8</div>
-                  <div className="text-xs text-white/30 mt-1">PSI cold</div>
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Setup Impact</div>
+                  <div className="text-[10px] text-white/50 mb-2">Changes vs Lap Time</div>
+                  <div className="space-y-2">
+                    <div>
+                      <div className="flex justify-between text-[9px] mb-1">
+                        <span className="text-white/40">ARB +1 click</span>
+                        <span className="text-green-400">-0.15s</span>
+                      </div>
+                      <div className="h-1 bg-white/10 rounded overflow-hidden">
+                        <div className="h-full bg-green-500" style={{ width: '85%' }} />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[9px] mb-1">
+                        <span className="text-white/40">Camber -0.2°</span>
+                        <span className="text-green-400">-0.08s</span>
+                      </div>
+                      <div className="h-1 bg-white/10 rounded overflow-hidden">
+                        <div className="h-full bg-green-500" style={{ width: '65%' }} />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[9px] mb-1">
+                        <span className="text-white/40">Toe +0.1°</span>
+                        <span className="text-red-400">+0.12s</span>
+                      </div>
+                      <div className="h-1 bg-white/10 rounded overflow-hidden">
+                        <div className="h-full bg-red-500" style={{ width: '45%' }} />
+                      </div>
+                    </div>
+                  </div>
                 </div>
+                
+                {/* Tire Temp Analysis */}
                 <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Fuel Load</div>
-                  <div className="text-lg font-medium text-indigo-400">48.2 L</div>
-                  <div className="text-xs text-white/30 mt-1">~18 laps range</div>
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Tire Temp Balance</div>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="text-center">
+                      <div className="text-[8px] text-white/30">FL</div>
+                      <div className="flex gap-0.5 justify-center">
+                        <div className="w-2 h-6 bg-green-500 rounded-sm" />
+                        <div className="w-2 h-6 bg-amber-500 rounded-sm" />
+                        <div className="w-2 h-6 bg-green-500 rounded-sm" />
+                      </div>
+                      <div className="text-[8px] text-white/50 mt-1">I|M|O</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-[8px] text-white/30">FR</div>
+                      <div className="flex gap-0.5 justify-center">
+                        <div className="w-2 h-6 bg-amber-500 rounded-sm" />
+                        <div className="w-2 h-6 bg-green-500 rounded-sm" />
+                        <div className="w-2 h-6 bg-green-500 rounded-sm" />
+                      </div>
+                      <div className="text-[8px] text-white/50 mt-1">I|M|O</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-[8px] text-white/30">RL</div>
+                      <div className="flex gap-0.5 justify-center">
+                        <div className="w-2 h-6 bg-green-500 rounded-sm" />
+                        <div className="w-2 h-6 bg-green-500 rounded-sm" />
+                        <div className="w-2 h-6 bg-green-500 rounded-sm" />
+                      </div>
+                      <div className="text-[8px] text-white/50 mt-1">I|M|O</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-[8px] text-white/30">RR</div>
+                      <div className="flex gap-0.5 justify-center">
+                        <div className="w-2 h-6 bg-green-500 rounded-sm" />
+                        <div className="w-2 h-6 bg-green-500 rounded-sm" />
+                        <div className="w-2 h-6 bg-red-500 rounded-sm" />
+                      </div>
+                      <div className="text-[8px] text-white/50 mt-1">I|M|O</div>
+                    </div>
+                  </div>
+                  <div className="text-[9px] text-indigo-400/70 mt-2">RR outer hot: -0.3 psi</div>
+                </div>
+                
+                {/* Suggested Changes */}
+                <div className="bg-black/40 rounded p-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-2">AI Recommendations</div>
+                  <div className="space-y-2">
+                    <div className="p-2 bg-green-500/20 border border-green-500/30 rounded">
+                      <div className="text-[10px] text-green-400 font-semibold">High Impact</div>
+                      <div className="text-[9px] text-white/70">Rear ARB: 3 → 4</div>
+                      <div className="text-[8px] text-green-400/70">Est. -0.2s/lap</div>
+                    </div>
+                    <div className="p-2 bg-amber-500/20 border border-amber-500/30 rounded">
+                      <div className="text-[10px] text-amber-400 font-semibold">Medium Impact</div>
+                      <div className="text-[9px] text-white/70">Front camber: -3.2 → -3.0</div>
+                      <div className="text-[8px] text-amber-400/70">Est. -0.1s/lap</div>
+                    </div>
+                    <div className="p-2 bg-white/5 border border-white/10 rounded">
+                      <div className="text-[10px] text-white/50 font-semibold">Fine Tune</div>
+                      <div className="text-[9px] text-white/50">Brake bias: 54% → 53%</div>
+                      <div className="text-[8px] text-white/30">Stability improvement</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
