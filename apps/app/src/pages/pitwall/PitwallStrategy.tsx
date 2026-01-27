@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useTheme } from '../../hooks/useTheme';
 import { useParams } from 'react-router-dom';
 import { Fuel, Cloud, ChevronDown, ChevronUp, AlertTriangle, TrendingDown, Zap, Timer, Flag, Droplets, Sun, RefreshCw } from 'lucide-react';
 
@@ -158,7 +157,6 @@ export function PitwallStrategy() {
   const [loading, setLoading] = useState(true);
   const [expandedStint, setExpandedStint] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'stints' | 'weather' | 'tires'>('stints');
-  const { isDark } = useTheme();
 
   // Fuel calculator state
   const [fuelCalc, setFuelCalc] = useState({
@@ -197,31 +195,14 @@ export function PitwallStrategy() {
   const riskColors = { low: 'text-green-400 bg-green-500/10', medium: 'text-yellow-400 bg-yellow-500/10', high: 'text-red-400 bg-red-500/10' };
 
   return (
-    <div className={`p-6 min-h-screen relative overflow-hidden ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
-      {/* Ambient background layer - ultra-slow gradient drift (3 min loop) */}
-      <div 
-        className={`absolute inset-0 pointer-events-none ${isDark ? 'opacity-[0.03]' : 'opacity-[0.02]'}`}
-        style={{
-          background: isDark
-            ? 'radial-gradient(ellipse 80% 60% at 20% 30%, rgba(255,255,255,0.05) 0%, transparent 60%), radial-gradient(ellipse 70% 50% at 80% 70%, rgba(255,255,255,0.03) 0%, transparent 60%)'
-            : 'radial-gradient(ellipse 80% 60% at 20% 30%, rgba(0,0,0,0.15) 0%, transparent 60%), radial-gradient(ellipse 70% 50% at 80% 70%, rgba(0,0,0,0.1) 0%, transparent 60%)',
-          animation: 'ambientDrift 180s ease-in-out infinite alternate',
-        }}
-      />
-      <style>{`
-        @keyframes ambientDrift {
-          0% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(1.5%, 0.5%) scale(1.01); }
-          100% { transform: translate(-0.5%, 1%) scale(1.005); }
-        }
-      `}</style>
+    <div className="p-6 min-h-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className={`text-xl font-bold tracking-wide uppercase ${isDark ? 'text-white' : 'text-[#0a0a0a]'}`} style={{ fontFamily: 'Orbitron, sans-serif' }}>
+          <h1 className="text-xl font-bold tracking-wide uppercase text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>
             Race Strategy
           </h1>
-          <p className={`text-sm mt-1 ${isDark ? 'text-white/50' : 'text-black/50'}`}>{strategy.event_name} • {strategy.track_name} • {strategy.car_class}</p>
+          <p className="text-sm mt-1 text-white/50">{strategy.event_name} • {strategy.track_name} • {strategy.car_class}</p>
         </div>
         <div className="flex items-center gap-2">
           <span className={`text-[10px] uppercase tracking-wider px-3 py-1.5 font-semibold ${riskColors[strategy.risk_assessment.level]}`}>

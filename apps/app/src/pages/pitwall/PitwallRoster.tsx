@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useTheme } from '../../hooks/useTheme';
 import { useParams, Link } from 'react-router-dom';
 import { UserPlus, Search, Filter, Users, Crown, Wrench, User } from 'lucide-react';
 
@@ -109,8 +108,6 @@ export function PitwallRoster() {
   const [roster, setRoster] = useState<TeamRosterView | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
-  const { isDark } = useTheme();
-
   useEffect(() => {
     const fetchRoster = async () => {
       setLoading(true);
@@ -146,34 +143,17 @@ export function PitwallRoster() {
   if (!roster) return null;
 
   return (
-    <div className={`p-6 max-w-7xl mx-auto min-h-screen relative overflow-hidden ${isDark ? 'bg-[#1e1e1e]' : 'bg-white'}`}>
-      {/* Ambient background layer - ultra-slow gradient drift (3 min loop) */}
-      <div 
-        className={`absolute inset-0 pointer-events-none ${isDark ? 'opacity-[0.03]' : 'opacity-[0.02]'}`}
-        style={{
-          background: isDark
-            ? 'radial-gradient(ellipse 80% 60% at 20% 30%, rgba(255,255,255,0.05) 0%, transparent 60%), radial-gradient(ellipse 70% 50% at 80% 70%, rgba(255,255,255,0.03) 0%, transparent 60%)'
-            : 'radial-gradient(ellipse 80% 60% at 20% 30%, rgba(0,0,0,0.15) 0%, transparent 60%), radial-gradient(ellipse 70% 50% at 80% 70%, rgba(0,0,0,0.1) 0%, transparent 60%)',
-          animation: 'ambientDrift 180s ease-in-out infinite alternate',
-        }}
-      />
-      <style>{`
-        @keyframes ambientDrift {
-          0% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(1.5%, 0.5%) scale(1.01); }
-          100% { transform: translate(-0.5%, 1%) scale(1.005); }
-        }
-      `}</style>
+    <div className="p-6 max-w-7xl mx-auto min-h-full">
       {/* Header */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-6">
         <div>
           <h1 
-            className={`text-xl font-bold tracking-wide uppercase ${isDark ? 'text-white' : 'text-[#0a0a0a]'}`}
+            className="text-xl font-bold tracking-wide uppercase text-white"
             style={{ fontFamily: 'Orbitron, sans-serif' }}
           >
             Team Roster
           </h1>
-          <p className={`text-sm mt-1 ${isDark ? 'text-white/50' : 'text-black/50'}`}>{roster.team_name} • {roster.member_count} Drivers</p>
+          <p className="text-sm mt-1 text-white/50">{roster.team_name} • {roster.member_count} Drivers</p>
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
           <div className="relative flex-1 md:w-64">
