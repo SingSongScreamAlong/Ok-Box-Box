@@ -5,6 +5,7 @@ import { getTeam, Team } from '../../lib/teams';
 import { PitwallWelcome, useFirstTimeExperience } from '../../components/PitwallWelcome';
 import { useRelay } from '../../hooks/useRelay';
 import { TrackMap } from '../../components/TrackMap';
+import { useTeamData } from '../../hooks/useTeamData';
 
 // Radio channel interface for F1-style comms panel
 interface RadioChannel {
@@ -123,38 +124,14 @@ export function PitwallHome() {
   const [selectedDriver, setSelectedDriver] = useState<string>('d1');
   const [cameraAudio, setCameraAudio] = useState(false);
   const [expandedCamera, setExpandedCamera] = useState(false);
-  const [drivers] = useState<TeamDriver[]>(mockTeamDrivers);
+  const [localDrivers] = useState<TeamDriver[]>(mockTeamDrivers);
   const [masterVolume, setMasterVolume] = useState(75);
   const [patchToHUD, setPatchToHUD] = useState(false);
   const [patchToDiscord, setPatchToDiscord] = useState(false);
   const [activePanel, setActivePanel] = useState<'strategy' | 'drivers' | 'trackmap' | 'setup' | null>(null);
   
-  // Radio channels state - F1-style comms panel grouped by driver
-  const [radioChannels, setRadioChannels] = useState<RadioChannel[]>([
-    // Alex group
-    { id: 'alex-driver', name: 'Alex Rivera', shortName: 'ALEX', type: 'driver', volume: 100, muted: false, active: true, speaking: false, color: '#22c55e' },
-    { id: 'alex-eng', name: 'Alex Engineer', shortName: 'ENG', type: 'crew', volume: 100, muted: false, active: true, speaking: true, color: '#22c55e' },
-    { id: 'alex-spot', name: 'Alex Spotter', shortName: 'SPOT', type: 'crew', volume: 90, muted: false, active: true, speaking: false, color: '#22c55e' },
-    // Jordan group
-    { id: 'jordan-driver', name: 'Jordan Chen', shortName: 'JORDAN', type: 'driver', volume: 80, muted: false, active: false, speaking: false, color: '#3b82f6' },
-    { id: 'jordan-eng', name: 'Jordan Engineer', shortName: 'ENG', type: 'crew', volume: 60, muted: false, active: false, speaking: false, color: '#3b82f6' },
-    { id: 'jordan-spot', name: 'Jordan Spotter', shortName: 'SPOT', type: 'crew', volume: 60, muted: false, active: false, speaking: false, color: '#3b82f6' },
-    // Sam group
-    { id: 'sam-driver', name: 'Sam Williams', shortName: 'SAM', type: 'driver', volume: 80, muted: false, active: false, speaking: false, color: '#f97316' },
-    { id: 'sam-eng', name: 'Sam Engineer', shortName: 'ENG', type: 'crew', volume: 60, muted: false, active: false, speaking: false, color: '#f97316' },
-    { id: 'sam-spot', name: 'Sam Spotter', shortName: 'SPOT', type: 'crew', volume: 60, muted: false, active: false, speaking: false, color: '#f97316' },
-    // Casey group
-    { id: 'casey-driver', name: 'Casey Morgan', shortName: 'CASEY', type: 'driver', volume: 80, muted: true, active: false, speaking: false, color: '#a855f7' },
-    { id: 'casey-eng', name: 'Casey Engineer', shortName: 'ENG', type: 'crew', volume: 60, muted: true, active: false, speaking: false, color: '#a855f7' },
-    { id: 'casey-spot', name: 'Casey Spotter', shortName: 'SPOT', type: 'crew', volume: 60, muted: true, active: false, speaking: false, color: '#a855f7' },
-    // Team channels
-    { id: 'team-all', name: 'All Team', shortName: 'TEAM', type: 'team', volume: 100, muted: false, active: true, speaking: false },
-    { id: 'all-drivers', name: 'All Drivers', shortName: 'ALL DRV', type: 'team', volume: 100, muted: false, active: false, speaking: false },
-    { id: 'strategy', name: 'Strategy', shortName: 'STRAT', type: 'team', volume: 50, muted: false, active: false, speaking: false },
-    { id: 'pitcrew', name: 'Pit Crew', shortName: 'PIT', type: 'team', volume: 70, muted: false, active: false, speaking: false },
-    // Race control
-    { id: 'race-ctrl', name: 'Race Control', shortName: 'RACE', type: 'race', volume: 100, muted: false, active: false, speaking: false, color: '#ef4444' },
-  ]);
+  // Get radio channels from data service
+  const { radioChannels, toggleChannelActive: toggleChannel } = useTeamData();
 
   // Derive connection state from relay status
   const isConnected = status === 'connected' || status === 'in_session';
@@ -203,15 +180,8 @@ export function PitwallHome() {
     return `${mins}:${secs.toFixed(3).padStart(6, '0')}`;
   };
 
-  // Radio channel handlers
-  const toggleChannelActive = (channelId: string) => {
-    setRadioChannels(prev => prev.map(ch => 
-      ch.id === channelId ? { ...ch, active: !ch.active } : ch
-    ));
-  };
-
-  const activeDriver = drivers.find(d => d.id === selectedDriver) || drivers[0];
-  const currentDriver = drivers.find(d => d.isActive);
+  const activeDriver = localDrivers.find(d => d.id === selectedDriver) || localDrivers[0];
+  const currentDriver = localDrivers.find(d => d.isActive);
 
   return (
     <>
@@ -333,7 +303,7 @@ export function PitwallHome() {
                   return (
                     <div key={driverKey} className="flex-1">
                       <button
-                        onClick={() => toggleChannelActive(driverChannel.id)}
+                        onClick={() => toggleChannel(driverChannel.id)}
                         className={`w-full h-9 rounded border-2 transition-all font-mono text-[11px] font-bold tracking-wider ${
                           driverChannel.speaking
                             ? 'bg-green-500/20 border-green-500 text-green-400 shadow-[0_0_12px_rgba(34,197,94,0.4)]'
@@ -361,7 +331,7 @@ export function PitwallHome() {
                     if (!ch) return null;
                     return (
                       <button
-                        onClick={() => toggleChannelActive(ch.id)}
+                        onClick={() => toggleChannel(ch.id)}
                         className={`w-full h-9 rounded border-2 transition-all font-mono text-[10px] font-bold tracking-wider ${
                           ch.active
                             ? 'bg-[#2a2a2a] border-cyan-500/60 text-cyan-400'
@@ -380,7 +350,7 @@ export function PitwallHome() {
                     if (!ch) return null;
                     return (
                       <button
-                        onClick={() => toggleChannelActive(ch.id)}
+                        onClick={() => toggleChannel(ch.id)}
                         className={`w-full h-9 rounded border-2 transition-all font-mono text-[10px] font-bold tracking-wider ${
                           ch.active
                             ? 'bg-[#2a2a2a] border-yellow-500/60 text-yellow-400'
@@ -405,7 +375,7 @@ export function PitwallHome() {
                     <div key={driverKey} className="flex-1 flex gap-1">
                       {/* Engineer */}
                       <button
-                        onClick={() => toggleChannelActive(engChannel.id)}
+                        onClick={() => toggleChannel(engChannel.id)}
                         className={`flex-1 h-7 rounded border transition-all font-mono text-[9px] font-semibold tracking-wide ${
                           engChannel.speaking
                             ? 'bg-green-500/20 border-green-500 text-green-400 shadow-[0_0_8px_rgba(34,197,94,0.3)]'
@@ -421,7 +391,7 @@ export function PitwallHome() {
                       </button>
                       {/* Spotter */}
                       <button
-                        onClick={() => toggleChannelActive(spotChannel.id)}
+                        onClick={() => toggleChannel(spotChannel.id)}
                         className={`flex-1 h-7 rounded border transition-all font-mono text-[9px] font-semibold tracking-wide ${
                           spotChannel.speaking
                             ? 'bg-green-500/20 border-green-500 text-green-400 shadow-[0_0_8px_rgba(34,197,94,0.3)]'
@@ -446,7 +416,7 @@ export function PitwallHome() {
                     if (!ch) return null;
                     return (
                       <button
-                        onClick={() => toggleChannelActive(ch.id)}
+                        onClick={() => toggleChannel(ch.id)}
                         className={`w-full h-7 rounded border transition-all font-mono text-[9px] font-semibold tracking-wide ${
                           ch.active
                             ? 'bg-[#252525] border-purple-500/40 text-purple-400/80'
@@ -465,7 +435,7 @@ export function PitwallHome() {
                     if (!ch) return null;
                     return (
                       <button
-                        onClick={() => toggleChannelActive(ch.id)}
+                        onClick={() => toggleChannel(ch.id)}
                         className={`w-full h-7 rounded border transition-all font-mono text-[9px] font-semibold tracking-wide ${
                           ch.active
                             ? 'bg-[#252525] border-blue-500/40 text-blue-400/80'
@@ -868,7 +838,7 @@ export function PitwallHome() {
                 <div className="bg-black/40 rounded p-3">
                   <div className="text-[10px] uppercase text-white/40 mb-2 font-semibold">Live Standings</div>
                   <div className="space-y-1.5">
-                    {drivers.filter(d => d.isActive).sort((a, b) => (a.position || 99) - (b.position || 99)).slice(0, 8).map(driver => {
+                    {localDrivers.filter((d: TeamDriver) => d.isActive).sort((a: TeamDriver, b: TeamDriver) => (a.position || 99) - (b.position || 99)).slice(0, 8).map((driver: TeamDriver) => {
                       const isTeamCar = driver.id === 'd1' || driver.id === 'd2';
                       return (
                         <div key={driver.id} className={`flex items-center justify-between text-[10px] ${isTeamCar ? 'text-blue-400' : 'text-white/50'}`}>
@@ -1101,10 +1071,10 @@ export function PitwallHome() {
                   <Users size={14} className="text-white/40" />
                   <span className="text-[10px] uppercase tracking-[0.15em] text-white/40 font-semibold">Team Drivers</span>
                 </div>
-                <span className="text-[10px] text-white/30">{drivers.filter(d => d.isActive).length} active</span>
+                <span className="text-[10px] text-white/30">{localDrivers.filter((d: TeamDriver) => d.isActive).length} active</span>
               </div>
               <div className="divide-y divide-white/5">
-                {drivers.map(driver => (
+                {localDrivers.map((driver: TeamDriver) => (
                   <button
                     key={driver.id}
                     onClick={() => setSelectedDriver(driver.id)}
