@@ -353,11 +353,18 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     }
   }, [mockEnabled, stopMockSimulation, disconnectReal]);
 
-  // Auto-connect in mock mode on mount
+  // Auto-connect on mount (both mock and real mode)
   useEffect(() => {
     if (!initialized) {
       setInitialized(true);
       console.log('[Relay] Initializing, mockEnabled:', mockEnabled);
+      
+      if (!mockEnabled) {
+        // Auto-connect to real server
+        console.log('[Relay] Auto-connecting to real server...');
+        connectReal();
+        return;
+      }
       
       if (mockEnabled) {
         console.log('[Relay] Auto-connecting mock in 1 second...');
@@ -445,7 +452,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
         return () => clearTimeout(timer);
       }
     }
-  }, []);  // Empty deps - run once on mount
+  }, [initialized, mockEnabled, connectReal]);  // Include connectReal for real mode auto-connect
 
   // Cleanup on unmount
   useEffect(() => {
