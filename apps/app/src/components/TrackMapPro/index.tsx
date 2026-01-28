@@ -136,6 +136,7 @@ export function TrackMapPro({
             <TrackControls
                 onZoomIn={() => setZoom(z => Math.min(z * 1.2, 10))}
                 onZoomOut={() => setZoom(z => Math.max(z / 1.2, 0.2))}
+                onResetView={() => setZoom(1)}
                 currentZoom={zoom}
             />
 

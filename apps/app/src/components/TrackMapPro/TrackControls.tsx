@@ -5,10 +5,13 @@ import { Plus, Minus, Maximize, LocateFixed } from 'lucide-react';
 interface TrackControlsProps {
     onZoomIn: () => void;
     onZoomOut: () => void;
+    onResetView: () => void;
+    onFollowCar?: () => void;
     currentZoom: number;
+    isFollowing?: boolean;
 }
 
-export function TrackControls({ onZoomIn, onZoomOut, currentZoom }: TrackControlsProps) {
+export function TrackControls({ onZoomIn, onZoomOut, onResetView, onFollowCar, currentZoom, isFollowing }: TrackControlsProps) {
     return (
         <div className="absolute right-6 top-6 flex flex-col gap-2 bg-black/40 backdrop-blur-md p-2 rounded-lg border border-white/10">
             <button
@@ -34,18 +37,22 @@ export function TrackControls({ onZoomIn, onZoomOut, currentZoom }: TrackControl
             <div className="h-px bg-white/10 my-1" />
 
             <button
+                onClick={onResetView}
                 className="p-2 hover:bg-white/10 rounded-md text-cyan-400 transition-colors group"
                 title="Reset View"
             >
                 <Maximize size={20} className="group-hover:scale-110 transition-transform" />
             </button>
 
-            <button
-                className="p-2 hover:bg-white/10 rounded-md text-cyan-400 transition-colors"
-                title="Follow Car"
-            >
-                <LocateFixed size={20} />
-            </button>
+            {onFollowCar && (
+                <button
+                    onClick={onFollowCar}
+                    className={`p-2 hover:bg-white/10 rounded-md transition-colors ${isFollowing ? 'text-green-400 bg-green-400/10' : 'text-cyan-400'}`}
+                    title={isFollowing ? "Stop Following" : "Follow Car"}
+                >
+                    <LocateFixed size={20} />
+                </button>
+            )}
         </div>
     );
 }

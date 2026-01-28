@@ -46,7 +46,7 @@ export function DriverLayout() {
   };
 
   const navItems = [
-    { to: '/driver/home', icon: Zap, label: 'Cockpit' },
+    { to: '/driver/cockpit', icon: Zap, label: 'Cockpit' },
     { to: '/driver/crew/engineer', icon: MessageSquare, label: 'Crew' },
     { to: '/driver/progress', icon: TrendingUp, label: 'Progress' },
     { to: '/driver/history', icon: BarChart3, label: 'History' },
