@@ -1166,94 +1166,91 @@ export function PitwallHome() {
           </div>
           )}
 
-          {/* Telemetry Panels Row */}
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
-            <div className="bg-white/[0.03] border border-white/10 rounded p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Gauge size={14} className="text-white/40" />
-                <span className="text-[10px] uppercase tracking-wider text-white/40">Speed</span>
-              </div>
-              <div className={`text-2xl font-mono font-bold ${currentDriver?.speed ? 'text-white' : 'text-white/30'}`}>
-                {currentDriver?.speed ? `${currentDriver.speed}` : '—'}
-                <span className="text-xs text-white/30 ml-1">mph</span>
-              </div>
-            </div>
-            
-            <div className="bg-white/[0.03] border border-white/10 rounded p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Fuel size={14} className="text-white/40" />
-                <span className="text-[10px] uppercase tracking-wider text-white/40">Fuel</span>
-              </div>
-              <div className={`text-2xl font-mono font-bold ${currentDriver?.fuel ? (currentDriver.fuel < 10 ? 'text-red-400' : 'text-white') : 'text-white/30'}`}>
-                {currentDriver?.fuel ? `${currentDriver.fuel.toFixed(1)}` : '—'}
-                <span className="text-xs text-white/30 ml-1">L</span>
+          {/* Compact Telemetry Bar */}
+          <div className="bg-white/[0.03] border border-white/10 rounded px-4 py-3 flex items-center justify-between">
+            {/* Speed */}
+            <div className="flex items-center gap-2 border-r border-white/10 pr-6">
+              <Gauge size={14} className="text-white/40" />
+              <div>
+                <span className="text-[9px] uppercase tracking-wider text-white/40 block">Speed</span>
+                <span className={`text-xl font-mono font-bold ${currentDriver?.speed ? 'text-white' : 'text-white/30'}`}>
+                  {currentDriver?.speed || '—'}<span className="text-[10px] text-white/30 ml-0.5">mph</span>
+                </span>
               </div>
             </div>
 
-            <div className="bg-white/[0.03] border border-white/10 rounded p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock size={14} className="text-white/40" />
-                <span className="text-[10px] uppercase tracking-wider text-white/40">Stint</span>
-              </div>
-              <div className={`text-2xl font-mono font-bold ${currentDriver?.stintLaps ? 'text-white' : 'text-white/30'}`}>
-                {currentDriver?.stintLaps || '—'}
-                <span className="text-xs text-white/30 ml-1">laps</span>
-              </div>
-            </div>
-
-            <div className="bg-white/[0.03] border border-white/10 rounded p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Flag size={14} className="text-white/40" />
-                <span className="text-[10px] uppercase tracking-wider text-white/40">Lap</span>
-              </div>
-              <div className={`text-2xl font-mono font-bold ${currentDriver?.lap ? 'text-white' : 'text-white/30'}`}>
-                {currentDriver?.lap || '—'}
+            {/* Fuel */}
+            <div className="flex items-center gap-2 border-r border-white/10 pr-6">
+              <Fuel size={14} className={currentDriver?.fuel && currentDriver.fuel < 10 ? 'text-red-400' : 'text-white/40'} />
+              <div>
+                <span className="text-[9px] uppercase tracking-wider text-white/40 block">Fuel</span>
+                <span className={`text-xl font-mono font-bold ${currentDriver?.fuel ? (currentDriver.fuel < 10 ? 'text-red-400' : 'text-white') : 'text-white/30'}`}>
+                  {currentDriver?.fuel?.toFixed(1) || '—'}<span className="text-[10px] text-white/30 ml-0.5">L</span>
+                </span>
               </div>
             </div>
 
-            <div className="bg-white/[0.03] border border-white/10 rounded p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertTriangle size={14} className="text-white/40" />
-                <span className="text-[10px] uppercase tracking-wider text-white/40">Incidents</span>
-              </div>
-              <div className={`text-2xl font-mono font-bold ${currentDriver?.incidents ? (currentDriver.incidents > 4 ? 'text-red-400' : currentDriver.incidents > 0 ? 'text-yellow-400' : 'text-green-400') : 'text-white/30'}`}>
-                {currentDriver?.incidents ?? '—'}
-                <span className="text-xs text-white/30 ml-1">x</span>
+            {/* Stint */}
+            <div className="flex items-center gap-2 border-r border-white/10 pr-6">
+              <Clock size={14} className="text-white/40" />
+              <div>
+                <span className="text-[9px] uppercase tracking-wider text-white/40 block">Stint</span>
+                <span className={`text-xl font-mono font-bold ${currentDriver?.stintLaps ? 'text-white' : 'text-white/30'}`}>
+                  {currentDriver?.stintLaps || '—'}<span className="text-[10px] text-white/30 ml-0.5">laps</span>
+                </span>
               </div>
             </div>
 
-            <div className="bg-white/[0.03] border border-white/10 rounded p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap size={14} className="text-white/40" />
-                <span className="text-[10px] uppercase tracking-wider text-white/40">Best Lap</span>
+            {/* Lap */}
+            <div className="flex items-center gap-2 border-r border-white/10 pr-6">
+              <Flag size={14} className="text-white/40" />
+              <div>
+                <span className="text-[9px] uppercase tracking-wider text-white/40 block">Lap</span>
+                <span className={`text-xl font-mono font-bold ${currentDriver?.lap ? 'text-white' : 'text-white/30'}`}>
+                  {currentDriver?.lap || '—'}
+                </span>
               </div>
-              <div className={`text-lg font-mono font-bold ${currentDriver?.bestLap ? 'text-purple-400' : 'text-white/30'}`}>
-                {currentDriver?.bestLap ? formatLapTime(currentDriver.bestLap) : '—:—.———'}
+            </div>
+
+            {/* Incidents */}
+            <div className="flex items-center gap-2 border-r border-white/10 pr-6">
+              <AlertTriangle size={14} className={currentDriver?.incidents && currentDriver.incidents > 4 ? 'text-red-400' : 'text-white/40'} />
+              <div>
+                <span className="text-[9px] uppercase tracking-wider text-white/40 block">Incidents</span>
+                <span className={`text-xl font-mono font-bold ${currentDriver?.incidents ? (currentDriver.incidents > 4 ? 'text-red-400' : currentDriver.incidents > 0 ? 'text-yellow-400' : 'text-green-400') : 'text-white/30'}`}>
+                  {currentDriver?.incidents ?? '—'}<span className="text-[10px] text-white/30 ml-0.5">x</span>
+                </span>
+              </div>
+            </div>
+
+            {/* Best Lap */}
+            <div className="flex items-center gap-2 border-r border-white/10 pr-6">
+              <Zap size={14} className="text-purple-400" />
+              <div>
+                <span className="text-[9px] uppercase tracking-wider text-white/40 block">Best Lap</span>
+                <span className={`text-lg font-mono font-bold ${currentDriver?.bestLap ? 'text-purple-400' : 'text-white/30'}`}>
+                  {currentDriver?.bestLap ? formatLapTime(currentDriver.bestLap) : '—:—.———'}
+                </span>
+              </div>
+            </div>
+
+            {/* Tires - Inline */}
+            <div className="flex items-center gap-2">
+              <Thermometer size={14} className="text-white/40" />
+              <div>
+                <span className="text-[9px] uppercase tracking-wider text-white/40 block">Tires</span>
+                <div className="flex items-center gap-2">
+                  {['FL', 'FR', 'RL', 'RR'].map((pos, i) => {
+                    const wear = currentDriver?.tireWear ? [currentDriver.tireWear.fl, currentDriver.tireWear.fr, currentDriver.tireWear.rl, currentDriver.tireWear.rr][i] : null;
+                    const wearColor = wear !== null ? (wear > 80 ? 'text-green-400' : wear > 50 ? 'text-yellow-400' : 'text-red-400') : 'text-white/30';
+                    return (
+                      <span key={pos} className={`text-xs font-mono font-bold ${wearColor}`}>{wear !== null ? `${wear}%` : '—'}</span>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Tire Wear Panel - Compact inline */}
-          {currentDriver?.tireWear && (
-            <div className="bg-white/[0.03] border border-white/10 rounded px-4 py-2 flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Thermometer size={12} className="text-white/40" />
-                <span className="text-[9px] uppercase tracking-wider text-white/40 font-semibold">Tires</span>
-              </div>
-              <div className="flex items-center gap-3">
-                {['FL', 'FR', 'RL', 'RR'].map((pos, i) => {
-                  const wear = currentDriver.tireWear ? [currentDriver.tireWear.fl, currentDriver.tireWear.fr, currentDriver.tireWear.rl, currentDriver.tireWear.rr][i] : null;
-                  const wearColor = wear !== null ? (wear > 80 ? 'text-green-400' : wear > 50 ? 'text-yellow-400' : 'text-red-400') : 'text-white/30';
-                  return (
-                    <div key={pos} className="flex items-center gap-1">
-                      <span className="text-[9px] text-white/30">{pos}</span>
-                      <span className={`text-xs font-mono font-bold ${wearColor}`}>{wear !== null ? `${wear}%` : '—'}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           {/* Connection waiting state */}
           {!isConnected && (
