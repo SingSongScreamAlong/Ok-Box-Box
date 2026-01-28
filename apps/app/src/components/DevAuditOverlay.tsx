@@ -2,29 +2,41 @@
  * DevAuditOverlay - Visual Testing System
  * 
  * Provides a reusable overlay that marks ALL interactive elements on the page
- * with numbered markers for systematic testing.
+ * with PERMANENT UNIQUE IDs for systematic testing.
  * 
  * Toggle: Ctrl+Shift+A
  * 
+ * ID Format: {TIER}-{PAGE}-{NUMBER}
+ * Example: D-COK-001 = Driver tier, Cockpit page, element 1
+ * 
  * Features:
  * - Scans DOM for buttons, links, inputs, selects
- * - Numbers each element with a red overlay marker
+ * - Assigns PERMANENT unique IDs that never repeat
  * - Generates exportable checklist
- * - Persists state in localStorage
+ * - Persists registry in localStorage
  * - Can be activated multiple times
  */
 
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
-import { X, Download, RefreshCw, Eye, EyeOff, List, CheckSquare, Square } from 'lucide-react';
+import { X, Download, RefreshCw, Eye, EyeOff, List, CheckCircle, XCircle, AlertTriangle, Circle } from 'lucide-react';
+import { 
+  generateElementId, 
+  getPageInfo, 
+  loadRegistry, 
+  saveRegistry, 
+  exportRegistryMarkdown,
+  type ElementRegistryEntry
+} from '../lib/auditRegistry';
 
 // Types
 interface AuditElement {
-  id: number;
+  id: string; // Permanent ID like D-COK-001
+  localIndex: number; // Index on current page for display
   type: 'button' | 'link' | 'input' | 'select' | 'checkbox' | 'radio' | 'textarea' | 'other';
   text: string;
   selector: string;
   rect: DOMRect;
-  tested: boolean;
+  status: 'untested' | 'working' | 'broken' | 'needs-work';
   notes: string;
   element: HTMLElement;
 }
@@ -34,22 +46,24 @@ interface AuditState {
   elements: AuditElement[];
   showPanel: boolean;
   currentPage: string;
+  registry: Record<string, ElementRegistryEntry>;
 }
 
 interface AuditContextValue {
   state: AuditState;
   toggleOverlay: () => void;
   rescan: () => void;
-  markTested: (id: number) => void;
-  addNote: (id: number, note: string) => void;
+  setStatus: (id: string, status: AuditElement['status']) => void;
+  addNote: (id: string, note: string) => void;
   exportChecklist: () => void;
   clearAll: () => void;
+  getElementById: (id: string) => AuditElement | undefined;
 }
 
 const AuditContext = createContext<AuditContextValue | null>(null);
 
-// Storage key
-const STORAGE_KEY = 'okboxbox-audit-state';
+// Storage key for UI state
+const UI_STATE_KEY = 'okboxbox-audit-ui-state';
 
 // Get element type
 function getElementType(el: HTMLElement): AuditElement['type'] {
@@ -106,25 +120,24 @@ function getSelector(el: HTMLElement): string {
 // Provider Component
 export function DevAuditProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuditState>(() => {
-    // Load from localStorage
+    // Load registry and UI state from localStorage
+    const registry = loadRegistry();
+    let showPanel = true;
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(UI_STATE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        return {
-          ...parsed,
-          elements: [], // Don't persist elements, they need fresh scan
-          enabled: false, // Start disabled
-        };
+        showPanel = parsed.showPanel ?? true;
       }
     } catch (e) {
-      console.error('[Audit] Failed to load state:', e);
+      console.error('[Audit] Failed to load UI state:', e);
     }
     return {
       enabled: false,
       elements: [],
-      showPanel: true,
+      showPanel,
       currentPage: window.location.pathname,
+      registry,
     };
   });
 
@@ -143,8 +156,11 @@ export function DevAuditProvider({ children }: { children: ReactNode }) {
 
     const found = document.querySelectorAll(selectors.join(', '));
     const elements: AuditElement[] = [];
+    const currentPath = window.location.pathname;
+    const pageInfo = getPageInfo(currentPath);
     
-    found.forEach((el, index) => {
+    let localIndex = 0;
+    found.forEach((el) => {
       const htmlEl = el as HTMLElement;
       
       // Skip hidden elements
@@ -160,26 +176,60 @@ export function DevAuditProvider({ children }: { children: ReactNode }) {
       // Skip audit overlay elements themselves
       if (htmlEl.closest('[data-audit-overlay]')) return;
       
+      localIndex++;
+      const permanentId = generateElementId(currentPath, localIndex);
+      const elementType = getElementType(htmlEl);
+      const elementText = getElementText(htmlEl);
+      const selector = getSelector(htmlEl);
+      
+      // Check if this element exists in registry
+      const existingEntry = state.registry[permanentId];
+      
       elements.push({
-        id: index + 1,
-        type: getElementType(htmlEl),
-        text: getElementText(htmlEl),
-        selector: getSelector(htmlEl),
+        id: permanentId,
+        localIndex,
+        type: elementType,
+        text: elementText,
+        selector,
         rect,
-        tested: false,
-        notes: '',
+        status: existingEntry?.status || 'untested',
+        notes: existingEntry?.notes || '',
         element: htmlEl,
       });
+      
+      // Update registry with this element
+      if (!existingEntry) {
+        setState(prev => ({
+          ...prev,
+          registry: {
+            ...prev.registry,
+            [permanentId]: {
+              id: permanentId,
+              tier: pageInfo.tier,
+              pageCode: pageInfo.code,
+              pageName: pageInfo.name,
+              pagePath: currentPath,
+              elementType,
+              elementText,
+              selector,
+              tested: false,
+              status: 'untested',
+              notes: '',
+              lastUpdated: new Date().toISOString(),
+            },
+          },
+        }));
+      }
     });
 
     setState(prev => ({
       ...prev,
       elements,
-      currentPage: window.location.pathname,
+      currentPage: currentPath,
     }));
 
-    console.log(`[Audit] Scanned ${elements.length} interactive elements`);
-  }, []);
+    console.log(`[Audit] Scanned ${elements.length} elements on ${pageInfo.name} (${pageInfo.tier}-${pageInfo.code})`);
+  }, [state.registry]);
 
   // Toggle overlay
   const toggleOverlay = useCallback(() => {
@@ -198,66 +248,83 @@ export function DevAuditProvider({ children }: { children: ReactNode }) {
     scanElements();
   }, [scanElements]);
 
-  // Mark element as tested
-  const markTested = useCallback((id: number) => {
-    setState(prev => ({
-      ...prev,
-      elements: prev.elements.map(el =>
-        el.id === id ? { ...el, tested: !el.tested } : el
-      ),
-    }));
+  // Set element status
+  const setStatus = useCallback((id: string, status: AuditElement['status']) => {
+    setState(prev => {
+      const newRegistry = { ...prev.registry };
+      if (newRegistry[id]) {
+        newRegistry[id] = {
+          ...newRegistry[id],
+          status,
+          tested: status !== 'untested',
+          lastUpdated: new Date().toISOString(),
+        };
+      }
+      saveRegistry(newRegistry);
+      return {
+        ...prev,
+        elements: prev.elements.map(el =>
+          el.id === id ? { ...el, status } : el
+        ),
+        registry: newRegistry,
+      };
+    });
   }, []);
 
   // Add note to element
-  const addNote = useCallback((id: number, note: string) => {
-    setState(prev => ({
-      ...prev,
-      elements: prev.elements.map(el =>
-        el.id === id ? { ...el, notes: note } : el
-      ),
-    }));
+  const addNote = useCallback((id: string, note: string) => {
+    setState(prev => {
+      const newRegistry = { ...prev.registry };
+      if (newRegistry[id]) {
+        newRegistry[id] = {
+          ...newRegistry[id],
+          notes: note,
+          lastUpdated: new Date().toISOString(),
+        };
+      }
+      saveRegistry(newRegistry);
+      return {
+        ...prev,
+        elements: prev.elements.map(el =>
+          el.id === id ? { ...el, notes: note } : el
+        ),
+        registry: newRegistry,
+      };
+    });
   }, []);
+
+  // Get element by ID
+  const getElementById = useCallback((id: string) => {
+    return state.elements.find(el => el.id === id);
+  }, [state.elements]);
 
   // Export checklist as markdown
   const exportChecklist = useCallback(() => {
-    const lines = [
-      `# Audit Checklist - ${state.currentPage}`,
-      `Generated: ${new Date().toISOString()}`,
-      '',
-      `Total Elements: ${state.elements.length}`,
-      `Tested: ${state.elements.filter(e => e.tested).length}`,
-      `Remaining: ${state.elements.filter(e => !e.tested).length}`,
-      '',
-      '## Elements',
-      '',
-    ];
+    exportRegistryMarkdown(state.registry);
+  }, [state.registry]);
 
-    state.elements.forEach(el => {
-      const status = el.tested ? '[x]' : '[ ]';
-      lines.push(`${status} **#${el.id}** - ${el.type.toUpperCase()} - "${el.text}"`);
-      lines.push(`   - Selector: \`${el.selector}\``);
-      if (el.notes) {
-        lines.push(`   - Notes: ${el.notes}`);
-      }
-      lines.push('');
-    });
-
-    const content = lines.join('\n');
-    const blob = new Blob([content], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `audit-${state.currentPage.replace(/\//g, '-')}-${Date.now()}.md`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [state]);
-
-  // Clear all
+  // Clear all statuses on current page
   const clearAll = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      elements: prev.elements.map(el => ({ ...el, tested: false, notes: '' })),
-    }));
+    setState(prev => {
+      const newRegistry = { ...prev.registry };
+      prev.elements.forEach(el => {
+        if (newRegistry[el.id]) {
+          newRegistry[el.id] = {
+            ...newRegistry[el.id],
+            status: 'untested',
+            tested: false,
+            notes: '',
+            lastUpdated: new Date().toISOString(),
+          };
+        }
+      });
+      saveRegistry(newRegistry);
+      return {
+        ...prev,
+        elements: prev.elements.map(el => ({ ...el, status: 'untested', notes: '' })),
+        registry: newRegistry,
+      };
+    });
   }, []);
 
   // Keyboard shortcut: Ctrl+Shift+A
@@ -273,18 +340,16 @@ export function DevAuditProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toggleOverlay]);
 
-  // Save state to localStorage (excluding elements)
+  // Save UI state to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        enabled: state.enabled,
+      localStorage.setItem(UI_STATE_KEY, JSON.stringify({
         showPanel: state.showPanel,
-        currentPage: state.currentPage,
       }));
     } catch (e) {
-      console.error('[Audit] Failed to save state:', e);
+      console.error('[Audit] Failed to save UI state:', e);
     }
-  }, [state.enabled, state.showPanel, state.currentPage]);
+  }, [state.showPanel]);
 
   // Rescan on route change
   useEffect(() => {
@@ -297,10 +362,11 @@ export function DevAuditProvider({ children }: { children: ReactNode }) {
     state,
     toggleOverlay,
     rescan,
-    markTested,
+    setStatus,
     addNote,
     exportChecklist,
     clearAll,
+    getElementById,
   };
 
   return (
@@ -320,21 +386,50 @@ export function useDevAudit() {
   return context;
 }
 
+// Get status icon
+function getStatusIcon(status: AuditElement['status']) {
+  switch (status) {
+    case 'working': return <CheckCircle size={14} className="text-green-500" />;
+    case 'broken': return <XCircle size={14} className="text-red-500" />;
+    case 'needs-work': return <AlertTriangle size={14} className="text-yellow-500" />;
+    default: return <Circle size={14} className="text-white/30" />;
+  }
+}
+
+// Get status colors
+function getStatusColors(status: AuditElement['status']) {
+  switch (status) {
+    case 'working': return { border: 'border-green-500', bg: 'bg-green-500/10', badge: 'bg-green-500' };
+    case 'broken': return { border: 'border-red-600', bg: 'bg-red-500/20', badge: 'bg-red-600' };
+    case 'needs-work': return { border: 'border-yellow-500', bg: 'bg-yellow-500/10', badge: 'bg-yellow-500' };
+    default: return { border: 'border-red-500', bg: 'bg-red-500/10', badge: 'bg-red-500' };
+  }
+}
+
 // Overlay UI Component
 function AuditOverlayUI() {
-  const { state, toggleOverlay, rescan, markTested, exportChecklist, clearAll } = useDevAudit();
+  const { state, toggleOverlay, rescan, setStatus, exportChecklist, clearAll } = useDevAudit();
   const [showPanel, setShowPanel] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'untested' | 'tested'>('all');
-  const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [filter, setFilter] = useState<'all' | 'untested' | 'working' | 'broken' | 'needs-work'>('all');
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const filteredElements = state.elements.filter(el => {
-    if (filter === 'untested') return !el.tested;
-    if (filter === 'tested') return el.tested;
-    return true;
+    if (filter === 'all') return true;
+    return el.status === filter;
   });
 
-  const testedCount = state.elements.filter(e => e.tested).length;
+  const testedCount = state.elements.filter(e => e.status !== 'untested').length;
   const progress = state.elements.length > 0 ? (testedCount / state.elements.length) * 100 : 0;
+
+  // Cycle through statuses on click
+  const cycleStatus = (id: string) => {
+    const el = state.elements.find(e => e.id === id);
+    if (!el) return;
+    const statuses: AuditElement['status'][] = ['untested', 'working', 'broken', 'needs-work'];
+    const currentIndex = statuses.indexOf(el.status);
+    const nextStatus = statuses[(currentIndex + 1) % statuses.length];
+    setStatus(id, nextStatus);
+  };
 
   // Scroll to element when clicked in panel
   const scrollToElement = (el: AuditElement) => {
@@ -360,36 +455,39 @@ function AuditOverlayUI() {
               width: el.rect.width,
               height: el.rect.height,
             }}
-            onClick={() => markTested(el.id)}
+            onClick={() => cycleStatus(el.id)}
             onMouseEnter={() => setHoveredId(el.id)}
             onMouseLeave={() => setHoveredId(null)}
           >
             {/* Outline */}
-            <div 
-              className={`absolute inset-0 border-2 transition-colors ${
-                el.tested 
-                  ? 'border-green-500 bg-green-500/10' 
-                  : 'border-red-500 bg-red-500/10'
-              } ${isHovered ? 'border-4' : ''}`}
-            />
+            {(() => {
+              const colors = getStatusColors(el.status);
+              return (
+                <div 
+                  className={`absolute inset-0 border-2 transition-colors ${colors.border} ${colors.bg} ${isHovered ? 'border-4' : ''}`}
+                />
+              );
+            })()}
             
-            {/* Number Badge */}
-            <div 
-              className={`absolute -top-3 -left-3 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                el.tested 
-                  ? 'bg-green-500 text-white' 
-                  : 'bg-red-500 text-white'
-              }`}
-            >
-              {el.id}
-            </div>
+            {/* ID Badge */}
+            {(() => {
+              const colors = getStatusColors(el.status);
+              return (
+                <div 
+                  className={`absolute -top-4 -left-2 px-1 py-0.5 flex items-center justify-center text-[8px] font-bold ${colors.badge} text-white whitespace-nowrap`}
+                >
+                  {el.id}
+                </div>
+              );
+            })()}
 
             {/* Tooltip on hover */}
             {isHovered && (
-              <div className="absolute left-0 top-full mt-1 bg-black/90 border border-white/20 px-2 py-1 text-[10px] text-white whitespace-nowrap z-50">
-                <div className="font-bold">{el.type.toUpperCase()}</div>
-                <div className="text-white/70">{el.text}</div>
-                <div className="text-white/50 mt-1">Click to {el.tested ? 'unmark' : 'mark'} tested</div>
+              <div className="absolute left-0 top-full mt-1 bg-black/95 border border-white/20 px-3 py-2 text-[10px] text-white whitespace-nowrap z-50 min-w-[200px]">
+                <div className="font-bold text-[11px] mb-1">{el.id}</div>
+                <div className="text-white/50 uppercase text-[9px]">{el.type}</div>
+                <div className="text-white/80 mt-1">{el.text.slice(0, 40)}</div>
+                <div className="text-white/40 mt-2 border-t border-white/10 pt-1">Click to cycle status</div>
               </div>
             )}
           </div>
@@ -460,14 +558,14 @@ function AuditOverlayUI() {
               onClick={clearAll}
               className="flex items-center gap-1 px-2 py-1 text-[10px] bg-white/10 hover:bg-white/20 text-white rounded"
             >
-              <Square size={12} />
+              <X size={12} />
               Clear
             </button>
           </div>
 
           {/* Filter */}
-          <div className="flex items-center gap-1 px-4 py-2 border-b border-white/10">
-            {(['all', 'untested', 'tested'] as const).map(f => (
+          <div className="flex items-center gap-1 px-4 py-2 border-b border-white/10 flex-wrap">
+            {(['all', 'untested', 'working', 'broken', 'needs-work'] as const).map(f => (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
@@ -477,7 +575,7 @@ function AuditOverlayUI() {
                     : 'bg-white/10 text-white/60 hover:bg-white/20'
                 }`}
               >
-                {f}
+                {f === 'needs-work' ? 'needs' : f}
               </button>
             ))}
           </div>
@@ -497,15 +595,11 @@ function AuditOverlayUI() {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    markTested(el.id);
+                    cycleStatus(el.id);
                   }}
                   className="mt-0.5"
                 >
-                  {el.tested ? (
-                    <CheckSquare size={14} className="text-green-500" />
-                  ) : (
-                    <Square size={14} className="text-red-500" />
-                  )}
+                  {getStatusIcon(el.status)}
                 </button>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -517,7 +611,7 @@ function AuditOverlayUI() {
                     }`}>
                       {el.type}
                     </span>
-                    <span className="text-xs text-white font-mono">#{el.id}</span>
+                    <span className="text-[9px] text-white/50 font-mono">{el.id}</span>
                   </div>
                   <div className="text-[11px] text-white/80 truncate mt-0.5">
                     {el.text}
