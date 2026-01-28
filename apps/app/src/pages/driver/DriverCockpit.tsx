@@ -16,7 +16,7 @@ import { TrackMap } from '../../components/TrackMapRive';
  */
 
 export function DriverCockpit() {
-  const { status, telemetry: realTelemetry, getCarMapPosition } = useRelay();
+  const { status, telemetry: realTelemetry, session, getCarMapPosition } = useRelay();
   const { criticalMessages } = useEngineer();
   const { isEnabled: voiceEnabled, toggleVoice, speak } = useVoice();
 
@@ -53,7 +53,8 @@ export function DriverCockpit() {
     }
   }, [voiceEnabled, criticalMessages, speak]);
 
-  const trackId = 'daytona';
+  // Use track from session, fallback to daytona for demo
+  const trackId = session?.trackName?.toLowerCase().replace(/\s+/g, '-') || 'daytona';
 
   const [heatmapData, setHeatmapData] = useState<{ speed: number }[]>([]);
   useEffect(() => {
@@ -183,7 +184,7 @@ export function DriverCockpit() {
         <div className="h-12 border-b border-white/[0.06] bg-[#0e0e0e]/60 backdrop-blur-xl flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-sm text-white/70">Daytona International Speedway</span>
+            <span className="text-sm text-white/70">{session?.trackName || 'Daytona International Speedway'}</span>
             <span className="text-[10px] text-white/40 uppercase tracking-wider bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.06]">
               {isDemo ? 'Demo' : 'Live'}
             </span>
@@ -283,58 +284,43 @@ export function DriverCockpit() {
 
         {/* Leaderboard List */}
         <div className="flex-1 overflow-hidden">
-          {/* Demo leaderboard data */}
-          {[
-            { pos: 1, num: '1', driver: 'M. Verstappen', gap: 'Leader', color: '#1e3a8a' },
-            { pos: 2, num: '11', driver: 'S. Perez', gap: '+2.4s', color: '#1e3a8a' },
-            { pos: 3, num: '44', driver: 'L. Hamilton', gap: '+5.1s', color: '#06b6d4', isPlayer: true },
-            { pos: 4, num: '63', driver: 'G. Russell', gap: '+7.8s', color: '#06b6d4' },
-            { pos: 5, num: '16', driver: 'C. Leclerc', gap: '+12.3s', color: '#dc2626' },
-            { pos: 6, num: '55', driver: 'C. Sainz', gap: '+14.9s', color: '#dc2626' },
-            { pos: 7, num: '4', driver: 'L. Norris', gap: '+18.2s', color: '#f97316' },
-            { pos: 8, num: '81', driver: 'O. Piastri', gap: '+21.5s', color: '#f97316' },
-            { pos: 9, num: '14', driver: 'F. Alonso', gap: '+25.8s', color: '#22c55e' },
-            { pos: 10, num: '18', driver: 'L. Stroll', gap: '+28.1s', color: '#22c55e' },
-          ].map((entry) => (
-            <div 
-              key={entry.pos}
-              className={`flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.04] ${
-                entry.isPlayer ? 'bg-cyan-500/10 border-l-2 border-l-cyan-500' : 'hover:bg-white/[0.02]'
-              }`}
-            >
-              {/* Position */}
-              <div className={`w-6 text-center font-mono text-sm font-bold ${
-                entry.pos === 1 ? 'text-yellow-400' : 
-                entry.pos === 2 ? 'text-gray-300' : 
-                entry.pos === 3 ? 'text-amber-600' : 'text-white/50'
-              }`}>
-                {entry.pos}
-              </div>
-              
-              {/* Car Number with team color */}
+          {/* Show real data from otherCars or placeholder when no data */}
+          {realTelemetry.otherCars && realTelemetry.otherCars.length > 0 ? (
+            realTelemetry.otherCars.map((car, idx) => (
               <div 
-                className="w-8 h-6 rounded text-[10px] font-mono font-bold flex items-center justify-center text-white"
-                style={{ backgroundColor: entry.color }}
+                key={car.carNumber || idx}
+                className={`flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.04] ${
+                  car.isPlayer ? 'bg-cyan-500/10 border-l-2 border-l-cyan-500' : 'hover:bg-white/[0.02]'
+                }`}
               >
-                {entry.num}
+                <div className={`w-6 text-center font-mono text-sm font-bold ${
+                  idx === 0 ? 'text-yellow-400' : 
+                  idx === 1 ? 'text-gray-300' : 
+                  idx === 2 ? 'text-amber-600' : 'text-white/50'
+                }`}>
+                  {idx + 1}
+                </div>
+                <div 
+                  className="w-8 h-6 rounded text-[10px] font-mono font-bold flex items-center justify-center text-white"
+                  style={{ backgroundColor: car.color || '#374151' }}
+                >
+                  {car.carNumber || '-'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className={`text-xs truncate ${car.isPlayer ? 'text-white font-semibold' : 'text-white/70'}`}>
+                    {car.driverName || `Car ${car.carNumber}`}
+                  </span>
+                </div>
+                <div className={`text-xs font-mono ${car.isPlayer ? 'text-cyan-400' : 'text-white/50'}`}>
+                  {car.gap || '--'}
+                </div>
               </div>
-              
-              {/* Driver Name */}
-              <div className="flex-1 min-w-0">
-                <span className={`text-xs truncate ${entry.isPlayer ? 'text-white font-semibold' : 'text-white/70'}`}>
-                  {entry.driver}
-                </span>
-              </div>
-              
-              {/* Gap */}
-              <div className={`text-xs font-mono ${
-                entry.pos === 1 ? 'text-white/40' : 
-                entry.isPlayer ? 'text-cyan-400' : 'text-white/50'
-              }`}>
-                {entry.gap}
-              </div>
+            ))
+          ) : (
+            <div className="flex items-center justify-center h-full text-white/30 text-xs p-4 text-center">
+              {status === 'in_session' ? 'Waiting for standings data...' : 'Connect relay for live standings'}
             </div>
-          ))}
+          )}
         </div>
 
         {/* Team Radio Transcripts - F1 Style */}
