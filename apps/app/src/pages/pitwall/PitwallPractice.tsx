@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Timer, Clock, CheckCircle, Plus, TrendingUp, TrendingDown, Zap, BarChart3, Activity, AlertTriangle, Target, Layers, Loader2 } from 'lucide-react';
+import { useTeamData } from '../../hooks/useTeamData';
 
 // Types - comprehensive practice/telemetry modeling
 interface RunPlan {
@@ -152,25 +153,47 @@ const statusStyles: Record<string, { bg: string; text: string; icon: any }> = {
 
 export function PitwallPractice() {
   const { teamId } = useParams<{ teamId: string }>();
+  const { runPlans: serviceRunPlans, driverStints: serviceStints, loading: dataLoading } = useTeamData();
   const [runPlans, setRunPlans] = useState<RunPlan[]>([]);
   const [stints, setStints] = useState<DriverStint[]>([]);
-  const [loading, setLoading] = useState(true);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'sectors' | 'telemetry'>('overview');
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Map service data to local format (camelCase -> snake_case for compatibility)
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      if (teamId === 'demo') {
-        await new Promise(r => setTimeout(r, 400));
-      }
-      setRunPlans(mockRunPlans);
-      setStints(mockStints);
-      setLoading(false);
-    };
-    fetchData();
-  }, [teamId]);
+    if (!dataLoading && serviceRunPlans.length > 0) {
+      setRunPlans(serviceRunPlans.map(rp => ({
+        id: rp.id,
+        name: rp.name,
+        target_laps: rp.targetLaps,
+        completed_laps: rp.completedLaps,
+        target_time: rp.targetTime,
+        focus: rp.focus,
+        status: rp.status,
+        notes: rp.notes,
+      })));
+    }
+    if (!dataLoading && serviceStints.length > 0) {
+      setStints(serviceStints.map(s => ({
+        driver_id: s.driverId,
+        driver_name: s.driverName,
+        laps: s.laps,
+        best_lap: s.bestLap,
+        best_lap_ms: s.bestLapMs,
+        avg_lap: s.avgLap,
+        avg_lap_ms: s.avgLapMs,
+        consistency: s.consistency,
+        incidents: s.incidents,
+        fuel_per_lap: s.fuelPerLap,
+        tire_deg_per_lap: s.tireDegPerLap,
+        sectors: { s1_best: s.sectors.s1Best, s2_best: s.sectors.s2Best, s3_best: s.sectors.s3Best },
+        theoretical_best: s.theoreticalBest,
+        gap_to_leader: s.gapToLeader,
+        lap_history: [],
+      })));
+    }
+  }, [dataLoading, serviceRunPlans, serviceStints]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -187,7 +210,7 @@ export function PitwallPractice() {
 
   const selectedStint = stints.find(s => s.driver_id === selectedDriver);
 
-  if (loading) {
+  if (dataLoading) {
     return (
       <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">

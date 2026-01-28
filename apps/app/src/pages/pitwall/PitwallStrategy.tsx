@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Fuel, Cloud, ChevronDown, ChevronUp, AlertTriangle, TrendingDown, Zap, Timer, Flag, Droplets, Sun, RefreshCw, Loader2 } from 'lucide-react';
+import { useTeamData } from '../../hooks/useTeamData';
 
 // Types - comprehensive strategy modeling
 interface StintPlan {
@@ -152,9 +153,9 @@ const weatherIcons: Record<string, any> = {
 };
 
 export function PitwallStrategy() {
-  const { teamId } = useParams<{ teamId: string }>();
+  useParams<{ teamId: string }>();
+  const { strategyPlan: serviceStrategy, loading: dataLoading } = useTeamData();
   const [strategy, setStrategy] = useState<StrategyPlan | null>(null);
-  const [loading, setLoading] = useState(true);
   const [expandedStint, setExpandedStint] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'stints' | 'weather' | 'tires'>('stints');
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -167,17 +168,74 @@ export function PitwallStrategy() {
     fuelSaveMode: false
   });
 
+  // Map service data to local format
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      if (teamId === 'demo') {
-        await new Promise(r => setTimeout(r, 400));
-      }
-      setStrategy(mockStrategy);
-      setLoading(false);
-    };
-    fetchData();
-  }, [teamId]);
+    if (!dataLoading && serviceStrategy) {
+      // Map camelCase to snake_case for compatibility with existing UI
+      setStrategy({
+        id: serviceStrategy.id,
+        event_name: serviceStrategy.eventName,
+        track_name: serviceStrategy.trackName,
+        car_class: serviceStrategy.carClass,
+        race_duration: serviceStrategy.raceDuration,
+        race_type: serviceStrategy.raceType,
+        total_laps: serviceStrategy.totalLaps,
+        avg_lap_time: serviceStrategy.avgLapTime,
+        fuel_per_lap: serviceStrategy.fuelPerLap,
+        fuel_per_lap_save: serviceStrategy.fuelPerLapSave,
+        tank_capacity: serviceStrategy.tankCapacity,
+        pit_time_loss: serviceStrategy.pitTimeLoss,
+        pit_lane_delta: serviceStrategy.pitLaneDelta,
+        min_pit_time: serviceStrategy.minPitTime,
+        mandatory_stops: serviceStrategy.mandatoryStops,
+        tire_sets_available: serviceStrategy.tireSetsAvailable,
+        stints: serviceStrategy.stints.map(s => ({
+          stint: s.stint,
+          driver: s.driverId,
+          driver_name: s.driverName,
+          start_lap: s.startLap,
+          end_lap: s.endLap,
+          fuel_load: s.fuelLoad,
+          tire_compound: s.tireCompound,
+          tire_age: s.tireAge,
+          expected_deg: s.expectedDeg,
+          pit_in_window: s.pitInWindow,
+          fuel_save_mode: s.fuelSaveMode,
+          notes: s.notes,
+          predicted_lap_time: s.predictedLapTime,
+          predicted_total_time: s.predictedTotalTime,
+        })),
+        pit_stops: serviceStrategy.pitStops.map(p => ({
+          lap: p.lap,
+          duration: p.duration,
+          fuel_added: p.fuelAdded,
+          tire_change: p.tireChange,
+          new_compound: p.newCompound,
+          driver_change: p.driverChange,
+          new_driver: p.newDriver,
+        })),
+        weather_forecast: serviceStrategy.weatherForecast.map(w => ({
+          time: w.time,
+          condition: w.condition,
+          track_temp: w.trackTemp,
+          air_temp: w.airTemp,
+          humidity: w.humidity,
+          wind_speed: w.windSpeed,
+          rain_chance: w.rainChance,
+        })),
+        tire_models: serviceStrategy.tireModels.map(t => ({
+          compound: t.compound,
+          base_grip: t.baseGrip,
+          deg_per_lap: t.degPerLap,
+          optimal_window: t.optimalWindow,
+          cliff_lap: t.cliffLap,
+        })),
+        optimal_strategy: serviceStrategy.optimalStrategy,
+        alternative_strategies: serviceStrategy.alternativeStrategies,
+        risk_assessment: serviceStrategy.riskAssessment,
+      });
+    }
+  }, [dataLoading, serviceStrategy]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -189,7 +247,7 @@ export function PitwallStrategy() {
   const maxLaps = strategy ? Math.floor(strategy.tank_capacity / strategy.fuel_per_lap) : 0;
   const maxLapsSave = strategy ? Math.floor(strategy.tank_capacity / strategy.fuel_per_lap_save) : 0;
 
-  if (loading) {
+  if (dataLoading) {
     return (
       <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">

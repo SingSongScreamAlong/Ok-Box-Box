@@ -9,6 +9,10 @@ import {
   mockEvents,
   mockRacePlans,
   mockRadioChannels,
+  mockRunPlans,
+  mockDriverStints,
+  mockStrategyPlan,
+  mockRoster,
   type Driver,
   type Team,
   type Track,
@@ -17,6 +21,10 @@ import {
   type Stint,
   type RadioChannel,
   type PlanChange,
+  type RunPlan,
+  type DriverStint,
+  type StrategyPlan,
+  type TeamRoster,
 } from '../services/mockData';
 
 interface TeamDataContextValue {
@@ -56,6 +64,17 @@ interface TeamDataContextValue {
   setChannelVolume: (channelId: string, volume: number) => void;
   toggleChannelMute: (channelId: string) => void;
   
+  // Practice Data
+  runPlans: RunPlan[];
+  driverStints: DriverStint[];
+  updateRunPlan: (id: string, updates: Partial<RunPlan>) => void;
+  
+  // Strategy Data
+  strategyPlan: StrategyPlan | null;
+  
+  // Roster Data
+  roster: TeamRoster | null;
+  
   // Loading state
   loading: boolean;
 }
@@ -71,6 +90,10 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
   const [racePlans, setRacePlans] = useState<RacePlan[]>([]);
   const [radioChannels, setRadioChannels] = useState<RadioChannel[]>([]);
   const [pendingChanges, setPendingChanges] = useState<PlanChange[]>([]);
+  const [runPlans, setRunPlans] = useState<RunPlan[]>([]);
+  const [driverStints, setDriverStints] = useState<DriverStint[]>([]);
+  const [strategyPlan, setStrategyPlan] = useState<StrategyPlan | null>(null);
+  const [roster, setRoster] = useState<TeamRoster | null>(null);
 
   // Simulate loading data from API
   useEffect(() => {
@@ -87,6 +110,10 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
       setEvents(mockEvents);
       setRacePlans(mockRacePlans);
       setRadioChannels(mockRadioChannels);
+      setRunPlans(mockRunPlans);
+      setDriverStints(mockDriverStints);
+      setStrategyPlan(mockStrategyPlan);
+      setRoster(mockRoster);
       
       setLoading(false);
     };
@@ -224,6 +251,13 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
     ));
   }, []);
 
+  // Practice data helpers
+  const updateRunPlan = useCallback((id: string, updates: Partial<RunPlan>) => {
+    setRunPlans(prev => prev.map(rp =>
+      rp.id === id ? { ...rp, ...updates } : rp
+    ));
+  }, []);
+
   const value: TeamDataContextValue = {
     team,
     drivers,
@@ -249,6 +283,11 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
     toggleChannelActive,
     setChannelVolume,
     toggleChannelMute,
+    runPlans,
+    driverStints,
+    updateRunPlan,
+    strategyPlan,
+    roster,
     loading,
   };
 
