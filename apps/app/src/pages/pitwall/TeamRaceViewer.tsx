@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useRelay } from '../../hooks/useRelay';
 import { getTeam, Team } from '../../lib/teams';
+import { useTeamData } from '../../hooks/useTeamData';
 
 // Types for Team Race Viewer
 interface Driver {
@@ -143,7 +144,9 @@ const mockSession: RaceSession = {
 
 export function TeamRaceViewer() {
   const { teamId } = useParams<{ teamId: string }>();
+  const { drivers: serviceDrivers } = useTeamData();
   const [team, setTeam] = useState<Team | null>(null);
+  const [localDrivers, setLocalDrivers] = useState<Driver[]>(mockDrivers);
   const [viewMode, setViewMode] = useState<ViewMode>('endurance');
   const [teamCar, setTeamCar] = useState<TeamCar>(mockTeamCar);
   const [session, setSession] = useState<RaceSession>(mockSession);
@@ -151,6 +154,20 @@ export function TeamRaceViewer() {
   const [showStintHistory, setShowStintHistory] = useState(true);
   useRelay(); // Hook for relay connection state
   const videoRef = useRef<HTMLVideoElement>(null);
+  
+  // Map service drivers to local format
+  useEffect(() => {
+    if (serviceDrivers.length > 0) {
+      setLocalDrivers(serviceDrivers.map(d => ({
+        id: d.id,
+        name: d.name,
+        shortName: d.shortName,
+        color: d.color,
+        iRating: d.iRatingRoad,
+        safetyRating: `${d.safetyRating >= 4 ? 'A' : d.safetyRating >= 3 ? 'B' : 'C'} ${d.safetyRating.toFixed(1)}`,
+      })));
+    }
+  }, [serviceDrivers]);
 
   useEffect(() => {
     if (videoRef.current) {
