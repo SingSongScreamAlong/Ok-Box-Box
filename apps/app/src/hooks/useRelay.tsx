@@ -258,29 +258,31 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       setStatus('disconnected');
     });
 
-    // Session state updates
-    socket.on('session:state', (data: { sessionType: string; trackName: string; timeRemaining?: number; lapsRemaining?: number }) => {
-      console.log('[Relay] Session state:', data);
+    // Session info from server (matches server's session_info event)
+    socket.on('session_info', (data: any) => {
+      console.log('[Relay] Session info:', data);
       setStatus('in_session');
       setSession({
-        trackName: data.trackName,
-        sessionType: data.sessionType as 'practice' | 'qualifying' | 'race',
-        timeRemaining: data.timeRemaining || null,
-        lapsRemaining: data.lapsRemaining || null,
+        trackName: data.track || data.trackName || 'Unknown Track',
+        sessionType: (data.session || data.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
+        timeRemaining: data.remainingTime || null,
+        lapsRemaining: data.totalLaps || null,
       });
     });
 
-    // Telemetry updates from relay
-    socket.on('telemetry:update', (data: any) => {
+    // Telemetry updates from server (matches server's telemetry_update event)
+    socket.on('telemetry_update', (data: any) => {
+      console.log('[Relay] Telemetry update received');
+      setStatus('in_session');
       setTelemetry({
         lapTime: data.lapTime ?? null,
-        lastLap: data.lastLap ?? null,
-        bestLap: data.bestLap ?? null,
-        delta: data.delta ?? null,
-        fuel: data.fuel ?? null,
-        fuelPerLap: data.fuelPerLap ?? null,
-        lapsRemaining: data.lapsRemaining ?? null,
-        position: data.position ?? null,
+        lastLap: data.lastLapTime ?? data.lastLap ?? null,
+        bestLap: data.bestLapTime ?? data.bestLap ?? null,
+        delta: data.deltaToBestLap ?? data.delta ?? null,
+        fuel: data.fuel?.level ?? data.fuel ?? null,
+        fuelPerLap: data.fuel?.usagePerHour ? data.fuel.usagePerHour / 60 : null,
+        lapsRemaining: null,
+        position: data.racePosition ?? data.position ?? null,
         lap: data.lap ?? null,
         speed: data.speed ?? null,
         gear: data.gear ?? null,
@@ -289,9 +291,15 @@ export function RelayProvider({ children }: { children: ReactNode }) {
         brake: data.brake ?? null,
         trackPosition: data.trackPosition ?? null,
         sector: data.sector ?? null,
-        inPit: data.inPit ?? false,
-        otherCars: data.otherCars || [],
+        inPit: data.onPitRoad ?? data.inPit ?? false,
+        otherCars: [],
       });
+    });
+
+    // Competitor data for leaderboard
+    socket.on('competitor_data', (data: any[]) => {
+      console.log('[Relay] Competitor data:', data?.length, 'cars');
+      // Could update otherCars here if needed
     });
 
     // Session ended
