@@ -20,15 +20,25 @@ export const app: Express = express();
 // Correlation ID middleware (must be first)
 app.use(correlationMiddleware);
 
-// Security middleware
-app.use(helmet());
-
-// CORS configuration - Must be BEFORE rate limiting to handle preflight OPTIONS
-app.use(cors({
-    origin: true, // Allow all origins
+// CORS configuration - Must be FIRST before any security middleware
+// Handle preflight OPTIONS requests explicitly
+app.options('*', cors({
+    origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+}));
+app.use(cors({
+    origin: true,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+}));
+
+// Security middleware - after CORS to not interfere with preflight
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy: { policy: 'unsafe-none' },
 }));
 
 // Tiered Rate Limiting (based on user entitlements)
