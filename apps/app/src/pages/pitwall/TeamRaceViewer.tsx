@@ -81,75 +81,75 @@ interface RaceSession {
 
 type ViewMode = 'endurance' | 'multidriver';
 
-// Mock team drivers
-const mockDrivers: Driver[] = [
-  { id: 'd1', name: 'Alex Rivera', shortName: 'RIV', color: '#ef4444', iRating: 4500, safetyRating: 'A 3.2' },
-  { id: 'd2', name: 'Jordan Chen', shortName: 'CHE', color: '#22c55e', iRating: 4200, safetyRating: 'A 2.8' },
-  { id: 'd3', name: 'Sam Williams', shortName: 'WIL', color: '#3b82f6', iRating: 3800, safetyRating: 'B 4.1' },
-  { id: 'd4', name: 'Casey Morgan', shortName: 'MOR', color: '#f97316', iRating: 4100, safetyRating: 'A 1.9' },
-];
+// Mock team drivers - DISABLED
+// const mockDrivers: Driver[] = [
+//   { id: 'd1', name: 'Alex Rivera', shortName: 'RIV', color: '#ef4444', iRating: 4500, safetyRating: 'A 3.2' },
+//   { id: 'd2', name: 'Jordan Chen', shortName: 'CHE', color: '#22c55e', iRating: 4200, safetyRating: 'A 2.8' },
+//   { id: 'd3', name: 'Sam Williams', shortName: 'WIL', color: '#3b82f6', iRating: 3800, safetyRating: 'B 4.1' },
+//   { id: 'd4', name: 'Casey Morgan', shortName: 'MOR', color: '#f97316', iRating: 4100, safetyRating: 'A 1.9' },
+// ];
 
-// Mock stints for endurance
-const mockStints: Stint[] = [
-  { id: 's1', driverId: 'd1', driverName: 'Alex Rivera', startLap: 1, endLap: 35, startTime: '00:00:00', endTime: '01:07:12', laps: 35, avgLapTime: 115.2, bestLapTime: 113.8, fuelUsed: 98, incidents: 0, tireCompound: 'medium', tireAge: 35, status: 'completed' },
-  { id: 's2', driverId: 'd2', driverName: 'Jordan Chen', startLap: 36, endLap: 70, startTime: '01:07:45', endTime: '02:15:02', laps: 35, avgLapTime: 115.6, bestLapTime: 114.2, fuelUsed: 99, incidents: 1, tireCompound: 'medium', tireAge: 35, status: 'completed' },
-  { id: 's3', driverId: 'd3', driverName: 'Sam Williams', startLap: 71, endLap: 105, startTime: '02:15:35', endTime: '03:23:18', laps: 35, avgLapTime: 116.1, bestLapTime: 114.9, fuelUsed: 97, incidents: 0, tireCompound: 'hard', tireAge: 35, status: 'completed' },
-  { id: 's4', driverId: 'd4', driverName: 'Casey Morgan', startLap: 106, endLap: null, startTime: '03:23:52', endTime: null, laps: 18, avgLapTime: 115.8, bestLapTime: 114.5, fuelUsed: 51, incidents: 0, tireCompound: 'hard', tireAge: 18, status: 'active' },
-];
+// Mock stints for endurance - DISABLED
+// const mockStints: Stint[] = [
+//   { id: 's1', driverId: 'd1', driverName: 'Alex Rivera', startLap: 1, endLap: 35, startTime: '00:00:00', endTime: '01:07:12', laps: 35, avgLapTime: 115.2, bestLapTime: 113.8, fuelUsed: 98, incidents: 0, tireCompound: 'medium', tireAge: 35, status: 'completed' },
+//   { id: 's2', driverId: 'd2', driverName: 'Jordan Chen', startLap: 36, endLap: 70, startTime: '01:07:45', endTime: '02:15:02', laps: 35, avgLapTime: 115.6, bestLapTime: 114.2, fuelUsed: 99, incidents: 1, tireCompound: 'medium', tireAge: 35, status: 'completed' },
+//   { id: 's3', driverId: 'd3', driverName: 'Sam Williams', startLap: 71, endLap: 105, startTime: '02:15:35', endTime: '03:23:18', laps: 35, avgLapTime: 116.1, bestLapTime: 114.9, fuelUsed: 97, incidents: 0, tireCompound: 'hard', tireAge: 35, status: 'completed' },
+//   { id: 's4', driverId: 'd4', driverName: 'Casey Morgan', startLap: 106, endLap: null, startTime: '03:23:52', endTime: null, laps: 18, avgLapTime: 115.8, bestLapTime: 114.5, fuelUsed: 51, incidents: 0, tireCompound: 'hard', tireAge: 18, status: 'active' },
+// ];
 
-// Mock team car data
-const mockTeamCar: TeamCar = {
-  carNumber: '77',
-  carClass: 'GT3',
-  currentDriver: mockDrivers[3],
-  position: 5,
-  classPosition: 3,
-  lap: 124,
-  lastLapTime: 115.234,
-  bestLapTime: 113.892,
-  gapToLeader: '+2:34.567',
-  gapToClassLeader: '+45.234',
-  gapAhead: '-12.456',
-  gapBehind: '+8.234',
-  fuel: 47.2,
-  fuelPerLap: 2.8,
-  lapsRemaining: 16,
-  pitStops: 3,
-  lastPitLap: 105,
-  trackPosition: 0.67,
-  inPit: false,
-  incidents: 1,
-  stints: mockStints,
-  currentStint: mockStints[3],
-};
+// Mock team car data - DISABLED
+// const mockTeamCar: TeamCar = {
+//   carNumber: '77',
+//   carClass: 'GT3',
+//   currentDriver: mockDrivers[3],
+//   position: 5,
+//   classPosition: 3,
+//   lap: 124,
+//   lastLapTime: 115.234,
+//   bestLapTime: 113.892,
+//   gapToLeader: '+2:34.567',
+//   gapToClassLeader: '+45.234',
+//   gapAhead: '-12.456',
+//   gapBehind: '+8.234',
+//   fuel: 47.2,
+//   fuelPerLap: 2.8,
+//   lapsRemaining: 16,
+//   pitStops: 3,
+//   lastPitLap: 105,
+//   trackPosition: 0.67,
+//   inPit: false,
+//   incidents: 1,
+//   stints: mockStints,
+//   currentStint: mockStints[3],
+// };
 
-// Mock session
-const mockSession: RaceSession = {
-  eventName: 'Daytona 24 Hours',
-  trackName: 'Daytona International Speedway',
-  sessionType: 'race',
-  raceFormat: 'endurance',
-  totalLaps: null,
-  totalTime: 86400, // 24 hours
-  currentLap: 124,
-  timeRemaining: 72000, // 20 hours remaining
-  timeElapsed: 14400, // 4 hours elapsed
-  flagStatus: 'green',
-  trackTemp: 28,
-  airTemp: 22,
-  humidity: 65,
-  windSpeed: 12,
-  weatherCondition: 'clear',
-};
+// Mock session - DISABLED
+// const mockSession: RaceSession = {
+//   eventName: 'Daytona 24 Hours',
+//   trackName: 'Daytona International Speedway',
+//   sessionType: 'race',
+//   raceFormat: 'endurance',
+//   totalLaps: null,
+//   totalTime: 86400, // 24 hours
+//   currentLap: 124,
+//   timeRemaining: 72000, // 20 hours remaining
+//   timeElapsed: 14400, // 4 hours elapsed
+//   flagStatus: 'green',
+//   trackTemp: 28,
+//   airTemp: 22,
+//   humidity: 65,
+//   windSpeed: 12,
+//   weatherCondition: 'clear',
+// };
 
 export function TeamRaceViewer() {
   const { teamId } = useParams<{ teamId: string }>();
   const { drivers: serviceDrivers } = useTeamData();
   const [team, setTeam] = useState<Team | null>(null);
-  const [localDrivers, setLocalDrivers] = useState<Driver[]>(mockDrivers);
+  const [localDrivers, setLocalDrivers] = useState<Driver[]>([]); // Demo disabled - start empty
   const [viewMode, setViewMode] = useState<ViewMode>('endurance');
-  const [teamCar, setTeamCar] = useState<TeamCar>(mockTeamCar);
-  const [session, setSession] = useState<RaceSession>(mockSession);
+  const [teamCar, setTeamCar] = useState<TeamCar | null>(null); // Demo disabled - start null
+  const [session, setSession] = useState<RaceSession | null>(null); // Demo disabled - start null
   const [expandedStint, setExpandedStint] = useState<string | null>(null);
   const [showStintHistory, setShowStintHistory] = useState(true);
   useRelay(); // Hook for relay connection state

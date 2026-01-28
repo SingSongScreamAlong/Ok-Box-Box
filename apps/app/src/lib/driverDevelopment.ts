@@ -242,8 +242,8 @@ export async function fetchDevelopmentData(): Promise<DevelopmentData> {
   try {
     const auth = await getAuthHeader();
     if (!auth.Authorization) {
-      console.log('[Dev] No auth token, using demo data');
-      return DEMO_DEVELOPMENT_DATA;
+      console.log('[Dev] No auth token, returning null (demo disabled)');
+      return null as unknown as DevelopmentData;
     }
 
     const response = await fetch(`${API_BASE}/api/v1/drivers/me/development`, {
@@ -251,15 +251,15 @@ export async function fetchDevelopmentData(): Promise<DevelopmentData> {
     });
 
     if (!response.ok) {
-      console.log('[Dev] API error, using demo data');
-      return DEMO_DEVELOPMENT_DATA;
+      console.log('[Dev] API error, returning null (demo disabled)');
+      return null as unknown as DevelopmentData;
     }
 
     const data = await response.json();
     return data as DevelopmentData;
   } catch (error) {
     console.error('[Dev] Error fetching development data:', error);
-    return DEMO_DEVELOPMENT_DATA;
+    return null as unknown as DevelopmentData;
   }
 }
 
@@ -268,7 +268,7 @@ export async function fetchDriverMemories(): Promise<DriverMemory[]> {
   try {
     const auth = await getAuthHeader();
     if (!auth.Authorization) {
-      return DEMO_MEMORIES;
+      return []; // Demo disabled
     }
 
     const response = await fetch(`${API_BASE}/api/v1/drivers/me/memories`, {
@@ -276,14 +276,14 @@ export async function fetchDriverMemories(): Promise<DriverMemory[]> {
     });
 
     if (!response.ok) {
-      return DEMO_MEMORIES;
+      return []; // Demo disabled
     }
 
     const data = await response.json();
-    return data.memories || DEMO_MEMORIES;
+    return data.memories || [];
   } catch (error) {
     console.error('[Dev] Error fetching memories:', error);
-    return DEMO_MEMORIES;
+    return []; // Demo disabled
   }
 }
 
@@ -292,7 +292,7 @@ export async function fetchDriverTargets(): Promise<DriverTarget[]> {
   try {
     const auth = await getAuthHeader();
     if (!auth.Authorization) {
-      return DEMO_TARGETS;
+      return []; // Demo disabled
     }
 
     const response = await fetch(`${API_BASE}/api/v1/drivers/me/targets`, {
@@ -300,14 +300,14 @@ export async function fetchDriverTargets(): Promise<DriverTarget[]> {
     });
 
     if (!response.ok) {
-      return DEMO_TARGETS;
+      return []; // Demo disabled
     }
 
     const data = await response.json();
-    return data.targets || DEMO_TARGETS;
+    return data.targets || [];
   } catch (error) {
     console.error('[Dev] Error fetching targets:', error);
-    return DEMO_TARGETS;
+    return []; // Demo disabled
   }
 }
 

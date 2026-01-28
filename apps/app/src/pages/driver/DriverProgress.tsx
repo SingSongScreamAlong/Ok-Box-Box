@@ -153,7 +153,7 @@ function getSkillStatusColor(status: Skill['status']) {
 
 export function DriverProgress() {
   const { user } = useAuth();
-  const [data, setData] = useState<DevelopmentData>(mockData);
+  const [data, setData] = useState<DevelopmentData | null>(null); // Demo disabled - start with null
   const [loading, setLoading] = useState(true);
   const [expandedFocus, setExpandedFocus] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<'focus' | 'skills' | 'goals' | 'journey'>('focus');

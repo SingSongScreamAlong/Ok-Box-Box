@@ -78,10 +78,10 @@ export interface EventEntry {
 
 // Get events for a league
 export async function getLeagueEvents(leagueId: string): Promise<Event[]> {
-  // Return demo events for demo league
-  if (leagueId === 'demo') {
-    return DEMO_EVENTS;
-  }
+  // Demo disabled - no longer return demo events
+  // if (leagueId === 'demo') {
+  //   return DEMO_EVENTS;
+  // }
 
   const { data, error } = await supabase
     .from('events')

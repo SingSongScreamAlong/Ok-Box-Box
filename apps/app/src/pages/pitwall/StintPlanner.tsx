@@ -50,13 +50,13 @@ interface RaceConfig {
   driverChangeTime: number; // seconds
 }
 
-// Mock data
-const mockDrivers: Driver[] = [
-  { id: 'd1', name: 'Alex Thompson', number: '42', color: '#3b82f6', avgLapTime: 87000, fuelPerLap: 2.8, maxStintLength: 35 },
-  { id: 'd2', name: 'Jordan Mitchell', number: '17', color: '#f97316', avgLapTime: 87500, fuelPerLap: 2.9, maxStintLength: 30 },
-  { id: 'd3', name: 'Sam Rodriguez', number: '88', color: '#22c55e', avgLapTime: 88000, fuelPerLap: 3.0, maxStintLength: 28 },
-  { id: 'd4', name: 'Casey Williams', number: '23', color: '#a855f7', avgLapTime: 87200, fuelPerLap: 2.85, maxStintLength: 32 },
-];
+// Mock data - DISABLED
+// const mockDrivers: Driver[] = [
+//   { id: 'd1', name: 'Alex Thompson', number: '42', color: '#3b82f6', avgLapTime: 87000, fuelPerLap: 2.8, maxStintLength: 35 },
+//   { id: 'd2', name: 'Jordan Mitchell', number: '17', color: '#f97316', avgLapTime: 87500, fuelPerLap: 2.9, maxStintLength: 30 },
+//   { id: 'd3', name: 'Sam Rodriguez', number: '88', color: '#22c55e', avgLapTime: 88000, fuelPerLap: 3.0, maxStintLength: 28 },
+//   { id: 'd4', name: 'Casey Williams', number: '23', color: '#a855f7', avgLapTime: 87200, fuelPerLap: 2.85, maxStintLength: 32 },
+// ];
 
 const defaultConfig: RaceConfig = {
   totalLaps: 120,

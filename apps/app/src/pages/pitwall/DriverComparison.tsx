@@ -131,84 +131,84 @@ function formatDelta(ms: number): string {
   return `${sign}${(abs / 1000).toFixed(3)}`;
 }
 
-// Mock drivers
-const mockDrivers: DriverData[] = [
-  {
-    id: 'd1',
-    name: 'Alex Thompson',
-    number: '42',
-    team: 'Velocity Racing',
-    car: 'Porsche 911 GT3 R',
-    iRating: 4250,
-    color: '#3b82f6',
-    laps: generateLaps(0, 25),
-    bestLap: null,
-    avgLapTime: '',
-    consistency: 0,
-    telemetryTrace: generateTelemetryTrace(0)
-  },
-  {
-    id: 'd2',
-    name: 'Jordan Mitchell',
-    number: '17',
-    team: 'Velocity Racing',
-    car: 'Porsche 911 GT3 R',
-    iRating: 3890,
-    color: '#f97316',
-    laps: generateLaps(1, 25),
-    bestLap: null,
-    avgLapTime: '',
-    consistency: 0,
-    telemetryTrace: generateTelemetryTrace(1)
-  },
-  {
-    id: 'd3',
-    name: 'Sam Rodriguez',
-    number: '88',
-    team: 'Velocity Racing',
-    car: 'Porsche 911 GT3 R',
-    iRating: 3650,
-    color: '#22c55e',
-    laps: generateLaps(2, 25),
-    bestLap: null,
-    avgLapTime: '',
-    consistency: 0,
-    telemetryTrace: generateTelemetryTrace(2)
-  },
-  {
-    id: 'd4',
-    name: 'Casey Williams',
-    number: '23',
-    team: 'Velocity Racing',
-    car: 'Porsche 911 GT3 R',
-    iRating: 4100,
-    color: '#a855f7',
-    laps: generateLaps(0.5, 25),
-    bestLap: null,
-    avgLapTime: '',
-    consistency: 0,
-    telemetryTrace: generateTelemetryTrace(0.5)
-  }
-];
+// Mock drivers - DISABLED
+// const mockDrivers: DriverData[] = [
+//   {
+//     id: 'd1',
+//     name: 'Alex Thompson',
+//     number: '42',
+//     team: 'Velocity Racing',
+//     car: 'Porsche 911 GT3 R',
+//     iRating: 4250,
+//     color: '#3b82f6',
+//     laps: generateLaps(0, 25),
+//     bestLap: null,
+//     avgLapTime: '',
+//     consistency: 0,
+//     telemetryTrace: generateTelemetryTrace(0)
+//   },
+//   {
+//     id: 'd2',
+//     name: 'Jordan Mitchell',
+//     number: '17',
+//     team: 'Velocity Racing',
+//     car: 'Porsche 911 GT3 R',
+//     iRating: 3890,
+//     color: '#f97316',
+//     laps: generateLaps(1, 25),
+//     bestLap: null,
+//     avgLapTime: '',
+//     consistency: 0,
+//     telemetryTrace: generateTelemetryTrace(1)
+//   },
+//   {
+//     id: 'd3',
+//     name: 'Sam Rodriguez',
+//     number: '88',
+//     team: 'Velocity Racing',
+//     car: 'Porsche 911 GT3 R',
+//     iRating: 3650,
+//     color: '#22c55e',
+//     laps: generateLaps(2, 25),
+//     bestLap: null,
+//     avgLapTime: '',
+//     consistency: 0,
+//     telemetryTrace: generateTelemetryTrace(2)
+//   },
+//   {
+//     id: 'd4',
+//     name: 'Casey Williams',
+//     number: '23',
+//     team: 'Velocity Racing',
+//     car: 'Porsche 911 GT3 R',
+//     iRating: 4100,
+//     color: '#a855f7',
+//     laps: generateLaps(0.5, 25),
+//     bestLap: null,
+//     avgLapTime: '',
+//     consistency: 0,
+//     telemetryTrace: generateTelemetryTrace(0.5)
+//   }
+// ];
 
-// Calculate derived stats
-mockDrivers.forEach(driver => {
-  const validLaps = driver.laps.filter(l => l.lapTimeMs > 0);
-  driver.bestLap = validLaps.reduce((best, lap) => 
-    !best || lap.lapTimeMs < best.lapTimeMs ? lap : best, null as LapData | null);
-  
-  const avgMs = validLaps.reduce((sum, l) => sum + l.lapTimeMs, 0) / validLaps.length;
-  driver.avgLapTime = formatLapTime(avgMs);
-  
-  const variance = validLaps.reduce((sum, l) => sum + Math.pow(l.lapTimeMs - avgMs, 2), 0) / validLaps.length;
-  driver.consistency = Math.max(0, 100 - Math.sqrt(variance) / 10);
-});
+// Calculate derived stats - DISABLED
+// mockDrivers.forEach(driver => {
+//   const validLaps = driver.laps.filter(l => l.lapTimeMs > 0);
+//   driver.bestLap = validLaps.reduce((best, lap) => 
+//     !best || lap.lapTimeMs < best.lapTimeMs ? lap : best, null as LapData | null);
+//   
+//   const avgMs = validLaps.reduce((sum, l) => sum + l.lapTimeMs, 0) / validLaps.length;
+//   driver.avgLapTime = formatLapTime(avgMs);
+//   
+//   const variance = validLaps.reduce((sum, l) => sum + Math.pow(l.lapTimeMs - avgMs, 2), 0) / validLaps.length;
+//   driver.consistency = Math.max(0, 100 - Math.sqrt(variance) / 10);
+// });
 
 export function DriverComparison() {
   const { teamId } = useParams<{ teamId: string }>();
-  const [drivers] = useState<DriverData[]>(mockDrivers);
-  const [driver1, setDriver1] = useState<DriverData>(mockDrivers[0]);
-  const [driver2, setDriver2] = useState<DriverData>(mockDrivers[1]);
+  const [drivers] = useState<DriverData[]>([]); // Demo disabled - start empty
+  const [driver1, setDriver1] = useState<DriverData | null>(null); // Demo disabled
+  const [driver2, setDriver2] = useState<DriverData | null>(null); // Demo disabled
   const [viewMode, setViewMode] = useState<'laps' | 'telemetry' | 'sectors'>('laps');
   const [selectedLap, setSelectedLap] = useState<number | 'best'>('best');
   const [showDropdown1, setShowDropdown1] = useState(false);
