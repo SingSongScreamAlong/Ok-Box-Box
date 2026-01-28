@@ -6,6 +6,7 @@ import { TeamLayout } from './layouts/TeamLayout';
 import { LeagueLayout } from './layouts/LeagueLayout';
 import { RelayProvider } from './hooks/useRelay';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { DevAuditProvider, AuditToggleButton } from './components/DevAuditOverlay';
 import { Login } from './pages/auth/Login';
 import { Signup } from './pages/auth/Signup';
 import { ForgotPassword } from './pages/auth/ForgotPassword';
@@ -97,6 +98,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <ErrorBoundary>
+    <DevAuditProvider>
     <RelayProvider>
       <Routes>
         {/* Auth routes */}
@@ -181,7 +183,10 @@ function App() {
         <Route path="/" element={<Navigate to="/driver/home" replace />} />
         <Route path="*" element={<Navigate to="/driver/home" replace />} />
       </Routes>
+      {/* Dev Audit Toggle - only visible in development */}
+      {import.meta.env.DEV && <AuditToggleButton />}
     </RelayProvider>
+    </DevAuditProvider>
     </ErrorBoundary>
   );
 }
