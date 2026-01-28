@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { LeagueDataProvider } from '../hooks/useLeagueData';
 import { 
   Settings, LogOut, User, ChevronDown, Users, Trophy, 
   AlertTriangle, Flag, BookOpen, Award, Radio, Gavel,
@@ -52,6 +53,7 @@ export function LeagueLayout() {
   ];
 
   return (
+    <LeagueDataProvider>
     <div className="min-h-screen bg-[--bg] flex flex-col">
       {/* Header */}
       <header className="border-b border-white/10 bg-[#0e0e0e] sticky top-0 z-50">
@@ -238,5 +240,6 @@ export function LeagueLayout() {
         </span>
       </footer>
     </div>
+    </LeagueDataProvider>
   );
 }

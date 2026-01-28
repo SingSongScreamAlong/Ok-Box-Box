@@ -1,26 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { getLeague, getUserLeagueRole, getLeagueMembers, League, LeagueMembership } from '../lib/leagues';
-import { getLeagueEvents, Event } from '../lib/events';
+import { useLeagueData } from '../hooks/useLeagueData';
 import { Settings, Users, ArrowLeft, Calendar, Plus, AlertTriangle, Flag, Trophy } from 'lucide-react';
 
 export function LeagueDashboard() {
   const { leagueId } = useParams<{ leagueId: string }>();
-  const { user } = useAuth();
   const navigate = useNavigate();
-  const [league, setLeague] = useState<League | null>(null);
-  const [role, setRole] = useState<'owner' | 'admin' | 'steward' | 'member' | null>(null);
-  const [members, setMembers] = useState<LeagueMembership[]>([]);
-  const [events, setEvents] = useState<Event[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { league, role, members, events, loading, isAdmin } = useLeagueData();
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    if (leagueId && user) {
-      loadLeagueData();
-    }
-  }, [leagueId, user]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -28,27 +15,11 @@ export function LeagueDashboard() {
     }
   }, []);
 
-  const loadLeagueData = async () => {
-    if (!leagueId || !user) return;
-
-    const [leagueData, userRole, leagueMembers, leagueEvents] = await Promise.all([
-      getLeague(leagueId),
-      getUserLeagueRole(leagueId, user.id),
-      getLeagueMembers(leagueId),
-      getLeagueEvents(leagueId)
-    ]);
-
-    if (!leagueData || !userRole) {
+  useEffect(() => {
+    if (!loading && !league) {
       navigate('/leagues');
-      return;
     }
-
-    setLeague(leagueData);
-    setRole(userRole);
-    setMembers(leagueMembers);
-    setEvents(leagueEvents);
-    setLoading(false);
-  };
+  }, [loading, league, navigate]);
 
   if (loading) {
     return (
@@ -62,7 +33,6 @@ export function LeagueDashboard() {
     return null;
   }
 
-  const isAdmin = role === 'owner' || role === 'admin';
 
   return (
     <div className="min-h-screen relative">
