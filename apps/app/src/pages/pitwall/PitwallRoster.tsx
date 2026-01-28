@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { UserPlus, Search, Filter, Users, Crown, Wrench, User, Link2, LinkIcon, Mail, Bell, X, Target, Loader2 } from 'lucide-react';
+import { UserPlus, Search, Filter, Users, Crown, Wrench, User, LinkIcon, Target, Loader2 } from 'lucide-react';
 import { useTeamData } from '../../hooks/useTeamData';
+import { InviteBuilder, InviteManager } from '../../components/InviteBuilder';
 
 // Types from legacy
 interface DriverSummary {
@@ -146,186 +147,6 @@ const mockRoster: TeamRosterView = {
     }
   ]
 };
-
-// Invite Modal Component
-interface InviteModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  teamName: string;
-}
-
-function InviteModal({ isOpen, onClose, teamName }: InviteModalProps) {
-  const [inviteMethod, setInviteMethod] = useState<'system' | 'email' | 'both'>('both');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState('driver');
-  const [sending, setSending] = useState(false);
-  const [sent, setSent] = useState(false);
-
-  // Mock search results for system users
-  const mockSystemUsers = [
-    { id: 'obb-new1', name: 'Marcus Thompson', irating: 3245, tier: 'driver' },
-    { id: 'obb-new2', name: 'Elena Rodriguez', irating: 4102, tier: 'driver' },
-  ];
-
-  const filteredUsers = searchQuery.length > 2 
-    ? mockSystemUsers.filter(u => u.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : [];
-
-  const handleSendInvite = async () => {
-    setSending(true);
-    await new Promise(r => setTimeout(r, 800));
-    setSending(false);
-    setSent(true);
-    setTimeout(() => {
-      setSent(false);
-      onClose();
-      setSearchQuery('');
-      setEmail('');
-    }, 1500);
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="relative bg-[#0d0d0d] border border-white/10 w-full max-w-md mx-4" style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-            Invite Driver
-          </h2>
-          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
-            <X size={18} />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-5 space-y-5">
-          {/* Invite Method Toggle */}
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-white/40 mb-2 block">Invite Method</label>
-            <div className="flex gap-2">
-              {[
-                { key: 'system', label: 'System', icon: Bell },
-                { key: 'email', label: 'Email', icon: Mail },
-                { key: 'both', label: 'Both', icon: Link2 }
-              ].map(({ key, label, icon: Icon }) => (
-                <button
-                  key={key}
-                  onClick={() => setInviteMethod(key as any)}
-                  className={`flex-1 flex items-center justify-center gap-2 py-2 text-xs font-semibold uppercase tracking-wider border transition-colors ${
-                    inviteMethod === key
-                      ? 'bg-[#3b82f6]/20 border-[#3b82f6] text-[#3b82f6]'
-                      : 'border-white/10 text-white/50 hover:border-white/20'
-                  }`}
-                >
-                  <Icon size={14} />
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* System Search */}
-          {(inviteMethod === 'system' || inviteMethod === 'both') && (
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-white/40 mb-2 block">Search Ok, Box Box Users</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={14} />
-                <input
-                  type="text"
-                  placeholder="Search by name or iRacing ID..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#0a0a0a] border border-white/10 pl-9 pr-3 py-2 text-sm text-white focus:border-[#3b82f6] focus:outline-none"
-                />
-              </div>
-              {filteredUsers.length > 0 && (
-                <div className="mt-2 border border-white/10 bg-[#0a0a0a] max-h-32 overflow-y-auto">
-                  {filteredUsers.map(user => (
-                    <button
-                      key={user.id}
-                      onClick={() => setSearchQuery(user.name)}
-                      className="w-full flex items-center justify-between px-3 py-2 hover:bg-white/5 transition-colors"
-                    >
-                      <div className="flex items-center gap-2">
-                        <LinkIcon size={12} className="text-[#3b82f6]" />
-                        <span className="text-sm text-white">{user.name}</span>
-                      </div>
-                      <span className="text-xs text-white/40 font-mono">{user.irating} iR</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Email Input */}
-          {(inviteMethod === 'email' || inviteMethod === 'both') && (
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-white/40 mb-2 block">Email Address</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={14} />
-                <input
-                  type="email"
-                  placeholder="driver@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#0a0a0a] border border-white/10 pl-9 pr-3 py-2 text-sm text-white focus:border-[#3b82f6] focus:outline-none"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Role Selection */}
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-white/40 mb-2 block">Assign Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full bg-[#0a0a0a] border border-white/10 px-3 py-2 text-sm text-white focus:border-[#3b82f6] focus:outline-none"
-            >
-              <option value="driver">Driver</option>
-              <option value="team_engineer">Engineer</option>
-              <option value="team_principal">Principal</option>
-            </select>
-          </div>
-
-          {/* Info Note */}
-          <div className="flex items-start gap-2 p-3 bg-[#3b82f6]/10 border border-[#3b82f6]/20">
-            <LinkIcon size={14} className="text-[#3b82f6] mt-0.5 flex-shrink-0" />
-            <p className="text-xs text-white/60">
-              If the driver has an Ok, Box Box account, their profile, IDP, and session data will automatically sync with {teamName}.
-            </p>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-5 py-4 border-t border-white/10 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-white/50 hover:text-white transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSendInvite}
-            disabled={sending || sent}
-            className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
-              sent
-                ? 'bg-green-500 text-white'
-                : 'bg-[#3b82f6] text-white hover:bg-[#2563eb]'
-            }`}
-          >
-            {sending ? 'Sending...' : sent ? 'Invite Sent!' : 'Send Invite'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // Role badge styling
 const roleStyles: Record<string, { class: string; icon: any; label: string }> = {
@@ -592,11 +413,13 @@ export function PitwallRoster() {
         </div>
       </div>
 
-      {/* Invite Modal */}
-      <InviteModal 
+      {/* Invite Builder */}
+      <InviteBuilder 
         isOpen={showInviteModal} 
-        onClose={() => setShowInviteModal(false)} 
-        teamName={roster.team_name} 
+        onClose={() => setShowInviteModal(false)}
+        type="team"
+        targetId={teamId || 'demo'}
+        targetName={roster.team_name} 
       />
       </div>
     </div>

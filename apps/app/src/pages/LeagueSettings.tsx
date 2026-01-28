@@ -5,15 +5,13 @@ import {
   getLeague, 
   getUserLeagueRole, 
   getLeagueMembers, 
-  getLeagueInvitations,
   updateLeague,
   deleteLeague,
-  createLeagueInvitation,
   League, 
-  LeagueMembership,
-  LeagueInvitation
+  LeagueMembership
 } from '../lib/leagues';
-import { ArrowLeft, Trash2, UserPlus, Mail } from 'lucide-react';
+import { ArrowLeft, UserPlus } from 'lucide-react';
+import { InviteBuilder, InviteManager } from '../components/InviteBuilder';
 
 export function LeagueSettings() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -22,13 +20,11 @@ export function LeagueSettings() {
   const [league, setLeague] = useState<League | null>(null);
   const [role, setRole] = useState<'owner' | 'admin' | 'steward' | 'member' | null>(null);
   const [members, setMembers] = useState<LeagueMembership[]>([]);
-  const [invitations, setInvitations] = useState<LeagueInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [leagueName, setLeagueName] = useState('');
   const [leagueDescription, setLeagueDescription] = useState('');
   const [saving, setSaving] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviting, setInviting] = useState(false);
+  const [showInviteBuilder, setShowInviteBuilder] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -48,11 +44,10 @@ export function LeagueSettings() {
   const loadLeagueData = async () => {
     if (!leagueId || !user) return;
 
-    const [leagueData, userRole, leagueMembers, leagueInvites] = await Promise.all([
+    const [leagueData, userRole, leagueMembers] = await Promise.all([
       getLeague(leagueId),
       getUserLeagueRole(leagueId, user.id),
-      getLeagueMembers(leagueId),
-      getLeagueInvitations(leagueId)
+      getLeagueMembers(leagueId)
     ]);
 
     if (!leagueData || !userRole || (userRole !== 'owner' && userRole !== 'admin')) {
@@ -65,7 +60,6 @@ export function LeagueSettings() {
     setLeagueDescription(leagueData.description || '');
     setRole(userRole);
     setMembers(leagueMembers);
-    setInvitations(leagueInvites);
     setLoading(false);
   };
 
@@ -105,26 +99,6 @@ export function LeagueSettings() {
     } else {
       navigate('/leagues');
     }
-  };
-
-  const handleInvite = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!leagueId || !user || !inviteEmail.trim()) return;
-
-    setInviting(true);
-    setError('');
-
-    const { data, error } = await createLeagueInvitation(leagueId, inviteEmail, user.id);
-
-    if (error) {
-      setError(error);
-    } else if (data) {
-      setInvitations(prev => [data, ...prev]);
-      setInviteEmail('');
-      setSuccess('Invitation sent!');
-      setTimeout(() => setSuccess(''), 3000);
-    }
-    setInviting(false);
   };
 
   if (loading) {
@@ -237,49 +211,25 @@ export function LeagueSettings() {
 
           {/* Invite Members */}
           <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-6 shadow-lg shadow-black/20">
-            <h2 
-              className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#3b82f6] mb-4"
-              style={{ fontFamily: 'Orbitron, sans-serif' }}
-            >
-              Invite Staff
-            </h2>
-            <form onSubmit={handleInvite} className="flex gap-3">
-              <input
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                className="input flex-1"
-                placeholder="email@example.com"
-                required
-              />
+            <div className="flex items-center justify-between mb-4">
+              <h2 
+                className="text-[10px] uppercase tracking-[0.15em] font-semibold text-[#3b82f6]"
+                style={{ fontFamily: 'Orbitron, sans-serif' }}
+              >
+                Invite Staff
+              </h2>
               <button
-                type="submit"
-                disabled={inviting || !inviteEmail.trim()}
+                onClick={() => setShowInviteBuilder(true)}
                 className="btn btn-primary text-xs flex items-center gap-2"
               >
                 <UserPlus size={14} />
-                {inviting ? 'Sending...' : 'Invite'}
+                New Invite
               </button>
-            </form>
-
-            {invitations.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-white/10">
-                <p className="text-xs text-white/40 mb-3">Pending Invitations</p>
-                <div className="space-y-2">
-                  {invitations.map((inv) => (
-                    <div key={inv.id} className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-2">
-                        <Mail size={14} className="text-white/30" />
-                        <span className="text-sm text-white/70">{inv.email}</span>
-                      </div>
-                      <span className="text-[10px] text-white/30">
-                        Expires {new Date(inv.expires_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            </div>
+            <p className="text-sm text-white/50 mb-4">
+              Invite stewards, admins, and broadcasters to help manage your league.
+            </p>
+            <InviteManager type="league" targetId={leagueId || 'demo'} />
           </div>
 
           {/* Members */}
@@ -332,6 +282,15 @@ export function LeagueSettings() {
           )}
         </div>
       </div>
+
+      {/* Invite Builder Modal */}
+      <InviteBuilder
+        isOpen={showInviteBuilder}
+        onClose={() => setShowInviteBuilder(false)}
+        type="league"
+        targetId={leagueId || 'demo'}
+        targetName={league.name}
+      />
     </div>
   );
 }
