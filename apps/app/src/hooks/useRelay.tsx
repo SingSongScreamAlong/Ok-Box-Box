@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import { io, Socket } from 'socket.io-client';
 
 export type RelayStatus = 'disconnected' | 'connecting' | 'connected' | 'in_session';
 
@@ -224,24 +225,110 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     setSession(defaultSession);
   }, [mockInterval]);
 
+  // Socket.IO reference for real connection
+  const socketRef = useRef<Socket | null>(null);
+
+  const connectReal = useCallback(() => {
+    const wsUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    console.log('[Relay] Connecting to real server:', wsUrl);
+    setStatus('connecting');
+
+    const socket = io(wsUrl, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
+
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      console.log('[Relay] Connected to server');
+      setStatus('connected');
+      // Register as dashboard client
+      socket.emit('dashboard:join', { type: 'driver' });
+    });
+
+    socket.on('disconnect', () => {
+      console.log('[Relay] Disconnected from server');
+      setStatus('disconnected');
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('[Relay] Connection error:', error);
+      setStatus('disconnected');
+    });
+
+    // Session state updates
+    socket.on('session:state', (data: { sessionType: string; trackName: string; timeRemaining?: number; lapsRemaining?: number }) => {
+      console.log('[Relay] Session state:', data);
+      setStatus('in_session');
+      setSession({
+        trackName: data.trackName,
+        sessionType: data.sessionType as 'practice' | 'qualifying' | 'race',
+        timeRemaining: data.timeRemaining || null,
+        lapsRemaining: data.lapsRemaining || null,
+      });
+    });
+
+    // Telemetry updates from relay
+    socket.on('telemetry:update', (data: any) => {
+      setTelemetry({
+        lapTime: data.lapTime ?? null,
+        lastLap: data.lastLap ?? null,
+        bestLap: data.bestLap ?? null,
+        delta: data.delta ?? null,
+        fuel: data.fuel ?? null,
+        fuelPerLap: data.fuelPerLap ?? null,
+        lapsRemaining: data.lapsRemaining ?? null,
+        position: data.position ?? null,
+        lap: data.lap ?? null,
+        speed: data.speed ?? null,
+        gear: data.gear ?? null,
+        rpm: data.rpm ?? null,
+        throttle: data.throttle ?? null,
+        brake: data.brake ?? null,
+        trackPosition: data.trackPosition ?? null,
+        sector: data.sector ?? null,
+        inPit: data.inPit ?? false,
+        otherCars: data.otherCars || [],
+      });
+    });
+
+    // Session ended
+    socket.on('session:end', () => {
+      console.log('[Relay] Session ended');
+      setStatus('connected');
+      setSession(defaultSession);
+      setTelemetry(defaultTelemetry);
+    });
+  }, []);
+
+  const disconnectReal = useCallback(() => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+    setStatus('disconnected');
+    setTelemetry(defaultTelemetry);
+    setSession(defaultSession);
+  }, []);
+
   const connect = useCallback(() => {
     if (mockEnabled) {
       startMockSimulation();
     } else {
-      // Real WebSocket connection would go here
-      setStatus('connecting');
-      // TODO: Implement real relay connection
+      connectReal();
     }
-  }, [mockEnabled, startMockSimulation]);
+  }, [mockEnabled, startMockSimulation, connectReal]);
 
   const disconnect = useCallback(() => {
     if (mockEnabled) {
       stopMockSimulation();
     } else {
-      // Real WebSocket disconnection would go here
-      setStatus('disconnected');
+      disconnectReal();
     }
-  }, [mockEnabled, stopMockSimulation]);
+  }, [mockEnabled, stopMockSimulation, disconnectReal]);
 
   // Auto-connect in mock mode on mount
   useEffect(() => {

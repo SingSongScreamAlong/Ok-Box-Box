@@ -1,13 +1,16 @@
 // Hook for accessing team data (drivers, cars, events, race plans)
-// This abstracts the data source - currently mock, later real API
+// Connected to real API with demo fallback
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import {
-  mockDrivers,
-  mockTeam,
+  fetchTeam,
+  fetchTeamDrivers,
+  fetchTeamEvents,
+  fetchRacePlans,
+  fetchStints,
+} from '../lib/teamService';
+import {
   mockTracks,
-  mockEvents,
-  mockRacePlans,
   mockRadioChannels,
   mockRunPlans,
   mockDriverStints,
@@ -95,25 +98,110 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
   const [strategyPlan, setStrategyPlan] = useState<StrategyPlan | null>(null);
   const [roster, setRoster] = useState<TeamRoster | null>(null);
 
-  // Simulate loading data from API
+  // Load data from real API with demo fallback
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Load mock data (in production, this would be API calls)
-      setTeam(mockTeam);
-      setDrivers(mockDrivers);
-      setTracks(mockTracks);
-      setEvents(mockEvents);
-      setRacePlans(mockRacePlans);
-      setRadioChannels(mockRadioChannels);
-      setRunPlans(mockRunPlans);
-      setDriverStints(mockDriverStints);
-      setStrategyPlan(mockStrategyPlan);
-      setRoster(mockRoster);
+      try {
+        // Fetch real data from API
+        const [apiTeam, apiDrivers, apiEvents, apiPlans] = await Promise.all([
+          fetchTeam(teamId),
+          fetchTeamDrivers(teamId),
+          fetchTeamEvents(teamId),
+          fetchRacePlans(teamId),
+        ]);
+
+        // Transform API team to local format
+        const transformedTeam: Team = {
+          id: apiTeam.id,
+          name: apiTeam.name,
+          shortName: apiTeam.shortName || apiTeam.name.substring(0, 3).toUpperCase(),
+          color: apiTeam.primaryColor || '#f97316',
+          drivers: apiDrivers.map(d => d.id),
+          cars: [], // TODO: Add cars API
+        };
+        setTeam(transformedTeam);
+
+        // Transform API drivers to local format
+        const transformedDrivers: Driver[] = apiDrivers.map(d => ({
+          id: d.id,
+          name: d.displayName,
+          shortName: d.displayName.split(' ').map(n => n[0]).join(''),
+          number: '00', // TODO: Get from car assignment
+          color: '#f97316',
+          iRatingRoad: d.irating?.road || 1350,
+          iRatingOval: d.irating?.oval || 1350,
+          safetyRating: d.safetyRating?.road || 2.5,
+          avgLapTime: 90000, // TODO: Calculate from sessions
+          fuelPerLap: 2.5,
+          maxStintLaps: 30,
+          available: d.available !== false,
+          notes: '',
+        }));
+        setDrivers(transformedDrivers);
+
+        // Transform API events to local format
+        const transformedEvents: RaceEvent[] = apiEvents.map(e => ({
+          id: e.id,
+          name: e.name,
+          trackId: e.trackName.toLowerCase().replace(/\s+/g, '-'),
+          type: e.durationMinutes && e.durationMinutes > 120 ? 'endurance' : 'race',
+          status: e.status === 'upcoming' ? 'scheduled' : e.status === 'in_progress' ? 'in_progress' : 'completed',
+          date: new Date(e.eventDate).toLocaleDateString(),
+          time: new Date(e.eventDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          duration: e.durationMinutes ? `${Math.floor(e.durationMinutes / 60)}h ${e.durationMinutes % 60}m` : `${e.totalLaps} laps`,
+          totalLaps: e.totalLaps || undefined,
+          totalTime: e.durationMinutes || undefined,
+          raceType: e.durationMinutes ? 'timed' : 'laps',
+          assignedDrivers: transformedDrivers.map(d => d.id),
+          notes: '',
+        }));
+        setEvents(transformedEvents);
+
+        // Transform API race plans to local format
+        const transformedPlans: RacePlan[] = await Promise.all(
+          apiPlans.map(async (p) => {
+            const stints = await fetchStints(teamId, p.id);
+            return {
+              id: p.id,
+              eventId: p.eventId || '',
+              name: p.name,
+              variant: 'A' as const,
+              isActive: p.isActive,
+              stints: stints.map(s => ({
+                id: s.id,
+                driverId: s.driverId || '',
+                startLap: s.startLap || 0,
+                endLap: s.endLap || 0,
+                laps: (s.endLap || 0) - (s.startLap || 0),
+                fuelLoad: s.fuelLoad || 0,
+                tireCompound: (s.tireCompound || 'medium') as 'soft' | 'medium' | 'hard' | 'wet' | 'inter',
+                estimatedTime: s.estimatedDurationMinutes ? s.estimatedDurationMinutes * 60000 : 0,
+                notes: s.notes || '',
+              })),
+              totalLaps: p.totalPitStops ? (p.totalPitStops + 1) * 30 : 100,
+              estimatedTime: 0,
+              fuelUsed: 0,
+              pitStops: p.totalPitStops,
+            };
+          })
+        );
+        setRacePlans(transformedPlans);
+
+        // These still use mock data until APIs are built
+        setTracks(mockTracks);
+        setRadioChannels(mockRadioChannels);
+        setRunPlans(mockRunPlans);
+        setDriverStints(mockDriverStints);
+        setStrategyPlan(mockStrategyPlan);
+        setRoster(mockRoster);
+
+        console.log('[TeamData] Loaded real data for team:', teamId);
+      } catch (error) {
+        console.error('[TeamData] Error loading data, using demo:', error);
+        // Fallback handled by teamService demo data
+      }
       
       setLoading(false);
     };
