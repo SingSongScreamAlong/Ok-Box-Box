@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRelay } from '../../hooks/useRelay';
 import { useEngineer } from '../../hooks/useEngineer';
 import { useVoice } from '../../hooks/useVoice';
-import { useRaceSimulation } from '../../hooks/useRaceSimulation';
+// useRaceSimulation removed - using live data only
 import { 
   Volume2, VolumeX, Gauge, Fuel, Flag, Clock, 
   TrendingUp, TrendingDown, Minus, MapPin
@@ -20,30 +20,26 @@ export function DriverCockpit() {
   const { criticalMessages } = useEngineer();
   const { isEnabled: voiceEnabled, toggleVoice, speak } = useVoice();
 
-  const isDemo = status !== 'connected' && status !== 'in_session';
-  const { player: simPlayer, opponents: simOpponents } = useRaceSimulation({ isPlaying: isDemo });
+  // LIVE DATA ONLY - No demo fallback
+  const isConnected = status === 'connected' || status === 'in_session';
 
-  const activeTelemetry = isDemo ? {
-    speed: simPlayer.speed,
-    trackPercentage: simPlayer.trackPercentage,
-    carPosition: { trackPercentage: simPlayer.trackPercentage, x: 0, y: 0 },
-    lap: 5,
-    position: 3,
-    delta: -0.42,
-    fuel: 12.5,
-    lapsRemaining: 18,
-    lastLap: '1:48.234',
-    bestLap: '1:47.891',
-    gap: '+2.4s'
-  } : {
+  // Format lap time helper
+  const formatLapTime = (seconds: number | null): string => {
+    if (!seconds || seconds <= 0) return '--:--.---';
+    const mins = Math.floor(seconds / 60);
+    const secs = (seconds % 60).toFixed(3);
+    return mins > 0 ? `${mins}:${secs.padStart(6, '0')}` : secs;
+  };
+
+  const activeTelemetry = {
     ...realTelemetry,
     carPosition: realTelemetry.trackPosition !== null ? getCarMapPosition(realTelemetry.trackPosition) : undefined,
     position: realTelemetry.position || 0,
-    delta: 0,
+    delta: realTelemetry.delta || 0,
     fuel: realTelemetry.fuel || 0,
-    lapsRemaining: 0,
-    lastLap: '--:--.---',
-    bestLap: '--:--.---',
+    lapsRemaining: realTelemetry.lapsRemaining || 0,
+    lastLap: formatLapTime(realTelemetry.lastLap),
+    bestLap: formatLapTime(realTelemetry.bestLap),
     gap: '--'
   };
 
@@ -185,8 +181,8 @@ export function DriverCockpit() {
           <div className="flex items-center gap-3">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-sm text-white/70">{session?.trackName || 'Daytona International Speedway'}</span>
-            <span className="text-[10px] text-white/40 uppercase tracking-wider bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.06]">
-              {isDemo ? 'Demo' : 'Live'}
+            <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border ${isConnected ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-white/40 bg-white/[0.04] border-white/[0.06]'}`}>
+              {isConnected ? 'Live' : 'Offline'}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -218,10 +214,7 @@ export function DriverCockpit() {
           <TrackMap
             trackId={trackId}
             carPosition={activeTelemetry.carPosition}
-            otherCars={isDemo 
-              ? simOpponents.map(o => ({ x: 0, y: 0, trackPercentage: o.trackPercentage, carNumber: o.name, color: o.color }))
-              : realTelemetry.otherCars?.map(o => ({ x: 0, y: 0, trackPercentage: o.trackPercentage, carNumber: o.carNumber, color: o.color }))
-            }
+            otherCars={realTelemetry.otherCars?.map(o => ({ x: 0, y: 0, trackPercentage: o.trackPercentage, carNumber: o.carNumber, color: o.color })) || []}
             telemetry={heatmapData}
             className="w-full h-full"
           />
