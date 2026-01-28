@@ -423,3 +423,28 @@ export async function deleteStint(teamId: string, stintId: string): Promise<bool
     return false;
   }
 }
+
+/**
+ * Fetch team roster (uses existing backend endpoint)
+ */
+export async function fetchTeamRoster(teamId: string): Promise<any> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) {
+      return null;
+    }
+
+    const response = await fetch(`${API_BASE}/api/v1/teams/${teamId}/roster`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('[Team] Error fetching roster:', error);
+    return null;
+  }
+}

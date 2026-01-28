@@ -8,6 +8,7 @@ import {
   fetchTeamEvents,
   fetchRacePlans,
   fetchStints,
+  fetchTeamRoster,
 } from '../lib/teamService';
 import {
   mockTracks,
@@ -189,13 +190,20 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
         );
         setRacePlans(transformedPlans);
 
-        // These still use mock data until APIs are built
+        // Fetch roster from existing backend endpoint
+        const apiRoster = await fetchTeamRoster(teamId);
+        if (apiRoster) {
+          setRoster(apiRoster);
+        } else {
+          setRoster(mockRoster);
+        }
+
+        // These still use mock data (tracks are static, others need live session data)
         setTracks(mockTracks);
         setRadioChannels(mockRadioChannels);
         setRunPlans(mockRunPlans);
         setDriverStints(mockDriverStints);
         setStrategyPlan(mockStrategyPlan);
-        setRoster(mockRoster);
 
         console.log('[TeamData] Loaded real data for team:', teamId);
       } catch (error) {
