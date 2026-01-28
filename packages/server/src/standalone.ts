@@ -29,6 +29,9 @@ console.log(`   Build: 2026-01-19-v2`);
 // Track active sessions for diagnostics
 const activeSessions = new Map<string, { lastUpdate: number; driverCount: number }>();
 
+// Store current session info for late-joining clients
+let currentSessionInfo: { track: string; session: string; sessionId: string } | null = null;
+
 // Create Express app for static file serving
 const app = express();
 app.use(cors({ origin: '*' }));
@@ -100,6 +103,13 @@ const dashboardClients: Set<string> = new Set();
 
 io.on('connection', (socket: Socket) => {
     console.log(`🔌 Client connected: ${socket.id}`);
+    
+    // Debug: Log all incoming events
+    socket.onAny((eventName, ...args) => {
+        if (eventName !== 'telemetry') {
+            console.log(`📨 Event: ${eventName}`);
+        }
+    });
 
     // =====================================================================
     // Relay Agent Events (from Python iRacing relay)
@@ -114,19 +124,21 @@ io.on('connection', (socket: Socket) => {
         // Also emit session:active for dashboard auto-redirect
         const metadata = data as any;
         if (metadata?.sessionId) {
+            // Store current session info for late-joining clients
+            currentSessionInfo = {
+                track: metadata.trackName || 'Unknown Track',
+                session: metadata.sessionType || 'practice',
+                sessionId: metadata.sessionId
+            };
+            
             socket.broadcast.emit('session:active', {
                 sessionId: metadata.sessionId,
                 trackName: metadata.trackName || 'Unknown Track',
                 sessionType: metadata.sessionType || 'practice'
             });
             // Emit session_info for LROC/dashboard compatibility
-            socket.broadcast.emit('session_info', {
-                track: metadata.trackName || 'Unknown Track',
-                session: metadata.sessionType || 'practice',
-                driver: 'Driver',
-                car: 'Unknown Car'
-            });
-            console.log(`📡 Broadcasting session:active for ${metadata.sessionId}`);
+            socket.broadcast.emit('session_info', currentSessionInfo);
+            console.log(`📡 Broadcasting session:active for ${metadata.sessionId}: ${metadata.trackName}`);
         }
     });
 
@@ -139,24 +151,33 @@ io.on('connection', (socket: Socket) => {
                 driverCount: telemetryData.cars?.length || 0
             });
         }
+        
+        // Log telemetry receipt (sample 1 in 60 to avoid spam)
+        if (Math.random() < 0.017) {
+            console.log(`📊 Telemetry: ${telemetryData.cars?.length || 0} cars, broadcasting to ${dashboardClients.size} clients`);
+        }
+        
         // Broadcast to all dashboard clients
         socket.broadcast.emit('telemetry:update', data);
         
         // Format telemetry for LROC/dashboard compatibility
-        const driverCar = telemetryData.cars?.[0] || telemetryData.drivers?.[0];
-        if (driverCar) {
+        // cars[] has detailed telemetry (throttle, brake, rpm, gear)
+        // drivers[] has timing data (speed, lap times, position)
+        const car = telemetryData.cars?.[0];
+        const driver = telemetryData.drivers?.[0];
+        if (car || driver) {
             const formattedTelemetry = {
-                speed: driverCar.speed ? Math.round(driverCar.speed * 2.237) : 0, // m/s to mph
-                rpm: driverCar.rpm || 0,
-                gear: driverCar.gear || 0,
-                throttle: driverCar.throttle ? driverCar.throttle * 100 : 0,
-                brake: driverCar.brake ? driverCar.brake * 100 : 0,
-                lap: driverCar.lap || driverCar.lapNumber || 0,
-                position: driverCar.position || 0,
-                lastLapTime: driverCar.lastLapTime || 0,
-                bestLapTime: driverCar.bestLapTime || 0,
-                trackPosition: driverCar.lapDistPct || driverCar.pos?.s || 0,
-                fuel: { level: driverCar.fuelLevel || 0 },
+                speed: driver?.speed ? Math.round(driver.speed * 2.237) : 0, // m/s to mph
+                rpm: car?.rpm || 0,
+                gear: car?.gear || 0,
+                throttle: car?.throttle ? car.throttle * 100 : 0,
+                brake: car?.brake ? car.brake * 100 : 0,
+                lap: driver?.lapNumber || car?.lap || 0,
+                position: driver?.position || car?.position || 0,
+                lastLapTime: driver?.lastLapTime || 0,
+                bestLapTime: driver?.bestLapTime || 0,
+                trackPosition: driver?.lapDistPct || car?.pos?.s || 0,
+                fuel: { level: car?.fuelLevel || 0 },
                 timestamp: Date.now()
             };
             socket.broadcast.emit('telemetry_update', formattedTelemetry);
@@ -221,6 +242,18 @@ io.on('connection', (socket: Socket) => {
 
         // Track viewer for adaptive streaming
         viewerTracker.viewerJoined(socket, data.sessionId, 'web');
+    });
+
+    // Dashboard join event (used by frontend useRelay hook)
+    socket.on('dashboard:join', (data: { type: string }) => {
+        dashboardClients.add(socket.id);
+        console.log(`   Dashboard ${socket.id} joined as ${data.type}`);
+        
+        // Send current session info to late-joining clients
+        if (currentSessionInfo) {
+            socket.emit('session_info', currentSessionInfo);
+            console.log(`   Sent session_info to late joiner: ${currentSessionInfo.track}`);
+        }
     });
 
     socket.on('room:leave', (data: { sessionId: string }) => {
