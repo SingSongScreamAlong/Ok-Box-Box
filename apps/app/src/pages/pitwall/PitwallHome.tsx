@@ -480,35 +480,6 @@ export function PitwallHome() {
                 </div>
               </div>
               
-              {/* Row 3: Race Control - aligned under STRAT/PIT */}
-              <div className="flex gap-2 mt-2">
-                {/* 4 driver column spacers */}
-                <div className="flex-1" />
-                <div className="flex-1" />
-                <div className="flex-1" />
-                <div className="flex-1" />
-                {/* Race control spans the last 2 columns (where ALL DRV and TEAM are) */}
-                <div className="flex-1 flex gap-1">
-                  {(() => {
-                    const ch = radioChannels.find(c => c.id === 'race-ctrl');
-                    if (!ch) return null;
-                    return (
-                      <button
-                        onClick={() => toggleChannelActive(ch.id)}
-                        className={`w-full h-7 rounded border transition-all font-mono text-[9px] font-bold tracking-wide ${
-                          ch.active
-                            ? 'bg-red-500/20 border-red-500/60 text-red-400'
-                            : 'bg-[#181818] border-[#3a3a3a] text-white/30 hover:border-red-500/30 hover:text-red-400/50'
-                        }`}
-                        style={{ textShadow: ch.active ? '0 0 8px currentColor' : 'none' }}
-                      >
-                        ##RACE##
-                      </button>
-                    );
-                  })()}
-                </div>
-                <div className="flex-1" />
-              </div>
             </div>
           </div>
 
