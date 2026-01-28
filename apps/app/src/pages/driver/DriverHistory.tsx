@@ -201,14 +201,15 @@ export function DriverHistory() {
               <select
                 value={disciplineFilter}
                 onChange={(e) => setDisciplineFilter(e.target.value as DriverDiscipline | 'all')}
-                className="w-full px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded text-xs text-white/80 focus:outline-none focus:border-white/20"
+                className="w-full px-3 py-2 bg-[#1a1a1a] border border-white/[0.08] rounded text-xs text-white/80 focus:outline-none focus:border-white/20 cursor-pointer"
+                style={{ colorScheme: 'dark' }}
               >
-                <option value="all">All Disciplines</option>
-                <option value="oval">Oval</option>
-                <option value="sportsCar">Sports Car</option>
-                <option value="formula">Formula</option>
-                <option value="dirtOval">Dirt Oval</option>
-                <option value="dirtRoad">Dirt Road</option>
+                <option value="all" className="bg-[#1a1a1a] text-white">All Disciplines</option>
+                <option value="oval" className="bg-[#1a1a1a] text-white">Oval</option>
+                <option value="sportsCar" className="bg-[#1a1a1a] text-white">Sports Car</option>
+                <option value="formula" className="bg-[#1a1a1a] text-white">Formula</option>
+                <option value="dirtOval" className="bg-[#1a1a1a] text-white">Dirt Oval</option>
+                <option value="dirtRoad" className="bg-[#1a1a1a] text-white">Dirt Road</option>
               </select>
             </div>
           </div>
