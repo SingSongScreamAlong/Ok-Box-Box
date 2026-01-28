@@ -52,81 +52,14 @@ async function getAuthHeader(): Promise<Record<string, string>> {
   return {};
 }
 
-const DEMO_PROFILE: DriverIdentityProfile = {
-  driverId: 'me',
-  displayName: 'Demo Driver',
-  custId: 1185150,
-  memberSince: '2025-01-14',
-  primaryDiscipline: 'oval',
-  timezone: 'America/New_York',
-  safetyRatingOverall: 3.22,
-  iRatingOverall: 1040,
-  licenses: [
-    { discipline: 'oval', licenseClass: 'B', safetyRating: 3.22, iRating: 1040 },
-    { discipline: 'sportsCar', licenseClass: 'D', safetyRating: 2.52, iRating: 360 },
-    { discipline: 'formula', licenseClass: 'R', safetyRating: 1.52, iRating: null },
-    { discipline: 'dirtOval', licenseClass: 'R', safetyRating: 2.5, iRating: null },
-    { discipline: 'dirtRoad', licenseClass: 'R', safetyRating: 2.56, iRating: null },
-  ],
-};
+// NO DEMO DATA - Real racing system only shows real data
 
-const DEMO_SESSIONS: DriverSessionSummary[] = [
-  {
-    sessionId: 'sess_001',
-    startedAt: '2026-01-14T19:22:00Z',
-    trackName: 'Road Atlanta (Short)',
-    seriesName: 'Toyota GR86 Cup',
-    discipline: 'sportsCar',
-    startPos: 14,
-    finishPos: 13,
-    incidents: 5,
-  },
-  {
-    sessionId: 'sess_002',
-    startedAt: '2026-01-14T02:05:00Z',
-    trackName: 'Concord Speedway',
-    seriesName: 'CARS Tour Late Model',
-    discipline: 'oval',
-    startPos: 12,
-    finishPos: 6,
-    incidents: 4,
-  },
-  {
-    sessionId: 'sess_003',
-    startedAt: '2026-01-13T21:30:00Z',
-    trackName: 'Daytona International Speedway',
-    seriesName: 'NASCAR Cup Series',
-    discipline: 'oval',
-    startPos: 8,
-    finishPos: 3,
-    incidents: 2,
-  },
-  {
-    sessionId: 'sess_004',
-    startedAt: '2026-01-12T18:00:00Z',
-    trackName: 'Watkins Glen',
-    seriesName: 'IMSA Pilot Challenge',
-    discipline: 'sportsCar',
-    startPos: 6,
-    finishPos: 8,
-    incidents: 7,
-  },
-];
-
-const DEMO_STATS: DriverStatsSnapshot[] = [
-  { discipline: 'oval', starts: 286, wins: 13, top5s: 82, poles: 10, avgStart: 8, avgFinish: 10 },
-  { discipline: 'sportsCar', starts: 89, wins: 0, top5s: 15, poles: 0, avgStart: 12, avgFinish: 11 },
-  { discipline: 'formula', starts: 35, wins: 0, top5s: 10, poles: 1, avgStart: 8, avgFinish: 8 },
-  { discipline: 'dirtOval', starts: 12, wins: 1, top5s: 4, poles: 0, avgStart: 10, avgFinish: 9 },
-  { discipline: 'dirtRoad', starts: 8, wins: 0, top5s: 2, poles: 0, avgStart: 14, avgFinish: 12 },
-];
-
-export async function fetchDriverProfile(): Promise<DriverIdentityProfile> {
+export async function fetchDriverProfile(): Promise<DriverIdentityProfile | null> {
   try {
     const auth = await getAuthHeader();
     if (!auth.Authorization) {
-      console.log('[IDP] No auth token, using demo data');
-      return DEMO_PROFILE;
+      console.log('[IDP] No auth token');
+      return null;
     }
 
     const response = await fetch(`${API_BASE}/api/v1/drivers/me`, {
@@ -137,26 +70,26 @@ export async function fetchDriverProfile(): Promise<DriverIdentityProfile> {
     });
 
     if (!response.ok) {
-      console.log('[IDP] API error, using demo data');
-      return DEMO_PROFILE;
+      console.log('[IDP] API error:', response.status);
+      return null;
     }
 
     const data = await response.json();
     
     return {
-      driverId: data.id || 'me',
-      displayName: data.display_name || DEMO_PROFILE.displayName,
-      custId: data.iracing_cust_id || DEMO_PROFILE.custId,
-      memberSince: data.member_since || DEMO_PROFILE.memberSince,
-      primaryDiscipline: data.primary_discipline || DEMO_PROFILE.primaryDiscipline,
-      timezone: data.timezone || DEMO_PROFILE.timezone,
-      safetyRatingOverall: data.safety_rating_overall ?? DEMO_PROFILE.safetyRatingOverall,
-      iRatingOverall: data.irating_overall ?? DEMO_PROFILE.iRatingOverall,
-      licenses: data.licenses || DEMO_PROFILE.licenses,
+      driverId: data.id || '',
+      displayName: data.display_name || '',
+      custId: data.iracing_cust_id,
+      memberSince: data.member_since,
+      primaryDiscipline: data.primary_discipline,
+      timezone: data.timezone,
+      safetyRatingOverall: data.safety_rating_overall,
+      iRatingOverall: data.irating_overall,
+      licenses: data.licenses || [],
     };
   } catch (error) {
     console.error('[IDP] Error fetching profile:', error);
-    return DEMO_PROFILE;
+    return null;
   }
 }
 
@@ -164,7 +97,8 @@ export async function fetchDriverSessions(): Promise<DriverSessionSummary[]> {
   try {
     const auth = await getAuthHeader();
     if (!auth.Authorization) {
-      return DEMO_SESSIONS;
+      console.log('[IDP] No auth token');
+      return [];
     }
 
     // First get the driver profile to get the ID
@@ -173,7 +107,8 @@ export async function fetchDriverSessions(): Promise<DriverSessionSummary[]> {
     });
 
     if (!profileResponse.ok) {
-      return DEMO_SESSIONS;
+      console.log('[IDP] Profile API error:', profileResponse.status);
+      return [];
     }
 
     const profile = await profileResponse.json();
@@ -183,7 +118,8 @@ export async function fetchDriverSessions(): Promise<DriverSessionSummary[]> {
     });
 
     if (!response.ok) {
-      return DEMO_SESSIONS;
+      console.log('[IDP] Sessions API error:', response.status);
+      return [];
     }
 
     const data = await response.json();
@@ -192,8 +128,8 @@ export async function fetchDriverSessions(): Promise<DriverSessionSummary[]> {
     return sessions.map((s: any) => ({
       sessionId: String(s.session_id || s.id || ''),
       startedAt: String(s.started_at || s.session_start || ''),
-      trackName: String(s.track_name || 'Unknown Track'),
-      seriesName: String(s.series_name || 'Unknown Series'),
+      trackName: String(s.track_name || ''),
+      seriesName: String(s.series_name || ''),
       discipline: (s.discipline || 'sportsCar') as DriverDiscipline,
       startPos: s.start_pos ?? s.starting_position,
       finishPos: s.finish_pos ?? s.finishing_position,
@@ -201,7 +137,7 @@ export async function fetchDriverSessions(): Promise<DriverSessionSummary[]> {
     }));
   } catch (error) {
     console.error('[IDP] Error fetching sessions:', error);
-    return DEMO_SESSIONS;
+    return [];
   }
 }
 
@@ -209,7 +145,8 @@ export async function fetchDriverStats(): Promise<DriverStatsSnapshot[]> {
   try {
     const auth = await getAuthHeader();
     if (!auth.Authorization) {
-      return DEMO_STATS;
+      console.log('[IDP] No auth token');
+      return [];
     }
 
     // Get driver profile first
@@ -218,7 +155,8 @@ export async function fetchDriverStats(): Promise<DriverStatsSnapshot[]> {
     });
 
     if (!profileResponse.ok) {
-      return DEMO_STATS;
+      console.log('[IDP] Profile API error:', profileResponse.status);
+      return [];
     }
 
     const profile = await profileResponse.json();
@@ -229,14 +167,14 @@ export async function fetchDriverStats(): Promise<DriverStatsSnapshot[]> {
     });
 
     if (!response.ok) {
-      return DEMO_STATS;
+      console.log('[IDP] Stats API error:', response.status);
+      return [];
     }
 
     const data = await response.json();
     
     // Transform aggregates into stats format
     if (data.global) {
-      // If we have global data, create a single entry
       return [{
         discipline: (profile.primary_discipline || 'sportsCar') as DriverDiscipline,
         starts: data.global.total_sessions || 0,
@@ -248,10 +186,10 @@ export async function fetchDriverStats(): Promise<DriverStatsSnapshot[]> {
       }];
     }
 
-    return DEMO_STATS;
+    return [];
   } catch (error) {
     console.error('[IDP] Error fetching stats:', error);
-    return DEMO_STATS;
+    return [];
   }
 }
 

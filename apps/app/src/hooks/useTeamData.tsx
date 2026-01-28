@@ -1,5 +1,5 @@
 // Hook for accessing team data (drivers, cars, events, race plans)
-// Connected to real API with demo fallback
+// Connected to real API - NO DEMO DATA
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import {
@@ -11,12 +11,6 @@ import {
   fetchTeamRoster,
 } from '../lib/teamService';
 import {
-  mockTracks,
-  mockRadioChannels,
-  mockRunPlans,
-  mockDriverStints,
-  mockStrategyPlan,
-  mockRoster,
   type Driver,
   type Team,
   type Track,
@@ -113,6 +107,13 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
           fetchRacePlans(teamId),
         ]);
 
+        // If no team data, leave as null (no demo data)
+        if (!apiTeam) {
+          console.log('[TeamData] No team data available');
+          setLoading(false);
+          return;
+        }
+
         // Transform API team to local format
         const transformedTeam: Team = {
           id: apiTeam.id,
@@ -120,7 +121,7 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
           shortName: apiTeam.shortName || apiTeam.name.substring(0, 3).toUpperCase(),
           color: apiTeam.primaryColor || '#f97316',
           drivers: apiDrivers.map(d => d.id),
-          cars: [], // TODO: Add cars API
+          cars: [],
         };
         setTeam(transformedTeam);
 
@@ -194,21 +195,21 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
         const apiRoster = await fetchTeamRoster(teamId);
         if (apiRoster) {
           setRoster(apiRoster);
-        } else {
-          setRoster(mockRoster);
         }
+        // No roster fallback - leave as null if no data
 
-        // These still use mock data (tracks are static, others need live session data)
-        setTracks(mockTracks);
-        setRadioChannels(mockRadioChannels);
-        setRunPlans(mockRunPlans);
-        setDriverStints(mockDriverStints);
-        setStrategyPlan(mockStrategyPlan);
+        // These remain empty until live session provides data via WebSocket
+        // No mock data - real racing system only
+        setTracks([]);
+        setRadioChannels([]);
+        setRunPlans([]);
+        setDriverStints([]);
+        setStrategyPlan(null);
 
         console.log('[TeamData] Loaded real data for team:', teamId);
       } catch (error) {
-        console.error('[TeamData] Error loading data, using demo:', error);
-        // Fallback handled by teamService demo data
+        console.error('[TeamData] Error loading data:', error);
+        // No fallback - leave state as empty/null
       }
       
       setLoading(false);

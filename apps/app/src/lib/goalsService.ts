@@ -89,121 +89,7 @@ export interface CreateGoalInput {
   priority?: number;
 }
 
-// =====================================================================
-// Demo Data (fallback when not authenticated)
-// =====================================================================
-
-const DEMO_GOALS: Goal[] = [
-  {
-    id: 'demo-1',
-    title: 'Reach 1500 iRating (Road)',
-    description: 'Push your Road iRating to the next milestone',
-    category: 'irating',
-    metricKey: 'irating_road',
-    targetValue: 1500,
-    currentValue: 1247,
-    startingValue: 1100,
-    unit: 'iR',
-    trackName: null,
-    carName: null,
-    discipline: 'road',
-    seriesName: null,
-    status: 'active',
-    priority: 8,
-    deadline: null,
-    source: 'ai_recommended',
-    aiRationale: 'Based on your current iRating of 1247, reaching 1500 is an achievable next milestone. Focus on consistent top-half finishes.',
-    aiConfidence: 0.9,
-    progressPct: 37,
-    lastProgressUpdate: new Date().toISOString(),
-    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    achievedAt: null,
-  },
-  {
-    id: 'demo-2',
-    title: 'Reach 3.50 Safety Rating (Road)',
-    description: 'Improve your Road safety rating through clean racing',
-    category: 'safety_rating',
-    metricKey: 'sr_road',
-    targetValue: 3.5,
-    currentValue: 3.22,
-    startingValue: 2.8,
-    unit: 'SR',
-    trackName: null,
-    carName: null,
-    discipline: 'road',
-    seriesName: null,
-    status: 'active',
-    priority: 7,
-    deadline: '2026-02-15',
-    source: 'ai_recommended',
-    aiRationale: 'Your SR of 3.22 is solid. Reaching 3.50 will unlock more series and improve your race quality.',
-    aiConfidence: 0.85,
-    progressPct: 60,
-    lastProgressUpdate: new Date().toISOString(),
-    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    achievedAt: null,
-  },
-  {
-    id: 'demo-3',
-    title: 'Complete 5 Clean Races',
-    description: 'Finish 5 races with 0x incidents to build consistency',
-    category: 'clean_races',
-    metricKey: 'clean_race_streak',
-    targetValue: 5,
-    currentValue: 2,
-    startingValue: 0,
-    unit: 'races',
-    trackName: null,
-    carName: null,
-    discipline: 'road',
-    seriesName: null,
-    status: 'active',
-    priority: 6,
-    deadline: null,
-    source: 'self_set',
-    aiRationale: null,
-    aiConfidence: null,
-    progressPct: 40,
-    lastProgressUpdate: new Date().toISOString(),
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    updatedAt: new Date().toISOString(),
-    achievedAt: null,
-  },
-];
-
-const DEMO_SUGGESTIONS: GoalSuggestion[] = [
-  {
-    title: 'Earn C License (Road)',
-    description: 'Advance to C class license in Road',
-    category: 'license',
-    metricKey: 'license_road',
-    targetValue: 3,
-    currentValue: 2,
-    unit: 'class',
-    rationale: "You're currently D class. Reaching C class will unlock GT3 and other competitive series.",
-    aiConfidence: 0.8,
-    priority: 7,
-    discipline: 'road',
-    estimatedTimelineDays: 30,
-  },
-  {
-    title: 'Win a Race',
-    description: 'Take the checkered flag first',
-    category: 'wins',
-    metricKey: 'race_wins',
-    targetValue: 1,
-    currentValue: 0,
-    unit: 'wins',
-    rationale: 'You have strong pace. Focus on qualifying well and managing the first lap to get that first win.',
-    aiConfidence: 0.7,
-    priority: 5,
-    discipline: null,
-    estimatedTimelineDays: null,
-  },
-];
+// NO DEMO DATA - Real racing system only shows real data
 
 // =====================================================================
 // Auth Helper
@@ -228,8 +114,8 @@ export async function fetchGoals(status?: string, category?: string): Promise<Go
   try {
     const auth = await getAuthHeader();
     if (!auth.Authorization) {
-      console.log('[Goals] No auth token, using demo data');
-      return DEMO_GOALS;
+      console.log('[Goals] No auth token');
+      return [];
     }
 
     const params = new URLSearchParams();
@@ -242,15 +128,15 @@ export async function fetchGoals(status?: string, category?: string): Promise<Go
     });
 
     if (!response.ok) {
-      console.log('[Goals] API error, using demo data');
-      return DEMO_GOALS;
+      console.log('[Goals] API error:', response.status);
+      return [];
     }
 
     const data = await response.json();
-    return data.goals || DEMO_GOALS;
+    return data.goals || [];
   } catch (error) {
     console.error('[Goals] Error fetching goals:', error);
-    return DEMO_GOALS;
+    return [];
   }
 }
 
@@ -261,7 +147,8 @@ export async function fetchGoalSuggestions(): Promise<GoalSuggestion[]> {
   try {
     const auth = await getAuthHeader();
     if (!auth.Authorization) {
-      return DEMO_SUGGESTIONS;
+      console.log('[Goals] No auth token');
+      return [];
     }
 
     const response = await fetch(`${API_BASE}/api/v1/goals/suggestions`, {
@@ -269,14 +156,15 @@ export async function fetchGoalSuggestions(): Promise<GoalSuggestion[]> {
     });
 
     if (!response.ok) {
-      return DEMO_SUGGESTIONS;
+      console.log('[Goals] Suggestions API error:', response.status);
+      return [];
     }
 
     const data = await response.json();
-    return data.suggestions || DEMO_SUGGESTIONS;
+    return data.suggestions || [];
   } catch (error) {
     console.error('[Goals] Error fetching suggestions:', error);
-    return DEMO_SUGGESTIONS;
+    return [];
   }
 }
 

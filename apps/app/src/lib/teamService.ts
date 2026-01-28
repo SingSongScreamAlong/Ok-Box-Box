@@ -92,42 +92,7 @@ export interface Team {
   secondaryColor: string | null;
 }
 
-// =====================================================================
-// Demo Data
-// =====================================================================
-
-const DEMO_TEAM: Team = {
-  id: 'demo-team',
-  name: 'Demo Racing Team',
-  shortName: 'DRT',
-  logoUrl: null,
-  primaryColor: '#f97316',
-  secondaryColor: '#1e1e1e'
-};
-
-const DEMO_DRIVERS: TeamDriver[] = [
-  { id: 'd1', membershipId: 'm1', displayName: 'Alex Thompson', role: 'driver', joinedAt: '2025-06-01', discipline: 'road', irating: { road: 2450, oval: null }, safetyRating: { road: 3.8, oval: null }, license: { road: 'A', oval: null }, available: true },
-  { id: 'd2', membershipId: 'm2', displayName: 'Sarah Chen', role: 'driver', joinedAt: '2025-07-15', discipline: 'road', irating: { road: 2100, oval: 1800 }, safetyRating: { road: 4.2, oval: 3.5 }, license: { road: 'A', oval: 'B' }, available: true },
-  { id: 'd3', membershipId: 'm3', displayName: 'Marcus Williams', role: 'driver', joinedAt: '2025-08-01', discipline: 'oval', irating: { road: 1650, oval: 2800 }, safetyRating: { road: 3.2, oval: 4.5 }, license: { road: 'B', oval: 'A' }, available: true },
-  { id: 'd4', membershipId: 'm4', displayName: 'Emma Rodriguez', role: 'reserve', joinedAt: '2025-09-10', discipline: 'road', irating: { road: 1900, oval: null }, safetyRating: { road: 3.6, oval: null }, license: { road: 'B', oval: null }, available: false },
-];
-
-const DEMO_EVENTS: TeamEvent[] = [
-  { id: 'e1', name: 'Daytona 24 Hours', seriesName: 'IMSA Endurance', trackName: 'Daytona International Speedway', trackConfig: 'Road Course', eventDate: '2026-02-01T14:00:00Z', durationMinutes: 1440, totalLaps: null, status: 'upcoming', carClass: 'GT3', weatherType: 'Dynamic', finishPosition: null, classPosition: null, lapsCompleted: null, totalIncidents: null },
-  { id: 'e2', name: 'Spa 6 Hours', seriesName: 'IMSA Endurance', trackName: 'Circuit de Spa-Francorchamps', trackConfig: null, eventDate: '2026-02-15T10:00:00Z', durationMinutes: 360, totalLaps: null, status: 'upcoming', carClass: 'GT3', weatherType: 'Clear', finishPosition: null, classPosition: null, lapsCompleted: null, totalIncidents: null },
-  { id: 'e3', name: 'Sebring 12 Hours', seriesName: 'IMSA Endurance', trackName: 'Sebring International Raceway', trackConfig: null, eventDate: '2026-01-20T10:00:00Z', durationMinutes: 720, totalLaps: null, status: 'completed', carClass: 'GT3', weatherType: 'Clear', finishPosition: 4, classPosition: 2, lapsCompleted: 312, totalIncidents: 8 },
-];
-
-const DEMO_RACE_PLANS: RacePlan[] = [
-  { id: 'rp1', name: 'Plan A - Conservative', description: 'Safe fuel strategy with extra margin', eventId: 'e1', eventName: 'Daytona 24 Hours', trackName: 'Daytona International Speedway', isActive: true, status: 'active', totalPitStops: 28, fuelStrategy: 'conservative', tireStrategy: 'multi_stint', targetLapTimeMs: 108500, fuelPerLap: 2.8, notes: 'Primary strategy', createdAt: '2026-01-15T10:00:00Z' },
-  { id: 'rp2', name: 'Plan B - Aggressive', description: 'Push pace, shorter stints', eventId: 'e1', eventName: 'Daytona 24 Hours', trackName: 'Daytona International Speedway', isActive: false, status: 'draft', totalPitStops: 32, fuelStrategy: 'aggressive', tireStrategy: 'multi_stint', targetLapTimeMs: 107800, fuelPerLap: 3.1, notes: 'If we need to make up time', createdAt: '2026-01-15T11:00:00Z' },
-];
-
-const DEMO_STINTS: Stint[] = [
-  { id: 's1', stintNumber: 1, driverId: 'd1', driverName: 'Alex Thompson', startLap: 1, endLap: 32, estimatedDurationMinutes: 58, fuelLoad: 90, fuelTargetLaps: 32, tireCompound: 'Medium', tireChange: false, status: 'planned', actualLaps: null, actualAvgLapMs: null, actualBestLapMs: null, actualIncidents: null, notes: 'Opening stint' },
-  { id: 's2', stintNumber: 2, driverId: 'd2', driverName: 'Sarah Chen', startLap: 33, endLap: 64, estimatedDurationMinutes: 56, fuelLoad: 90, fuelTargetLaps: 32, tireCompound: 'Medium', tireChange: true, status: 'planned', actualLaps: null, actualAvgLapMs: null, actualBestLapMs: null, actualIncidents: null, notes: null },
-  { id: 's3', stintNumber: 3, driverId: 'd3', driverName: 'Marcus Williams', startLap: 65, endLap: 96, estimatedDurationMinutes: 56, fuelLoad: 90, fuelTargetLaps: 32, tireCompound: 'Medium', tireChange: true, status: 'planned', actualLaps: null, actualAvgLapMs: null, actualBestLapMs: null, actualIncidents: null, notes: null },
-];
+// NO DEMO DATA - Real racing system only shows real data
 
 // =====================================================================
 // Auth Helper
@@ -148,11 +113,12 @@ async function getAuthHeader(): Promise<Record<string, string>> {
 /**
  * Fetch team details
  */
-export async function fetchTeam(teamId: string): Promise<Team> {
+export async function fetchTeam(teamId: string): Promise<Team | null> {
   try {
     const auth = await getAuthHeader();
     if (!auth.Authorization) {
-      return DEMO_TEAM;
+      console.log('[Team] No auth token');
+      return null;
     }
 
     const response = await fetch(`${API_BASE}/api/v1/teams/${teamId}`, {
@@ -160,13 +126,14 @@ export async function fetchTeam(teamId: string): Promise<Team> {
     });
 
     if (!response.ok) {
-      return DEMO_TEAM;
+      console.log('[Team] API error:', response.status);
+      return null;
     }
 
     return await response.json();
   } catch (error) {
     console.error('[Team] Error fetching team:', error);
-    return DEMO_TEAM;
+    return null;
   }
 }
 
@@ -177,7 +144,8 @@ export async function fetchTeamDrivers(teamId: string): Promise<TeamDriver[]> {
   try {
     const auth = await getAuthHeader();
     if (!auth.Authorization) {
-      return DEMO_DRIVERS;
+      console.log('[Team] No auth token');
+      return [];
     }
 
     const response = await fetch(`${API_BASE}/api/v1/teams/${teamId}/drivers`, {
@@ -185,14 +153,15 @@ export async function fetchTeamDrivers(teamId: string): Promise<TeamDriver[]> {
     });
 
     if (!response.ok) {
-      return DEMO_DRIVERS;
+      console.log('[Team] Drivers API error:', response.status);
+      return [];
     }
 
     const data = await response.json();
-    return data.drivers || DEMO_DRIVERS;
+    return data.drivers || [];
   } catch (error) {
     console.error('[Team] Error fetching drivers:', error);
-    return DEMO_DRIVERS;
+    return [];
   }
 }
 
@@ -203,7 +172,8 @@ export async function fetchTeamEvents(teamId: string, status?: string): Promise<
   try {
     const auth = await getAuthHeader();
     if (!auth.Authorization) {
-      return DEMO_EVENTS;
+      console.log('[Team] No auth token');
+      return [];
     }
 
     const params = status ? `?status=${status}` : '';
@@ -212,14 +182,15 @@ export async function fetchTeamEvents(teamId: string, status?: string): Promise<
     });
 
     if (!response.ok) {
-      return DEMO_EVENTS;
+      console.log('[Team] Events API error:', response.status);
+      return [];
     }
 
     const data = await response.json();
-    return data.events || DEMO_EVENTS;
+    return data.events || [];
   } catch (error) {
     console.error('[Team] Error fetching events:', error);
-    return DEMO_EVENTS;
+    return [];
   }
 }
 
@@ -257,7 +228,8 @@ export async function fetchRacePlans(teamId: string, eventId?: string): Promise<
   try {
     const auth = await getAuthHeader();
     if (!auth.Authorization) {
-      return DEMO_RACE_PLANS;
+      console.log('[Team] No auth token');
+      return [];
     }
 
     const params = eventId ? `?eventId=${eventId}` : '';
@@ -266,14 +238,15 @@ export async function fetchRacePlans(teamId: string, eventId?: string): Promise<
     });
 
     if (!response.ok) {
-      return DEMO_RACE_PLANS;
+      console.log('[Team] Race plans API error:', response.status);
+      return [];
     }
 
     const data = await response.json();
-    return data.plans || DEMO_RACE_PLANS;
+    return data.plans || [];
   } catch (error) {
     console.error('[Team] Error fetching race plans:', error);
-    return DEMO_RACE_PLANS;
+    return [];
   }
 }
 
@@ -333,7 +306,8 @@ export async function fetchStints(teamId: string, planId: string): Promise<Stint
   try {
     const auth = await getAuthHeader();
     if (!auth.Authorization) {
-      return DEMO_STINTS;
+      console.log('[Team] No auth token');
+      return [];
     }
 
     const response = await fetch(`${API_BASE}/api/v1/teams/${teamId}/race-plans/${planId}/stints`, {
@@ -341,14 +315,15 @@ export async function fetchStints(teamId: string, planId: string): Promise<Stint
     });
 
     if (!response.ok) {
-      return DEMO_STINTS;
+      console.log('[Team] Stints API error:', response.status);
+      return [];
     }
 
     const data = await response.json();
-    return data.stints || DEMO_STINTS;
+    return data.stints || [];
   } catch (error) {
     console.error('[Team] Error fetching stints:', error);
-    return DEMO_STINTS;
+    return [];
   }
 }
 

@@ -83,12 +83,11 @@ interface RelayContextValue {
 
 const RelayContext = createContext<RelayContextValue | null>(null);
 
-// Default to mock mode enabled for demo/development
+// Default to real mode - mock only if explicitly enabled
 const getInitialMockState = (): boolean => {
   const envValue = import.meta.env.VITE_RELAY_MOCK;
-  if (envValue === 'false') return false;
-  // Default to true for demo purposes
-  return true;
+  // Only enable mock if explicitly set to 'true'
+  return envValue === 'true';
 };
 
 console.log('[Relay] Initial mock mode:', getInitialMockState());
