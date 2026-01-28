@@ -18,7 +18,7 @@
  */
 
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
-import { X, Download, RefreshCw, Eye, EyeOff, List, CheckCircle, XCircle, AlertTriangle, Circle } from 'lucide-react';
+import { X, Download, RefreshCw, Eye, EyeOff, List, CheckCircle, XCircle, AlertTriangle, Circle, MousePointer, MousePointerClick } from 'lucide-react';
 import { 
   generateElementId, 
   getPageInfo, 
@@ -412,6 +412,19 @@ function AuditOverlayUI() {
   const [showPanel, setShowPanel] = useState(true);
   const [filter, setFilter] = useState<'all' | 'untested' | 'working' | 'broken' | 'needs-work'>('all');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [clickThrough, setClickThrough] = useState(false); // When true, clicks pass through to actual elements
+
+  // Keyboard shortcut: Ctrl+Shift+C to toggle click-through mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        setClickThrough(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const filteredElements = state.elements.filter(el => {
     if (filter === 'all') return true;
@@ -448,41 +461,53 @@ function AuditOverlayUI() {
         return (
           <div
             key={el.id}
-            className="absolute pointer-events-auto cursor-pointer transition-all"
+            className={`absolute transition-all ${
+              clickThrough 
+                ? 'pointer-events-none' 
+                : 'pointer-events-auto cursor-pointer'
+            }`}
             style={{
               left: el.rect.left + window.scrollX,
               top: el.rect.top + window.scrollY,
               width: el.rect.width,
               height: el.rect.height,
             }}
-            onClick={() => cycleStatus(el.id)}
-            onMouseEnter={() => setHoveredId(el.id)}
+            onClick={() => !clickThrough && cycleStatus(el.id)}
+            onMouseEnter={() => !clickThrough && setHoveredId(el.id)}
             onMouseLeave={() => setHoveredId(null)}
           >
-            {/* Outline */}
+            {/* Outline - only show border in click-through mode */}
             {(() => {
               const colors = getStatusColors(el.status);
               return (
                 <div 
-                  className={`absolute inset-0 border-2 transition-colors ${colors.border} ${colors.bg} ${isHovered ? 'border-4' : ''}`}
+                  className={`absolute inset-0 transition-colors ${
+                    clickThrough 
+                      ? `border border-dashed ${colors.border} opacity-50` 
+                      : `border-2 ${colors.border} ${colors.bg} ${isHovered ? 'border-4' : ''}`
+                  }`}
                 />
               );
             })()}
             
-            {/* ID Badge */}
+            {/* ID Badge - always visible, but smaller in click-through mode */}
             {(() => {
               const colors = getStatusColors(el.status);
               return (
                 <div 
-                  className={`absolute -top-4 -left-2 px-1 py-0.5 flex items-center justify-center text-[8px] font-bold ${colors.badge} text-white whitespace-nowrap`}
+                  className={`absolute -top-4 -left-2 px-1 py-0.5 flex items-center justify-center font-bold text-white whitespace-nowrap ${
+                    clickThrough 
+                      ? `text-[6px] ${colors.badge} opacity-70` 
+                      : `text-[8px] ${colors.badge}`
+                  }`}
                 >
                   {el.id}
                 </div>
               );
             })()}
 
-            {/* Tooltip on hover */}
-            {isHovered && (
+            {/* Tooltip on hover - only in normal mode */}
+            {isHovered && !clickThrough && (
               <div className="absolute left-0 top-full mt-1 bg-black/95 border border-white/20 px-3 py-2 text-[10px] text-white whitespace-nowrap z-50 min-w-[200px]">
                 <div className="font-bold text-[11px] mb-1">{el.id}</div>
                 <div className="text-white/50 uppercase text-[9px]">{el.type}</div>
@@ -501,14 +526,21 @@ function AuditOverlayUI() {
           data-audit-overlay="true"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-red-500/10">
+          <div className={`flex items-center justify-between px-4 py-3 border-b border-white/10 ${clickThrough ? 'bg-green-500/20' : 'bg-red-500/10'}`}>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+              <div className={`w-3 h-3 rounded-full animate-pulse ${clickThrough ? 'bg-green-500' : 'bg-red-500'}`} />
               <span className="text-sm font-bold text-white uppercase tracking-wider">
-                Audit Mode
+                {clickThrough ? 'Test Mode' : 'Audit Mode'}
               </span>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setClickThrough(prev => !prev)}
+                className={`p-1 ${clickThrough ? 'text-green-400' : 'text-white/50'} hover:text-white`}
+                title={clickThrough ? 'Switch to Audit Mode (Ctrl+Shift+C)' : 'Switch to Test Mode (Ctrl+Shift+C)'}
+              >
+                {clickThrough ? <MousePointerClick size={14} /> : <MousePointer size={14} />}
+              </button>
               <button
                 onClick={() => setShowPanel(false)}
                 className="p-1 text-white/50 hover:text-white"
@@ -523,6 +555,14 @@ function AuditOverlayUI() {
               </button>
             </div>
           </div>
+          
+          {/* Click-through mode indicator */}
+          {clickThrough && (
+            <div className="px-4 py-2 bg-green-500/10 border-b border-green-500/20 text-[10px] text-green-400">
+              <strong>TEST MODE:</strong> Clicks pass through to actual buttons. IDs still visible.
+              <br />Press <kbd className="px-1 bg-white/10 rounded">Ctrl+Shift+C</kbd> to switch back.
+            </div>
+          )}
 
           {/* Progress */}
           <div className="px-4 py-3 border-b border-white/10">
