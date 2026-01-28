@@ -111,8 +111,8 @@ static_sites:
       repo: SingSongScreamAlong/Ok-Box-Box
       branch: main
       deploy_on_push: true
-    build_command: npm ci && npm run build -w packages/dashboard
-    output_dir: packages/dashboard/dist
+    build_command: npm ci && npm run build -w apps/app
+    output_dir: apps/app/dist
     index_document: index.html
     error_document: index.html
     
