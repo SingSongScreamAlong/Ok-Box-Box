@@ -285,14 +285,17 @@ export class TelemetryHandler {
                     remainingTime: rawData.sessionTimeRemain || 0
                 });
                 
-                // Emit competitor_data for standings
-                if (rawData.standings && rawData.standings.length > 0) {
-                    const competitorData = rawData.standings.map((s: any) => ({
-                        position: s.position || 0,
-                        driver: s.driverName || `Car ${s.carIdx}`,
-                        gap: s.isPlayer ? '—' : '+0.000',
-                        lastLap: s.lastLapTime > 0 ? this.formatLapTime(s.lastLapTime) : '—'
-                    }));
+                // Emit competitor_data for standings (use drivers array from relay)
+                const standings = rawData.standings || rawData.drivers || validData.cars;
+                if (standings && standings.length > 0) {
+                    const competitorData = standings
+                        .sort((a: any, b: any) => (a.position || 0) - (b.position || 0))
+                        .map((s: any) => ({
+                            position: s.position || 0,
+                            driver: s.driverName || s.driverName || `Car ${s.carId || s.carIdx}`,
+                            gap: s.isPlayer ? '—' : (s.gapToLeader ? `+${s.gapToLeader.toFixed(1)}s` : '--'),
+                            lastLap: s.lastLapTime > 0 ? this.formatLapTime(s.lastLapTime) : '—'
+                        }));
                     this.io.volatile.emit('competitor_data', competitorData);
                 }
             }
