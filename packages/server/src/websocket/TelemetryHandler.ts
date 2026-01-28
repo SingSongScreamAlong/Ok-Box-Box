@@ -138,8 +138,11 @@ export class TelemetryHandler {
                 }
             }
 
+            // Validate but don't block - always try to broadcast telemetry
             const isValid = relayAdapter.handleTelemetry(data);
-            if (!isValid) return;
+            if (!isValid) {
+                console.log('[TelemetryHandler] Validation failed but continuing with broadcast');
+            }
 
             const validData = data as any;
 
