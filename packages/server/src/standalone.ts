@@ -13,6 +13,14 @@ import { getViewerTracker } from './services/telemetry/viewer-tracker.js';
 const PORT = parseInt(process.env.PORT || '3001', 10);
 const HOST = process.env.HOST || 'localhost';
 
+// Helper to format lap time in seconds to MM:SS.mmm
+function formatLapTime(seconds: number): string {
+    if (!seconds || seconds <= 0) return '—';
+    const mins = Math.floor(seconds / 60);
+    const secs = (seconds % 60).toFixed(3);
+    return mins > 0 ? `${mins}:${secs.padStart(6, '0')}` : secs;
+}
+
 console.log('🏎️  ControlBox Standalone Server Starting...');
 console.log(`   Mode: Standalone (no database)`);
 console.log(`   Port: ${PORT}`);
@@ -111,6 +119,13 @@ io.on('connection', (socket: Socket) => {
                 trackName: metadata.trackName || 'Unknown Track',
                 sessionType: metadata.sessionType || 'practice'
             });
+            // Emit session_info for LROC/dashboard compatibility
+            socket.broadcast.emit('session_info', {
+                track: metadata.trackName || 'Unknown Track',
+                session: metadata.sessionType || 'practice',
+                driver: 'Driver',
+                car: 'Unknown Car'
+            });
             console.log(`📡 Broadcasting session:active for ${metadata.sessionId}`);
         }
     });
@@ -125,9 +140,41 @@ io.on('connection', (socket: Socket) => {
             });
         }
         // Broadcast to all dashboard clients
-        // Emit both event names for compatibility with different dashboard versions
         socket.broadcast.emit('telemetry:update', data);
-        socket.broadcast.emit('telemetry_update', data);  // Legacy dashboard format
+        
+        // Format telemetry for LROC/dashboard compatibility
+        const driverCar = telemetryData.cars?.[0] || telemetryData.drivers?.[0];
+        if (driverCar) {
+            const formattedTelemetry = {
+                speed: driverCar.speed ? Math.round(driverCar.speed * 2.237) : 0, // m/s to mph
+                rpm: driverCar.rpm || 0,
+                gear: driverCar.gear || 0,
+                throttle: driverCar.throttle ? driverCar.throttle * 100 : 0,
+                brake: driverCar.brake ? driverCar.brake * 100 : 0,
+                lap: driverCar.lap || driverCar.lapNumber || 0,
+                position: driverCar.position || 0,
+                lastLapTime: driverCar.lastLapTime || 0,
+                bestLapTime: driverCar.bestLapTime || 0,
+                trackPosition: driverCar.lapDistPct || driverCar.pos?.s || 0,
+                fuel: { level: driverCar.fuelLevel || 0 },
+                timestamp: Date.now()
+            };
+            socket.broadcast.emit('telemetry_update', formattedTelemetry);
+        }
+        
+        // Emit competitor_data for leaderboard
+        const standings = telemetryData.drivers || telemetryData.cars;
+        if (standings && standings.length > 0) {
+            const competitorData = standings
+                .sort((a: any, b: any) => (a.position || 0) - (b.position || 0))
+                .map((s: any) => ({
+                    position: s.position || 0,
+                    driver: s.driverName || `Car ${s.carId || s.carIdx}`,
+                    gap: s.isPlayer ? '—' : (s.gapToLeader ? `+${s.gapToLeader.toFixed(1)}s` : '--'),
+                    lastLap: s.lastLapTime > 0 ? formatLapTime(s.lastLapTime) : '—'
+                }));
+            socket.broadcast.emit('competitor_data', competitorData);
+        }
     });
 
     // v2: Baseline stream (4Hz)
