@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import { Calendar, Users, Clock, Plus, ChevronDown, ChevronUp, Flag, AlertCircle, Edit, Trash2, UserPlus, Loader2 } from 'lucide-react';
+import { useParams, Link } from 'react-router-dom';
+import { Calendar, Users, Clock, Plus, ChevronDown, ChevronUp, Flag, AlertCircle, Edit, Trash2, UserPlus, Loader2, Target, ChevronRight } from 'lucide-react';
 
 // Types from legacy
 interface PlanEvent {
@@ -171,10 +171,20 @@ export function PitwallPlanning() {
           </h1>
           <p className="text-sm mt-1 text-white/50">Event scheduling & driver assignments</p>
         </div>
-        <button className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] text-white px-4 py-2 text-xs font-semibold uppercase tracking-wider hover:bg-white/[0.06] transition-colors">
-          <Plus size={14} />
-          Add Event
-        </button>
+        <div className="flex items-center gap-3">
+          <Link 
+            to={`/team/${teamId}/pitwall/race-plan`}
+            className="flex items-center gap-2 bg-purple-500/20 border border-purple-500/50 text-purple-400 px-4 py-2 text-xs font-semibold uppercase tracking-wider hover:bg-purple-500/30 transition-colors"
+          >
+            <Target size={14} />
+            Race Plan
+            <ChevronRight size={14} />
+          </Link>
+          <button className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] text-white px-4 py-2 text-xs font-semibold uppercase tracking-wider hover:bg-white/[0.06] transition-colors">
+            <Plus size={14} />
+            Add Event
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -52,6 +52,7 @@ import { DriverHUD } from './pages/driver/DriverHUD';
 import { DriverVoice } from './pages/driver/DriverVoice';
 import { DriverComparison } from './pages/pitwall/DriverComparison';
 import { StintPlanner } from './pages/pitwall/StintPlanner';
+import { RacePlan } from './pages/pitwall/RacePlan';
 import { BroadcastGraphics } from './pages/league/BroadcastGraphics';
 import { CreateEvent } from './pages/CreateEvent';
 import { EventView } from './pages/EventView';
@@ -143,6 +144,7 @@ function App() {
           <Route path="pitwall/practice" element={<PitwallPractice />} />
           <Route path="pitwall/roster" element={<PitwallRoster />} />
           <Route path="pitwall/planning" element={<PitwallPlanning />} />
+          <Route path="pitwall/race-plan" element={<RacePlan />} />
           <Route path="pitwall/race" element={<TeamRaceViewer />} />
           <Route path="pitwall/compare" element={<DriverComparison />} />
           <Route path="pitwall/stint-planner" element={<StintPlanner />} />
