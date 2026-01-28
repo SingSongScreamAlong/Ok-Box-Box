@@ -6,52 +6,8 @@ import {
   MapPin, RotateCcw, Download, Target, Edit2
 } from 'lucide-react';
 import { TrackMap } from '../../components/TrackMap';
-
-// Types
-interface Driver {
-  id: string;
-  name: string;
-  shortName: string;
-  number: string;
-  color: string;
-  avgLapTime: number; // ms
-  fuelPerLap: number; // liters
-  maxStintLaps: number;
-  available: boolean;
-}
-
-interface Stint {
-  id: string;
-  driverId: string;
-  startLap: number;
-  endLap: number;
-  laps: number;
-  fuelLoad: number;
-  tireCompound: 'soft' | 'medium' | 'hard' | 'wet' | 'inter';
-  estimatedTime: number; // ms
-  notes: string;
-}
-
-interface RacePlanData {
-  id: string;
-  name: string;
-  isActive: boolean;
-  stints: Stint[];
-  totalLaps: number;
-  estimatedTime: number;
-  fuelUsed: number;
-  pitStops: number;
-}
-
-interface PlanChange {
-  id: string;
-  timestamp: Date;
-  type: 'stint_change' | 'driver_change' | 'fuel_change' | 'strategy_change';
-  description: string;
-  sentToDrivers: boolean;
-  confirmedBy: string[];
-  pendingConfirmation: string[];
-}
+import { useTeamData } from '../../hooks/useTeamData';
+import type { Stint } from '../../services/mockData/types';
 
 interface RaceConfig {
   trackId: string;
@@ -65,13 +21,26 @@ interface RaceConfig {
   maxDriverTime: number; // minutes
 }
 
-// Mock data
-const mockDrivers: Driver[] = [
-  { id: 'd1', name: 'Alex Rivera', shortName: 'ALX', number: '42', color: '#22c55e', avgLapTime: 117000, fuelPerLap: 2.8, maxStintLaps: 35, available: true },
-  { id: 'd2', name: 'Jordan Chen', shortName: 'JOR', number: '17', color: '#3b82f6', avgLapTime: 117500, fuelPerLap: 2.9, maxStintLaps: 32, available: true },
-  { id: 'd3', name: 'Sam Williams', shortName: 'SAM', number: '88', color: '#f97316', avgLapTime: 118000, fuelPerLap: 3.0, maxStintLaps: 30, available: true },
-  { id: 'd4', name: 'Casey Morgan', shortName: 'CAS', number: '23', color: '#a855f7', avgLapTime: 117200, fuelPerLap: 2.85, maxStintLaps: 33, available: false },
-];
+interface RacePlanData {
+  id: string;
+  name: string;
+  isActive: boolean;
+  stints: Stint[];
+  totalLaps: number;
+  estimatedTime: number;
+  fuelUsed: number;
+  pitStops: number;
+}
+
+interface LocalPlanChange {
+  id: string;
+  timestamp: Date;
+  type: 'stint_change' | 'driver_change' | 'fuel_change' | 'strategy_change';
+  description: string;
+  sentToDrivers: boolean;
+  confirmedBy: string[];
+  pendingConfirmation: string[];
+}
 
 const defaultConfig: RaceConfig = {
   trackId: '191',
@@ -107,13 +76,13 @@ const tireColors: Record<string, string> = {
 export function RacePlan() {
   const { teamId } = useParams<{ teamId: string }>();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const { drivers } = useTeamData();
   
-  const [config, setConfig] = useState<RaceConfig>(defaultConfig);
-  const [drivers] = useState<Driver[]>(mockDrivers);
+  const [config] = useState<RaceConfig>(defaultConfig);
   const [selectedDrivers, setSelectedDrivers] = useState<string[]>(['d1', 'd2', 'd3']);
   const [activePlan, setActivePlan] = useState<'A' | 'B' | 'C'>('A');
   const [showConfig, setShowConfig] = useState(false);
-  const [pendingChanges, setPendingChanges] = useState<PlanChange[]>([]);
+  const [pendingChanges, setPendingChanges] = useState<LocalPlanChange[]>([]);
   
   // Plans A, B, C
   const [plans, setPlans] = useState<Record<'A' | 'B' | 'C', RacePlanData>>({
@@ -182,7 +151,7 @@ export function RacePlan() {
   };
 
   const sendPlanToDrivers = () => {
-    const change: PlanChange = {
+    const change: LocalPlanChange = {
       id: `change-${Date.now()}`,
       timestamp: new Date(),
       type: 'strategy_change',
