@@ -6,8 +6,7 @@
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import express from 'express';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { join } from 'path';
 import cors from 'cors';
 import { getViewerTracker } from './services/telemetry/viewer-tracker.js';
 
@@ -49,8 +48,7 @@ app.get('/api/health/telemetry', (_req, res) => {
 });
 
 // Serve legacy BlackBox dashboard at /blackbox
-const currentDir = dirname(fileURLToPath(import.meta.url));
-const blackboxPath = join(currentDir, '../public/blackbox');
+const blackboxPath = join(process.cwd(), 'public/blackbox');
 app.use('/blackbox', express.static(blackboxPath));
 app.get('/blackbox/*', (_req, res) => {
     res.sendFile(join(blackboxPath, 'index.html'));

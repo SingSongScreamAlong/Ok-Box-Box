@@ -225,37 +225,38 @@ export class TelemetryHandler {
             // LROC COMPATIBILITY: Broadcast telemetry_update in legacy format
             // This allows the Live Race Ops Console to receive telemetry data
             if (driverCar) {
+                const driverSpeedMph = driverCar.speed ? Math.round(driverCar.speed * 2.237) : 0;
                 const lrocTelemetry = {
                     driverId: driverCar.driverId || String(driverCar.carId),
                     driverName: driverCar.driverName || 'Driver',
-                    speed: speedMph || 0,
-                    rpm: car?.rpm || 0,
-                    gear: car?.gear || 0,
-                    throttle: car?.throttle ? car.throttle * 100 : 0,
-                    brake: car?.brake ? car.brake * 100 : 0,
-                    clutch: car?.clutch ? car.clutch * 100 : 0,
-                    steering: car?.steeringAngle || 0,
+                    speed: driverSpeedMph,
+                    rpm: driverCar.rpm || 0,
+                    gear: driverCar.gear || 0,
+                    throttle: driverCar.throttle ? driverCar.throttle * 100 : 0,
+                    brake: driverCar.brake ? driverCar.brake * 100 : 0,
+                    clutch: driverCar.clutch ? driverCar.clutch * 100 : 0,
+                    steering: driverCar.steeringAngle || 0,
                     fuel: {
-                        level: car?.fuelLevel || 0,
-                        usagePerHour: car?.fuelUsePerHour || 0
+                        level: driverCar.fuelLevel || 0,
+                        usagePerHour: driverCar.fuelUsePerHour || 0
                     },
                     tires: {
-                        frontLeft: { temp: 0, wear: car?.tireLFwear || 1, pressure: 0 },
-                        frontRight: { temp: 0, wear: car?.tireRFwear || 1, pressure: 0 },
-                        rearLeft: { temp: 0, wear: car?.tireLRwear || 1, pressure: 0 },
-                        rearRight: { temp: 0, wear: car?.tireRRwear || 1, pressure: 0 }
+                        frontLeft: { temp: 0, wear: driverCar.tireLFwear || 1, pressure: 0 },
+                        frontRight: { temp: 0, wear: driverCar.tireRFwear || 1, pressure: 0 },
+                        rearLeft: { temp: 0, wear: driverCar.tireLRwear || 1, pressure: 0 },
+                        rearRight: { temp: 0, wear: driverCar.tireRRwear || 1, pressure: 0 }
                     },
                     position: { x: 0, y: 0, z: 0 },
-                    lap: car?.lap || 0,
+                    lap: driverCar.lap || 0,
                     sector: 0,
-                    lapTime: car?.lastLapTime || 0,
+                    lapTime: driverCar.lastLapTime || 0,
                     sectorTime: 0,
-                    bestLapTime: car?.bestLapTime || 0,
-                    deltaToBestLap: car?.deltaToSessionBest || 0,
+                    bestLapTime: driverCar.bestLapTime || 0,
+                    deltaToBestLap: driverCar.deltaToSessionBest || 0,
                     bestSectorTimes: [],
                     gForce: { lateral: 0, longitudinal: 0, vertical: 0 },
-                    trackPosition: car?.lapDistPct || 0,
-                    racePosition: car?.position || 0,
+                    trackPosition: driverCar.lapDistPct || 0,
+                    racePosition: driverCar.position || 0,
                     gapAhead: 0,
                     gapBehind: 0,
                     flags: 0,
