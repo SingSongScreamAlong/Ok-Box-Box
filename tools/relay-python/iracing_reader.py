@@ -43,6 +43,7 @@ class CarData:
     incident_count: int
     last_lap_time: float
     best_lap_time: float
+    is_player: bool = False    # True if this is the player's car
     # Track map coordinates (NEW)
     lat: float = 0.0           # Latitude (player car only)
     lon: float = 0.0           # Longitude (player car only)
@@ -239,6 +240,7 @@ class IRacingReader:
                     incident_count=incident_count,
                     last_lap_time=last_lap_times[car_idx] if car_idx < len(last_lap_times) else 0,
                     best_lap_time=best_lap_times[car_idx] if car_idx < len(best_lap_times) else 0,
+                    is_player=is_player,
                     # Coordinate fields (player car only)
                     lat=player_lat if is_player else 0,
                     lon=player_lon if is_player else 0,

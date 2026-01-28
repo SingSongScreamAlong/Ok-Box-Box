@@ -185,7 +185,9 @@ class RelayAgent:
         incidents = self.ir_reader.detect_incidents()
         
         for incident_data in incidents:
-            logger.warning(f"⚠️ Incident detected: {incident_data['driver_names']}")
+            involved = incident_data.get('involved_cars', [])
+            driver_names = [c.get('driverName', 'Unknown') for c in involved]
+            logger.warning(f"⚠️ Incident detected: {', '.join(driver_names)}")
             
             incident = map_incident(
                 self.session_id,

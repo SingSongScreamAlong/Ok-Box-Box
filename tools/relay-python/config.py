@@ -4,7 +4,7 @@ ControlBox Relay Agent - Configuration
 import os
 
 # ControlBox Cloud Connection
-CLOUD_URL = os.getenv('CONTROLBOX_CLOUD_URL', 'https://coral-app-x988a.ondigitalocean.app')
+CLOUD_URL = os.getenv('CONTROLBOX_CLOUD_URL', 'https://octopus-app-qsi3i.ondigitalocean.app')
 
 # Relay Identification
 RELAY_ID = os.getenv('RELAY_ID', 'relay-default')
