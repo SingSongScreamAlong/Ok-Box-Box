@@ -10,6 +10,8 @@ export interface CarMapPosition {
   position?: number;
   color?: string;
   isPlayer?: boolean;
+  gap?: string;
+  lastLap?: string;
 }
 
 export interface TelemetryData {
@@ -299,7 +301,21 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     // Competitor data for leaderboard
     socket.on('competitor_data', (data: any[]) => {
       console.log('[Relay] Competitor data:', data?.length, 'cars');
-      // Could update otherCars here if needed
+      if (data && Array.isArray(data)) {
+        setTelemetry(prev => ({
+          ...prev,
+          otherCars: data.map((car, idx) => ({
+            trackPercentage: 0,
+            carNumber: String(car.position || idx + 1),
+            driverName: car.driver || `Car ${idx + 1}`,
+            position: car.position || idx + 1,
+            gap: car.gap,
+            lastLap: car.lastLap,
+            color: '#374151',
+            isPlayer: car.gap === '—',
+          })),
+        }));
+      }
     });
 
     // Session ended
