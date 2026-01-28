@@ -1,18 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
-import { fetchDriverProfile, DriverIdentityProfile, getDisciplineLabel, getLicenseColor } from '../../lib/driverService';
+import { useEffect, useRef } from 'react';
+import { useDriverData } from '../../hooks/useDriverData';
+import { getDisciplineLabel, getLicenseColor } from '../../lib/driverService';
 import { Award, Shield, TrendingUp, Loader2 } from 'lucide-react';
 
 export function DriverRatings() {
-  const [profile, setProfile] = useState<DriverIdentityProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { profile, loading } = useDriverData();
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    fetchDriverProfile().then((data) => {
-      setProfile(data);
-      setLoading(false);
-    });
-  }, []);
 
   useEffect(() => {
     if (videoRef.current) {

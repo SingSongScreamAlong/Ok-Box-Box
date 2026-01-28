@@ -1,15 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  fetchDriverSessions, 
-  fetchDriverStats, 
-  fetchDriverProfile,
-  DriverSessionSummary, 
-  DriverStatsSnapshot,
-  DriverIdentityProfile,
-  getDisciplineLabel,
-  DriverDiscipline
-} from '../../lib/driverService';
+import { useDriverData } from '../../hooks/useDriverData';
+import { getDisciplineLabel, DriverDiscipline } from '../../lib/driverService';
 import { 
   Calendar, MapPin, Flag, Trophy, AlertTriangle, Loader2,
   TrendingUp, TrendingDown, Minus, Filter, ChevronRight,
@@ -29,27 +21,11 @@ interface TrackStats {
 }
 
 export function DriverHistory() {
-  const [sessions, setSessions] = useState<DriverSessionSummary[]>([]);
-  const [stats, setStats] = useState<DriverStatsSnapshot[]>([]);
-  const [profile, setProfile] = useState<DriverIdentityProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { sessions, stats, profile, loading } = useDriverData();
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [disciplineFilter, setDisciplineFilter] = useState<DriverDiscipline | 'all'>('all');
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    Promise.all([
-      fetchDriverSessions(),
-      fetchDriverStats(),
-      fetchDriverProfile()
-    ]).then(([sessionsData, statsData, profileData]) => {
-      setSessions(sessionsData);
-      setStats(statsData);
-      setProfile(profileData);
-      setLoading(false);
-    });
-  }, []);
 
   useEffect(() => {
     if (videoRef.current) {

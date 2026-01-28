@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useRelay } from '../hooks/useRelay';
+import { DriverDataProvider } from '../hooks/useDriverData';
 import { Settings, LogOut, User, ChevronDown, BarChart3, Users, Trophy, Zap, MessageSquare, TrendingUp } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
@@ -52,6 +53,7 @@ export function DriverLayout() {
   ];
 
   return (
+    <DriverDataProvider>
     <div className="min-h-screen bg-[--bg] flex flex-col">
       {/* Header */}
       <header className="border-b border-white/10 bg-[#0e0e0e] sticky top-0 z-50">
@@ -185,5 +187,6 @@ export function DriverLayout() {
         </span>
       </footer>
     </div>
+    </DriverDataProvider>
   );
 }
