@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { 
   TrendingUp, Target, Clock, ArrowLeft,
   ChevronRight, CheckCircle2, Circle, Lightbulb, BookOpen,
-  Flame, Zap, MessageSquare, Play, BarChart2, Loader2
+  Flame, Zap, MessageSquare, Play, BarChart2, Loader2, Plus, Sparkles
 } from 'lucide-react';
 import { 
   fetchDevelopmentData, 
@@ -12,6 +12,15 @@ import {
   type DevelopmentData,
   type Skill
 } from '../../lib/driverDevelopment';
+import { 
+  fetchGoals, 
+  fetchGoalSuggestions, 
+  acceptSuggestion,
+  type Goal, 
+  type GoalSuggestion 
+} from '../../lib/goalsService';
+import { GoalCard } from '../../components/GoalCard';
+import { CreateGoalModal } from '../../components/CreateGoalModal';
 
 const mockData: DevelopmentData = {
   currentPhase: 'Consistency Building',
@@ -147,18 +156,50 @@ export function DriverProgress() {
   const [data, setData] = useState<DevelopmentData>(mockData);
   const [loading, setLoading] = useState(true);
   const [expandedFocus, setExpandedFocus] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<'focus' | 'skills' | 'journey'>('focus');
+  const [activeSection, setActiveSection] = useState<'focus' | 'skills' | 'goals' | 'journey'>('focus');
+  
+  // Goals state
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [suggestions, setSuggestions] = useState<GoalSuggestion[]>([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
 
   const driverName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
 
-  // Fetch development data on mount
+  // Fetch development data and goals on mount
   useEffect(() => {
-    fetchDevelopmentData().then(devData => {
+    Promise.all([
+      fetchDevelopmentData(),
+      fetchGoals(),
+      fetchGoalSuggestions()
+    ]).then(([devData, goalsData, suggestionsData]) => {
       setData(devData);
+      setGoals(goalsData);
+      setSuggestions(suggestionsData);
       setExpandedFocus(devData.focusAreas[0]?.id || null);
       setLoading(false);
     });
   }, []);
+
+  // Refresh goals
+  const refreshGoals = async () => {
+    const [goalsData, suggestionsData] = await Promise.all([
+      fetchGoals(),
+      fetchGoalSuggestions()
+    ]);
+    setGoals(goalsData);
+    setSuggestions(suggestionsData);
+  };
+
+  // Accept a suggestion
+  const handleAcceptSuggestion = async (suggestion: GoalSuggestion) => {
+    setAcceptingId(suggestion.title);
+    const result = await acceptSuggestion(suggestion);
+    if (result) {
+      await refreshGoals();
+    }
+    setAcceptingId(null);
+  };
 
   // Handle drill completion toggle
   const handleDrillToggle = async (focusAreaId: string, drillName: string, completed: boolean) => {
@@ -237,22 +278,36 @@ export function DriverProgress() {
 
         {/* Goals */}
         <div className="p-4 border-b border-white/[0.06]">
-          <div className="text-[9px] uppercase tracking-wider text-white/30 mb-3 flex items-center gap-2">
-            <Flame className="w-3 h-3" />Active Goals
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[9px] uppercase tracking-wider text-white/30 flex items-center gap-2">
+              <Flame className="w-3 h-3" />Active Goals
+            </div>
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              className="p-1 rounded hover:bg-white/[0.05] text-white/40 hover:text-white/60 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
           </div>
           <div className="space-y-3">
-            {data.goals.map(goal => (
+            {goals.filter(g => g.status === 'active').slice(0, 4).map(goal => (
               <div key={goal.id}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] text-white/70">{goal.title}</span>
-                  <span className="text-[10px] font-mono text-white/50">{goal.current}/{goal.max}</span>
+                  <span className="text-[11px] text-white/70 truncate flex-1 mr-2">{goal.title}</span>
+                  <span className="text-[10px] font-mono text-white/50">{Math.round(goal.progressPct)}%</span>
                 </div>
                 <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden">
-                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(goal.current / goal.max) * 100}%` }} />
+                  <div 
+                    className={`h-full rounded-full ${goal.progressPct >= 75 ? 'bg-emerald-500' : goal.progressPct >= 50 ? 'bg-blue-500' : 'bg-amber-500'}`} 
+                    style={{ width: `${goal.progressPct}%` }} 
+                  />
                 </div>
-                {goal.deadline && <p className="text-[9px] text-white/30 mt-1">Due: {goal.deadline}</p>}
+                {goal.deadline && <p className="text-[9px] text-white/30 mt-1">Due: {new Date(goal.deadline).toLocaleDateString()}</p>}
               </div>
             ))}
+            {goals.filter(g => g.status === 'active').length === 0 && (
+              <p className="text-[10px] text-white/30 italic">No active goals yet</p>
+            )}
           </div>
         </div>
 
@@ -288,12 +343,12 @@ export function DriverProgress() {
               <p className="text-xs text-white/40 mt-1">Your development journey</p>
             </div>
             <div className="flex gap-1 bg-white/[0.03] rounded-lg p-1">
-              {(['focus', 'skills', 'journey'] as const).map(tab => (
+              {(['focus', 'skills', 'goals', 'journey'] as const).map(tab => (
                 <button key={tab} onClick={() => setActiveSection(tab)}
                   className={`px-3 py-1.5 rounded text-[10px] uppercase tracking-wider font-medium transition-all ${
                     activeSection === tab ? 'bg-[#f97316]/20 text-[#f97316] border border-[#f97316]/30' : 'text-white/50 hover:text-white/70'
                   }`}
-                >{tab === 'focus' ? 'Focus Areas' : tab === 'skills' ? 'Skill Tree' : 'Journey'}</button>
+                >{tab === 'focus' ? 'Focus Areas' : tab === 'skills' ? 'Skill Tree' : tab === 'goals' ? 'Goals' : 'Journey'}</button>
               ))}
             </div>
           </div>
@@ -421,6 +476,84 @@ export function DriverProgress() {
             </div>
           )}
 
+          {activeSection === 'goals' && (
+            <div className="space-y-6">
+              {/* AI Suggestions */}
+              {suggestions.length > 0 && (
+                <div className="bg-purple-500/10 backdrop-blur-xl border border-purple-500/20 rounded-lg overflow-hidden">
+                  <div className="px-4 py-3 border-b border-purple-500/20 flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-purple-400" />
+                    <h3 className="text-[10px] uppercase tracking-[0.15em] font-semibold text-purple-300" style={{ fontFamily: 'Orbitron, sans-serif' }}>AI Recommended Goals</h3>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {suggestions.map((suggestion, idx) => (
+                      <div key={idx} className="p-3 bg-white/[0.03] rounded-lg border border-white/[0.06]">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <h4 className="text-sm text-white/90">{suggestion.title}</h4>
+                            <p className="text-xs text-white/50 mt-1">{suggestion.rationale}</p>
+                            <div className="flex items-center gap-3 mt-2 text-[10px] text-white/40">
+                              <span>{suggestion.currentValue} → {suggestion.targetValue} {suggestion.unit}</span>
+                              {suggestion.discipline && <span className="px-1.5 py-0.5 bg-white/[0.05] rounded">{suggestion.discipline}</span>}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleAcceptSuggestion(suggestion)}
+                            disabled={acceptingId === suggestion.title}
+                            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-medium rounded transition-colors disabled:opacity-50"
+                          >
+                            {acceptingId === suggestion.title ? 'Adding...' : 'Accept'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Active Goals */}
+              <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg overflow-hidden">
+                <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-4 h-4 text-blue-400" />
+                    <h3 className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/70" style={{ fontFamily: 'Orbitron, sans-serif' }}>Active Goals</h3>
+                  </div>
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="flex items-center gap-1.5 px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.08] text-white/70 text-xs rounded transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    New Goal
+                  </button>
+                </div>
+                <div className="p-4 space-y-3">
+                  {goals.filter(g => g.status === 'active').length === 0 ? (
+                    <p className="text-sm text-white/40 text-center py-8">No active goals. Create one or accept an AI suggestion above!</p>
+                  ) : (
+                    goals.filter(g => g.status === 'active').map(goal => (
+                      <GoalCard key={goal.id} goal={goal} onUpdate={refreshGoals} />
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Achieved Goals */}
+              {goals.filter(g => g.status === 'achieved').length > 0 && (
+                <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg overflow-hidden">
+                  <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <h3 className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/70" style={{ fontFamily: 'Orbitron, sans-serif' }}>Achieved</h3>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {goals.filter(g => g.status === 'achieved').map(goal => (
+                      <GoalCard key={goal.id} goal={goal} compact />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {activeSection === 'journey' && (
             <div className="space-y-4">
               {/* Learning Moments */}
@@ -513,6 +646,13 @@ export function DriverProgress() {
           )}
         </div>
       </div>
+
+      {/* Create Goal Modal */}
+      <CreateGoalModal 
+        isOpen={showCreateModal} 
+        onClose={() => setShowCreateModal(false)}
+        onCreated={refreshGoals}
+      />
     </div>
   );
 }

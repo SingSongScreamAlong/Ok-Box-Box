@@ -201,7 +201,7 @@ export class IRacingOAuthService {
 
             console.log(`[IRacing OAuth] Successfully linked iRacing account ${identity.customerId} to user ${stateData.userId}`);
 
-            return { success: true, identity };
+            return { success: true, identity, userId: stateData.userId };
 
         } catch (error) {
             console.error('[IRacing OAuth] Callback error:', error);

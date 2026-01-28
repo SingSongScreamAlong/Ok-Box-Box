@@ -153,3 +153,11 @@ apiRouter.use('/oauth/iracing', iracingOAuthRouter);
 // Team System v1 (Permissioned view over IDP)
 import teamsV1Router from '../../driverbox/routes/teams.js';
 apiRouter.use('/v1/teams', teamsV1Router);
+
+// Driver Goals (IDP - Development Targets)
+import goalsRouter from './goals.js';
+apiRouter.use('/v1/goals', goalsRouter);
+
+// Team Operations (Events, Race Plans, Stints)
+import teamOperationsRouter from './team-operations.js';
+apiRouter.use('/v1/teams', teamOperationsRouter);

@@ -99,5 +99,6 @@ export interface OAuthFlowStart {
 export interface OAuthCallbackResult {
     success: boolean;
     identity?: IRacingIdentity;
+    userId?: string;  // The user ID from the OAuth state
     error?: string;
 }
