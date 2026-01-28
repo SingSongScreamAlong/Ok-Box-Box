@@ -1,6 +1,7 @@
 import { Outlet, NavLink, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useRelay } from '../hooks/useRelay';
+import { TeamDataProvider } from '../hooks/useTeamData';
 import { 
   Settings, LogOut, User, ChevronDown, History, Users, Trophy, 
   Radio, Target, BarChart3, Play, GitCompare, Fuel, Calendar,
@@ -77,6 +78,7 @@ export function TeamLayout() {
   ];
 
   return (
+    <TeamDataProvider teamId={teamId || 'demo'}>
     <div className="min-h-screen bg-[--bg] flex flex-col">
       {/* Header */}
       <header className="border-b border-white/10 bg-[#0e0e0e] sticky top-0 z-50">
@@ -267,5 +269,6 @@ export function TeamLayout() {
         </span>
       </footer>
     </div>
+    </TeamDataProvider>
   );
 }

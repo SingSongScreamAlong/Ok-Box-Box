@@ -1,86 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Calendar, Users, Clock, Plus, ChevronDown, ChevronUp, Flag, AlertCircle, Edit, Trash2, UserPlus, Loader2, Target, ChevronRight } from 'lucide-react';
-
-// Types from legacy
-interface PlanEvent {
-  id: string;
-  name: string;
-  type: 'practice' | 'qualifying' | 'race' | 'endurance';
-  track: string;
-  date: string;
-  time: string;
-  duration: string;
-  drivers: string[];
-  status: 'scheduled' | 'confirmed' | 'in_progress' | 'completed';
-  notes?: string;
-}
-
-interface DriverAvailability {
-  driver_id: string;
-  display_name: string;
-  available: boolean;
-  notes?: string;
-}
-
-// Mock data from legacy
-const mockEvents: PlanEvent[] = [
-  {
-    id: 'pe1',
-    name: 'Daytona 24 Practice 1',
-    type: 'practice',
-    track: 'Daytona International Speedway',
-    date: '2026-01-18',
-    time: '19:00',
-    duration: '2h',
-    drivers: ['d1', 'd2', 'd3'],
-    status: 'scheduled',
-    notes: 'Focus on long run pace, tire deg analysis. Alex to open stint.'
-  },
-  {
-    id: 'pe2',
-    name: 'Daytona 24 Practice 2',
-    type: 'practice',
-    track: 'Daytona International Speedway',
-    date: '2026-01-19',
-    time: '14:00',
-    duration: '2h',
-    drivers: ['d1', 'd4'],
-    status: 'scheduled',
-    notes: 'Casey training focus. Baseline setup validation.'
-  },
-  {
-    id: 'pe3',
-    name: 'Daytona 24 Qualifying',
-    type: 'qualifying',
-    track: 'Daytona International Speedway',
-    date: '2026-01-20',
-    time: '18:00',
-    duration: '30m',
-    drivers: ['d1'],
-    status: 'scheduled',
-    notes: 'Alex quali driver. Target: Top 5 starting position.'
-  },
-  {
-    id: 'pe4',
-    name: 'Daytona 24 Hours',
-    type: 'endurance',
-    track: 'Daytona International Speedway',
-    date: '2026-01-25',
-    time: '13:30',
-    duration: '24h',
-    drivers: ['d1', 'd2', 'd3', 'd4'],
-    status: 'confirmed',
-    notes: 'Full team endurance. Triple stint rotation. Safety car strategy prepared.'
-  }
-];
-
-const mockDrivers: DriverAvailability[] = [
-  { driver_id: 'd1', display_name: 'Alex Rivera', available: true },
-  { driver_id: 'd2', display_name: 'Jordan Chen', available: true },
-  { driver_id: 'd3', display_name: 'Sam Williams', available: true, notes: 'Available after 6 PM' },
-  { driver_id: 'd4', display_name: 'Casey Morgan', available: false, notes: 'Unavailable Jan 19' }
-];
+import { useTeamData } from '../../hooks/useTeamData';
 
 const typeStyles: Record<string, { bg: string; text: string; label: string }> = {
   practice: { bg: 'bg-[#3b82f6]/20', text: 'text-[#3b82f6]', label: 'Practice' },
@@ -98,24 +19,9 @@ const statusStyles: Record<string, string> = {
 
 export function PitwallPlanning() {
   const { teamId } = useParams<{ teamId: string }>();
-  const [events, setEvents] = useState<PlanEvent[]>([]);
-  const [drivers, setDrivers] = useState<DriverAvailability[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { events, drivers, getTrack, loading } = useTeamData();
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      if (teamId === 'demo') {
-        await new Promise(r => setTimeout(r, 400));
-      }
-      setEvents(mockEvents);
-      setDrivers(mockDrivers);
-      setLoading(false);
-    };
-    fetchData();
-  }, [teamId]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -207,8 +113,9 @@ export function PitwallPlanning() {
               {upcomingEvents.map(event => {
                 const type = typeStyles[event.type] || typeStyles.practice;
                 const isExpanded = expandedEvent === event.id;
-                const assignedDrivers = event.drivers.map(dId =>
-                  drivers.find(d => d.driver_id === dId)
+                const track = getTrack(event.trackId);
+                const assignedDrivers = event.assignedDrivers.map((dId: string) =>
+                  drivers.find(d => d.id === dId)
                 ).filter(Boolean);
 
                 return (
@@ -229,7 +136,7 @@ export function PitwallPlanning() {
                           <div className="flex items-center gap-4 text-xs text-white/40">
                             <span className="flex items-center gap-1">
                               <Flag size={12} />
-                              {event.track}
+                              {track?.name || 'TBD'}
                             </span>
                             <span className="flex items-center gap-1">
                               <Clock size={12} />
@@ -239,21 +146,21 @@ export function PitwallPlanning() {
                         </div>
                         <div className="flex items-center gap-3">
                           <div className="flex -space-x-2">
-                            {event.drivers.slice(0, 3).map((dId, i) => {
-                              const driver = drivers.find(d => d.driver_id === dId);
+                            {event.assignedDrivers.slice(0, 3).map((dId: string, i: number) => {
+                              const driver = drivers.find(d => d.id === dId);
                               return (
                                 <div
                                   key={i}
                                   className="w-6 h-6 bg-white/10 border-2 border-[#0e0e0e] rounded-full flex items-center justify-center text-[10px] font-bold text-white/70"
-                                  title={driver?.display_name}
+                                  title={driver?.name}
                                 >
-                                  {driver?.display_name.charAt(0)}
+                                  {driver?.name.charAt(0)}
                                 </div>
                               );
                             })}
-                            {event.drivers.length > 3 && (
+                            {event.assignedDrivers.length > 3 && (
                               <div className="w-6 h-6 bg-white/5 border-2 border-[#0e0e0e] rounded-full flex items-center justify-center text-[10px] text-white/50">
-                                +{event.drivers.length - 3}
+                                +{event.assignedDrivers.length - 3}
                               </div>
                             )}
                           </div>
@@ -289,11 +196,11 @@ export function PitwallPlanning() {
                             <div className="flex flex-wrap gap-2">
                               {assignedDrivers.map(driver => (
                                 <div
-                                  key={driver!.driver_id}
+                                  key={driver!.id}
                                   className="flex items-center gap-2 px-3 py-1.5 bg-white/5 border border-white/10"
                                 >
                                   <div className={`w-2 h-2 rounded-full ${driver!.available ? 'bg-green-400' : 'bg-red-400'}`} />
-                                  <span className="text-sm text-white">{driver!.display_name}</span>
+                                  <span className="text-sm text-white">{driver!.name}</span>
                                 </div>
                               ))}
                               <button className="flex items-center gap-1 px-3 py-1.5 border border-dashed border-white/20 text-xs text-white/40 hover:border-[#f97316] hover:text-[#f97316] transition-colors">
@@ -342,10 +249,10 @@ export function PitwallPlanning() {
           </div>
           <div className="divide-y divide-white/5">
             {drivers.map(driver => (
-              <div key={driver.driver_id} className="p-4 flex items-center justify-between">
+              <div key={driver.id} className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${driver.available ? 'bg-green-400' : 'bg-red-400'}`} />
-                  <span className="text-sm text-white">{driver.display_name}</span>
+                  <span className="text-sm text-white">{driver.name}</span>
                 </div>
                 {driver.notes && (
                   <span className="text-xs text-white/40 flex items-center gap-1">
