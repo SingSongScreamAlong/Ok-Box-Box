@@ -23,17 +23,19 @@ app.use(correlationMiddleware);
 // Security middleware
 app.use(helmet());
 
+// CORS configuration - Must be BEFORE rate limiting to handle preflight OPTIONS
+app.use(cors({
+    origin: true, // Allow all origins
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+}));
+
 // Tiered Rate Limiting (based on user entitlements)
 // Tiers: anonymous (50/15m), blackbox (200/15m), controlbox (500/15m), bundle (1000/15m), admin (2000/15m)
 // Must attempt auth first to determine tier
 app.use('/api', optionalAuth);
 app.use('/api', tieredRateLimiter);
-
-// CORS configuration
-app.use(cors({
-    origin: config.corsOrigins,
-    credentials: true,
-}));
 
 // Request logging
 if (config.nodeEnv !== 'test') {
