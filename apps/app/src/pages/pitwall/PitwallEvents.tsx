@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Calendar, Plus, Users, Clock, Loader2 } from 'lucide-react';
+import { useTeamData } from '../../hooks/useTeamData';
 
 interface TeamEvent {
   id: string;
@@ -58,16 +59,29 @@ const statusStyles: Record<string, string> = {
 
 export function PitwallEvents() {
   const { teamId } = useParams<{ teamId: string }>();
+  const { events: serviceEvents, tracks, loading: dataLoading } = useTeamData();
   const [events, setEvents] = useState<TeamEvent[]>([]);
-  const [loading, setLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Map service data to local format
   useEffect(() => {
-    setTimeout(() => {
-      setEvents(mockEvents);
-      setLoading(false);
-    }, 300);
-  }, [teamId]);
+    if (!dataLoading && serviceEvents.length > 0) {
+      setEvents(serviceEvents.map(e => {
+        const track = tracks.find(t => t.id === e.trackId);
+        return {
+          id: e.id,
+          name: e.name,
+          track: track?.name || e.trackId,
+          date: e.date,
+          time: e.time,
+          duration: e.duration,
+          type: e.type,
+          status: e.status === 'scheduled' || e.status === 'confirmed' ? 'upcoming' : e.status === 'in_progress' ? 'live' : 'completed',
+          drivers: e.assignedDrivers.length,
+        };
+      }));
+    }
+  }, [dataLoading, serviceEvents, tracks]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -75,7 +89,7 @@ export function PitwallEvents() {
     }
   }, []);
 
-  if (loading) {
+  if (dataLoading) {
     return (
       <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">

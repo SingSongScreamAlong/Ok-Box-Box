@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Trash2, GripVertical, Clock, Fuel, Users,
   AlertTriangle, CheckCircle2, Save, Download, Upload,
   Settings, RotateCcw
 } from 'lucide-react';
+import { useTeamData } from '../../hooks/useTeamData';
 // Service imports for future API integration
 // import {
 //   fetchTeamDrivers,
@@ -89,7 +90,23 @@ function formatLapTime(ms: number): string {
 
 export function StintPlanner() {
   const { teamId } = useParams<{ teamId: string }>();
-  const [drivers] = useState<Driver[]>(mockDrivers);
+  const { drivers: serviceDrivers } = useTeamData();
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  
+  // Map service drivers to local format
+  useEffect(() => {
+    if (serviceDrivers.length > 0) {
+      setDrivers(serviceDrivers.map(d => ({
+        id: d.id,
+        name: d.name,
+        number: d.number,
+        color: d.color,
+        avgLapTime: d.avgLapTime,
+        fuelPerLap: d.fuelPerLap,
+        maxStintLength: d.maxStintLaps,
+      })));
+    }
+  }, [serviceDrivers]);
   const [config, setConfig] = useState<RaceConfig>(defaultConfig);
   const [stints, setStints] = useState<Stint[]>([
     { id: 's1', driverId: 'd1', startLap: 1, endLap: 40, fuelLoad: 110, tireCompound: 'medium', estimatedTime: '', notes: 'Opening stint - conservative pace' },

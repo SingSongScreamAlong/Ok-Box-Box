@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { UserPlus, Search, Filter, Users, Crown, Wrench, User, Link2, LinkIcon, Mail, Bell, X, Target, Loader2 } from 'lucide-react';
+import { useTeamData } from '../../hooks/useTeamData';
 
 // Types from legacy
 interface DriverSummary {
@@ -336,23 +337,49 @@ const roleStyles: Record<string, { class: string; icon: any; label: string }> = 
 
 export function PitwallRoster() {
   const { teamId } = useParams<{ teamId: string }>();
+  const { roster: serviceRoster, loading: dataLoading } = useTeamData();
   const [roster, setRoster] = useState<TeamRosterView | null>(null);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   
+  // Map service data to local format
   useEffect(() => {
-    const fetchRoster = async () => {
-      setLoading(true);
-      if (teamId === 'demo') {
-        await new Promise(r => setTimeout(r, 400));
-      }
-      setRoster(mockRoster);
-      setLoading(false);
-    };
-    fetchRoster();
-  }, [teamId]);
+    if (!dataLoading && serviceRoster) {
+      setRoster({
+        team_id: serviceRoster.teamId,
+        team_name: serviceRoster.teamName,
+        member_count: serviceRoster.memberCount,
+        members: serviceRoster.members.map(m => ({
+          membership_id: m.membershipId,
+          driver_id: m.driverId,
+          user_id: m.userId,
+          display_name: m.displayName,
+          role: m.role,
+          access_scope: m.accessScope,
+          joined_at: m.joinedAt,
+          total_sessions: m.totalSessions,
+          total_laps: m.totalLaps,
+          avg_incident_rate: m.avgIncidentRate,
+          traits: m.traits,
+          irating: m.irating,
+          safety_rating: m.safetyRating,
+          linked_account: m.linkedAccount ? {
+            ok_box_box_id: m.linkedAccount.okBoxBoxId,
+            tier: m.linkedAccount.tier,
+            linked_at: m.linkedAccount.linkedAt,
+            email: m.linkedAccount.email,
+          } : null,
+          idp_summary: m.idpSummary ? {
+            total_goals: m.idpSummary.totalGoals,
+            achieved: m.idpSummary.achieved,
+            in_progress: m.idpSummary.inProgress,
+            priority_focus: m.idpSummary.priorityFocus,
+          } : undefined,
+        })),
+      });
+    }
+  }, [dataLoading, serviceRoster]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -372,7 +399,7 @@ export function PitwallRoster() {
     avgInc: roster.members.reduce((s, m) => s + (m.avg_incident_rate || 0), 0) / roster.members.length
   } : { sessions: 0, laps: 0, avgInc: 0 };
 
-  if (loading) {
+  if (dataLoading) {
     return (
       <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
