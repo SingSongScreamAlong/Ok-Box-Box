@@ -132,6 +132,7 @@ class ControlBoxClient:
     
     def send_incident(self, incident: Dict[str, Any]):
         """Send incident report"""
+        logger.info(f"📤 Sending incident to server: {incident.get('type', 'unknown')}")
         return self.emit('incident', incident)
     
     def send_driver_update(self, update: Dict[str, Any]):
