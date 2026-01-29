@@ -70,16 +70,16 @@ async def check_iracing():
             connected_to_sim = True
             session_metadata_sent = False  # Reset for new session
             current_session_id = None
-            logger.info("Connected to iRacing!")
-            await sio.emit('status', {'simConnected': True})
+            logger.warning("Connected to iRacing!")
+            await sio.emit('iracing_status', {'connected': True})
             return True
         else:
             if connected_to_sim:
                 connected_to_sim = False
                 session_metadata_sent = False
                 current_session_id = None
-                logger.info("Disconnected from iRacing")
-                await sio.emit('status', {'simConnected': False})
+                logger.warning("Disconnected from iRacing")
+                await sio.emit('iracing_status', {'connected': False})
             return False
     
     return True
