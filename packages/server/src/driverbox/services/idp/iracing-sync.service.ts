@@ -16,7 +16,6 @@
 
 import { pool } from '../../../db/client.js';
 import { computeSessionMetrics, ComputeMetricsInput } from './session-metrics.service.js';
-import { getIRacingOAuthService } from '../../../services/iracing-oauth/iracing-oauth-service.js';
 
 // ========================
 // Types
@@ -57,31 +56,67 @@ interface IRacingLapData {
 }
 
 // ========================
-// Auth Service (uses user's OAuth tokens)
+// Auth Service (shared app credentials)
 // ========================
 
-// User ID for the current sync operation
-let currentUserId: string | null = null;
+interface IRacingAuthToken {
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+    obtained_at: number;
+}
 
-export function setCurrentUserId(userId: string): void {
-    currentUserId = userId;
+let cachedToken: IRacingAuthToken | null = null;
+
+function getCredentials(): { clientId: string; clientSecret: string } | null {
+    const clientId = process.env.IRACING_CLIENT_ID;
+    const clientSecret = process.env.IRACING_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
+        console.warn('[iRacing Sync] Missing IRACING_CLIENT_ID or IRACING_CLIENT_SECRET');
+        return null;
+    }
+
+    return { clientId, clientSecret };
 }
 
 async function getAccessToken(): Promise<string | null> {
-    if (!currentUserId) {
-        console.error('[iRacing Sync] No user ID set for sync operation');
-        return null;
+    const credentials = getCredentials();
+    if (!credentials) return null;
+
+    // Check if cached token is still valid (with 5 min buffer)
+    if (cachedToken && (cachedToken.obtained_at + (cachedToken.expires_in - 300) * 1000) > Date.now()) {
+        return cachedToken.access_token;
     }
 
-    const oauthService = getIRacingOAuthService();
-    const token = await oauthService.getValidAccessToken(currentUserId);
-    
-    if (!token) {
-        console.error('[iRacing Sync] No valid OAuth token for user', currentUserId);
+    // Request new token using client credentials flow
+    try {
+        const response = await fetch('https://members-ng.iracing.com/auth', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': `Basic ${Buffer.from(`${credentials.clientId}:${credentials.clientSecret}`).toString('base64')}`,
+            },
+            body: 'grant_type=client_credentials',
+        });
+
+        if (!response.ok) {
+            console.error('[iRacing Sync] Auth failed:', response.status, await response.text());
+            return null;
+        }
+
+        const data = await response.json() as Omit<IRacingAuthToken, 'obtained_at'>;
+        cachedToken = {
+            ...data,
+            obtained_at: Date.now(),
+        };
+
+        console.log('[iRacing Sync] Obtained new access token');
+        return cachedToken.access_token;
+    } catch (error) {
+        console.error('[iRacing Sync] Auth error:', error);
         return null;
     }
-    
-    return token;
 }
 
 // ========================
@@ -187,19 +222,13 @@ export async function syncLapData(
 export async function backfillDriverHistory(
     driverProfileId: string,
     iracingCustId: number,
-    maxRaces: number = 50,
-    userId?: string
+    maxRaces: number = 50
 ): Promise<{ synced: number; errors: number }> {
     console.log(`[iRacing Sync] Starting backfill for driver ${driverProfileId} (iRacing: ${iracingCustId})`);
 
-    // Set user ID for OAuth token retrieval
-    if (userId) {
-        setCurrentUserId(userId);
-    }
-    
-    const token = await getAccessToken();
-    if (!token) {
-        console.error('[iRacing Sync] Cannot backfill: No valid OAuth token');
+    const credentials = getCredentials();
+    if (!credentials) {
+        console.error('[iRacing Sync] Cannot backfill: iRacing credentials not configured');
         return { synced: 0, errors: 0 };
     }
 
@@ -290,13 +319,11 @@ export async function backfillDriverHistory(
 // Status Check
 // ========================
 
-export async function isSyncAvailable(userId: string): Promise<boolean> {
-    const oauthService = getIRacingOAuthService();
-    return oauthService.hasValidLink(userId);
+export function isSyncAvailable(): boolean {
+    return getCredentials() !== null;
 }
 
-export async function testConnection(userId: string): Promise<boolean> {
-    setCurrentUserId(userId);
+export async function testConnection(): Promise<boolean> {
     const token = await getAccessToken();
     return token !== null;
 }

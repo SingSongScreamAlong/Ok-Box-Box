@@ -110,8 +110,7 @@ router.post('/me/sync-iracing', requireAuth, async (req: Request, res: Response)
         }
 
         // Trigger backfill (max 10 races for manual sync to be fast)
-        // Pass user ID for OAuth token retrieval
-        const result = await backfillDriverHistory(profile.id, parseInt(iracingIdentity.platform_user_id), 10, req.user!.id);
+        const result = await backfillDriverHistory(profile.id, parseInt(iracingIdentity.platform_user_id), 10);
 
         res.json({
             success: true,
