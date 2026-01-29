@@ -461,4 +461,218 @@ router.get('/:id/reports', requireTeamStandard, async (req: Request, res: Respon
     }
 });
 
+// ========================
+// Development & Progress
+// ========================
+
+/**
+ * GET /api/v1/drivers/me/development
+ * Get driver development data including focus areas, skills, and goals
+ */
+router.get('/me/development', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const profile = await getDriverProfileByUserId(req.user!.id);
+        if (!profile) {
+            res.status(404).json({ error: 'No driver profile found' });
+            return;
+        }
+
+        // Get performance data to build development insights
+        const [globalAggregate, traits, metrics] = await Promise.all([
+            getGlobalAggregate(profile.id, 'all_time'),
+            getCurrentTraits(profile.id),
+            getMetricsForDriver(profile.id, 10, 0), // Last 10 sessions
+        ]);
+
+        // Build development data from real performance metrics
+        const developmentData = {
+            currentPhase: determineDevelopmentPhase(globalAggregate, traits),
+            phaseProgress: calculatePhaseProgress(globalAggregate),
+            weeklyFocus: determineWeeklyFocus(traits, metrics),
+            focusAreas: buildFocusAreas(traits, metrics),
+            skillTree: buildSkillTree(globalAggregate, traits),
+            learningMoments: buildLearningMoments(metrics),
+            goals: [], // Goals come from separate goals API
+            coachingNotes: buildCoachingNotes(traits, globalAggregate),
+            nextSession: buildNextSessionPlan(traits, metrics),
+        };
+
+        res.json(developmentData);
+    } catch (error) {
+        console.error('[IDP] Error fetching development data:', error);
+        res.status(500).json({ error: 'Failed to fetch development data' });
+    }
+});
+
+// Helper functions for development data
+
+function determineDevelopmentPhase(aggregate: any, traits: any[]): string {
+    if (!aggregate) return 'Getting Started';
+    
+    const sessions = aggregate.total_sessions || 0;
+    const avgFinish = aggregate.avg_finish || 20;
+    
+    if (sessions < 10) return 'Getting Started';
+    if (sessions < 50) return 'Building Foundation';
+    if (avgFinish > 15) return 'Consistency Building';
+    if (avgFinish > 10) return 'Competitive Development';
+    if (avgFinish > 5) return 'Race Craft Refinement';
+    return 'Elite Performance';
+}
+
+function calculatePhaseProgress(aggregate: any): number {
+    if (!aggregate) return 0;
+    
+    const sessions = aggregate.total_sessions || 0;
+    const wins = aggregate.wins || 0;
+    const top5s = aggregate.top5s || 0;
+    
+    // Simple progress calculation based on results
+    const baseProgress = Math.min(sessions / 50, 1) * 30;
+    const winProgress = Math.min(wins / 5, 1) * 35;
+    const top5Progress = Math.min(top5s / 20, 1) * 35;
+    
+    return Math.round(baseProgress + winProgress + top5Progress);
+}
+
+function determineWeeklyFocus(traits: any[], metrics: any[]): string {
+    if (!traits.length && !metrics.length) return 'Complete your first session';
+    
+    // Look for weakness traits
+    const weaknesses = traits.filter(t => t.trait_category === 'weakness');
+    if (weaknesses.length > 0) {
+        return `Improve ${weaknesses[0].trait_label}`;
+    }
+    
+    // Default focuses based on recent performance
+    if (metrics.length > 0) {
+        const recentIncidents = metrics.reduce((sum, m) => sum + (m.incidents || 0), 0);
+        if (recentIncidents > metrics.length * 2) {
+            return 'Clean Racing & Incident Reduction';
+        }
+    }
+    
+    return 'Consistency & Pace Development';
+}
+
+function buildFocusAreas(traits: any[], metrics: any[]): any[] {
+    const areas: any[] = [];
+    
+    // Build focus areas from traits
+    traits.slice(0, 3).forEach((trait, i) => {
+        areas.push({
+            id: `trait-${i}`,
+            title: trait.trait_label || 'Skill Development',
+            description: trait.evidence_summary || 'Based on your recent performance',
+            insight: `Your ${trait.trait_category} in this area shows room for growth`,
+            evidence: `Confidence: ${Math.round((trait.confidence || 0) * 100)}%`,
+            progress: Math.round((trait.confidence || 0) * 100),
+            drills: [],
+            recentImprovement: undefined,
+        });
+    });
+    
+    return areas;
+}
+
+function buildSkillTree(aggregate: any, traits: any[]): any[] {
+    const categories = [
+        {
+            category: 'Car Control',
+            skills: [
+                { name: 'Throttle Control', level: 1, maxLevel: 3, progress: 30, status: 'learning' as const, description: 'Smooth throttle application' },
+                { name: 'Braking', level: 1, maxLevel: 3, progress: 30, status: 'learning' as const, description: 'Consistent braking points' },
+                { name: 'Weight Transfer', level: 1, maxLevel: 3, progress: 0, status: 'next' as const, description: 'Use weight to rotate' },
+            ]
+        },
+        {
+            category: 'Race Craft',
+            skills: [
+                { name: 'Clean Racing', level: 1, maxLevel: 3, progress: 30, status: 'learning' as const, description: 'Avoid incidents' },
+                { name: 'Overtaking', level: 1, maxLevel: 3, progress: 0, status: 'next' as const, description: 'Safe, decisive passes' },
+                { name: 'Defending', level: 1, maxLevel: 3, progress: 0, status: 'next' as const, description: 'Protect position legally' },
+            ]
+        },
+        {
+            category: 'Mental',
+            skills: [
+                { name: 'Consistency', level: 1, maxLevel: 3, progress: 30, status: 'learning' as const, description: 'Repeatable lap times' },
+                { name: 'Pressure Management', level: 1, maxLevel: 3, progress: 0, status: 'next' as const, description: 'Perform when it counts' },
+            ]
+        },
+    ];
+    
+    // Adjust based on aggregate data
+    if (aggregate) {
+        const sessions = aggregate.total_sessions || 0;
+        const avgIncidents = (aggregate.total_incidents || 0) / Math.max(sessions, 1);
+        
+        // Update clean racing skill based on incident rate
+        if (avgIncidents < 2) {
+            categories[1].skills[0].level = 2;
+            categories[1].skills[0].progress = 70;
+        }
+        if (avgIncidents < 1) {
+            categories[1].skills[0].level = 3;
+            categories[1].skills[0].progress = 100;
+            categories[1].skills[0].status = 'mastered';
+        }
+    }
+    
+    return categories;
+}
+
+function buildLearningMoments(metrics: any[]): any[] {
+    if (!metrics.length) return [];
+    
+    return metrics.slice(0, 3).map((m, i) => ({
+        session: m.track_name || 'Recent Session',
+        date: i === 0 ? 'Recent' : `${i + 1} sessions ago`,
+        insight: m.incidents === 0 ? 'Clean race completed' : `Finished with ${m.incidents}x incidents`,
+        improvement: m.finish_pos < m.start_pos 
+            ? `Gained ${m.start_pos - m.finish_pos} positions`
+            : m.finish_pos === m.start_pos 
+                ? 'Held position'
+                : `Lost ${m.finish_pos - m.start_pos} positions`,
+    }));
+}
+
+function buildCoachingNotes(traits: any[], aggregate: any): string[] {
+    const notes: string[] = [];
+    
+    if (!aggregate || !aggregate.total_sessions) {
+        notes.push('Complete more sessions to unlock personalized coaching.');
+        notes.push('Focus on finishing races cleanly before chasing pace.');
+        return notes;
+    }
+    
+    const avgIncidents = (aggregate.total_incidents || 0) / aggregate.total_sessions;
+    
+    if (avgIncidents < 2) {
+        notes.push('Your clean racing is a strength. Build on it.');
+    } else {
+        notes.push('Focus on reducing incidents before pushing for pace.');
+    }
+    
+    if (aggregate.wins > 0) {
+        notes.push('You know how to win. Stay consistent.');
+    }
+    
+    notes.push('Review your best laps to understand what works.');
+    
+    return notes;
+}
+
+function buildNextSessionPlan(traits: any[], metrics: any[]): any {
+    return {
+        focus: metrics.length > 0 ? 'Continue building consistency' : 'Complete your first session',
+        drills: [
+            'Focus on hitting your marks consistently',
+            'Practice smooth inputs',
+            'Stay aware of cars around you',
+        ],
+        reminder: 'Progress comes from consistent practice, not single heroic laps.',
+    };
+}
+
 export default router;
