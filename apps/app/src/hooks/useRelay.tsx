@@ -371,7 +371,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
 
     // Production server sends telemetry:driver event
     socket.on('telemetry:driver', (data: any) => {
-      console.log('[Relay] telemetry:driver received, cars:', data?.drivers?.length);
+      console.log('[Relay] telemetry:driver received, cars:', data?.cars?.length, 'standings:', data?.standings?.length);
       handleTelemetryData(data);
       
       // Extract session info from telemetry if available
@@ -383,16 +383,16 @@ export function RelayProvider({ children }: { children: ReactNode }) {
         }));
       }
       
-      // Extract leaderboard from drivers array
-      const drivers = data?.drivers;
-      const playerDriverId = data?.cars?.[0]?.driverId; // First car is the player
+      // Extract leaderboard from standings or drivers array (relay sends standings)
+      const drivers = data?.standings || data?.drivers;
+      const playerCarIdx = data?.cars?.[0]?.carIdx; // First car is the player
       
       if (drivers && Array.isArray(drivers) && drivers.length > 0) {
         const sortedDrivers = [...drivers].sort((a, b) => (a.position || 999) - (b.position || 999));
         setTelemetry(prev => ({
           ...prev,
           otherCars: sortedDrivers.map((driver, idx) => {
-            const isPlayer = driver.driverId === playerDriverId;
+            const isPlayer = driver.isPlayer || driver.carIdx === playerCarIdx;
             return {
               trackPercentage: driver.lapDistPct || 0,
               carNumber: driver.carNumber || String(driver.position || idx + 1),
