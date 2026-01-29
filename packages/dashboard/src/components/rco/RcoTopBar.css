@@ -1,0 +1,197 @@
+/* =====================================================================
+   RCO Top Bar Styles
+   ===================================================================== */
+
+.rco-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: var(--panel, #0f172a);
+    border-bottom: 1px solid var(--border, #1e293b);
+    gap: 20px;
+}
+
+/* Left Section */
+.rco-top-bar__left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.session-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.session-track {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text, #f8fafc);
+}
+
+.session-type {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    background: var(--panel2, #1e293b);
+    border-radius: 4px;
+    color: var(--muted, #94a3b8);
+}
+
+.session-id {
+    font-size: 0.6875rem;
+    font-family: monospace;
+    color: var(--muted, #64748b);
+}
+
+/* Connection Badge */
+.connection-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.connection-badge .badge-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.connection-badge.status-live {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+}
+
+.connection-badge.status-live .badge-dot {
+    background: #22c55e;
+}
+
+.connection-badge.status-demo {
+    background: rgba(249, 115, 22, 0.2);
+    color: #f97316;
+}
+
+.connection-badge.status-demo .badge-dot {
+    background: #f97316;
+}
+
+.connection-badge.status-disconnected {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.connection-badge.status-disconnected .badge-dot {
+    background: #ef4444;
+    animation: none;
+}
+
+/* Center Section - Filters */
+.rco-top-bar__center {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted, #64748b);
+}
+
+.filter-select {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    background: var(--panel2, #1e293b);
+    border: 1px solid var(--border, #334155);
+    border-radius: 4px;
+    color: var(--text, #f8fafc);
+    cursor: pointer;
+    min-width: 100px;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--accent, #f97316);
+}
+
+.filter-reset {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: transparent;
+    border: 1px solid var(--border, #334155);
+    border-radius: 4px;
+    color: var(--muted, #94a3b8);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.filter-reset:hover {
+    background: var(--panel2, #1e293b);
+    color: var(--text, #f8fafc);
+}
+
+/* Right Section */
+.rco-top-bar__right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.auto-follow-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.auto-follow-toggle input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent, #f97316);
+    cursor: pointer;
+}
+
+.auto-follow-toggle .toggle-label {
+    font-size: 0.75rem;
+    color: var(--muted, #94a3b8);
+}
+
+.demo-btn {
+    padding: 8px 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--accent, #f97316);
+    border: none;
+    border-radius: 6px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.demo-btn:hover {
+    background: #ea580c;
+}

@@ -273,31 +273,103 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       });
     });
 
-    // Telemetry updates from server (matches server's telemetry_update event)
-    socket.on('telemetry_update', (data: any) => {
-      console.log('[Relay] Telemetry update received');
+    // Session active event (sent when client connects to active session)
+    socket.on('session:active', (data: any) => {
+      console.log('[Relay] Session active:', data);
       setStatus('in_session');
-      setTelemetry({
-        lapTime: data.lapTime ?? null,
-        lastLap: data.lastLapTime ?? data.lastLap ?? null,
-        bestLap: data.bestLapTime ?? data.bestLap ?? null,
-        delta: data.deltaToBestLap ?? data.delta ?? null,
-        fuel: data.fuel?.level ?? data.fuel ?? null,
-        fuelPerLap: data.fuel?.usagePerHour ? data.fuel.usagePerHour / 60 : null,
-        lapsRemaining: null,
-        position: data.racePosition ?? data.position ?? null,
-        lap: data.lap ?? null,
-        speed: data.speed ?? null,
-        gear: data.gear ?? null,
-        rpm: data.rpm ?? null,
-        throttle: data.throttle ?? null,
-        brake: data.brake ?? null,
-        trackPosition: data.trackPosition ?? null,
-        sector: data.sector ?? null,
-        inPit: data.onPitRoad ?? data.inPit ?? false,
-        otherCars: [],
-      });
+      setSession(prev => ({
+        ...prev,
+        trackName: data.trackName || prev.trackName || 'Unknown Track',
+        sessionType: (data.sessionType || prev.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
+      }));
     });
+
+    // Session metadata event (from relay via server)
+    socket.on('session:metadata', (data: any) => {
+      console.log('[Relay] Session metadata:', data);
+      setStatus('in_session');
+      setSession(prev => ({
+        ...prev,
+        trackName: data.trackName || prev.trackName || 'Unknown Track',
+        sessionType: (data.sessionType || prev.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
+      }));
+    });
+
+    // Handler for processing telemetry data from any event
+    const handleTelemetryData = (data: any) => {
+      // Handle nested data structure from production server
+      // Production sends: { type: 'telemetry', cars: [...], drivers: [...] }
+      const car = data?.cars?.[0];
+      const driver = data?.drivers?.[0];
+      const driverData = car || driver || data;
+      
+      setStatus('in_session');
+      setTelemetry(prev => ({
+        ...prev,
+        lapTime: driverData.lapTime ?? prev.lapTime,
+        lastLap: driver?.lastLapTime ?? driverData.lastLap ?? prev.lastLap,
+        bestLap: driver?.bestLapTime ?? driverData.bestLap ?? prev.bestLap,
+        delta: driverData.deltaToBestLap ?? driverData.delta ?? prev.delta,
+        fuel: driverData.fuel?.level ?? driverData.fuelLevel ?? driverData.fuel ?? prev.fuel,
+        fuelPerLap: driverData.fuel?.usagePerHour ? driverData.fuel.usagePerHour / 60 : prev.fuelPerLap,
+        lapsRemaining: prev.lapsRemaining,
+        position: driver?.position ?? car?.position ?? driverData.position ?? prev.position,
+        lap: driver?.lapNumber ?? car?.lap ?? driverData.lap ?? prev.lap,
+        speed: car?.speed != null ? Math.round(car.speed * 2.237) : prev.speed, // m/s to mph
+        gear: car?.gear ?? driverData.gear ?? prev.gear,
+        rpm: car?.rpm ?? driverData.rpm ?? prev.rpm,
+        throttle: car?.throttle != null ? car.throttle * 100 : prev.throttle,
+        brake: car?.brake != null ? car.brake * 100 : prev.brake,
+        trackPosition: driver?.lapDistPct ?? car?.pos?.s ?? driverData.trackPosition ?? prev.trackPosition,
+        sector: driverData.sector ?? prev.sector,
+        inPit: car?.inPit ?? driverData.onPitRoad ?? prev.inPit,
+        otherCars: prev.otherCars,
+      }));
+    };
+
+    // Telemetry updates - listen to multiple event names for compatibility
+    socket.on('telemetry_update', (data: any) => {
+      console.log('[Relay] telemetry_update received');
+      handleTelemetryData(data);
+    });
+
+    // Production server sends telemetry:driver event
+    socket.on('telemetry:driver', (data: any) => {
+      console.log('[Relay] telemetry:driver received');
+      handleTelemetryData(data);
+      
+      // Extract leaderboard from drivers array
+      const drivers = data?.drivers;
+      const playerDriverId = data?.cars?.[0]?.driverId; // First car is the player
+      
+      if (drivers && Array.isArray(drivers) && drivers.length > 0) {
+        const sortedDrivers = [...drivers].sort((a, b) => (a.position || 999) - (b.position || 999));
+        setTelemetry(prev => ({
+          ...prev,
+          otherCars: sortedDrivers.map((driver, idx) => {
+            const isPlayer = driver.driverId === playerDriverId;
+            return {
+              trackPercentage: driver.lapDistPct || 0,
+              carNumber: driver.carNumber || String(driver.position || idx + 1),
+              driverName: driver.driverName || `Car ${idx + 1}`,
+              position: driver.position || idx + 1,
+              gap: isPlayer ? '—' : (driver.gapToLeader ? `+${driver.gapToLeader.toFixed(1)}s` : '--'),
+              lastLap: driver.lastLapTime > 0 ? formatLapTime(driver.lastLapTime) : '—',
+              color: isPlayer ? '#10b981' : '#374151', // Green for player
+              isPlayer,
+            };
+          }),
+        }));
+      }
+    });
+    
+    // Helper to format lap time
+    function formatLapTime(seconds: number): string {
+      if (!seconds || seconds <= 0) return '—';
+      const mins = Math.floor(seconds / 60);
+      const secs = (seconds % 60).toFixed(3);
+      return mins > 0 ? `${mins}:${secs.padStart(6, '0')}` : secs;
+    }
 
     // Competitor data for leaderboard
     socket.on('competitor_data', (data: any[]) => {

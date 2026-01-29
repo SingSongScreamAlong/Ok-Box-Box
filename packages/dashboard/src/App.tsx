@@ -27,6 +27,7 @@ import { EventDetailPage } from './pages/EventDetailPage';
 import { DiscordSettingsPage } from './pages/DiscordSettingsPage';
 import ProtestsPage from './pages/ProtestsPage';
 import AuditLogPage from './pages/AuditLogPage';
+import { RcoPage } from './pages/RcoPage';
 import TeamsPage from './pages/TeamsPage';
 import { TeamSessionList } from './pages/TeamSessionList';
 import { TeamLayout } from './layouts/TeamLayout';
@@ -267,6 +268,13 @@ export function App() {
                                     <Route path="admin/diagnostics" element={
                                         <RequireCapability capability="session_authority">
                                             <DiagnosticsPage />
+                                        </RequireCapability>
+                                    } />
+
+                                    {/* RCO - Race Control Observation (Live Incidents) */}
+                                    <Route path="rco" element={
+                                        <RequireCapability capability="incident_review">
+                                            <RcoPage />
                                         </RequireCapability>
                                     } />
                                 </Route>

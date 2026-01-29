@@ -1,0 +1,207 @@
+/* =====================================================================
+   RCO Incident Feed Styles
+   ===================================================================== */
+
+.rco-incident-feed {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--panel, #0f172a);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.rco-incident-feed--empty {
+    justify-content: center;
+    align-items: center;
+}
+
+.rco-incident-feed__empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted, #64748b);
+}
+
+.rco-incident-feed__empty-state .empty-icon {
+    font-size: 2rem;
+    opacity: 0.5;
+}
+
+.rco-incident-feed__empty-state .empty-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.rco-incident-feed__empty-state .empty-subtext {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+.rco-incident-feed__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border, #1e293b);
+    background: var(--panel2, #1e293b);
+}
+
+.rco-incident-feed__header .feed-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text, #f8fafc);
+}
+
+.rco-incident-feed__header .feed-count {
+    font-size: 0.75rem;
+    color: var(--muted, #64748b);
+}
+
+.rco-incident-feed__list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+/* Incident Item */
+.rco-incident-item {
+    padding: 12px;
+    margin-bottom: 8px;
+    background: var(--panel2, #1e293b);
+    border-radius: 6px;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.rco-incident-item:hover {
+    background: var(--panel-hover, #334155);
+}
+
+.rco-incident-item.selected {
+    background: var(--panel-hover, #334155);
+    border-left-color: var(--accent, #f97316);
+    box-shadow: 0 0 0 1px var(--accent, #f97316);
+}
+
+.rco-incident-item.is-new {
+    animation: pulse-new 2s ease-in-out infinite;
+}
+
+@keyframes pulse-new {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.85; }
+}
+
+/* Severity Colors */
+.rco-incident-item.severity-critical {
+    border-left-color: #ef4444;
+}
+
+.rco-incident-item.severity-warn {
+    border-left-color: #f97316;
+}
+
+.rco-incident-item.severity-info {
+    border-left-color: #3b82f6;
+}
+
+.rco-incident-item.selected.severity-critical {
+    box-shadow: 0 0 0 1px #ef4444;
+}
+
+.rco-incident-item.selected.severity-warn {
+    box-shadow: 0 0 0 1px #f97316;
+}
+
+.rco-incident-item.selected.severity-info {
+    box-shadow: 0 0 0 1px #3b82f6;
+}
+
+/* Item Header */
+.incident-item__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.incident-type {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text, #f8fafc);
+}
+
+.incident-status {
+    font-size: 0.625rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.incident-status.status-new {
+    background: #ef4444;
+    color: white;
+}
+
+.incident-status.status-ack {
+    background: #f97316;
+    color: white;
+}
+
+.incident-status.status-review {
+    background: #3b82f6;
+    color: white;
+}
+
+.incident-status.status-closed {
+    background: #22c55e;
+    color: white;
+}
+
+/* Summary */
+.incident-item__summary {
+    font-size: 0.8125rem;
+    color: var(--text, #f8fafc);
+    line-height: 1.4;
+    margin-bottom: 8px;
+}
+
+/* Meta */
+.incident-item__meta {
+    display: flex;
+    gap: 12px;
+    font-size: 0.6875rem;
+    color: var(--muted, #64748b);
+}
+
+.incident-item__meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Scrollbar */
+.rco-incident-feed__list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.rco-incident-feed__list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.rco-incident-feed__list::-webkit-scrollbar-thumb {
+    background: var(--border, #334155);
+    border-radius: 3px;
+}
+
+.rco-incident-feed__list::-webkit-scrollbar-thumb:hover {
+    background: var(--muted, #475569);
+}
