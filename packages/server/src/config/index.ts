@@ -20,7 +20,7 @@ export const config = {
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
 
     // CORS
-    corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000').split(','),
+    corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000,https://app.okboxbox.com,https://okboxbox.com,https://octopus-app-qsi3i.ondigitalocean.app').split(','),
 
     // AI
     aiInferenceUrl: process.env.AI_INFERENCE_URL || 'http://localhost:8000',
