@@ -208,6 +208,13 @@ class RelayAgent:
         self._record_track_shape(cars)
         
         telemetry = map_telemetry_snapshot(self.session_id, cars)
+        
+        # Include track info in every telemetry packet for late joiners
+        session = self.ir_reader.get_session_data()
+        if session:
+            telemetry['trackName'] = session.track_name
+            telemetry['sessionType'] = session.session_type
+        
         self.cloud_client.send_telemetry(telemetry)
         self.telemetry_count += 1
         
