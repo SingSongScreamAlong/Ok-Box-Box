@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
 
 // Types for Driver Development System
 export interface Skill {
