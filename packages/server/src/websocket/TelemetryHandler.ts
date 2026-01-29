@@ -4,10 +4,18 @@ import { RelayAdapter } from '../services/RelayAdapter.js';
 import { getSituationalAwarenessService } from '../services/ai/situational-awareness.js';
 import { updateTelemetryCache } from './telemetry-cache.js';
 
+// Store current session info for late-joining clients
+let currentSessionInfo: { sessionId: string; trackName: string; sessionType: string } | null = null;
+
 export class TelemetryHandler {
     private static firstPacketLogged = false;
     
     constructor(private io: Server) { }
+    
+    // Get current session info for late-joining clients
+    public static getCurrentSessionInfo() {
+        return currentSessionInfo;
+    }
     
     private formatLapTime(seconds: number): string {
         if (!seconds || seconds <= 0) return '—';
@@ -29,6 +37,16 @@ export class TelemetryHandler {
                     trackName: rawData.trackName,
                     sessionType: rawData.sessionType
                 });
+                
+                // Store session info for late-joining clients
+                currentSessionInfo = {
+                    sessionId: rawData.sessionId,
+                    trackName: rawData.trackName,
+                    sessionType: rawData.sessionType
+                };
+                
+                // Broadcast session info to all dashboard clients
+                this.io.emit('session:active', currentSessionInfo);
             }
         });
 

@@ -54,6 +54,18 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
             }
         });
 
+        // Dashboard join handler - send current session info to late-joining clients
+        socket.on('dashboard:join', (data: { type: string }) => {
+            console.log(`   Dashboard ${socket.id} joined as ${data.type}`);
+            
+            // Send current session info if available
+            const sessionInfo = TelemetryHandler.getCurrentSessionInfo();
+            if (sessionInfo) {
+                socket.emit('session:active', sessionInfo);
+                console.log(`   Sent session:active to late joiner: ${sessionInfo.trackName}`);
+            }
+        });
+
         // 3. Setup Handlers
         roomManager.setup(socket);
         sessionHandler.setup(socket);
