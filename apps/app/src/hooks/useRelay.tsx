@@ -44,6 +44,27 @@ export interface SessionInfo {
   lapsRemaining: number | null;
 }
 
+export interface LiveIncident {
+  id: string;
+  type: string;
+  sessionId: string;
+  timestamp: number;
+  sessionTime: number;
+  lapNumber: number;
+  involvedCars: {
+    carId: number;
+    driverId: string;
+    driverName: string;
+    carNumber: string;
+    teamName: string;
+    role: string;
+  }[];
+  trackPosition: number;
+  cornerName: string;
+  severity: 'low' | 'medium' | 'high';
+  status: 'new' | 'reviewing' | 'cleared' | 'penalized';
+}
+
 const defaultTelemetry: TelemetryData = {
   lapTime: null,
   lastLap: null,
@@ -76,6 +97,7 @@ interface RelayContextValue {
   status: RelayStatus;
   telemetry: TelemetryData;
   session: SessionInfo;
+  incidents: LiveIncident[];
   connect: () => void;
   disconnect: () => void;
   getCarMapPosition: (trackPos: number) => { x: number; y: number };
@@ -100,6 +122,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   const [initialized, setInitialized] = useState(false);
   const [telemetry, setTelemetry] = useState<TelemetryData>(defaultTelemetry);
   const [session, setSession] = useState<SessionInfo>(defaultSession);
+  const [incidents, setIncidents] = useState<LiveIncident[]>([]);
   const [mockInterval, setMockInterval] = useState<NodeJS.Timeout | null>(null);
   const [mockEnabled, setMockEnabled] = useState(getInitialMockState);
 
@@ -397,6 +420,26 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       setStatus('connected');
       setSession(defaultSession);
       setTelemetry(defaultTelemetry);
+      setIncidents([]);
+    });
+
+    // Incident events from server
+    socket.on('incident:new', (data: any) => {
+      console.log('[Relay] Incident received:', data);
+      const incident: LiveIncident = {
+        id: data.id || `inc-${Date.now()}`,
+        type: data.type || 'contact',
+        sessionId: data.sessionId || '',
+        timestamp: data.timestamp || Date.now(),
+        sessionTime: data.sessionTime || 0,
+        lapNumber: data.lapNumber || 0,
+        involvedCars: data.involvedCars || [],
+        trackPosition: data.trackPosition || 0,
+        cornerName: data.cornerName || 'Unknown',
+        severity: data.severity || 'medium',
+        status: 'new',
+      };
+      setIncidents(prev => [incident, ...prev].slice(0, 50)); // Keep last 50 incidents
     });
   }, []);
 
@@ -537,7 +580,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   }, [mockInterval]);
 
   return (
-    <RelayContext.Provider value={{ status, telemetry, session, connect, disconnect, getCarMapPosition, mockEnabled, toggleMock }}>
+    <RelayContext.Provider value={{ status, telemetry, session, incidents, connect, disconnect, getCarMapPosition, mockEnabled, toggleMock }}>
       {children}
     </RelayContext.Provider>
   );
@@ -551,6 +594,7 @@ export function useRelay() {
       status: 'disconnected' as RelayStatus,
       telemetry: defaultTelemetry,
       session: defaultSession,
+      incidents: [] as LiveIncident[],
       connect: () => {},
       disconnect: () => {},
       getCarMapPosition: (trackPos: number) => ({

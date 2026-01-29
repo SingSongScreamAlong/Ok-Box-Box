@@ -103,9 +103,13 @@ const severityColors: Record<string, string> = {
 export function StewardConsole() {
   const { leagueId } = useParams<{ leagueId: string }>();
   const { user } = useAuth();
+  const { status, telemetry, session, incidents: liveIncidents } = useRelay();
   const [league, setLeague] = useState<League | null>(null);
   const [loading, setLoading] = useState(true);
-  const [raceControl, setRaceControl] = useState<RaceControl>(mockRaceControl);
+  const [raceControl, setRaceControl] = useState<RaceControl>({
+    ...mockRaceControl,
+    incidents: [] // Start with empty incidents, will be populated from live data
+  });
   const [selectedIncident, setSelectedIncident] = useState<LiveIncident | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const [isLive, setIsLive] = useState(true);
@@ -123,18 +127,40 @@ export function StewardConsole() {
     }
   }, [leagueId, user]);
 
-  // Simulate live updates
+  // Update race control from live telemetry
   useEffect(() => {
-    if (!isLive) return;
-    const interval = setInterval(() => {
+    if (status === 'in_session' && telemetry) {
       setRaceControl(prev => ({
         ...prev,
-        currentLap: Math.min(prev.currentLap + 1, prev.totalLaps),
-        timeRemaining: formatTimeRemaining(prev.timeRemaining)
+        sessionStatus: 'green',
+        currentLap: telemetry.lap || prev.currentLap,
+        carsOnTrack: telemetry.otherCars?.length || prev.carsOnTrack,
       }));
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [isLive]);
+    }
+  }, [status, telemetry]);
+
+  // Update incidents from live data
+  useEffect(() => {
+    if (liveIncidents && liveIncidents.length > 0) {
+      const mappedIncidents: LiveIncident[] = liveIncidents.map(inc => ({
+        id: inc.id,
+        lap: inc.lapNumber,
+        turn: inc.cornerName || 'Unknown',
+        timestamp: new Date(inc.timestamp).toISOString(),
+        type: inc.type as any,
+        severity: inc.severity === 'high' ? 'heavy' : inc.severity === 'low' ? 'light' : 'medium',
+        drivers: inc.involvedCars?.map(car => ({
+          carNumber: car.carNumber,
+          name: car.driverName
+        })) || [],
+        status: inc.status
+      }));
+      setRaceControl(prev => ({
+        ...prev,
+        incidents: mappedIncidents
+      }));
+    }
+  }, [liveIncidents]);
 
   const formatTimeRemaining = (time: string): string => {
     const [h, m, s] = time.split(':').map(Number);

@@ -63,6 +63,24 @@ export class TelemetryHandler {
             }
         });
 
+        // Incident events from relay
+        socket.on('incident', (data: unknown) => {
+            const rawData = data as any;
+            console.log('⚠️ INCIDENT:', JSON.stringify(rawData).substring(0, 300));
+            
+            // Broadcast to all connected clients
+            this.io.emit('incident:new', rawData);
+        });
+
+        // Race events (flags, safety car, etc.)
+        socket.on('race_event', (data: unknown) => {
+            const rawData = data as any;
+            console.log('🏁 RACE EVENT:', JSON.stringify(rawData));
+            
+            // Broadcast to all connected clients
+            this.io.emit('race:event', rawData);
+        });
+
         // Telemetry snapshot
         socket.on('telemetry', (data: unknown) => {
             const rawData = data as any;
