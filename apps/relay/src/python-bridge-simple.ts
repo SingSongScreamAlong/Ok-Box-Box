@@ -40,6 +40,7 @@ export class PythonBridge extends EventEmitter {
         lastDataTime: null,
         error: null
     };
+    private firstTelemetryLogged = false;
 
     constructor(cloudUrl: string) {
         super();
@@ -227,6 +228,12 @@ export class PythonBridge extends EventEmitter {
         // Telemetry data - forward to cloud
         this.localSocket.on('telemetry', (data: any) => {
             this.updateStatus({ iRacingDetected: true, sending: true, lastDataTime: Date.now() });
+            
+            // Log first telemetry packet
+            if (!this.firstTelemetryLogged) {
+                this.firstTelemetryLogged = true;
+                console.log('📊 First telemetry packet:', JSON.stringify(data).substring(0, 200));
+            }
             
             if (this.cloudSocket?.connected) {
                 this.cloudSocket.emit('telemetry', data);
