@@ -254,6 +254,19 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   const socketRef = useRef<Socket | null>(null);
 
   const connectReal = useCallback(() => {
+    // If already connected, don't reconnect
+    if (socketRef.current?.connected) {
+      console.log('[Relay] Already connected, skipping reconnect');
+      return;
+    }
+    
+    // Disconnect existing socket if any
+    if (socketRef.current) {
+      console.log('[Relay] Disconnecting existing socket before reconnect');
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+    
     const wsUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
     console.log('[Relay] Connecting to real server:', wsUrl);
     setStatus('connecting');
@@ -358,8 +371,17 @@ export function RelayProvider({ children }: { children: ReactNode }) {
 
     // Production server sends telemetry:driver event
     socket.on('telemetry:driver', (data: any) => {
-      console.log('[Relay] telemetry:driver received');
+      console.log('[Relay] telemetry:driver received, cars:', data?.drivers?.length);
       handleTelemetryData(data);
+      
+      // Extract session info from telemetry if available
+      if (data?.trackName || data?.sessionType) {
+        setSession(prev => ({
+          ...prev,
+          trackName: data.trackName || prev.trackName,
+          sessionType: data.sessionType || prev.sessionType,
+        }));
+      }
       
       // Extract leaderboard from drivers array
       const drivers = data?.drivers;

@@ -157,8 +157,24 @@ io.on('connection', (socket: Socket) => {
             console.log(`📊 Telemetry: ${telemetryData.cars?.length || 0} cars, broadcasting to ${dashboardClients.size} clients`);
         }
         
-        // Broadcast to all dashboard clients
-        socket.broadcast.emit('telemetry:update', data);
+        // Extract session info from telemetry if not already set
+        if (!currentSessionInfo && telemetryData.sessionId) {
+            currentSessionInfo = {
+                track: telemetryData.trackName || 'Live Session',
+                session: telemetryData.sessionType || 'race',
+                sessionId: telemetryData.sessionId
+            };
+            console.log(`📋 Session info extracted from telemetry: ${currentSessionInfo.track}`);
+        }
+        
+        // Broadcast to all dashboard clients with session info included
+        const enrichedData = {
+            ...telemetryData,
+            trackName: currentSessionInfo?.track || telemetryData.trackName,
+            sessionType: currentSessionInfo?.session || telemetryData.sessionType
+        };
+        socket.broadcast.emit('telemetry:update', enrichedData);
+        socket.broadcast.emit('telemetry:driver', enrichedData);
         
         // Format telemetry for LROC/dashboard compatibility
         // cars[] has detailed telemetry (throttle, brake, rpm, gear)

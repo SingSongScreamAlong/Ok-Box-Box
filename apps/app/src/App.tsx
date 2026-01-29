@@ -55,6 +55,7 @@ import { DriverComparison } from './pages/pitwall/DriverComparison';
 import { StintPlanner } from './pages/pitwall/StintPlanner';
 import { RacePlan } from './pages/pitwall/RacePlan';
 import { BroadcastGraphics } from './pages/league/BroadcastGraphics';
+import { RaceControlTest } from './pages/RaceControlTest';
 import { CreateEvent } from './pages/CreateEvent';
 import { EventView } from './pages/EventView';
 import { DriverProfilePage as PitwallDriverProfile } from './pages/pitwall/DriverProfile';
@@ -156,6 +157,9 @@ function App() {
           <Route path="pitwall/incidents" element={<TeamIncidents />} />
           <Route path="pitwall/driver/:driverId" element={<PitwallDriverProfile />} />
         </Route>
+
+        {/* Race Control Test - No auth required */}
+        <Route path="/rco" element={<RaceControlTest />} />
 
         {/* League Tier routes */}
         <Route path="/leagues" element={<ProtectedRoute><Leagues /></ProtectedRoute>} />

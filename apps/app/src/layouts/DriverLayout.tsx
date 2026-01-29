@@ -2,7 +2,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useRelay } from '../hooks/useRelay';
 import { DriverDataProvider } from '../hooks/useDriverData';
-import { Settings, LogOut, User, ChevronDown, BarChart3, Users, Trophy, Zap, MessageSquare, TrendingUp } from 'lucide-react';
+import { Settings, LogOut, User, ChevronDown, BarChart3, Users, Trophy, Zap, MessageSquare, TrendingUp, Flag } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 export function DriverLayout() {
@@ -149,6 +149,14 @@ export function DriverLayout() {
                 >
                   <Trophy className="w-4 h-4" />
                   Leagues
+                </NavLink>
+                <NavLink
+                  to="/rco"
+                  className="flex items-center gap-2 px-4 py-3 text-xs uppercase tracking-wider text-cyan-400 hover:text-cyan-300 hover:bg-white/5"
+                  onClick={() => setUserMenuOpen(false)}
+                >
+                  <Flag className="w-4 h-4" />
+                  Race Control
                 </NavLink>
                 <NavLink
                   to="/settings"
