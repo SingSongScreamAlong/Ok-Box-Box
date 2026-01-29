@@ -1,7 +1,7 @@
 import { Download, Monitor, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-const RELAY_DOWNLOAD_URL = 'https://github.com/SingSongScreamAlong/Ok-Box-Box/releases/latest/download/OkBoxBoxRelay-win.exe';
+const RELAY_DOWNLOAD_URL = 'https://github.com/SingSongScreamAlong/Ok-Box-Box/releases/download/v1.0.0/OkBoxBoxRelay-win.exe';
 
 export function DownloadPage() {
   return (
