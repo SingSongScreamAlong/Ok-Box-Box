@@ -52,16 +52,8 @@ export function DriverCockpit() {
   // Use track from session, fallback to daytona for demo
   const trackId = session?.trackName?.toLowerCase().replace(/\s+/g, '-') || 'daytona';
 
-  const [heatmapData, setHeatmapData] = useState<{ speed: number }[]>([]);
-  useEffect(() => {
-    const points = Array.from({ length: 100 }, (_, i) => {
-      let s = 300;
-      if (i < 10) s = 80;
-      if (i > 45 && i < 55) s = 90;
-      return { speed: s };
-    });
-    setHeatmapData(points);
-  }, []);
+  // Heatmap data will come from live telemetry when available
+  const [heatmapData] = useState<{ speed: number }[]>([]);
 
   const DeltaIcon = activeTelemetry.delta < 0 ? TrendingUp : activeTelemetry.delta > 0 ? TrendingDown : Minus;
   const deltaColor = activeTelemetry.delta < 0 ? 'text-emerald-400' : activeTelemetry.delta > 0 ? 'text-red-400' : 'text-white/50';

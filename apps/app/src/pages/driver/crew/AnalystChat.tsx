@@ -31,21 +31,9 @@ interface SessionForPanel {
   incidents: number;
 }
 
-const getAnalystResponse = (userMessage: string, session?: SessionForPanel): string => {
-  const msg = userMessage.toLowerCase();
-  if (msg.includes('lap') || msg.includes('pace')) {
-    return `Looking at your lap times from ${session?.track || 'recent sessions'}:\n\n **Best Lap**: ${session?.bestLap || '--:--.---'}\n **Consistency**: ${session?.consistency || 85}%\n\nI noticed patterns in your sector times. Want me to break down where you're losing time?`;
-  }
-  if (msg.includes('improve') || msg.includes('better')) {
-    return `Based on your data, top 3 areas for improvement:\n\n1. **Trail Braking**: Keep 10-15% brake deeper into corners\n2. **Throttle Application**: Commit earlier on exit\n3. **Consistency in Traffic**: Your pace drops when cars are nearby`;
-  }
-  if (msg.includes('debrief') || msg.includes('review')) {
-    return `**Session Debrief: ${session?.track || 'Recent Race'}**\n\n Started: P${session?.started || 8}  Finished: P${session?.position || 5}\n Best Lap: ${session?.bestLap || '--:--.---'}\n Incidents: ${session?.incidents || 0}x\n\n${session && session.position < session.started ? 'Good race craft - you gained positions.' : 'Focus on qualifying pace to start higher.'}`;
-  }
-  if (msg.includes('hello') || msg.includes('hi')) {
-    return `Driver, analyst here. I've been crunching the numbers from your recent sessions. Select a session to see track data, or switch to Chat to discuss performance.`;
-  }
-  return `I've analyzed your data from ${session?.track || 'recent sessions'}. Your finishing position of P${session?.position || 5} from P${session?.started || 8} shows ${session && session.position < session.started ? 'strong race craft' : 'room for improvement'}. Would you like me to break down specific sectors?`;
+// AI responses will come from the backend API when implemented
+const getAnalystResponse = (): string => {
+  return 'Analyst AI responses coming soon. This feature is under development.';
 };
 
 export function AnalystChat() {
@@ -74,7 +62,7 @@ export function AnalystChat() {
         position: s.finishPos || 0,
         started: s.startPos || 0,
         bestLap: '--:--.---',
-        consistency: Math.floor(75 + Math.random() * 20),
+        consistency: 0, // Will come from API when implemented
         incidents: s.incidents || 0,
       }));
       setSessions(mapped);
@@ -104,7 +92,7 @@ export function AnalystChat() {
     setInput('');
     setIsTyping(true);
     await new Promise(resolve => setTimeout(resolve, 1200 + Math.random() * 1500));
-    const analystResponse: Message = { id: (Date.now() + 1).toString(), role: 'analyst', content: getAnalystResponse(input, selectedSession || undefined), timestamp: new Date() };
+    const analystResponse: Message = { id: (Date.now() + 1).toString(), role: 'analyst', content: getAnalystResponse(), timestamp: new Date() };
     setIsTyping(false);
     setMessages(prev => [...prev, analystResponse]);
   };

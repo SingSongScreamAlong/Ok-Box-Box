@@ -16,21 +16,9 @@ interface Message {
   timestamp: Date;
 }
 
-const getEngineerResponse = (userMessage: string, race?: UpcomingRace): string => {
-  const msg = userMessage.toLowerCase();
-  if (msg.includes('fuel') || msg.includes('pit')) {
-    return `For ${race?.track || 'this track'}, I'm calculating fuel consumption based on your recent laps. At your current pace, you'll need approximately 2.8 gallons per stint. I recommend planning for a pit window around lap ${Math.floor((race?.laps || 30) / 2)} if we're running a two-stop strategy.`;
-  }
-  if (msg.includes('setup') || msg.includes('car')) {
-    return `I've been analyzing your telemetry from practice. Your corner entry is strong, but I'm seeing some understeer on exit at the high-speed sections. I'd suggest softening the rear ARB by 2 clicks and adding a bit more rear wing.`;
-  }
-  if (msg.includes('strategy') || msg.includes('plan')) {
-    return `Looking at the ${race?.laps || 30}-lap race at ${race?.track || 'the track'}:\n\n **Qualifying**: Push for a top-5 grid position\n **Start**: Conservative launch, protect position through T1\n **Pit Window**: Lap ${Math.floor((race?.laps || 30) / 2)}  2 laps depending on traffic`;
-  }
-  if (msg.includes('hello') || msg.includes('hi')) {
-    return `Hey driver! Good to have you in the briefing room. What would you like to discuss? Strategy, setup, fuel, or tire management?`;
-  }
-  return `Based on your driving data for ${race?.track || 'the upcoming race'}, I'd recommend focusing on consistency over raw pace in the early laps. What specific aspect would you like me to analyze?`;
+// AI responses will come from the backend API when implemented
+const getEngineerResponse = (): string => {
+  return 'Engineer AI responses coming soon. This feature is under development.';
 };
 
 export function EngineerChat() {
@@ -80,7 +68,7 @@ export function EngineerChat() {
     setInput('');
     setIsTyping(true);
     await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1500));
-    const engineerResponse: Message = { id: (Date.now() + 1).toString(), role: 'engineer', content: getEngineerResponse(input, selectedRace || undefined), timestamp: new Date() };
+    const engineerResponse: Message = { id: (Date.now() + 1).toString(), role: 'engineer', content: getEngineerResponse(), timestamp: new Date() };
     setIsTyping(false);
     setMessages(prev => [...prev, engineerResponse]);
   };

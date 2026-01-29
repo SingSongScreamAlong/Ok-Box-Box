@@ -34,20 +34,19 @@ export function DriverLanding() {
 
   const crewStatus = getCrewStatus();
 
-  // Mock recent sessions - would come from API
-  const recentSessions: RecentSession[] = [
-    { id: '1', track: 'Mount Panorama Circuit', date: '2 hours ago', position: 3, totalDrivers: 18, sessionType: 'Practice' },
-    { id: '2', track: 'Spa-Francorchamps', date: 'Yesterday', position: 5, totalDrivers: 24, sessionType: 'Race' },
-    { id: '3', track: 'Nürburgring GP', date: '3 days ago', position: 1, totalDrivers: 20, sessionType: 'Race' },
-  ];
+  // Recent sessions - will come from API when implemented
+  const recentSessions: RecentSession[] = [];
 
-  // Mock stats - would come from API
+  // Stats - will come from API when implemented
   const stats = {
-    totalRaces: 47,
-    wins: 8,
-    podiums: 19,
-    incidentFreeStreak: 5,
+    totalRaces: 0,
+    wins: 0,
+    podiums: 0,
+    incidentFreeStreak: 0,
   };
+  
+  const hasStats = stats.totalRaces > 0;
+  const hasSessions = recentSessions.length > 0;
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-8">
@@ -218,28 +217,36 @@ export function DriverLanding() {
                 View All <ChevronRight className="w-3 h-3" />
               </Link>
             </div>
-            <div className="divide-y divide-white/10">
-              {recentSessions.map((s) => (
-                <div key={s.id} className="px-5 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-10 h-10 flex items-center justify-center font-bold text-lg ${
-                      s.position === 1 ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' :
-                      s.position <= 3 ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
-                      'bg-white/5 text-white/60 border border-white/10'
-                    }`} style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                      P{s.position}
+            {hasSessions ? (
+              <div className="divide-y divide-white/10">
+                {recentSessions.map((s) => (
+                  <div key={s.id} className="px-5 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 flex items-center justify-center font-bold text-lg ${
+                        s.position === 1 ? 'bg-yellow-500/20 text-yellow-500 border border-yellow-500/30' :
+                        s.position <= 3 ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
+                        'bg-white/5 text-white/60 border border-white/10'
+                      }`} style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                        P{s.position}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{s.track}</p>
+                        <p className="text-xs text-white/40">{s.sessionType} • {s.totalDrivers} drivers</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium">{s.track}</p>
-                      <p className="text-xs text-white/40">{s.sessionType} • {s.totalDrivers} drivers</p>
+                    <div className="text-right">
+                      <p className="text-xs text-white/40">{s.date}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-white/40">{s.date}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <Clock className="w-8 h-8 text-white/20 mx-auto mb-3" />
+                <p className="text-xs text-white/40">No sessions recorded yet</p>
+                <p className="text-[10px] text-white/30 mt-1">Complete a session with the relay connected</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -253,24 +260,32 @@ export function DriverLanding() {
                 Your Stats
               </h3>
             </div>
-            <div className="grid grid-cols-2 divide-x divide-y divide-white/10">
-              <div className="p-4 text-center">
-                <p className="text-2xl font-bold text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>{stats.totalRaces}</p>
-                <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Races</p>
+            {hasStats ? (
+              <div className="grid grid-cols-2 divide-x divide-y divide-white/10">
+                <div className="p-4 text-center">
+                  <p className="text-2xl font-bold text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>{stats.totalRaces}</p>
+                  <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Races</p>
+                </div>
+                <div className="p-4 text-center">
+                  <p className="text-2xl font-bold text-yellow-500" style={{ fontFamily: 'Orbitron, sans-serif' }}>{stats.wins}</p>
+                  <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Wins</p>
+                </div>
+                <div className="p-4 text-center">
+                  <p className="text-2xl font-bold text-orange-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>{stats.podiums}</p>
+                  <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Podiums</p>
+                </div>
+                <div className="p-4 text-center">
+                  <p className="text-2xl font-bold text-green-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>{stats.incidentFreeStreak}</p>
+                  <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Clean Streak</p>
+                </div>
               </div>
-              <div className="p-4 text-center">
-                <p className="text-2xl font-bold text-yellow-500" style={{ fontFamily: 'Orbitron, sans-serif' }}>{stats.wins}</p>
-                <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Wins</p>
+            ) : (
+              <div className="p-8 text-center">
+                <BarChart3 className="w-8 h-8 text-white/20 mx-auto mb-3" />
+                <p className="text-xs text-white/40">No stats yet</p>
+                <p className="text-[10px] text-white/30 mt-1">Stats will appear after your first session</p>
               </div>
-              <div className="p-4 text-center">
-                <p className="text-2xl font-bold text-orange-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>{stats.podiums}</p>
-                <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Podiums</p>
-              </div>
-              <div className="p-4 text-center">
-                <p className="text-2xl font-bold text-green-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>{stats.incidentFreeStreak}</p>
-                <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Clean Streak</p>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Quick Links */}

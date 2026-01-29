@@ -18,21 +18,9 @@ interface Message {
   timestamp: Date;
 }
 
-const getSpotterResponse = (userMessage: string, race?: UpcomingRace): string => {
-  const msg = userMessage.toLowerCase();
-  if (msg.includes('start') || msg.includes('t1') || msg.includes('turn 1')) {
-    return `For ${race?.track || 'this track'}, Turn 1 is going to be chaotic with ${race?.expectedField || 24} cars. I'll call "clear inside" or "car outside" - trust the call. We're racing for the finish, not Turn 1.`;
-  }
-  if (msg.includes('rival') || msg.includes('watch')) {
-    return `I've been watching the field. There are a few fast drivers to keep an eye on. They tend to be aggressive on restarts and strong in braking zones. I'll call them out by position during the race.`;
-  }
-  if (msg.includes('traffic') || msg.includes('lapped')) {
-    return `Traffic management: I'll give early warnings. Blue flags mean they should let you by. Best passing zones: main straight and heavy braking areas. Patience wins races.`;
-  }
-  if (msg.includes('hello') || msg.includes('hi')) {
-    return `Hey driver, spotter here. ${race?.expectedField || 24} cars expected at ${race?.track || 'the track'}. What do you want to go over? Race starts, traffic, or competition?`;
-  }
-  return `Got it. For ${race?.track || 'this race'} with ${race?.expectedField || 24} cars, I'll keep my calls short and clear. What else do you need to know?`;
+// AI responses will come from the backend API when implemented
+const getSpotterResponse = (): string => {
+  return 'Spotter AI responses coming soon. This feature is under development.';
 };
 
 type ViewMode = 'live' | 'track' | 'chat';
@@ -83,7 +71,7 @@ export function SpotterChat() {
     setInput('');
     setIsTyping(true);
     await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1000));
-    const spotterResponse: Message = { id: (Date.now() + 1).toString(), role: 'spotter', content: getSpotterResponse(input, selectedRace || undefined), timestamp: new Date() };
+    const spotterResponse: Message = { id: (Date.now() + 1).toString(), role: 'spotter', content: getSpotterResponse(), timestamp: new Date() };
     setIsTyping(false);
     setMessages(prev => [...prev, spotterResponse]);
   };
