@@ -216,17 +216,18 @@ io.on('connection', (socket: Socket) => {
 
     socket.on('incident', (data: unknown) => {
         console.log(`⚠️ Incident received:`, data);
-        socket.broadcast.emit('incident:new', data);
+        // Use io.emit to broadcast to ALL clients including late joiners
+        io.emit('incident:new', data);
     });
 
     socket.on('race_event', (data: unknown) => {
         console.log(`🏁 Race event:`, data);
-        socket.broadcast.emit('race:event', data);
+        io.emit('race:event', data);
     });
 
     socket.on('driver_update', (data: unknown) => {
         console.log(`👤 Driver update:`, data);
-        socket.broadcast.emit('driver:update', data);
+        io.emit('driver:update', data);
     });
 
     // =====================================================================
