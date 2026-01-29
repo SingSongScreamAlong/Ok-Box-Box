@@ -13,6 +13,7 @@ import { ForgotPassword } from './pages/auth/ForgotPassword';
 import { ResetPassword } from './pages/auth/ResetPassword';
 import { AuthCallback } from './pages/auth/AuthCallback';
 import { DriverCockpit } from './pages/driver/DriverCockpit';
+import { DriverLanding } from './pages/driver/DriverLanding';
 import { DriverHistory } from './pages/driver/DriverHistory';
 import { DriverRatings } from './pages/driver/DriverRatings';
 import { DriverProfilePage } from './pages/driver/DriverProfilePage';
@@ -113,8 +114,8 @@ function App() {
 
         {/* Driver Tier routes */}
         <Route path="/driver" element={<ProtectedRoute><DriverLayout /></ProtectedRoute>}>
-          <Route index element={<DriverCockpit />} />
-          <Route path="home" element={<DriverCockpit />} />
+          <Route index element={<DriverLanding />} />
+          <Route path="home" element={<DriverLanding />} />
           <Route path="cockpit" element={<DriverCockpit />} />
           <Route path="history" element={<DriverHistory />} />
           <Route path="ratings" element={<DriverRatings />} />
