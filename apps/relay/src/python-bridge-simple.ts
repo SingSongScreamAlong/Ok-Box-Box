@@ -276,11 +276,9 @@ export class PythonBridge extends EventEmitter {
             console.log('✅ Connected to cloud server');
             this.updateStatus({ serverConnected: true, error: null });
 
-            // Identify as relay
+            // Identify as relay - server will identify session from telemetry data
             this.cloudSocket?.emit('relay:connect', {
-                userId: 'demo-user',
-                displayName: 'Demo Driver',
-                version: '1.0.0-alpha'
+                version: '1.0.0'
             });
         });
 

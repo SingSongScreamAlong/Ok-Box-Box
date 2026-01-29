@@ -98,7 +98,7 @@ async def send_session_metadata():
             return
             
         track_name = session_info.get('TrackName', 'Unknown Track')
-        session_id = f"live"  # Use 'live' for real-time session
+        session_id = f"live_{int(time.time())}"  # Unique session ID based on timestamp
         
         # Get session type
         session_num = ir['SessionNum'] or 0

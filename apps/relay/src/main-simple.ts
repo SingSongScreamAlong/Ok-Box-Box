@@ -17,7 +17,7 @@ import { PythonBridge, RelayStatus } from './python-bridge-simple.js';
 import { createStatusWindow, updateStatus, closeStatusWindow } from './status-window.js';
 
 const APP_NAME = 'Ok, Box Box Relay';
-const CLOUD_URL = process.env.OKBOXBOX_API_URL || 'http://localhost:3001';
+const CLOUD_URL = process.env.OKBOXBOX_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
 
 let tray: TrayManager | null = null;
 let pythonBridge: PythonBridge | null = null;
