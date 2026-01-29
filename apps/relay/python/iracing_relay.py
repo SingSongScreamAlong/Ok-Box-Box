@@ -261,8 +261,10 @@ def read_telemetry_sync() -> Optional[Dict]:
             car_best_lap_times = ir['CarIdxBestLapTime'] or []
             
             for i, driver in enumerate(drivers):
-                if i >= len(car_positions) or car_positions[i] <= 0:
-                    continue  # Skip cars not in session
+                # Include player car even if position is 0 (practice mode)
+                is_player = i == player_car_idx
+                if i >= len(car_positions) or (car_positions[i] <= 0 and not is_player):
+                    continue  # Skip cars not in session (except player)
                 all_cars.append({
                     'carIdx': i,
                     'driverName': driver.get('UserName', f'Car {i}'),
