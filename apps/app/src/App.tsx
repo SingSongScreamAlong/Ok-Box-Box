@@ -60,6 +60,7 @@ import { RaceControlTest as RaceControl } from './pages/RaceControlTest';
 import { CreateEvent } from './pages/CreateEvent';
 import { EventView } from './pages/EventView';
 import { DriverProfilePage as PitwallDriverProfile } from './pages/pitwall/DriverProfile';
+import { DownloadPage } from './pages/Download';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -161,6 +162,9 @@ function App() {
 
         {/* Race Control Test - No auth required */}
         <Route path="/rco" element={<RaceControl />} />
+
+        {/* Download page - No auth required */}
+        <Route path="/download" element={<DownloadPage />} />
 
         {/* League Tier routes */}
         <Route path="/leagues" element={<ProtectedRoute><Leagues /></ProtectedRoute>} />
