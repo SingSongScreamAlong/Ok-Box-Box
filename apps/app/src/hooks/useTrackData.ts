@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { getTrackId } from '../data/tracks';
 
 // Define the shape structure matching *.shape.json
 export interface TrackShape {
@@ -20,14 +19,51 @@ export interface TrackShape {
     pitlane?: Array<{ x: number, y: number, distPct: number }>;
 }
 
-// Vite glob import for all shape files
+// Vite glob import for all shape files (both *.shape.json and *.json)
 const shapeModules = import.meta.glob('../../../../packages/dashboard/src/data/trackData/*.shape.json', {
+    import: 'default',
+    eager: false
+});
+
+// Also import slug-named track files (like monza-combinedchicanes.json)
+const slugModules = import.meta.glob('../../../../packages/dashboard/src/data/trackData/*.json', {
     import: 'default',
     eager: false
 });
 
 // Cache for loaded shapes
 const shapeCache: Record<string, TrackShape> = {};
+
+// Generate a fallback oval shape when track data is not available
+function generateFallbackOval(trackId: string): TrackShape {
+    const points: Array<{ x: number; y: number; distPct: number }> = [];
+    const numPoints = 100;
+    const radiusX = 400;
+    const radiusY = 200;
+    const centerX = 500;
+    const centerY = 300;
+    
+    for (let i = 0; i < numPoints; i++) {
+        const angle = (i / numPoints) * Math.PI * 2;
+        points.push({
+            x: centerX + Math.cos(angle) * radiusX,
+            y: centerY + Math.sin(angle) * radiusY,
+            distPct: i / numPoints
+        });
+    }
+    
+    return {
+        name: trackId,
+        trackId: trackId,
+        centerline: points,
+        bounds: {
+            xMin: centerX - radiusX - 50,
+            xMax: centerX + radiusX + 50,
+            yMin: centerY - radiusY - 50,
+            yMax: centerY + radiusY + 50
+        }
+    };
+}
 
 export function useTrackData(trackId: string | undefined) {
     const [shape, setShape] = useState<TrackShape | null>(null);
@@ -70,17 +106,35 @@ export function useTrackData(trackId: string | undefined) {
                 // Actually, we can loop through the keys (strings) and regex match.
 
                 // But first, let's see if we can find the module.
+                // Normalize trackId: "monza combinedchicanes" -> "monza-combinedchicanes"
+                const normalizedId = trackId.toLowerCase().replace(/\s+/g, '-');
+                
+                // Try to find in shape modules first (numeric IDs like 191.shape.json)
                 let moduleKey = Object.keys(shapeModules).find(key => key.includes(`/${trackId}.shape.json`));
+                let modules = shapeModules;
 
-                // If not found by direct filename, we might need to search.
-                // Ideally we pass the numeric ID to this hook.
+                // If not found, try slug modules (like monza-combinedchicanes.json)
+                if (!moduleKey) {
+                    moduleKey = Object.keys(slugModules).find(key => 
+                        key.includes(`/${normalizedId}.json`) && !key.includes('.shape.json')
+                    );
+                    modules = slugModules;
+                }
+
+                // Still not found? Try partial match on slug modules
+                if (!moduleKey) {
+                    moduleKey = Object.keys(slugModules).find(key => {
+                        const filename = key.split('/').pop()?.replace('.json', '') || '';
+                        return filename === normalizedId || normalizedId.includes(filename) || filename.includes(normalizedId);
+                    });
+                    modules = slugModules;
+                }
 
                 if (!moduleKey) {
-                    // If we can't find it by filename, maybe we can find it by loose match?
-                    // If not, we might fail.
-                    // Let's assume the caller passes the numeric ID or exact filename stem for now.
-                    // OR we implement a lookup.
-                    console.warn(`[useTrackData] Could not find shape file for ${trackId}`);
+                    console.warn(`[useTrackData] Could not find shape file for ${trackId} (normalized: ${normalizedId}), using fallback oval`);
+                    // Generate a fallback oval shape
+                    const fallbackShape: TrackShape = generateFallbackOval(trackId);
+                    setShape(fallbackShape);
                     setLoading(false);
                     return;
                 }
@@ -91,7 +145,7 @@ export function useTrackData(trackId: string | undefined) {
                     return;
                 }
 
-                const loadFn = shapeModules[moduleKey] as () => Promise<TrackShape>;
+                const loadFn = modules[moduleKey] as () => Promise<TrackShape>;
                 const data = await loadFn();
 
                 shapeCache[moduleKey] = data;
