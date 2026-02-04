@@ -34,7 +34,17 @@ let currentSessionInfo: { track: string; session: string; sessionId: string } | 
 
 // Create Express app for static file serving
 const app = express();
-app.use(cors({ origin: '*' }));
+
+// CORS - allow all origins with credentials
+app.use(cors({ 
+    origin: true,  // Reflect request origin
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+}));
+
+// Handle preflight OPTIONS requests explicitly
+app.options('*', cors());
 
 // Health check endpoints
 app.get('/api/health', (_req, res) => {
@@ -56,6 +66,45 @@ app.get('/api/health/telemetry', (_req, res) => {
         });
     });
     res.json({ activeSessions: sessions.length, sessions, dashboardClients: dashboardClients.size });
+});
+
+// =====================================================================
+// Stub API Routes (standalone mode - no database)
+// These return empty/default data to prevent frontend errors
+// =====================================================================
+
+// Driver profile stub - returns empty profile
+app.get('/api/v1/drivers/me', (_req, res) => {
+    res.json({
+        id: null,
+        displayName: 'Guest Driver',
+        iracingId: null,
+        licenses: [],
+        stats: { races: 0, wins: 0, podiums: 0, avgFinish: 0 },
+        message: 'Standalone mode - connect iRacing for live data'
+    });
+});
+
+// Driver sessions stub
+app.get('/api/v1/drivers/me/sessions', (_req, res) => {
+    res.json({ sessions: [], total: 0 });
+});
+
+// Driver stats stub
+app.get('/api/v1/drivers/me/stats', (_req, res) => {
+    res.json({ 
+        totalRaces: 0, 
+        wins: 0, 
+        podiums: 0, 
+        avgFinish: 0,
+        safetyRating: 0,
+        iRating: 0
+    });
+});
+
+// Driver development stub
+app.get('/api/v1/drivers/me/development', (_req, res) => {
+    res.json({ skills: [], goals: [], progress: 0 });
 });
 
 // Serve legacy BlackBox dashboard at /blackbox
@@ -200,7 +249,8 @@ io.on('connection', (socket: Socket) => {
         }
         
         // Emit competitor_data for leaderboard
-        const standings = telemetryData.drivers || telemetryData.cars;
+        // Relay sends 'standings' array, fallback to 'drivers' or 'cars'
+        const standings = telemetryData.standings || telemetryData.drivers || telemetryData.cars;
         if (standings && standings.length > 0) {
             const competitorData = standings
                 .sort((a: any, b: any) => (a.position || 0) - (b.position || 0))
