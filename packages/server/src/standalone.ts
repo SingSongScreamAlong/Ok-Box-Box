@@ -203,7 +203,7 @@ io.on('connection', (socket: Socket) => {
         
         // Log telemetry receipt (sample 1 in 60 to avoid spam)
         if (Math.random() < 0.017) {
-            console.log(`📊 Telemetry: ${telemetryData.cars?.length || 0} cars, broadcasting to ${dashboardClients.size} clients`);
+            console.log(`📊 Telemetry: ${telemetryData.cars?.length || 0} cars, ${telemetryData.standings?.length || 0} standings, broadcasting to ${dashboardClients.size} clients`);
         }
         
         // Extract session info from telemetry if not already set

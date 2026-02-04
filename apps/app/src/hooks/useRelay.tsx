@@ -236,7 +236,10 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     });
 
     socket.on('telemetry:driver', (data: any) => {
-      console.log('[Relay] telemetry:driver received, cars:', data?.cars?.length, 'standings:', data?.standings?.length);
+      console.log('[Relay] telemetry:driver received, cars:', data?.cars?.length, 'standings:', data?.standings?.length, 'keys:', Object.keys(data || {}));
+      if (data?.standings?.[0]) {
+        console.log('[Relay] First standing entry:', JSON.stringify(data.standings[0]));
+      }
       handleTelemetryData(data);
       
       if (data?.trackName || data?.sessionType) {

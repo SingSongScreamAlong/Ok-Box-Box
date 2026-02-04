@@ -273,7 +273,7 @@ export function DriverCockpit() {
           {realTelemetry.otherCars && realTelemetry.otherCars.length > 0 ? (
             realTelemetry.otherCars.map((car, idx) => (
               <div 
-                key={car.carNumber || idx}
+                key={`${idx}-${car.carNumber || 'car'}`}
                 className={`flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.04] ${
                   car.isPlayer ? 'bg-cyan-500/10 border-l-2 border-l-cyan-500' : 'hover:bg-white/[0.02]'
                 }`}
