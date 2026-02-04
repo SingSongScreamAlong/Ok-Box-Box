@@ -154,7 +154,7 @@ io.on('connection', (socket: Socket) => {
     console.log(`🔌 Client connected: ${socket.id}`);
     
     // Debug: Log all incoming events
-    socket.onAny((eventName, ...args) => {
+    socket.onAny((eventName, ..._args) => {
         if (eventName !== 'telemetry') {
             console.log(`📨 Event: ${eventName}`);
         }

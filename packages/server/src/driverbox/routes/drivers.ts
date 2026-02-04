@@ -506,7 +506,7 @@ router.get('/me/development', requireAuth, async (req: Request, res: Response): 
 
 // Helper functions for development data
 
-function determineDevelopmentPhase(aggregate: any, traits: any[]): string {
+function determineDevelopmentPhase(aggregate: any, _traits: any[]): string {
     if (!aggregate) return 'Getting Started';
     
     const sessions = aggregate.total_sessions || 0;
@@ -555,7 +555,7 @@ function determineWeeklyFocus(traits: any[], metrics: any[]): string {
     return 'Consistency & Pace Development';
 }
 
-function buildFocusAreas(traits: any[], metrics: any[]): any[] {
+function buildFocusAreas(traits: any[], _metrics: any[]): any[] {
     const areas: any[] = [];
     
     // Build focus areas from traits
@@ -575,14 +575,14 @@ function buildFocusAreas(traits: any[], metrics: any[]): any[] {
     return areas;
 }
 
-function buildSkillTree(aggregate: any, traits: any[]): any[] {
+function buildSkillTree(aggregate: any, _traits: any[]): any[] {
     const categories = [
         {
             category: 'Car Control',
             skills: [
-                { name: 'Throttle Control', level: 1, maxLevel: 3, progress: 30, status: 'learning' as const, description: 'Smooth throttle application' },
-                { name: 'Braking', level: 1, maxLevel: 3, progress: 30, status: 'learning' as const, description: 'Consistent braking points' },
-                { name: 'Weight Transfer', level: 1, maxLevel: 3, progress: 0, status: 'next' as const, description: 'Use weight to rotate' },
+                { name: 'Throttle Control', level: 1, maxLevel: 3, progress: 30, status: 'learning' as 'learning' | 'next' | 'mastered', description: 'Smooth throttle application' },
+                { name: 'Braking', level: 1, maxLevel: 3, progress: 30, status: 'learning' as 'learning' | 'next' | 'mastered', description: 'Consistent braking points' },
+                { name: 'Weight Transfer', level: 1, maxLevel: 3, progress: 0, status: 'next' as 'learning' | 'next' | 'mastered', description: 'Use weight to rotate' },
             ]
         },
         {
@@ -637,7 +637,7 @@ function buildLearningMoments(metrics: any[]): any[] {
     }));
 }
 
-function buildCoachingNotes(traits: any[], aggregate: any): string[] {
+function buildCoachingNotes(_traits: any[], aggregate: any): string[] {
     const notes: string[] = [];
     
     if (!aggregate || !aggregate.total_sessions) {
@@ -663,9 +663,9 @@ function buildCoachingNotes(traits: any[], aggregate: any): string[] {
     return notes;
 }
 
-function buildNextSessionPlan(traits: any[], metrics: any[]): any {
+function buildNextSessionPlan(_traits: any[], _metrics: any[]): any {
     return {
-        focus: metrics.length > 0 ? 'Continue building consistency' : 'Complete your first session',
+        focus: 'Continue building consistency',
         drills: [
             'Focus on hitting your marks consistently',
             'Practice smooth inputs',
