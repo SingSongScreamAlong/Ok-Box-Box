@@ -29,11 +29,9 @@ export interface TelemetryData {
   rpm: number | null;
   throttle: number | null;
   brake: number | null;
-  // Track position data for map visualization
-  trackPosition: number | null; // 0-1 position around track (LapDistPct)
-  sector: number | null; // Current sector 1, 2, or 3
+  trackPosition: number | null;
+  sector: number | null;
   inPit: boolean;
-  // Other cars on track
   otherCars: CarMapPosition[];
 }
 
@@ -101,21 +99,17 @@ interface RelayContextValue {
   connect: () => void;
   disconnect: () => void;
   getCarMapPosition: (trackPos: number) => { x: number; y: number };
-  mockEnabled: boolean;
-  toggleMock: () => void;
 }
 
 const RelayContext = createContext<RelayContextValue | null>(null);
 
-// MOCK DISABLED - Always use real mode
-const getInitialMockState = (): boolean => {
-  // Mock mode disabled - always return false to use real data
-  // const envValue = import.meta.env.VITE_RELAY_MOCK;
-  // return envValue === 'true';
-  return false;
-};
-
-console.log('[Relay] Initial mock mode:', getInitialMockState());
+// Helper to format lap time
+function formatLapTime(seconds: number): string {
+  if (!seconds || seconds <= 0) return '—';
+  const mins = Math.floor(seconds / 60);
+  const secs = (seconds % 60).toFixed(3);
+  return mins > 0 ? `${mins}:${secs.padStart(6, '0')}` : secs;
+}
 
 export function RelayProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<RelayStatus>('disconnected');
@@ -123,116 +117,10 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   const [telemetry, setTelemetry] = useState<TelemetryData>(defaultTelemetry);
   const [session, setSession] = useState<SessionInfo>(defaultSession);
   const [incidents, setIncidents] = useState<LiveIncident[]>([]);
-  const [mockInterval, setMockInterval] = useState<NodeJS.Timeout | null>(null);
-  const [mockEnabled, setMockEnabled] = useState(getInitialMockState);
-
-  const toggleMock = useCallback(() => {
-    setMockEnabled(prev => !prev);
-  }, []);
-
-  const startMockSimulation = useCallback(() => {
-    console.log('[Relay] Starting mock simulation...');
-    
-    // Simulate connection sequence
-    setStatus('connecting');
-    
-    setTimeout(() => {
-      setStatus('connected');
-      
-      // After 2 seconds, simulate entering a session
-      setTimeout(() => {
-        setStatus('in_session');
-        setSession({
-          trackName: 'Daytona International Speedway',
-          sessionType: 'practice',
-          timeRemaining: 3600,
-          lapsRemaining: null,
-        });
-
-        // Start telemetry simulation with realistic update rate
-        let lap = 1;
-        let bestLap = 95.234; // ~1:35.234
-        let lastLap = 96.892;
-        let trackPos = 0; // 0-1 position around track
-        let position = 8; // Start in P8
-        let fuel = 18;
-        let currentSpeed = 180;
-        let currentDelta = 0.15;
-        
-        // Slower, more realistic update rate (1 second)
-        const positionInterval = setInterval(() => {
-          // Move around track more slowly (~1% per second = ~100 second lap)
-          trackPos += 0.01;
-          if (trackPos >= 1) {
-            trackPos = 0;
-            lap++;
-            // Generate new lap time when crossing line
-            lastLap = 94 + Math.random() * 4; // 1:34 to 1:38
-            if (lastLap < bestLap) bestLap = lastLap;
-            fuel = Math.max(0, fuel - 0.5); // Use fuel each lap
-            // Position can change slightly each lap
-            position = Math.max(1, Math.min(20, position + Math.floor(Math.random() * 3) - 1));
-          }
-          
-          // Calculate sector (1, 2, or 3) based on track position
-          const sector = trackPos < 0.33 ? 1 : trackPos < 0.66 ? 2 : 3;
-          
-          // Smooth speed changes based on track position
-          const cornerFactor = Math.sin(trackPos * Math.PI * 6) * 0.15;
-          const targetSpeed = 180 + (cornerFactor * 180);
-          // Smooth interpolation toward target speed
-          currentSpeed = currentSpeed + (targetSpeed - currentSpeed) * 0.3;
-          
-          // Delta drifts slowly
-          currentDelta = currentDelta + (Math.random() - 0.5) * 0.1;
-          currentDelta = Math.max(-2, Math.min(2, currentDelta)); // Clamp to +/- 2 seconds
-          
-          // Throttle/brake based on speed change
-          const throttle = cornerFactor > 0 ? 85 : 50;
-          const brake = cornerFactor < -0.05 ? 70 : 0;
-          
-          // Generate mock other cars spread around track
-          const mockOtherCars: CarMapPosition[] = [
-            { trackPercentage: (trackPos + 0.05) % 1, carNumber: '44', position: position - 1, color: '#ef4444' },
-            { trackPercentage: (trackPos + 0.12) % 1, carNumber: '77', position: position - 2, color: '#22c55e' },
-            { trackPercentage: (trackPos + 0.25) % 1, carNumber: '33', position: position - 3, color: '#3b82f6' },
-            { trackPercentage: (trackPos - 0.08 + 1) % 1, carNumber: '11', position: position + 1, color: '#f97316' },
-            { trackPercentage: (trackPos - 0.15 + 1) % 1, carNumber: '55', position: position + 2, color: '#a855f7' },
-          ];
-
-          setTelemetry({
-            lapTime: trackPos * 95, // Approximate lap time based on position
-            lastLap: lastLap,
-            bestLap: bestLap,
-            delta: currentDelta,
-            fuel: fuel,
-            fuelPerLap: 0.5,
-            lapsRemaining: Math.floor(fuel / 0.5),
-            position: position,
-            lap: lap,
-            speed: currentSpeed,
-            gear: currentSpeed < 100 ? 3 : currentSpeed < 150 ? 4 : currentSpeed < 180 ? 5 : 6,
-            rpm: 4000 + (currentSpeed / 200) * 4000,
-            throttle: throttle,
-            brake: brake,
-            trackPosition: trackPos,
-            sector: sector,
-            inPit: false,
-            otherCars: mockOtherCars,
-          });
-        }, 1000); // Update every 1 second - much calmer
-
-        const interval = positionInterval; // Keep reference for cleanup
-
-        setMockInterval(interval);
-      }, 2000);
-    }, 1500);
-  }, [mockEnabled]);
+  const socketRef = useRef<Socket | null>(null);
 
   // Helper to convert track position to x,y coordinates for map
-  // This would be track-specific in production
   const getCarMapPosition = useCallback((trackPos: number): { x: number; y: number } => {
-    // Simple oval approximation - real tracks would have proper path data
     const angle = trackPos * Math.PI * 2;
     return {
       x: 0.5 + Math.cos(angle) * 0.35,
@@ -240,27 +128,12 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const stopMockSimulation = useCallback(() => {
-    if (mockInterval) {
-      clearInterval(mockInterval);
-      setMockInterval(null);
-    }
-    setStatus('disconnected');
-    setTelemetry(defaultTelemetry);
-    setSession(defaultSession);
-  }, [mockInterval]);
-
-  // Socket.IO reference for real connection
-  const socketRef = useRef<Socket | null>(null);
-
-  const connectReal = useCallback(() => {
-    // If already connected, don't reconnect
+  const connect = useCallback(() => {
     if (socketRef.current?.connected) {
       console.log('[Relay] Already connected, skipping reconnect');
       return;
     }
     
-    // Disconnect existing socket if any
     if (socketRef.current) {
       console.log('[Relay] Disconnecting existing socket before reconnect');
       socketRef.current.disconnect();
@@ -268,7 +141,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     }
     
     const wsUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
-    console.log('[Relay] Connecting to real server:', wsUrl);
+    console.log('[Relay] Connecting to server:', wsUrl);
     setStatus('connecting');
 
     const socket = io(wsUrl, {
@@ -283,7 +156,6 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     socket.on('connect', () => {
       console.log('[Relay] Connected to server');
       setStatus('connected');
-      // Register as dashboard client
       socket.emit('dashboard:join', { type: 'driver' });
     });
 
@@ -297,7 +169,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       setStatus('disconnected');
     });
 
-    // Session info from server (matches server's session_info event)
+    // Session info from server
     socket.on('session_info', (data: any) => {
       console.log('[Relay] Session info:', data);
       setStatus('in_session');
@@ -309,7 +181,6 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       });
     });
 
-    // Session active event (sent when client connects to active session)
     socket.on('session:active', (data: any) => {
       console.log('[Relay] Session active:', data);
       setStatus('in_session');
@@ -320,7 +191,6 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       }));
     });
 
-    // Session metadata event (from relay via server)
     socket.on('session:metadata', (data: any) => {
       console.log('[Relay] Session metadata:', data);
       setStatus('in_session');
@@ -331,10 +201,8 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       }));
     });
 
-    // Handler for processing telemetry data from any event
+    // Handler for processing telemetry data
     const handleTelemetryData = (data: any) => {
-      // Handle nested data structure from production server
-      // Production sends: { type: 'telemetry', cars: [...], drivers: [...] }
       const car = data?.cars?.[0];
       const driver = data?.drivers?.[0];
       const driverData = car || driver || data;
@@ -351,7 +219,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
         lapsRemaining: prev.lapsRemaining,
         position: driver?.position ?? car?.position ?? driverData.position ?? prev.position,
         lap: driver?.lapNumber ?? car?.lap ?? driverData.lap ?? prev.lap,
-        speed: car?.speed != null ? Math.round(car.speed * 2.237) : prev.speed, // m/s to mph
+        speed: car?.speed != null ? Math.round(car.speed * 2.237) : prev.speed,
         gear: car?.gear ?? driverData.gear ?? prev.gear,
         rpm: car?.rpm ?? driverData.rpm ?? prev.rpm,
         throttle: car?.throttle != null ? car.throttle * 100 : prev.throttle,
@@ -363,18 +231,14 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       }));
     };
 
-    // Telemetry updates - listen to multiple event names for compatibility
     socket.on('telemetry_update', (data: any) => {
-      console.log('[Relay] telemetry_update received');
       handleTelemetryData(data);
     });
 
-    // Production server sends telemetry:driver event
     socket.on('telemetry:driver', (data: any) => {
       console.log('[Relay] telemetry:driver received, cars:', data?.cars?.length, 'standings:', data?.standings?.length);
       handleTelemetryData(data);
       
-      // Extract session info from telemetry if available
       if (data?.trackName || data?.sessionType) {
         setSession(prev => ({
           ...prev,
@@ -383,9 +247,9 @@ export function RelayProvider({ children }: { children: ReactNode }) {
         }));
       }
       
-      // Extract leaderboard from standings or drivers array (relay sends standings)
+      // Extract leaderboard from standings array (relay sends standings)
       const drivers = data?.standings || data?.drivers;
-      const playerCarIdx = data?.cars?.[0]?.carIdx; // First car is the player
+      const playerCarIdx = data?.cars?.[0]?.carIdx;
       
       if (drivers && Array.isArray(drivers) && drivers.length > 0) {
         const sortedDrivers = [...drivers].sort((a, b) => (a.position || 999) - (b.position || 999));
@@ -400,23 +264,14 @@ export function RelayProvider({ children }: { children: ReactNode }) {
               position: driver.position || idx + 1,
               gap: isPlayer ? '—' : (driver.gapToLeader ? `+${driver.gapToLeader.toFixed(1)}s` : '--'),
               lastLap: driver.lastLapTime > 0 ? formatLapTime(driver.lastLapTime) : '—',
-              color: isPlayer ? '#10b981' : '#374151', // Green for player
+              color: isPlayer ? '#10b981' : '#374151',
               isPlayer,
             };
           }),
         }));
       }
     });
-    
-    // Helper to format lap time
-    function formatLapTime(seconds: number): string {
-      if (!seconds || seconds <= 0) return '—';
-      const mins = Math.floor(seconds / 60);
-      const secs = (seconds % 60).toFixed(3);
-      return mins > 0 ? `${mins}:${secs.padStart(6, '0')}` : secs;
-    }
 
-    // Competitor data for leaderboard
     socket.on('competitor_data', (data: any[]) => {
       console.log('[Relay] Competitor data:', data?.length, 'cars');
       if (data && Array.isArray(data)) {
@@ -436,7 +291,6 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    // Session ended
     socket.on('session:end', () => {
       console.log('[Relay] Session ended');
       setStatus('connected');
@@ -445,7 +299,6 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       setIncidents([]);
     });
 
-    // Incident events from server
     socket.on('incident:new', (data: any) => {
       console.log('[Relay] Incident received:', data);
       const incident: LiveIncident = {
@@ -461,11 +314,11 @@ export function RelayProvider({ children }: { children: ReactNode }) {
         severity: data.severity || 'medium',
         status: 'new',
       };
-      setIncidents(prev => [incident, ...prev].slice(0, 50)); // Keep last 50 incidents
+      setIncidents(prev => [incident, ...prev].slice(0, 50));
     });
   }, []);
 
-  const disconnectReal = useCallback(() => {
+  const disconnect = useCallback(() => {
     if (socketRef.current) {
       socketRef.current.disconnect();
       socketRef.current = null;
@@ -475,134 +328,17 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     setSession(defaultSession);
   }, []);
 
-  const connect = useCallback(() => {
-    if (mockEnabled) {
-      startMockSimulation();
-    } else {
-      connectReal();
-    }
-  }, [mockEnabled, startMockSimulation, connectReal]);
-
-  const disconnect = useCallback(() => {
-    if (mockEnabled) {
-      stopMockSimulation();
-    } else {
-      disconnectReal();
-    }
-  }, [mockEnabled, stopMockSimulation, disconnectReal]);
-
-  // Auto-connect on mount (both mock and real mode)
+  // Auto-connect on mount
   useEffect(() => {
     if (!initialized) {
       setInitialized(true);
-      console.log('[Relay] Initializing, mockEnabled:', mockEnabled);
-      
-      if (!mockEnabled) {
-        // Auto-connect to real server
-        console.log('[Relay] Auto-connecting to real server...');
-        connectReal();
-        return;
-      }
-      
-      if (mockEnabled) {
-        console.log('[Relay] Auto-connecting mock in 1 second...');
-        const timer = setTimeout(() => {
-          console.log('[Relay] Triggering mock simulation now');
-          // Inline the mock start to avoid closure issues
-          setStatus('connecting');
-          
-          setTimeout(() => {
-            setStatus('connected');
-            
-            setTimeout(() => {
-              setStatus('in_session');
-              setSession({
-                trackName: 'Daytona International Speedway',
-                sessionType: 'practice',
-                timeRemaining: 3600,
-                lapsRemaining: null,
-              });
-
-              let lap = 1;
-              let bestLap = 95.234;
-              let lastLap = 96.892;
-              let trackPos = 0;
-              let position = 8;
-              let fuel = 18;
-              let currentSpeed = 180;
-              let currentDelta = 0.15;
-              
-              const interval = setInterval(() => {
-                trackPos += 0.01;
-                if (trackPos >= 1) {
-                  trackPos = 0;
-                  lap++;
-                  lastLap = 94 + Math.random() * 4;
-                  if (lastLap < bestLap) bestLap = lastLap;
-                  fuel = Math.max(0, fuel - 0.5);
-                  position = Math.max(1, Math.min(20, position + Math.floor(Math.random() * 3) - 1));
-                }
-                
-                const sector = trackPos < 0.33 ? 1 : trackPos < 0.66 ? 2 : 3;
-                const cornerFactor = Math.sin(trackPos * Math.PI * 6) * 0.15;
-                const targetSpeed = 180 + (cornerFactor * 180);
-                currentSpeed = currentSpeed + (targetSpeed - currentSpeed) * 0.3;
-                currentDelta = currentDelta + (Math.random() - 0.5) * 0.1;
-                currentDelta = Math.max(-2, Math.min(2, currentDelta));
-                const throttle = cornerFactor > 0 ? 85 : 50;
-                const brake = cornerFactor < -0.05 ? 70 : 0;
-                
-                // Generate mock other cars spread around track
-                const mockOtherCars: CarMapPosition[] = [
-                  { trackPercentage: (trackPos + 0.05) % 1, carNumber: '44', position: position - 1, color: '#ef4444' },
-                  { trackPercentage: (trackPos + 0.12) % 1, carNumber: '77', position: position - 2, color: '#22c55e' },
-                  { trackPercentage: (trackPos + 0.25) % 1, carNumber: '33', position: position - 3, color: '#3b82f6' },
-                  { trackPercentage: (trackPos - 0.08 + 1) % 1, carNumber: '11', position: position + 1, color: '#f97316' },
-                  { trackPercentage: (trackPos - 0.15 + 1) % 1, carNumber: '55', position: position + 2, color: '#a855f7' },
-                ];
-
-                setTelemetry({
-                  lapTime: trackPos * 95,
-                  lastLap: lastLap,
-                  bestLap: bestLap,
-                  delta: currentDelta,
-                  fuel: fuel,
-                  fuelPerLap: 0.5,
-                  lapsRemaining: Math.floor(fuel / 0.5),
-                  position: position,
-                  lap: lap,
-                  speed: currentSpeed,
-                  gear: currentSpeed < 100 ? 3 : currentSpeed < 150 ? 4 : currentSpeed < 180 ? 5 : 6,
-                  rpm: 4000 + (currentSpeed / 200) * 4000,
-                  throttle: throttle,
-                  brake: brake,
-                  trackPosition: trackPos,
-                  sector: sector,
-                  inPit: false,
-                  otherCars: mockOtherCars,
-                });
-              }, 1000);
-
-              setMockInterval(interval);
-            }, 2000);
-          }, 1500);
-        }, 1000);
-        return () => clearTimeout(timer);
-      }
+      console.log('[Relay] Auto-connecting to server...');
+      connect();
     }
-  }, [initialized, mockEnabled, connectReal]);  // Include connectReal for real mode auto-connect
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (mockInterval) {
-        clearInterval(mockInterval);
-      }
-    };
-  }, [mockInterval]);
+  }, [initialized, connect]);
 
   return (
-    <RelayContext.Provider value={{ status, telemetry, session, incidents, connect, disconnect, getCarMapPosition, mockEnabled, toggleMock }}>
+    <RelayContext.Provider value={{ status, telemetry, session, incidents, connect, disconnect, getCarMapPosition }}>
       {children}
     </RelayContext.Provider>
   );
@@ -611,7 +347,6 @@ export function RelayProvider({ children }: { children: ReactNode }) {
 export function useRelay() {
   const context = useContext(RelayContext);
   if (!context) {
-    // Return disconnected state if outside provider
     return {
       status: 'disconnected' as RelayStatus,
       telemetry: defaultTelemetry,
@@ -623,8 +358,6 @@ export function useRelay() {
         x: 0.5 + Math.cos(trackPos * Math.PI * 2) * 0.35,
         y: 0.5 + Math.sin(trackPos * Math.PI * 2) * 0.25,
       }),
-      mockEnabled: false,
-      toggleMock: () => {},
     };
   }
   return context;
