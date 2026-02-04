@@ -18,7 +18,7 @@ COPY packages/dashboard/package*.json ./packages/dashboard/
 RUN npm ci
 
 # Cache bust argument - change this value to force fresh source copy
-ARG CACHE_BUST=2026012906
+ARG CACHE_BUST=2026020401
 
 # Copy source code
 COPY tsconfig.base.json ./
@@ -69,6 +69,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/health || exit 1
 
-# Start server - full mode with database, auth, and all features
-# Falls back gracefully if DB not available
-CMD ["node", "dist/index.js"]
+# Start standalone server - no database required, handles relay telemetry
+CMD ["node", "dist/standalone.js"]
