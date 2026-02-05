@@ -21,10 +21,12 @@ function formatLapTime(seconds: number): string {
     return mins > 0 ? `${mins}:${secs.padStart(6, '0')}` : secs;
 }
 
+const BUILD_VERSION = '2026-02-04-v1';
+
 console.log('🏎️  ControlBox Standalone Server Starting...');
 console.log(`   Mode: Standalone (no database)`);
 console.log(`   Port: ${PORT}`);
-console.log(`   Build: 2026-01-19-v2`);
+console.log(`   Build: ${BUILD_VERSION}`);
 
 // Track active sessions for diagnostics
 const activeSessions = new Map<string, { lastUpdate: number; driverCount: number }>();
@@ -48,7 +50,7 @@ app.options('*', cors());
 
 // Health check endpoints
 app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', mode: 'standalone' });
+    res.json({ status: 'ok', mode: 'standalone', build: BUILD_VERSION });
 });
 
 app.get('/health', (_req, res) => {
