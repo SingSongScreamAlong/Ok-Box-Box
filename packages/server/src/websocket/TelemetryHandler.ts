@@ -306,6 +306,13 @@ export class TelemetryHandler {
                 // Broadcast to all connected clients (LROC doesn't join session rooms)
                 this.io.volatile.emit('telemetry_update', lrocTelemetry);
                 
+                // Also emit telemetry:driver for Driver Tier app compatibility
+                this.io.volatile.emit('telemetry:driver', {
+                    ...rawData,
+                    trackName: rawData.trackName || session?.trackName,
+                    sessionType: rawData.sessionType || session?.sessionType
+                });
+                
                 // Also emit session_info for LROC
                 this.io.volatile.emit('session_info', {
                     track: rawData.trackName || session?.trackName || 'Unknown Track',

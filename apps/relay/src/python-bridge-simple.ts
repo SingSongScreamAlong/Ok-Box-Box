@@ -31,6 +31,7 @@ export class PythonBridge extends EventEmitter {
     private pythonProcess: ChildProcess | null = null;
     private localSocket: Socket | null = null;
     private cloudSocket: Socket | null = null;
+    private devSocket: Socket | null = null; // Local dev server connection
     private cloudUrl: string;
     private running = false;
     private status: RelayStatus = {
@@ -67,6 +68,9 @@ export class PythonBridge extends EventEmitter {
 
         // Connect to cloud server
         this.connectToCloud();
+
+        // Connect to local dev server (localhost:3001)
+        this.connectToDevServer();
     }
 
     /**
@@ -83,6 +87,11 @@ export class PythonBridge extends EventEmitter {
         if (this.cloudSocket) {
             this.cloudSocket.disconnect();
             this.cloudSocket = null;
+        }
+
+        if (this.devSocket) {
+            this.devSocket.disconnect();
+            this.devSocket = null;
         }
 
         if (this.pythonProcess) {
@@ -225,7 +234,7 @@ export class PythonBridge extends EventEmitter {
             this.updateStatus({ iRacingDetected: data.connected });
         });
 
-        // Telemetry data - forward to cloud
+        // Telemetry data - forward to cloud AND local dev server
         this.localSocket.on('telemetry', (data: any) => {
             this.updateStatus({ iRacingDetected: true, sending: true, lastDataTime: Date.now() });
             
@@ -235,8 +244,14 @@ export class PythonBridge extends EventEmitter {
                 console.log('📊 First telemetry packet:', JSON.stringify(data).substring(0, 200));
             }
             
+            // Forward to cloud server
             if (this.cloudSocket?.connected) {
                 this.cloudSocket.emit('telemetry', data);
+            }
+
+            // Forward to local dev server
+            if (this.devSocket?.connected) {
+                this.devSocket.emit('telemetry', data);
             }
 
             // Reset sending indicator after brief delay
@@ -253,6 +268,9 @@ export class PythonBridge extends EventEmitter {
             if (this.cloudSocket?.connected) {
                 this.cloudSocket.emit('session_metadata', data);
             }
+            if (this.devSocket?.connected) {
+                this.devSocket.emit('session_metadata', data);
+            }
         });
 
         // Session info (alternative event name)
@@ -260,6 +278,9 @@ export class PythonBridge extends EventEmitter {
             console.log('Session info received');
             if (this.cloudSocket?.connected) {
                 this.cloudSocket.emit('session_info', data);
+            }
+            if (this.devSocket?.connected) {
+                this.devSocket.emit('session_info', data);
             }
         });
     }
@@ -306,6 +327,47 @@ export class PythonBridge extends EventEmitter {
         // Handle server acknowledgments
         this.cloudSocket.on('relay:ack', (data: any) => {
             console.log('Server acknowledged:', data);
+        });
+    }
+
+    /**
+     * Connect to local dev server (localhost:3001) for local testing
+     */
+    private connectToDevServer(): void {
+        const DEV_SERVER_URL = 'http://localhost:3001';
+        console.log(`🔧 Connecting to local dev server: ${DEV_SERVER_URL}`);
+
+        this.devSocket = io(DEV_SERVER_URL, {
+            reconnection: true,
+            reconnectionDelay: 2000,
+            reconnectionDelayMax: 10000,
+            reconnectionAttempts: Infinity,
+            timeout: 10000,
+            transports: ['websocket', 'polling']
+        });
+
+        this.devSocket.on('connect', () => {
+            console.log('✅ Connected to local dev server');
+
+            // Identify as relay
+            const os = require('os');
+            this.devSocket?.emit('relay:connect', {
+                version: '1.0.0',
+                machineId: os.hostname(),
+                platform: process.platform,
+                arch: process.arch
+            });
+        });
+
+        this.devSocket.on('disconnect', (reason) => {
+            console.log('⚠️ Disconnected from local dev server:', reason);
+        });
+
+        this.devSocket.on('connect_error', (err) => {
+            // Silent fail for local dev - it's optional
+            if (this.status.error !== 'Local dev server unreachable') {
+                console.log('🔧 Local dev server not available (this is OK in production)');
+            }
         });
     }
 
