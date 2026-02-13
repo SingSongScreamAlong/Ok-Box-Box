@@ -65,28 +65,32 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     }
 
     const authService = getAuthService();
-    const payload = authService.verifyAccessToken(token);
+    let user: AdminUser | null = null;
 
-    if (!payload) {
-        res.status(401).json({
-            success: false,
-            error: {
-                code: 'TOKEN_INVALID',
-                message: 'Invalid or expired access token. Please login again.'
-            }
-        });
-        return;
+    // 1. Try internal JWT first
+    const payload = authService.verifyAccessToken(token);
+    if (payload) {
+        user = await authService.getUserById(payload.sub);
     }
 
-    // Fetch full user from database
-    const user = await authService.getUserById(payload.sub);
+    // 2. Fallback: Try Supabase JWT (from apps/app frontend)
+    if (!user) {
+        const supabasePayload = await authService.verifySupabaseToken(token);
+        if (supabasePayload) {
+            user = await authService.findOrCreateSupabaseUser(
+                supabasePayload.sub,
+                supabasePayload.email,
+                supabasePayload.displayName || supabasePayload.email.split('@')[0]
+            );
+        }
+    }
 
     if (!user || !user.isActive) {
         res.status(401).json({
             success: false,
             error: {
-                code: 'USER_INACTIVE',
-                message: 'Your account has been deactivated. Contact an administrator.'
+                code: 'TOKEN_INVALID',
+                message: 'Invalid or expired access token. Please login again.'
             }
         });
         return;
@@ -128,23 +132,38 @@ export async function optionalAuth(req: Request, _res: Response, next: NextFunct
     }
 
     const authService = getAuthService();
+    let user: AdminUser | null = null;
+
+    // 1. Try internal JWT
     const payload = authService.verifyAccessToken(token);
-
     if (payload) {
-        const user = await authService.getUserById(payload.sub);
-        if (user && user.isActive) {
-            // Fetch entitlements for rate limiting
-            try {
-                const entitlementRepo = getEntitlementRepository();
-                const entitlements = await entitlementRepo.getForUser(user.id);
-                (user as any).entitlements = entitlements;
-            } catch (err) {
-                console.error('Failed to fetch entitlements (optional auth) for user', user.id, err);
-            }
+        user = await authService.getUserById(payload.sub);
+    }
 
-            req.user = user;
-            req.token = token;
+    // 2. Fallback: Try Supabase JWT
+    if (!user) {
+        const supabasePayload = await authService.verifySupabaseToken(token);
+        if (supabasePayload) {
+            user = await authService.findOrCreateSupabaseUser(
+                supabasePayload.sub,
+                supabasePayload.email,
+                supabasePayload.displayName || supabasePayload.email.split('@')[0]
+            );
         }
+    }
+
+    if (user && user.isActive) {
+        // Fetch entitlements for rate limiting
+        try {
+            const entitlementRepo = getEntitlementRepository();
+            const entitlements = await entitlementRepo.getForUser(user.id);
+            (user as any).entitlements = entitlements;
+        } catch (err) {
+            console.error('Failed to fetch entitlements (optional auth) for user', user.id, err);
+        }
+
+        req.user = user;
+        req.token = token;
     }
 
     next();

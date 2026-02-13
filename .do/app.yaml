@@ -54,6 +54,12 @@ services:
       - key: JWT_SECRET
         scope: RUN_TIME
         type: SECRET
+      - key: SUPABASE_JWT_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: SUPABASE_URL
+        scope: RUN_TIME
+        value: "${SUPABASE_URL}"
       
       # CORS - Allow dashboard and relay origins
       - key: CORS_ORIGINS

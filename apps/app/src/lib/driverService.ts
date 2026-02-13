@@ -88,7 +88,7 @@ export async function fetchDriverProfile(): Promise<DriverIdentityProfile | null
       licenses: data.licenses || [],
     };
   } catch (error) {
-    console.error('[IDP] Error fetching profile:', error);
+    console.error('[IDP] Error fetching profile:', error instanceof Error ? error.message : error);
     return null;
   }
 }
@@ -136,7 +136,7 @@ export async function fetchDriverSessions(): Promise<DriverSessionSummary[]> {
       incidents: s.incidents ?? s.incident_count,
     }));
   } catch (error) {
-    console.error('[IDP] Error fetching sessions:', error);
+    console.error('[IDP] Error fetching sessions:', error instanceof Error ? error.message : error);
     return [];
   }
 }
@@ -188,7 +188,7 @@ export async function fetchDriverStats(): Promise<DriverStatsSnapshot[]> {
 
     return [];
   } catch (error) {
-    console.error('[IDP] Error fetching stats:', error);
+    console.error('[IDP] Error fetching stats:', error instanceof Error ? error.message : error);
     return [];
   }
 }
@@ -213,7 +213,7 @@ export async function syncIRacingData(): Promise<{ success: boolean; message: st
     const data = await response.json();
     return { success: true, message: data.message || `Synced ${data.synced_races} races` };
   } catch (error) {
-    console.error('[IDP] Error syncing iRacing:', error);
+    console.error('[IDP] Error syncing iRacing:', error instanceof Error ? error.message : error);
     return { success: false, message: 'Network error' };
   }
 }
@@ -302,7 +302,7 @@ export async function fetchSessionsByTrack(trackName: string): Promise<TrackSess
       incidents: s.incidents || 0,
     }));
   } catch (error) {
-    console.error('[IDP] Error fetching track sessions:', error);
+    console.error('[IDP] Error fetching track sessions:', error instanceof Error ? error.message : error);
     return [];
   }
 }
@@ -334,7 +334,7 @@ export async function fetchTrackPerformance(trackName: string): Promise<TrackPer
       history: history.slice(0, 5), // Last 5 sessions
     };
   } catch (error) {
-    console.error('[IDP] Error fetching track performance:', error);
+    console.error('[IDP] Error fetching track performance:', error instanceof Error ? error.message : error);
     return {
       trackName,
       sessions: 0,
@@ -375,7 +375,7 @@ export async function fetchUpcomingRaces(): Promise<UpcomingRace[]> {
     const data = await response.json();
     return data.races || [];
   } catch (error) {
-    console.error('[IDP] Error fetching upcoming races:', error);
+    console.error('[IDP] Error fetching upcoming races:', error instanceof Error ? error.message : error);
     return [
       { id: '1', series: 'IMSA Pilot Challenge', track: 'Daytona', date: 'Today', time: '8:00 PM', laps: 45, weather: 'Clear', expectedField: 24 },
       { id: '2', series: 'GT3 Sprint', track: 'Spa-Francorchamps', date: 'Tomorrow', time: '2:00 PM', laps: 30, weather: 'Overcast', expectedField: 30 },
@@ -391,7 +391,7 @@ export async function fetchTracksFromHistory(): Promise<string[]> {
     const tracks = [...new Set(sessions.map(s => s.trackName))];
     return tracks.sort();
   } catch (error) {
-    console.error('[IDP] Error fetching tracks:', error);
+    console.error('[IDP] Error fetching tracks:', error instanceof Error ? error.message : error);
     return [];
   }
 }

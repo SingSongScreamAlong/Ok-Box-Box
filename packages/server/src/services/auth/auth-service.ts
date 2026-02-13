@@ -6,6 +6,7 @@
 import { randomBytes, createHash } from 'crypto';
 import { sign, verify } from 'jsonwebtoken';
 import { hash, compare } from 'bcrypt';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type {
     AdminUser,
     JWTPayload,
@@ -16,9 +17,21 @@ import { pool } from '../../db/client.js';
 
 // Configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'controlbox-dev-secret-change-in-production';
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || '';
 const JWT_EXPIRES_IN = '7d';
 const REFRESH_TOKEN_EXPIRES_DAYS = 30;
 const BCRYPT_ROUNDS = 12;
+
+// JWKS client for Supabase ECC/RSA token verification (cached automatically by jose)
+let supabaseJWKS: ReturnType<typeof createRemoteJWKSet> | null = null;
+function getSupabaseJWKS() {
+    if (!supabaseJWKS && SUPABASE_URL) {
+        const jwksUrl = new URL(`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`);
+        supabaseJWKS = createRemoteJWKSet(jwksUrl);
+    }
+    return supabaseJWKS;
+}
 
 /**
  * Database row type for admin_users
@@ -86,6 +99,81 @@ export class AuthService {
         try {
             return verify(token, JWT_SECRET) as JWTPayload;
         } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Verify a Supabase JWT and return a normalized payload.
+     * Supports both JWKS (ECC/RSA asymmetric) and legacy HS256 shared secret.
+     * Supabase JWTs have: sub (user UUID), email, role, aud, exp, iat
+     */
+    async verifySupabaseToken(token: string): Promise<{ sub: string; email: string; displayName?: string } | null> {
+        // 1. Try JWKS-based verification (ECC P-256 / RSA / EdDSA)
+        const jwks = getSupabaseJWKS();
+        if (jwks) {
+            try {
+                const { payload } = await jwtVerify(token, jwks);
+                if (!payload?.sub || !payload?.email) return null;
+                const meta = (payload as any).user_metadata;
+                return {
+                    sub: payload.sub as string,
+                    email: payload.email as string,
+                    displayName: meta?.display_name || (payload.email as string).split('@')[0],
+                };
+            } catch {
+                // JWKS verification failed, try HS256 fallback
+            }
+        }
+
+        // 2. Fallback: Legacy HS256 shared secret
+        if (SUPABASE_JWT_SECRET) {
+            try {
+                const payload = verify(token, SUPABASE_JWT_SECRET, { algorithms: ['HS256'] }) as any;
+                if (!payload?.sub || !payload?.email) return null;
+                return {
+                    sub: payload.sub,
+                    email: payload.email,
+                    displayName: payload.user_metadata?.display_name || payload.email.split('@')[0],
+                };
+            } catch {
+                // HS256 also failed
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Find or create an admin_users row for a Supabase-authenticated user.
+     * Uses the Supabase user UUID as the admin_users.id so IDP foreign keys work.
+     */
+    async findOrCreateSupabaseUser(supabaseSub: string, email: string, displayName: string): Promise<AdminUser | null> {
+        // Try to find by ID first (Supabase UUID)
+        let user = await this.getUserById(supabaseSub);
+        if (user) return user;
+
+        // Try to find by email (may have been created via legacy auth)
+        user = await this.getUserByEmail(email);
+        if (user) return user;
+
+        // Auto-provision a new row
+        try {
+            const result = await pool.query<AdminUserRow>(
+                `INSERT INTO admin_users (id, email, password_hash, display_name, is_super_admin, is_active, email_verified)
+                 VALUES ($1, $2, $3, $4, false, true, true)
+                 ON CONFLICT (id) DO NOTHING
+                 RETURNING *`,
+                [supabaseSub, email.toLowerCase(), 'supabase-managed', displayName]
+            );
+            if (result.rows.length > 0) {
+                console.log(`[Auth] Auto-provisioned admin_users row for Supabase user ${email}`);
+                return mapRowToUser(result.rows[0]);
+            }
+            // Race condition fallback
+            return await this.getUserById(supabaseSub);
+        } catch (err) {
+            console.error('[Auth] Failed to auto-provision Supabase user:', err);
             return null;
         }
     }
