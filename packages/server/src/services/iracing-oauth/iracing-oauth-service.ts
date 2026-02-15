@@ -41,18 +41,67 @@ const STATE_TTL_SECONDS = 600;
 const REFRESH_BUFFER_MS = 5 * 60 * 1000;
 
 // =====================================================================
-// Redis Client
+// State Store (Redis with in-memory fallback)
 // =====================================================================
 
 let redisClient: RedisClientType | null = null;
+let redisAvailable = true;
 
-async function getRedisClient(): Promise<RedisClientType> {
-    if (!redisClient) {
+// In-memory fallback for OAuth state when Redis is unavailable
+const memoryStore = new Map<string, { value: string; expiresAt: number }>();
+
+async function getRedisClient(): Promise<RedisClientType | null> {
+    if (!redisAvailable) return null;
+    if (redisClient) return redisClient;
+
+    try {
         redisClient = createClient({ url: REDIS_URL });
-        redisClient.on('error', (err) => console.error('[IRacing OAuth] Redis error:', err));
+        redisClient.on('error', (err) => {
+            console.error('[IRacing OAuth] Redis error:', err);
+            redisAvailable = false;
+            redisClient = null;
+        });
         await redisClient.connect();
+        console.log('[IRacing OAuth] Redis connected');
+        return redisClient;
+    } catch (err) {
+        console.warn('[IRacing OAuth] Redis unavailable, using in-memory state store:', err instanceof Error ? err.message : err);
+        redisAvailable = false;
+        redisClient = null;
+        return null;
     }
-    return redisClient;
+}
+
+async function stateSet(key: string, value: string, ttlSeconds: number): Promise<void> {
+    const redis = await getRedisClient();
+    if (redis) {
+        await redis.setEx(key, ttlSeconds, value);
+    } else {
+        memoryStore.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
+    }
+}
+
+async function stateGet(key: string): Promise<string | null> {
+    const redis = await getRedisClient();
+    if (redis) {
+        return redis.get(key);
+    }
+    const entry = memoryStore.get(key);
+    if (!entry) return null;
+    if (Date.now() > entry.expiresAt) {
+        memoryStore.delete(key);
+        return null;
+    }
+    return entry.value;
+}
+
+async function stateDel(key: string): Promise<void> {
+    const redis = await getRedisClient();
+    if (redis) {
+        await redis.del(key);
+    } else {
+        memoryStore.delete(key);
+    }
 }
 
 // =====================================================================
@@ -118,8 +167,7 @@ export class IRacingOAuthService {
         const codeChallenge = generateCodeChallenge(codeVerifier);
         const redirectUri = getRedirectUri();
 
-        // Store state in Redis with TTL
-        const redis = await getRedisClient();
+        // Store state with TTL (Redis or in-memory fallback)
         const stateData: OAuthState = {
             codeVerifier,
             userId,
@@ -127,10 +175,10 @@ export class IRacingOAuthService {
             redirectUri
         };
 
-        await redis.setEx(
+        await stateSet(
             `oauth:iracing:${state}`,
-            STATE_TTL_SECONDS,
-            JSON.stringify(stateData)
+            JSON.stringify(stateData),
+            STATE_TTL_SECONDS
         );
 
         // Build authorization URL
@@ -160,11 +208,9 @@ export class IRacingOAuthService {
      * Validates state, exchanges code for tokens, stores encrypted tokens
      */
     async handleCallback(code: string, state: string): Promise<OAuthCallbackResult> {
-        const redis = await getRedisClient();
-
-        // Retrieve and validate state from Redis
+        // Retrieve and validate state
         const stateKey = `oauth:iracing:${state}`;
-        const stateDataJson = await redis.get(stateKey);
+        const stateDataJson = await stateGet(stateKey);
 
         if (!stateDataJson) {
             console.error('[IRacing OAuth] Invalid or expired state');
@@ -172,7 +218,7 @@ export class IRacingOAuthService {
         }
 
         // Delete state immediately (one-time use)
-        await redis.del(stateKey);
+        await stateDel(stateKey);
 
         const stateData: OAuthState = JSON.parse(stateDataJson);
 

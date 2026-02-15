@@ -7,7 +7,7 @@
 
 import { supabase } from './supabase';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+const API_BASE = import.meta.env.DEV ? '' : (import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app');
 
 // =====================================================================
 // Types
