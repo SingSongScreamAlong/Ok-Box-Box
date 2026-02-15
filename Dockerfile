@@ -7,9 +7,10 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files (including root package-lock.json)
 COPY package*.json ./
 COPY packages/common/package*.json ./packages/common/
+COPY packages/protocol/package*.json ./packages/protocol/
 COPY packages/server/package*.json ./packages/server/
 COPY packages/dashboard/package*.json ./packages/dashboard/
 
@@ -17,36 +18,46 @@ COPY packages/dashboard/package*.json ./packages/dashboard/
 RUN npm ci
 
 # Cache bust argument - change this value to force fresh source copy
-ARG CACHE_BUST=2026011502
+ARG CACHE_BUST=2026021502
 
 # Copy source code
 COPY tsconfig.base.json ./
 COPY packages/common ./packages/common
+COPY packages/protocol ./packages/protocol
 COPY packages/server ./packages/server
 COPY packages/dashboard ./packages/dashboard
 
-# Build all packages (build common first, then server and dashboard)
+# Build common, protocol, and server packages
 RUN npm run build -w packages/common && \
-    npm run build -w packages/server && \
-    npm run build -w packages/dashboard
+    npm run build -w packages/protocol && \
+    npm run build -w packages/server
 
-# Stage 2: Production Server
-FROM node:20-alpine AS server
+# Stage 2: Production Server (LAST STAGE - this is what gets deployed)
+FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy built server and common packages
-COPY --from=builder /app/packages/server/dist ./packages/server/dist
+# Copy package files for production install (need root lock file for workspaces)
+COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/packages/server/package*.json ./packages/server/
-COPY --from=builder /app/packages/common/dist ./packages/common/dist
 COPY --from=builder /app/packages/common/package*.json ./packages/common/
+COPY --from=builder /app/packages/protocol/package*.json ./packages/protocol/
+
+# Copy built packages
+COPY --from=builder /app/packages/server/dist ./packages/server/dist
+COPY --from=builder /app/packages/common/dist ./packages/common/dist
+COPY --from=builder /app/packages/protocol/dist ./packages/protocol/dist
+
+# Copy public folder (BlackBox dashboard)
+COPY --from=builder /app/packages/server/public ./packages/server/public
 
 # Copy migrations
 COPY --from=builder /app/packages/server/src/db/migrations ./packages/server/src/db/migrations
 
-# Install production dependencies only
+# Install production dependencies for server workspace
+RUN npm ci --omit=dev -w packages/server -w packages/common -w packages/protocol
+
 WORKDIR /app/packages/server
-RUN npm ci --only=production
 
 # Set runtime environment
 ENV NODE_ENV=production
@@ -58,40 +69,5 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/health || exit 1
 
-# Start server
+# Start full server - database, auth, API routes, WebSocket
 CMD ["node", "dist/index.js"]
-
-# Stage 3: Production Dashboard (static files)
-FROM nginx:alpine AS dashboard
-
-# Copy built dashboard
-COPY --from=builder /app/packages/dashboard/dist /usr/share/nginx/html
-
-# Custom nginx config for SPA
-COPY <<EOF /etc/nginx/conf.d/default.conf
-server {
-    listen 80;
-    server_name _;
-    root /usr/share/nginx/html;
-    index index.html;
-
-    # Gzip
-    gzip on;
-    gzip_types text/plain application/json application/javascript text/css;
-
-    # SPA fallback
-    location / {
-        try_files \$uri \$uri/ /index.html;
-    }
-
-    # Cache static assets
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-}
-EOF
-
-EXPOSE 80
-
-CMD ["nginx", "-g", "daemon off;"]
