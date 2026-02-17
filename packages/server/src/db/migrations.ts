@@ -45,6 +45,34 @@ export async function runMigrations(): Promise<void> {
             )
         `);
 
+        // Handle legacy schema: old deployments may have 'filename' instead of 'name'
+        const colCheck = await client.query(`
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = '_migrations' AND column_name = 'name'
+        `);
+        if (colCheck.rows.length === 0) {
+            // Column 'name' doesn't exist — check for 'filename' and rename, or add it
+            const filenameCheck = await client.query(`
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = '_migrations' AND column_name = 'filename'
+            `);
+            if (filenameCheck.rows.length > 0) {
+                await client.query(`ALTER TABLE _migrations RENAME COLUMN filename TO name`);
+                console.log('   🔧 Renamed _migrations.filename → name');
+            } else {
+                // Neither column exists — drop and recreate
+                await client.query(`DROP TABLE _migrations`);
+                await client.query(`
+                    CREATE TABLE _migrations (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR(255) NOT NULL UNIQUE,
+                        applied_at TIMESTAMP DEFAULT NOW()
+                    )
+                `);
+                console.log('   🔧 Recreated _migrations table with correct schema');
+            }
+        }
+
         // Find migrations directory
         const MIGRATIONS_DIR = findMigrationsDir();
         if (!MIGRATIONS_DIR) {
