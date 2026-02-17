@@ -61,8 +61,8 @@ if (config.nodeEnv === 'production') {
         throw new Error('Production DATABASE_URL cannot be localhost. Set ALLOW_LOCAL_DB=true to bypass.');
     }
 
-    // Validate Redis URL
+    // Warn if Redis URL is not set (OAuth service has in-memory fallback)
     if (!process.env.REDIS_URL) {
-        throw new Error('REDIS_URL must be explicitly set in production');
+        console.warn('⚠️  REDIS_URL not set — OAuth state will use in-memory store (not suitable for multi-instance)');
     }
 }
