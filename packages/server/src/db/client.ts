@@ -6,13 +6,15 @@ import { Pool, PoolConfig } from 'pg';
 import { config } from '../config/index.js';
 
 // Configure SSL for production (DigitalOcean managed databases use self-signed certs)
+// Also accept when DATABASE_URL is explicitly set (not the localhost default)
+const isExternalDb = !!process.env.DATABASE_URL && !config.databaseUrl.includes('localhost');
 const poolConfig: PoolConfig = {
     connectionString: config.databaseUrl,
     max: config.databasePoolSize,
-    // In production, accept self-signed certificates from managed databases
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : undefined,
+    ssl: (process.env.NODE_ENV === 'production' || isExternalDb) ? { rejectUnauthorized: false } : undefined,
 };
 
+console.log(`   DB SSL: ${poolConfig.ssl ? 'enabled (rejectUnauthorized: false)' : 'disabled'}, NODE_ENV=${process.env.NODE_ENV}, isExternalDb=${isExternalDb}`);
 export const pool = new Pool(poolConfig);
 
 export async function initializeDatabase(): Promise<void> {
