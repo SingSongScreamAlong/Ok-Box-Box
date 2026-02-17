@@ -6,7 +6,7 @@ export const config = {
     // Server
     nodeEnv: process.env.NODE_ENV || 'development',
     port: parseInt(process.env.PORT || '3001', 10),
-    host: process.env.HOST || 'localhost',
+    host: process.env.HOST || (process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost'),
 
     // Database
     databaseUrl: process.env.DATABASE_URL || 'postgresql://controlbox:controlbox_dev@localhost:5432/controlbox',
