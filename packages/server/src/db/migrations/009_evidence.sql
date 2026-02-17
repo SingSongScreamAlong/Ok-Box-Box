@@ -4,25 +4,25 @@
 -- =====================================================================
 
 -- Evidence types enum
-CREATE TYPE evidence_type AS ENUM ('UPLOAD', 'EXTERNAL_URL', 'IRACING_REPLAY_REF');
+DO $$ BEGIN CREATE TYPE evidence_type AS ENUM ('UPLOAD', 'EXTERNAL_URL', 'IRACING_REPLAY_REF'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- Evidence visibility enum
-CREATE TYPE evidence_visibility AS ENUM ('INTERNAL_ONLY', 'STEWARDS_ONLY', 'LEAGUE_ADMIN', 'DRIVER_VISIBLE');
+DO $$ BEGIN CREATE TYPE evidence_visibility AS ENUM ('INTERNAL_ONLY', 'STEWARDS_ONLY', 'LEAGUE_ADMIN', 'DRIVER_VISIBLE'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- Evidence source categories enum
-CREATE TYPE evidence_source AS ENUM ('primary', 'onboard', 'chase', 'broadcast', 'external');
+DO $$ BEGIN CREATE TYPE evidence_source AS ENUM ('primary', 'onboard', 'chase', 'broadcast', 'external'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- Evidence assessment status enum
-CREATE TYPE evidence_assessment AS ENUM ('PENDING', 'ACCEPTED', 'NOT_ACCEPTED', 'INSUFFICIENT');
+DO $$ BEGIN CREATE TYPE evidence_assessment AS ENUM ('PENDING', 'ACCEPTED', 'NOT_ACCEPTED', 'INSUFFICIENT'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- Storage provider enum
-CREATE TYPE storage_provider AS ENUM ('DO_SPACES', 'S3', 'LOCAL');
+DO $$ BEGIN CREATE TYPE storage_provider AS ENUM ('DO_SPACES', 'S3', 'LOCAL'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- External URL provider hints
-CREATE TYPE url_provider AS ENUM ('youtube', 'streamable', 'drive', 'other');
+DO $$ BEGIN CREATE TYPE url_provider AS ENUM ('youtube', 'streamable', 'drive', 'other'); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- Evidence audit actions
-CREATE TYPE evidence_audit_action AS ENUM (
+DO $$ BEGIN CREATE TYPE evidence_audit_action AS ENUM (
     'UPLOADED',
     'EXTERNAL_ADDED',
     'REPLAY_REF_ADDED',
@@ -31,7 +31,7 @@ CREATE TYPE evidence_audit_action AS ENUM (
     'VISIBILITY_CHANGED',
     'ASSESSMENT_CHANGED',
     'DELETED'
-);
+); EXCEPTION WHEN duplicate_object THEN null; END $$;
 
 -- =====================================================================
 -- Main Evidence Assets Table
@@ -59,11 +59,11 @@ CREATE TABLE IF NOT EXISTS evidence_assets (
 );
 
 -- Indexes for common queries
-CREATE INDEX idx_evidence_assets_league ON evidence_assets(owner_league_id);
-CREATE INDEX idx_evidence_assets_uploader ON evidence_assets(uploaded_by_user_id);
-CREATE INDEX idx_evidence_assets_type ON evidence_assets(type);
-CREATE INDEX idx_evidence_assets_visibility ON evidence_assets(visibility);
-CREATE INDEX idx_evidence_assets_created ON evidence_assets(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_evidence_assets_league ON evidence_assets(owner_league_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_assets_uploader ON evidence_assets(uploaded_by_user_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_assets_type ON evidence_assets(type);
+CREATE INDEX IF NOT EXISTS idx_evidence_assets_visibility ON evidence_assets(visibility);
+CREATE INDEX IF NOT EXISTS idx_evidence_assets_created ON evidence_assets(created_at DESC);
 
 -- =====================================================================
 -- Evidence Uploads (for file uploads)
@@ -86,8 +86,8 @@ CREATE TABLE IF NOT EXISTS evidence_uploads (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX idx_evidence_uploads_evidence ON evidence_uploads(evidence_id);
-CREATE INDEX idx_evidence_uploads_file_key ON evidence_uploads(file_key);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_evidence_uploads_evidence ON evidence_uploads(evidence_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_uploads_file_key ON evidence_uploads(file_key);
 
 -- =====================================================================
 -- Evidence External URLs
@@ -104,7 +104,7 @@ CREATE TABLE IF NOT EXISTS evidence_external_urls (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX idx_evidence_external_urls_evidence ON evidence_external_urls(evidence_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_evidence_external_urls_evidence ON evidence_external_urls(evidence_id);
 
 -- =====================================================================
 -- Evidence Replay References (iRacing)
@@ -128,8 +128,8 @@ CREATE TABLE IF NOT EXISTS evidence_replay_refs (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX idx_evidence_replay_refs_evidence ON evidence_replay_refs(evidence_id);
-CREATE INDEX idx_evidence_replay_refs_event ON evidence_replay_refs(event_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_evidence_replay_refs_evidence ON evidence_replay_refs(evidence_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_replay_refs_event ON evidence_replay_refs(event_id);
 
 -- =====================================================================
 -- Evidence Links (junction table for incidents/cases/protests)
@@ -154,15 +154,15 @@ CREATE TABLE IF NOT EXISTS evidence_links (
     )
 );
 
-CREATE INDEX idx_evidence_links_evidence ON evidence_links(evidence_id);
-CREATE INDEX idx_evidence_links_incident ON evidence_links(incident_id) WHERE incident_id IS NOT NULL;
-CREATE INDEX idx_evidence_links_case ON evidence_links(case_id) WHERE case_id IS NOT NULL;
-CREATE INDEX idx_evidence_links_protest ON evidence_links(protest_id) WHERE protest_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_evidence_links_evidence ON evidence_links(evidence_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_links_incident ON evidence_links(incident_id) WHERE incident_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_evidence_links_case ON evidence_links(case_id) WHERE case_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_evidence_links_protest ON evidence_links(protest_id) WHERE protest_id IS NOT NULL;
 
 -- Prevent duplicate links
-CREATE UNIQUE INDEX idx_evidence_links_unique_incident ON evidence_links(evidence_id, incident_id) WHERE incident_id IS NOT NULL;
-CREATE UNIQUE INDEX idx_evidence_links_unique_case ON evidence_links(evidence_id, case_id) WHERE case_id IS NOT NULL;
-CREATE UNIQUE INDEX idx_evidence_links_unique_protest ON evidence_links(evidence_id, protest_id) WHERE protest_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_evidence_links_unique_incident ON evidence_links(evidence_id, incident_id) WHERE incident_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_evidence_links_unique_case ON evidence_links(evidence_id, case_id) WHERE case_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_evidence_links_unique_protest ON evidence_links(evidence_id, protest_id) WHERE protest_id IS NOT NULL;
 
 -- =====================================================================
 -- Evidence Audit Log
@@ -178,10 +178,10 @@ CREATE TABLE IF NOT EXISTS evidence_audit_log (
     timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_evidence_audit_log_evidence ON evidence_audit_log(evidence_id);
-CREATE INDEX idx_evidence_audit_log_user ON evidence_audit_log(performed_by_user_id);
-CREATE INDEX idx_evidence_audit_log_action ON evidence_audit_log(action);
-CREATE INDEX idx_evidence_audit_log_timestamp ON evidence_audit_log(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_evidence_audit_log_evidence ON evidence_audit_log(evidence_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_audit_log_user ON evidence_audit_log(performed_by_user_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_audit_log_action ON evidence_audit_log(action);
+CREATE INDEX IF NOT EXISTS idx_evidence_audit_log_timestamp ON evidence_audit_log(timestamp DESC);
 
 -- =====================================================================
 -- Trigger to update updated_at on evidence_assets
@@ -195,6 +195,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_evidence_updated_at ON evidence_assets;
 CREATE TRIGGER trigger_evidence_updated_at
     BEFORE UPDATE ON evidence_assets
     FOR EACH ROW

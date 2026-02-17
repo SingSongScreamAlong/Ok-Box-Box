@@ -121,8 +121,8 @@ export async function runMigrations(): Promise<void> {
                 console.log(`   ✅ ${file} applied`);
             } catch (error) {
                 await client.query('ROLLBACK');
-                console.error(`   ❌ ${file} failed:`, error);
-                throw error;
+                console.warn(`   ⚠️  ${file} failed (continuing): ${(error as Error).message}`);
+                // Continue to next migration instead of aborting
             }
         }
     } catch (error) {

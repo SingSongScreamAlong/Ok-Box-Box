@@ -52,7 +52,11 @@ CREATE TABLE IF NOT EXISTS seasons (
 -- Licenses Table
 -- ========================
 
-CREATE TYPE license_status AS ENUM ('pending', 'active', 'expired', 'suspended');
+DO $$ BEGIN
+    CREATE TYPE license_status AS ENUM ('pending', 'active', 'expired', 'suspended');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS licenses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -107,7 +111,11 @@ CREATE TABLE IF NOT EXISTS admin_users (
 -- Admin User League Roles
 -- ========================
 
-CREATE TYPE admin_role AS ENUM ('Owner', 'RaceControl', 'Steward', 'Broadcaster', 'ReadOnly');
+DO $$ BEGIN
+    CREATE TYPE admin_role AS ENUM ('Owner', 'RaceControl', 'Steward', 'Broadcaster', 'ReadOnly');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS admin_user_league_roles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
