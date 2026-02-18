@@ -60,9 +60,11 @@ export function Settings() {
     }
   }, [session?.access_token]);
 
-  const handleConnectIRacing = () => {
-    // Redirect to server OAuth start endpoint (server redirects to iRacing)
-    window.location.href = `${API_BASE}/api/oauth/iracing/start`;
+  const handleConnectIRacing = async () => {
+    // Pass Supabase token as query param since browser redirect can't send Authorization header
+    const { data: { session: s } } = await supabase.auth.getSession();
+    const token = s?.access_token || '';
+    window.location.href = `${API_BASE}/api/oauth/iracing/start?token=${encodeURIComponent(token)}`;
   };
 
   const handleDisconnectIRacing = async () => {

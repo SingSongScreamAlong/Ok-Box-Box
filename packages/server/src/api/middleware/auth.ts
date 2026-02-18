@@ -23,19 +23,22 @@ declare global {
  * Extract JWT from Authorization header
  */
 function extractToken(req: Request): string | null {
+    // 1. Authorization header (standard)
     const authHeader = req.headers.authorization;
-
-    if (!authHeader) {
-        return null;
+    if (authHeader) {
+        const [type, token] = authHeader.split(' ');
+        if (type === 'Bearer' && token) {
+            return token;
+        }
     }
 
-    const [type, token] = authHeader.split(' ');
-
-    if (type !== 'Bearer' || !token) {
-        return null;
+    // 2. Query parameter fallback (for browser redirects like OAuth /start)
+    const queryToken = req.query.token as string | undefined;
+    if (queryToken) {
+        return queryToken;
     }
 
-    return token;
+    return null;
 }
 
 // Lazy import to avoid circular defaults if possible, but standard import is fine for services
