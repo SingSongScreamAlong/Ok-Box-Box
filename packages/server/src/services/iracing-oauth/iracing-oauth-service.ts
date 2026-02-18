@@ -30,7 +30,7 @@ const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 // Redirect URI - configurable via env, with sensible defaults per environment
 const IRACING_REDIRECT_URI = process.env.IRACING_REDIRECT_URI;
 const REDIRECT_URIS: Record<string, string> = {
-    production: 'https://octopus-app-qsi3i.ondigitalocean.app/oauth/iracing/callback',
+    production: 'https://app.okboxbox.com/oauth/iracing/callback',
     staging: 'https://staging.okboxbox.com/oauth/iracing/callback',
     development: 'http://localhost:3001/oauth/iracing/callback'
 };
