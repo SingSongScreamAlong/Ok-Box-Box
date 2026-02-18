@@ -27,9 +27,10 @@ const IRACING_CLIENT_ID = process.env.IRACING_CLIENT_ID || 'okboxbox';
 const IRACING_CLIENT_SECRET = process.env.IRACING_CLIENT_SECRET;
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
-// Redirect URIs by environment
+// Redirect URI - configurable via env, with sensible defaults per environment
+const IRACING_REDIRECT_URI = process.env.IRACING_REDIRECT_URI;
 const REDIRECT_URIS: Record<string, string> = {
-    production: 'https://app.okboxbox.com/oauth/iracing/callback',
+    production: 'https://octopus-app-qsi3i.ondigitalocean.app/oauth/iracing/callback',
     staging: 'https://staging.okboxbox.com/oauth/iracing/callback',
     development: 'http://localhost:3001/oauth/iracing/callback'
 };
@@ -139,6 +140,7 @@ function generateCodeChallenge(verifier: string): string {
  * Get redirect URI based on environment
  */
 function getRedirectUri(): string {
+    if (IRACING_REDIRECT_URI) return IRACING_REDIRECT_URI;
     const env = process.env.NODE_ENV || 'development';
     return REDIRECT_URIS[env] || REDIRECT_URIS.development;
 }
