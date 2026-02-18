@@ -40,6 +40,7 @@ CREATE INDEX IF NOT EXISTS idx_paint_submissions_driver ON paint_submissions(dri
 CREATE INDEX IF NOT EXISTS idx_paint_submissions_status ON paint_submissions(status);
 
 -- Updated_at trigger
+DROP TRIGGER IF EXISTS update_paint_submissions_timestamp ON paint_submissions;
 CREATE TRIGGER update_paint_submissions_timestamp
     BEFORE UPDATE ON paint_submissions
     FOR EACH ROW EXECUTE FUNCTION update_scoring_timestamp();

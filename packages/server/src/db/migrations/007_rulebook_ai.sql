@@ -26,6 +26,7 @@ CREATE INDEX IF NOT EXISTS idx_interpretation_sessions_status ON rulebook_interp
 CREATE INDEX IF NOT EXISTS idx_interpretation_sessions_created_by ON rulebook_interpretation_sessions(created_by);
 
 -- Updated_at trigger
+DROP TRIGGER IF EXISTS update_interpretation_sessions_timestamp ON rulebook_interpretation_sessions;
 CREATE TRIGGER update_interpretation_sessions_timestamp
     BEFORE UPDATE ON rulebook_interpretation_sessions
     FOR EACH ROW EXECUTE FUNCTION update_scoring_timestamp();

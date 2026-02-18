@@ -161,14 +161,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_points_tables_timestamp ON points_tables;
 CREATE TRIGGER update_points_tables_timestamp
     BEFORE UPDATE ON points_tables
     FOR EACH ROW EXECUTE FUNCTION update_scoring_timestamp();
 
+DROP TRIGGER IF EXISTS update_driver_standings_timestamp ON driver_standings;
 CREATE TRIGGER update_driver_standings_timestamp
     BEFORE UPDATE ON driver_standings
     FOR EACH ROW EXECUTE FUNCTION update_scoring_timestamp();
 
+DROP TRIGGER IF EXISTS update_team_standings_timestamp ON team_standings;
 CREATE TRIGGER update_team_standings_timestamp
     BEFORE UPDATE ON team_standings
     FOR EACH ROW EXECUTE FUNCTION update_scoring_timestamp();

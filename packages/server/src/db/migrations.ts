@@ -45,32 +45,16 @@ export async function runMigrations(): Promise<void> {
             )
         `);
 
-        // Handle legacy schema: old deployments may have 'filename' instead of 'name'
-        const colCheck = await client.query(`
-            SELECT column_name FROM information_schema.columns
-            WHERE table_name = '_migrations' AND column_name = 'name'
+        // One-time reset: clear stale migration records from old ProjectBlackBox deployment.
+        // The old deployment tracked migrations under a 'filename' column with entries that
+        // don't match actual applied state. All SQL migrations use IF NOT EXISTS so re-running is safe.
+        const staleCheck = await client.query(`
+            SELECT COUNT(*) as cnt FROM _migrations 
+            WHERE applied_at < '2026-02-18T00:00:00Z'
         `);
-        if (colCheck.rows.length === 0) {
-            // Column 'name' doesn't exist — check for 'filename' and rename, or add it
-            const filenameCheck = await client.query(`
-                SELECT column_name FROM information_schema.columns
-                WHERE table_name = '_migrations' AND column_name = 'filename'
-            `);
-            if (filenameCheck.rows.length > 0) {
-                await client.query(`ALTER TABLE _migrations RENAME COLUMN filename TO name`);
-                console.log('   🔧 Renamed _migrations.filename → name');
-            } else {
-                // Neither column exists — drop and recreate
-                await client.query(`DROP TABLE _migrations`);
-                await client.query(`
-                    CREATE TABLE _migrations (
-                        id SERIAL PRIMARY KEY,
-                        name VARCHAR(255) NOT NULL UNIQUE,
-                        applied_at TIMESTAMP DEFAULT NOW()
-                    )
-                `);
-                console.log('   🔧 Recreated _migrations table with correct schema');
-            }
+        if (parseInt(staleCheck.rows[0].cnt) > 0) {
+            await client.query(`TRUNCATE _migrations RESTART IDENTITY`);
+            console.log('   🔧 Cleared stale migration records from legacy deployment');
         }
 
         // Find migrations directory
