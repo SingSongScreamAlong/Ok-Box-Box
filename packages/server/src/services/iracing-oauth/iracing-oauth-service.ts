@@ -191,10 +191,10 @@ export class IRacingOAuthService {
             state,
             code_challenge: codeChallenge,
             code_challenge_method: 'S256',
-            scope: 'openid'  // Request id_token for identity
+            scope: 'iracing.auth'  // Request access to iRacing services on behalf of user
         });
 
-        const authorizationUrl = `${IRACING_OAUTH_BASE_URL}/authorize?${params.toString()}`;
+        const authorizationUrl = `${IRACING_OAUTH_BASE_URL}/oauth2/authorize?${params.toString()}`;
 
         console.log(`[IRacing OAuth] Started flow for user ${userId}, state=${state.substring(0, 8)}...`);
 
