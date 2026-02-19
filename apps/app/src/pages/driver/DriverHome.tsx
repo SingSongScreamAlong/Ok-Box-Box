@@ -1,7 +1,9 @@
 ﻿import { useRelay } from '../../hooks/useRelay';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDriverData } from '../../hooks/useDriverData';
 import { Link } from 'react-router-dom';
-import { Wifi, WifiOff, Radio, Headphones, Wrench, Eye, BarChart3, ChevronRight, CheckCircle2, Circle, AlertCircle, Play, MessageSquare } from 'lucide-react';
+import { Wifi, WifiOff, Radio, Headphones, Wrench, Eye, BarChart3, ChevronRight, CheckCircle2, Circle, AlertCircle, Play, MessageSquare, Shield, TrendingUp, Award } from 'lucide-react';
+import { getLicenseColor } from '../../lib/driverService';
 
 type CrewMemberStatus = 'ready' | 'active' | 'standby' | 'offline';
 
@@ -19,6 +21,7 @@ interface CrewMember {
 export function DriverHome() {
   const { user } = useAuth();
   const { status, session } = useRelay();
+  const { profile } = useDriverData();
   const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
 
   const isLive = status === 'in_session';
@@ -79,6 +82,53 @@ export function DriverHome() {
           ))}
         </div>
       </div>
+      {/* iRacing Stats */}
+      {profile && profile.licenses && profile.licenses.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Award className="w-5 h-5 text-blue-400" />
+              <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={{ fontFamily: 'Orbitron, sans-serif' }}>iRacing Stats</h2>
+            </div>
+            <Link to="/driver/ratings" className="text-xs text-white/40 hover:text-white/60 uppercase tracking-wider flex items-center gap-1">
+              View All <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {profile.licenses.map((license) => (
+              <div key={license.discipline} className="bg-black/40 backdrop-blur-sm border border-white/10 p-4 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-10 h-10 flex items-center justify-center" style={{ backgroundColor: getLicenseColor(license.licenseClass), clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }}>
+                  <span className="absolute top-1 right-1.5 text-xs font-bold text-white">{license.licenseClass}</span>
+                </div>
+                <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">{license.discipline === 'sportsCar' ? 'Road' : license.discipline === 'dirtOval' ? 'Dirt Oval' : license.discipline === 'dirtRoad' ? 'Dirt Road' : 'Oval'}</div>
+                <div className="text-xl font-mono font-bold text-blue-400">{license.iRating ?? '—'}</div>
+                <div className="text-[10px] text-white/40">iRating</div>
+                <div className="mt-2 flex items-center gap-1">
+                  <Shield className="w-3 h-3 text-green-400" />
+                  <span className="text-sm font-mono text-green-400">{license.safetyRating?.toFixed(2) ?? '—'}</span>
+                  <span className="text-[10px] text-white/30 ml-1">SR</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {profile.iRatingOverall && (
+            <div className="mt-3 flex items-center gap-6 px-1">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-blue-400" />
+                <span className="text-xs text-white/50">Overall iRating: <span className="text-blue-400 font-mono font-bold">{profile.iRatingOverall}</span></span>
+              </div>
+              {profile.safetyRatingOverall && (
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-green-400" />
+                  <span className="text-xs text-white/50">Overall SR: <span className="text-green-400 font-mono font-bold">{profile.safetyRatingOverall.toFixed(2)}</span></span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Quick Links */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Link to="/driver/pitwall" className="bg-black/40 backdrop-blur-sm border border-white/10 p-6 hover:border-[#f97316]/50 group">
           <div className="flex items-center gap-4">
