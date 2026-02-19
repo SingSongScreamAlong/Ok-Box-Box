@@ -215,7 +215,7 @@ export class IRacingOAuthService {
             state,
             code_challenge: codeChallenge,
             code_challenge_method: 'S256',
-            scope: 'iracing.auth'  // Request access to iRacing services on behalf of user
+            scope: 'openid iracing.auth'  // openid for id_token with sub claim, iracing.auth for API access
         });
 
         const authorizationUrl = `${IRACING_OAUTH_BASE_URL}/oauth2/authorize?${params.toString()}`;
@@ -259,8 +259,20 @@ export class IRacingOAuthService {
             // Extract identity from id_token or fetch from member API
             let identity: IRacingIdentity;
             if (tokenResponse.id_token) {
-                identity = this.extractIdentityFromIdToken(tokenResponse.id_token);
+                try {
+                    identity = this.extractIdentityFromIdToken(tokenResponse.id_token);
+                    console.log(`[IRacing OAuth] id_token identity: customerId=${identity.customerId}, displayName=${identity.displayName}`);
+                } catch (idTokenErr) {
+                    console.warn('[IRacing OAuth] id_token parsing failed, falling back to member API:', idTokenErr);
+                    identity = await this.fetchMemberInfo(tokenResponse.access_token);
+                }
+                // If id_token didn't have a sub claim, fall back to member API
+                if (!identity.customerId) {
+                    console.warn('[IRacing OAuth] id_token missing sub claim, falling back to member API');
+                    identity = await this.fetchMemberInfo(tokenResponse.access_token);
+                }
             } else {
+                console.log('[IRacing OAuth] No id_token in response, using member API');
                 identity = await this.fetchMemberInfo(tokenResponse.access_token);
             }
 
@@ -353,6 +365,7 @@ export class IRacingOAuthService {
      * Fetch member info from iRacing Data API (fallback if no id_token)
      */
     private async fetchMemberInfo(accessToken: string): Promise<IRacingIdentity> {
+        // Step 1: iRacing Data API returns a link to the actual data
         const response = await fetch('https://members-ng.iracing.com/data/member/info', {
             headers: {
                 'Authorization': `Bearer ${accessToken}`
@@ -363,7 +376,21 @@ export class IRacingOAuthService {
             throw new Error(`Failed to fetch member info: ${response.status}`);
         }
 
-        const data = await response.json() as { cust_id: number; display_name?: string };
+        const linkOrData = await response.json() as any;
+        console.log('[IRacing OAuth] member/info response keys:', Object.keys(linkOrData));
+
+        // Step 2: If response has a 'link' property, follow it to get actual data
+        let data: any;
+        if (linkOrData.link) {
+            const dataResponse = await fetch(linkOrData.link);
+            if (!dataResponse.ok) {
+                throw new Error(`Failed to fetch member data from link: ${dataResponse.status}`);
+            }
+            data = await dataResponse.json();
+            console.log('[IRacing OAuth] member data keys:', Object.keys(data));
+        } else {
+            data = linkOrData;
+        }
 
         return {
             customerId: String(data.cust_id),
