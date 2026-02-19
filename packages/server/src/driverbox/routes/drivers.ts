@@ -49,10 +49,15 @@ const router = Router();
  */
 router.get('/me', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
-        const profile = await getDriverProfileByUserId(req.user!.id);
+        let profile = await getDriverProfileByUserId(req.user!.id);
         if (!profile) {
-            res.status(404).json({ error: 'No driver profile found for current user' });
-            return;
+            // Auto-create driver profile for authenticated users
+            const displayName = req.user!.displayName || req.user!.email?.split('@')[0] || 'Driver';
+            console.log(`[IDP] Auto-creating driver profile for user ${req.user!.id} (${displayName})`);
+            profile = await createDriverProfile(
+                { display_name: displayName, primary_discipline: 'road' },
+                req.user!.id
+            );
         }
         res.json(profile);
     } catch (error) {
