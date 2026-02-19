@@ -170,6 +170,11 @@ export class IRacingProfileSyncService {
         } else {
             licensesArray = [];
         }
+        console.log(`[iRacing Sync] licensesArray length: ${licensesArray.length}, first item keys:`, licensesArray.length > 0 ? Object.keys(licensesArray[0]) : 'empty');
+        if (licensesArray.length > 0) {
+            console.log(`[iRacing Sync] First license sample:`, JSON.stringify(licensesArray[0]).substring(0, 300));
+        }
+
         const getLicense = (categoryId: number) =>
             licensesArray.find(l => l.category_id === categoryId);
 
@@ -177,6 +182,8 @@ export class IRacingProfileSyncService {
         const roadLicense = getLicense(LICENSE_CATEGORIES.ROAD);
         const dirtOvalLicense = getLicense(LICENSE_CATEGORIES.DIRT_OVAL);
         const dirtRoadLicense = getLicense(LICENSE_CATEGORIES.DIRT_ROAD);
+
+        console.log(`[iRacing Sync] Parsed licenses - oval: ${ovalLicense?.irating ?? 'null'}, road: ${roadLicense?.irating ?? 'null'}, dirtOval: ${dirtOvalLicense?.irating ?? 'null'}, dirtRoad: ${dirtRoadLicense?.irating ?? 'null'}`);
 
         return {
             iracingCustomerId: String(info.cust_id),
