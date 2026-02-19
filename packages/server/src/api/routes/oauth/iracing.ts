@@ -6,6 +6,8 @@
 import { Router, Request, Response } from 'express';
 import { getIRacingOAuthService, getIRacingProfileSyncService } from '../../../services/iracing-oauth/index.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { getGoalGeneratorService } from '../../../services/driver-development/goal-generator.js';
+import { pool } from '../../../db/client.js';
 
 const router = Router();
 
@@ -185,6 +187,101 @@ router.post('/sync', requireAuth, async (req: Request, res: Response) => {
     } catch (error) {
         console.error('[OAuth iRacing] Sync error:', error);
         res.status(500).json({ error: 'Failed to sync iRacing profile' });
+    }
+});
+
+// =====================================================================
+// GET /api/oauth/iracing/exchange
+// =====================================================================
+// SPA-friendly token exchange endpoint.
+// The SPA catches the iRacing callback at /oauth/iracing/callback and
+// forwards the code+state here (under /api/) for server-side processing.
+// This avoids needing a DO routing rule for /oauth/iracing/callback.
+
+async function triggerPostLinkActions(userId: string, iracingCustomerId: string): Promise<void> {
+    console.log(`[OAuth iRacing] Starting post-link actions for user ${userId}, iRacing ${iracingCustomerId}`);
+    try {
+        const syncService = getIRacingProfileSyncService();
+        const profile = await syncService.syncProfile(userId);
+        if (!profile) {
+            console.warn(`[OAuth iRacing] Profile sync failed for user ${userId}`);
+            return;
+        }
+        console.log(`[OAuth iRacing] Profile synced: ${profile.displayName}, Road iR: ${profile.iratingRoad}`);
+
+        let driverProfileId: string | null = null;
+        const existingProfile = await pool.query(
+            `SELECT id FROM driver_profiles WHERE user_account_id = $1`, [userId]
+        );
+        if (existingProfile.rows.length > 0) {
+            driverProfileId = existingProfile.rows[0].id;
+        } else {
+            const newProfile = await pool.query(
+                `INSERT INTO driver_profiles (user_account_id, display_name, primary_discipline)
+                 VALUES ($1, $2, $3) RETURNING id`,
+                [userId, profile.displayName || 'Driver', 'road']
+            );
+            driverProfileId = newProfile.rows[0].id;
+            console.log(`[OAuth iRacing] Created driver_profile ${driverProfileId} for user ${userId}`);
+        }
+
+        await pool.query(
+            `INSERT INTO linked_racing_identities (driver_profile_id, platform, platform_user_id, platform_display_name, verified_at, verification_method)
+             VALUES ($1, 'iracing', $2, $3, NOW(), 'oauth')
+             ON CONFLICT (platform, platform_user_id) DO UPDATE SET
+                 driver_profile_id = EXCLUDED.driver_profile_id,
+                 platform_display_name = EXCLUDED.platform_display_name,
+                 verified_at = NOW(), updated_at = NOW()`,
+            [driverProfileId, iracingCustomerId, profile.displayName]
+        );
+
+        if (driverProfileId) {
+            const goalGenerator = getGoalGeneratorService();
+            const goals = await goalGenerator.generateInitialGoals(driverProfileId, profile);
+            console.log(`[OAuth iRacing] Generated ${goals.length} initial goals for driver ${driverProfileId}`);
+        }
+    } catch (error) {
+        console.error('[OAuth iRacing] Post-link actions error:', error);
+    }
+}
+
+router.get('/exchange', async (req: Request, res: Response) => {
+    const { code, state } = req.query;
+
+    console.log('[OAuth iRacing] ===== EXCHANGE endpoint hit =====');
+
+    if (!code || !state) {
+        res.json({ success: false, error: 'missing_params' });
+        return;
+    }
+
+    try {
+        const service = getIRacingOAuthService();
+        const result = await service.handleCallback(String(code), String(state));
+
+        console.log('[OAuth iRacing] handleCallback result:', JSON.stringify({
+            success: result.success, error: result.error,
+            userId: result.userId, hasIdentity: !!result.identity
+        }));
+
+        if (!result.success) {
+            res.json({ success: false, error: result.error || 'exchange_failed' });
+            return;
+        }
+
+        // Trigger async post-link actions
+        triggerPostLinkActions(result.userId!, result.identity!.customerId).catch(err => {
+            console.error('[OAuth iRacing] Post-link actions failed:', err);
+        });
+
+        res.json({
+            success: true,
+            displayName: result.identity?.displayName || null
+        });
+
+    } catch (error) {
+        console.error('[OAuth iRacing] Exchange exception:', error);
+        res.json({ success: false, error: 'internal_error' });
     }
 });
 

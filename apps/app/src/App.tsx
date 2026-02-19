@@ -12,6 +12,7 @@ import { Signup } from './pages/auth/Signup';
 import { ForgotPassword } from './pages/auth/ForgotPassword';
 import { ResetPassword } from './pages/auth/ResetPassword';
 import { AuthCallback } from './pages/auth/AuthCallback';
+import { IRacingCallback } from './pages/auth/IRacingCallback';
 import { DriverCockpit } from './pages/driver/DriverCockpit';
 import { DriverLanding } from './pages/driver/DriverLanding';
 import { DriverHistory } from './pages/driver/DriverHistory';
@@ -186,6 +187,9 @@ function App() {
         <Route path="/league/:leagueId/timing" element={<PublicTiming />} />
         {/* Event view */}
         <Route path="/event/:eventId" element={<ProtectedRoute><EventView /></ProtectedRoute>} />
+
+        {/* iRacing OAuth callback (SPA catches this, forwards to API) */}
+        <Route path="/oauth/iracing/callback" element={<IRacingCallback />} />
 
         {/* Redirects */}
         <Route path="/dashboard" element={<Navigate to="/driver/home" replace />} />
