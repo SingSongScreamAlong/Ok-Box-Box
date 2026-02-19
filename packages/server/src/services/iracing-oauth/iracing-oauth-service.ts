@@ -27,6 +27,18 @@ const IRACING_CLIENT_ID = process.env.IRACING_CLIENT_ID || 'okboxbox';
 const IRACING_CLIENT_SECRET = process.env.IRACING_CLIENT_SECRET;
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
+/**
+ * iRacing requires client_secret to be "masked" before transmission.
+ * Algorithm: SHA-256(secret + lowercase(client_id)) → base64
+ * See: https://oauth.iracing.com/oauth2/book/token_endpoint.html
+ */
+function maskSecret(secret: string, clientId: string): string {
+    const hasher = crypto.createHash('sha256');
+    const normalizedId = clientId.trim().toLowerCase();
+    hasher.update(`${secret}${normalizedId}`);
+    return hasher.digest('base64');
+}
+
 // Redirect URI - configurable via env, with sensible defaults per environment
 const IRACING_REDIRECT_URI = process.env.IRACING_REDIRECT_URI;
 const REDIRECT_URIS: Record<string, string> = {
@@ -268,6 +280,17 @@ export class IRacingOAuthService {
         codeVerifier: string,
         redirectUri: string
     ): Promise<IRacingTokenResponse> {
+        console.log('[IRacing OAuth] Token exchange params:', JSON.stringify({
+            grant_type: 'authorization_code',
+            client_id: IRACING_CLIENT_ID,
+            client_secret_length: IRACING_CLIENT_SECRET?.length || 0,
+            client_secret_set: !!IRACING_CLIENT_SECRET,
+            code_length: code.length,
+            redirect_uri: redirectUri,
+            code_verifier_length: codeVerifier.length,
+            token_url: `${IRACING_OAUTH_BASE_URL}/oauth2/token`
+        }));
+
         const response = await fetch(`${IRACING_OAUTH_BASE_URL}/oauth2/token`, {
             method: 'POST',
             headers: {
@@ -276,7 +299,7 @@ export class IRacingOAuthService {
             body: new URLSearchParams({
                 grant_type: 'authorization_code',
                 client_id: IRACING_CLIENT_ID,
-                client_secret: IRACING_CLIENT_SECRET!,
+                client_secret: maskSecret(IRACING_CLIENT_SECRET!, IRACING_CLIENT_ID),
                 code,
                 redirect_uri: redirectUri,
                 code_verifier: codeVerifier
@@ -286,7 +309,7 @@ export class IRacingOAuthService {
         if (!response.ok) {
             const errorBody = await response.text();
             console.error('[IRacing OAuth] Token exchange failed:', response.status, errorBody);
-            throw new Error(`Token exchange failed: ${response.status}`);
+            throw new Error(`Token exchange failed: ${response.status} - ${errorBody}`);
         }
 
         return response.json() as Promise<IRacingTokenResponse>;
@@ -468,7 +491,7 @@ export class IRacingOAuthService {
                 body: new URLSearchParams({
                     grant_type: 'refresh_token',
                     client_id: IRACING_CLIENT_ID,
-                    client_secret: IRACING_CLIENT_SECRET!,
+                    client_secret: maskSecret(IRACING_CLIENT_SECRET!, IRACING_CLIENT_ID),
                     refresh_token: refreshToken
                 })
             });
