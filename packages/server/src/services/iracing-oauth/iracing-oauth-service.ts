@@ -324,29 +324,7 @@ export class IRacingOAuthService {
     }
 
     /**
-     * Extract iRacing identity from id_token JWT
-     * Note: In production, validate signature against iRacing JWKS
-     */
-    private extractIdentityFromIdToken(idToken: string): IRacingIdentity {
-        // Decode JWT payload (base64url)
-        const parts = idToken.split('.');
-        if (parts.length !== 3) {
-            throw new Error('Invalid id_token format');
-        }
-
-        const payload = JSON.parse(
-            Buffer.from(parts[1], 'base64url').toString('utf8')
-        );
-
-        return {
-            customerId: payload.sub,
-            displayName: payload.name || null,
-            email: payload.email
-        };
-    }
-
-    /**
-     * Fetch member info from iRacing Data API (fallback if no id_token)
+     * Fetch member info from iRacing Data API
      */
     private async fetchMemberInfo(accessToken: string): Promise<IRacingIdentity> {
         // Step 1: iRacing Data API returns a link to the actual data
