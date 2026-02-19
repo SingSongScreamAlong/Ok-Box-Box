@@ -258,6 +258,108 @@ async function triggerPostLinkActions(userId: string, iracingCustomerId: string,
     }
 }
 
+// =====================================================================
+// POST /api/oauth/iracing/repair
+// =====================================================================
+// Repairs missing data from a previous OAuth link:
+// - Fetches iRacing identity if customer_id is NULL
+// - Creates driver_profile if missing
+
+router.post('/repair', requireAuth, async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+    console.log(`[OAuth iRacing] ===== REPAIR endpoint hit for user ${userId} =====`);
+
+    try {
+        // 1. Check if we have tokens
+        const tokenRow = await pool.query(
+            `SELECT iracing_customer_id, iracing_display_name, tokens_encrypted, encryption_iv, encryption_auth_tag
+             FROM iracing_oauth_tokens WHERE admin_user_id = $1 AND is_valid = true`,
+            [userId]
+        );
+
+        if (tokenRow.rows.length === 0) {
+            res.json({ success: false, error: 'no_linked_account' });
+            return;
+        }
+
+        const row = tokenRow.rows[0];
+        let customerId = row.iracing_customer_id;
+        let displayName = row.iracing_display_name;
+
+        // 2. If customer_id is missing, try to fetch from iRacing member API
+        if (!customerId) {
+            console.log('[OAuth iRacing] Repair: customer_id is NULL, fetching from member API...');
+            try {
+                const service = getIRacingOAuthService();
+                const accessToken = await service.getValidAccessToken(userId);
+                if (accessToken) {
+                    const memberRes = await fetch('https://members-ng.iracing.com/data/member/info', {
+                        headers: { 'Authorization': `Bearer ${accessToken}` }
+                    });
+                    if (memberRes.ok) {
+                        const memberData = await memberRes.json() as any;
+                        customerId = String(memberData.cust_id);
+                        displayName = memberData.display_name || displayName;
+                        console.log(`[OAuth iRacing] Repair: got customer_id=${customerId}, name=${displayName}`);
+
+                        // Update the token row
+                        await pool.query(
+                            `UPDATE iracing_oauth_tokens SET iracing_customer_id = $1, iracing_display_name = $2, updated_at = NOW()
+                             WHERE admin_user_id = $3`,
+                            [customerId, displayName, userId]
+                        );
+                    } else {
+                        console.error('[OAuth iRacing] Repair: member API returned', memberRes.status);
+                    }
+                }
+            } catch (fetchErr) {
+                console.error('[OAuth iRacing] Repair: failed to fetch member info:', fetchErr);
+            }
+        }
+
+        // 3. Ensure driver_profile exists
+        let driverProfileId: string | null = null;
+        const existing = await pool.query(
+            `SELECT id FROM driver_profiles WHERE user_account_id = $1`, [userId]
+        );
+        if (existing.rows.length > 0) {
+            driverProfileId = existing.rows[0].id;
+        } else {
+            const newProfile = await pool.query(
+                `INSERT INTO driver_profiles (user_account_id, display_name, primary_discipline)
+                 VALUES ($1, $2, $3) RETURNING id`,
+                [userId, displayName || 'Driver', 'road']
+            );
+            driverProfileId = newProfile.rows[0].id;
+            console.log(`[OAuth iRacing] Repair: created driver_profile ${driverProfileId}`);
+        }
+
+        // 4. Link identity if we have a customer_id
+        if (customerId && driverProfileId) {
+            await pool.query(
+                `INSERT INTO linked_racing_identities (driver_profile_id, platform, platform_user_id, platform_display_name, verified_at, verification_method)
+                 VALUES ($1, 'iracing', $2, $3, NOW(), 'oauth')
+                 ON CONFLICT (platform, platform_user_id) DO UPDATE SET
+                     driver_profile_id = EXCLUDED.driver_profile_id,
+                     platform_display_name = EXCLUDED.platform_display_name,
+                     verified_at = NOW(), updated_at = NOW()`,
+                [driverProfileId, customerId, displayName]
+            );
+        }
+
+        res.json({
+            success: true,
+            repaired: true,
+            customerId,
+            displayName,
+            driverProfileId
+        });
+    } catch (error) {
+        console.error('[OAuth iRacing] Repair error:', error);
+        res.status(500).json({ success: false, error: 'repair_failed' });
+    }
+});
+
 router.get('/exchange', async (req: Request, res: Response) => {
     const { code, state } = req.query;
 

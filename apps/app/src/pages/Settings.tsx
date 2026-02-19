@@ -36,6 +36,31 @@ export function Settings() {
         if (res.ok) {
           const data = await res.json();
           setIracingStatus(data);
+
+          // Auto-repair: if linked but missing customer ID or driver profile
+          if (data.linked && !data.iracingCustomerId) {
+            console.log('[Settings] iRacing linked but missing data, triggering repair...');
+            try {
+              const repairRes = await fetch(`${API_BASE}/api/oauth/iracing/repair`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${session.access_token}` },
+              });
+              if (repairRes.ok) {
+                const repairData = await repairRes.json();
+                console.log('[Settings] Repair result:', repairData);
+                if (repairData.success) {
+                  setIracingStatus({
+                    linked: true,
+                    iracingCustomerId: repairData.customerId,
+                    iracingDisplayName: repairData.displayName,
+                    isValid: true,
+                  });
+                }
+              }
+            } catch (repairErr) {
+              console.error('[Settings] Repair failed:', repairErr);
+            }
+          }
         }
       } catch (err) {
         console.error('[Settings] Failed to check iRacing status:', err);
