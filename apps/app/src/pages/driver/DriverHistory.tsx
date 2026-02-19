@@ -215,33 +215,63 @@ export function DriverHistory() {
           </div>
         </div>
 
-        {/* Quick Stats */}
+        {/* Quick Stats or iRacing Profile */}
         <div className="p-4 flex-1 overflow-y-auto">
-          <div className="text-[9px] uppercase tracking-wider text-white/30 mb-3">Quick Stats</div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded border border-white/[0.06]">
-              <span className="text-[10px] text-white/50">Sessions</span>
-              <span className="text-sm font-mono text-white/90">{totalSessions}</span>
-            </div>
-            <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded border border-white/[0.06]">
-              <span className="text-[10px] text-white/50">Wins</span>
-              <span className="text-sm font-mono text-[#f97316]">{wins}</span>
-            </div>
-            <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded border border-white/[0.06]">
-              <span className="text-[10px] text-white/50">Podiums</span>
-              <span className="text-sm font-mono text-white/90">{podiums}</span>
-            </div>
-            <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded border border-white/[0.06]">
-              <span className="text-[10px] text-white/50">Avg Finish</span>
-              <span className="text-sm font-mono text-white/90">{avgFinish.toFixed(1)}</span>
-            </div>
-            <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded border border-white/[0.06]">
-              <span className="text-[10px] text-white/50">Positions Gained</span>
-              <span className={`text-sm font-mono ${positionsGained > 0 ? 'text-green-400' : positionsGained < 0 ? 'text-red-400' : 'text-white/50'}`}>
-                {positionsGained > 0 ? '+' : ''}{positionsGained}
-              </span>
-            </div>
-          </div>
+          {totalSessions > 0 ? (
+            <>
+              <div className="text-[9px] uppercase tracking-wider text-white/30 mb-3">Quick Stats</div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded border border-white/[0.06]">
+                  <span className="text-[10px] text-white/50">Sessions</span>
+                  <span className="text-sm font-mono text-white/90">{totalSessions}</span>
+                </div>
+                <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded border border-white/[0.06]">
+                  <span className="text-[10px] text-white/50">Wins</span>
+                  <span className="text-sm font-mono text-[#f97316]">{wins}</span>
+                </div>
+                <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded border border-white/[0.06]">
+                  <span className="text-[10px] text-white/50">Podiums</span>
+                  <span className="text-sm font-mono text-white/90">{podiums}</span>
+                </div>
+                <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded border border-white/[0.06]">
+                  <span className="text-[10px] text-white/50">Avg Finish</span>
+                  <span className="text-sm font-mono text-white/90">{avgFinish.toFixed(1)}</span>
+                </div>
+                <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded border border-white/[0.06]">
+                  <span className="text-[10px] text-white/50">Positions Gained</span>
+                  <span className={`text-sm font-mono ${positionsGained > 0 ? 'text-green-400' : positionsGained < 0 ? 'text-red-400' : 'text-white/50'}`}>
+                    {positionsGained > 0 ? '+' : ''}{positionsGained}
+                  </span>
+                </div>
+              </div>
+            </>
+          ) : profile && profile.licenses && profile.licenses.length > 0 ? (
+            <>
+              <div className="text-[9px] uppercase tracking-wider text-white/30 mb-3">iRacing Licenses</div>
+              <div className="space-y-2">
+                {profile.licenses.map((license) => (
+                  <div key={license.discipline} className="flex items-center justify-between p-2 bg-white/[0.02] rounded border border-white/[0.06]">
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold text-white" style={{ backgroundColor: getLicenseColor(license.licenseClass) }}>
+                        {license.licenseClass}
+                      </div>
+                      <span className="text-[10px] text-white/50">
+                        {license.discipline === 'sportsCar' ? 'Road' : license.discipline === 'dirtOval' ? 'Dirt Oval' : license.discipline === 'dirtRoad' ? 'Dirt Road' : 'Oval'}
+                      </span>
+                    </div>
+                    <span className="text-sm font-mono text-blue-400">{license.iRating ?? '—'}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-[9px] uppercase tracking-wider text-white/30 mb-3">Quick Stats</div>
+              <div className="p-4 text-center">
+                <p className="text-[10px] text-white/30">No data yet</p>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -324,7 +354,7 @@ export function DriverHistory() {
             </div>
           )}
 
-          {viewMode === 'overview' && (
+          {viewMode === 'overview' && totalSessions > 0 && (
             <div className="space-y-4">
               {/* Key Metrics */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -465,7 +495,27 @@ export function DriverHistory() {
             </div>
           )}
 
-          {viewMode === 'sessions' && (
+          {viewMode === 'overview' && totalSessions === 0 && !profile?.licenses?.length && (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center">
+                <Clock className="w-12 h-12 text-white/15 mx-auto mb-4" />
+                <h3 className="text-sm text-white/50 uppercase tracking-wider mb-2" style={{ fontFamily: 'Orbitron, sans-serif' }}>No Sessions Yet</h3>
+                <p className="text-xs text-white/30 max-w-sm">Complete a session with the relay connected to start tracking your performance.</p>
+              </div>
+            </div>
+          )}
+
+          {viewMode === 'sessions' && totalSessions === 0 && (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <Clock className="w-10 h-10 text-white/15 mx-auto mb-3" />
+                <p className="text-xs text-white/40">No sessions recorded yet</p>
+                <p className="text-[10px] text-white/30 mt-1">Race with the relay connected to see your session history</p>
+              </div>
+            </div>
+          )}
+
+          {viewMode === 'sessions' && totalSessions > 0 && (
             <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded overflow-hidden">
               <table className="w-full">
                 <thead>
@@ -556,7 +606,17 @@ export function DriverHistory() {
             </div>
           )}
 
-          {viewMode === 'tracks' && (
+          {viewMode === 'tracks' && trackStats.length === 0 && (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <MapPin className="w-10 h-10 text-white/15 mx-auto mb-3" />
+                <p className="text-xs text-white/40">No track data yet</p>
+                <p className="text-[10px] text-white/30 mt-1">Track performance stats appear after completing sessions</p>
+              </div>
+            </div>
+          )}
+
+          {viewMode === 'tracks' && trackStats.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {trackStats.map((track) => (
                 <div 
@@ -601,12 +661,6 @@ export function DriverHistory() {
                   </div>
                 </div>
               ))}
-              
-              {trackStats.length === 0 && (
-                <div className="col-span-2 text-center py-12 text-white/40">
-                  No track data available for the selected filters
-                </div>
-              )}
             </div>
           )}
         </div>
