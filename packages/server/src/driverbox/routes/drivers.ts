@@ -17,6 +17,7 @@ import {
     createAccessGrant,
     revokeGrant,
 } from '../../db/repositories/driver-profile.repo.js';
+import { pool } from '../../db/client.js';
 import { backfillDriverHistory } from '../services/idp/iracing-sync.service.js';
 import { getMetricsForDriver } from '../../db/repositories/session-metrics.repo.js';
 import { getAllAggregatesForDriver, getGlobalAggregate } from '../../db/repositories/driver-aggregates.repo.js';
@@ -59,7 +60,59 @@ router.get('/me', requireAuth, async (req: Request, res: Response): Promise<void
                 req.user!.id
             );
         }
-        res.json(profile);
+
+        // Enrich with iRacing profile data if available
+        const iracingResult = await pool.query(
+            `SELECT * FROM iracing_profiles WHERE admin_user_id = $1`,
+            [req.user!.id]
+        );
+
+        const enriched: any = { ...profile };
+
+        if (iracingResult.rows.length > 0) {
+            const ir = iracingResult.rows[0];
+
+            enriched.iracing_cust_id = parseInt(ir.iracing_customer_id) || null;
+            enriched.member_since = ir.member_since;
+
+            // Build licenses array from per-discipline data
+            const licenses: any[] = [];
+            const disciplines = [
+                { key: 'oval', id: 1, irating: ir.irating_oval, sr: ir.sr_oval, license: ir.license_oval },
+                { key: 'sportsCar', id: 2, irating: ir.irating_road, sr: ir.sr_road, license: ir.license_road },
+                { key: 'dirtOval', id: 3, irating: ir.irating_dirt_oval, sr: ir.sr_dirt_oval, license: ir.license_dirt_oval },
+                { key: 'dirtRoad', id: 4, irating: ir.irating_dirt_road, sr: ir.sr_dirt_road, license: ir.license_dirt_road },
+            ];
+
+            for (const d of disciplines) {
+                if (d.license || d.irating || d.sr) {
+                    licenses.push({
+                        discipline: d.key,
+                        licenseClass: d.license || 'R',
+                        safetyRating: d.sr ? d.sr / 100 : 0,
+                        iRating: d.irating || null,
+                    });
+                }
+            }
+
+            enriched.licenses = licenses;
+
+            // Overall = best/primary discipline (road first, then highest iRating)
+            const roadLicense = disciplines.find(d => d.key === 'sportsCar');
+            const bestByIrating = disciplines
+                .filter(d => d.irating)
+                .sort((a, b) => (b.irating || 0) - (a.irating || 0))[0];
+            const primary = roadLicense?.irating ? roadLicense : bestByIrating;
+
+            enriched.irating_overall = primary?.irating || null;
+            enriched.safety_rating_overall = primary?.sr ? primary.sr / 100 : null;
+        } else {
+            enriched.licenses = [];
+            enriched.irating_overall = null;
+            enriched.safety_rating_overall = null;
+        }
+
+        res.json(enriched);
     } catch (error) {
         console.error('[IDP] Error fetching own profile:', error);
         res.status(500).json({ error: 'Failed to fetch driver profile' });
