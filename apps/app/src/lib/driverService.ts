@@ -184,6 +184,74 @@ export async function fetchDriverStats(): Promise<DriverStatsSnapshot[]> {
   }
 }
 
+// Performance snapshot from last N sessions
+export interface PerformanceSnapshotSession {
+  finish_position: number;
+  start_position: number;
+  incidents: number;
+  irating_change: number;
+  track_name: string;
+  series_name: string;
+  car_name: string;
+  session_start_time: string;
+}
+
+export interface PerformanceSnapshot {
+  session_count: number;
+  avg_finish: number;
+  avg_start: number;
+  avg_incidents: number;
+  irating_delta: number;
+  latest_irating: number | null;
+  sessions: PerformanceSnapshotSession[];
+}
+
+export interface CrewBrief {
+  id: string;
+  type: string;
+  title: string;
+  session_id: string | null;
+  content: any;
+  created_at: string;
+}
+
+export async function fetchPerformanceSnapshot(): Promise<PerformanceSnapshot | null> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) return null;
+
+    const response = await fetch(`${API_BASE}/api/v1/drivers/me/performance-snapshot`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data; // null if insufficient sessions
+  } catch (error) {
+    console.error('[IDP] Error fetching performance snapshot:', error instanceof Error ? error.message : error);
+    return null;
+  }
+}
+
+export async function fetchCrewBrief(): Promise<CrewBrief[] | null> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) return null;
+
+    const response = await fetch(`${API_BASE}/api/v1/drivers/me/crew-brief`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data) return null;
+    return data.briefs || null;
+  } catch (error) {
+    console.error('[IDP] Error fetching crew brief:', error instanceof Error ? error.message : error);
+    return null;
+  }
+}
+
 export async function syncIRacingData(): Promise<{ success: boolean; message: string }> {
   try {
     const auth = await getAuthHeader();

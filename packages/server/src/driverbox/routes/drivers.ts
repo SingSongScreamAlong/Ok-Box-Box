@@ -20,7 +20,6 @@ import {
 import { pool } from '../../db/client.js';
 import { backfillDriverHistory } from '../services/idp/iracing-sync.service.js';
 import { getIRacingProfileSyncService } from '../../services/iracing-oauth/profile-sync-service.js';
-import { getIRacingOAuthService } from '../../services/iracing-oauth/iracing-oauth-service.js';
 import { getMetricsForDriver } from '../../db/repositories/session-metrics.repo.js';
 import { getAllAggregatesForDriver, getGlobalAggregate } from '../../db/repositories/driver-aggregates.repo.js';
 import { getCurrentTraits } from '../../db/repositories/driver-traits.repo.js';
@@ -233,6 +232,105 @@ router.get('/me/stats', requireAuth, async (req: Request, res: Response): Promis
     } catch (error) {
         console.error('[IDP] Error fetching iRacing stats:', error);
         res.status(500).json({ error: 'Failed to fetch stats' });
+    }
+});
+
+/**
+ * GET /api/v1/drivers/me/performance-snapshot
+ * Returns aggregated performance from last N sessions, or null if insufficient data.
+ * Query params: min_sessions (default 3)
+ */
+router.get('/me/performance-snapshot', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const minSessions = parseInt(req.query.min_sessions as string) || 3;
+        const windowSize = 5;
+
+        const result = await pool.query(
+            `SELECT
+                finish_position, start_position, incidents, irating_change,
+                newi_rating, strength_of_field, laps_complete, session_start_time,
+                track_name, series_name, car_name, event_type, license_category
+             FROM iracing_race_results
+             WHERE admin_user_id = $1 AND finish_position IS NOT NULL
+             ORDER BY session_start_time DESC NULLS LAST
+             LIMIT $2`,
+            [req.user!.id, windowSize]
+        );
+
+        if (result.rows.length < minSessions) {
+            res.json(null);
+            return;
+        }
+
+        const rows = result.rows;
+        const avgFinish = rows.reduce((s, r) => s + (r.finish_position || 0), 0) / rows.length;
+        const avgStart = rows.reduce((s, r) => s + (r.start_position || 0), 0) / rows.length;
+        const avgIncidents = rows.reduce((s, r) => s + (r.incidents || 0), 0) / rows.length;
+        const totalIRatingDelta = rows.reduce((s, r) => s + (r.irating_change || 0), 0);
+        const latestIRating = rows[0]?.newi_rating || null;
+
+        res.json({
+            session_count: rows.length,
+            avg_finish: Math.round(avgFinish * 10) / 10,
+            avg_start: Math.round(avgStart * 10) / 10,
+            avg_incidents: Math.round(avgIncidents * 10) / 10,
+            irating_delta: totalIRatingDelta,
+            latest_irating: latestIRating,
+            sessions: rows.map(r => ({
+                finish_position: r.finish_position,
+                start_position: r.start_position,
+                incidents: r.incidents,
+                irating_change: r.irating_change,
+                track_name: r.track_name,
+                series_name: r.series_name,
+                car_name: r.car_name,
+                session_start_time: r.session_start_time,
+            })),
+        });
+    } catch (error) {
+        console.error('[IDP] Error fetching performance snapshot:', error);
+        res.status(500).json({ error: 'Failed to fetch performance snapshot' });
+    }
+});
+
+/**
+ * GET /api/v1/drivers/me/crew-brief
+ * Returns crew analysis brief if post-session analysis exists, otherwise null.
+ * Currently no analysis pipeline exists, so this always returns null.
+ */
+router.get('/me/crew-brief', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        // Check if any driver reports exist for this user
+        const profile = await getDriverProfileByUserId(req.user!.id);
+        if (!profile) {
+            res.json(null);
+            return;
+        }
+
+        const reports = await getReportsForDriver(profile.id, {
+            status: 'published',
+            limit: 3,
+        });
+
+        if (!reports || reports.length === 0) {
+            res.json(null);
+            return;
+        }
+
+        // Return the most recent reports as crew briefs
+        res.json({
+            briefs: reports.map(r => ({
+                id: r.id,
+                type: r.report_type,
+                title: r.title,
+                session_id: r.session_id,
+                content: r.content_json,
+                created_at: r.created_at,
+            })),
+        });
+    } catch (error) {
+        console.error('[IDP] Error fetching crew brief:', error);
+        res.status(500).json({ error: 'Failed to fetch crew brief' });
     }
 });
 
