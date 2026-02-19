@@ -63,6 +63,13 @@ interface IRacingMemberInfoResponse {
         safety_rating: number;
         irating: number;
         group_name: string;  // "A", "B", "C", "D", "R"
+    }> | Record<string, {
+        category: string;
+        category_id: number;
+        license_level: number;
+        safety_rating: number;
+        irating: number;
+        group_name: string;
     }>;
     helmet?: {
         pattern: number;
@@ -153,10 +160,15 @@ export class IRacingProfileSyncService {
      * Parse iRacing API response into our profile format
      */
     private parseMemberInfo(info: IRacingMemberInfoResponse): IRacingProfile {
-        // iRacing may return licenses as array or unexpected format
-        const licensesArray = Array.isArray(info.licenses) ? info.licenses : [];
-        if (info.licenses && !Array.isArray(info.licenses)) {
-            console.warn('[iRacing Sync] licenses is not an array, type:', typeof info.licenses, JSON.stringify(info.licenses).substring(0, 200));
+        // iRacing returns licenses as an object keyed by category name (e.g. {oval: {...}, road: {...}})
+        // or potentially as an array. Normalize to array either way.
+        let licensesArray: any[];
+        if (Array.isArray(info.licenses)) {
+            licensesArray = info.licenses;
+        } else if (info.licenses && typeof info.licenses === 'object') {
+            licensesArray = Object.values(info.licenses) as any[];
+        } else {
+            licensesArray = [];
         }
         const getLicense = (categoryId: number) =>
             licensesArray.find(l => l.category_id === categoryId);
