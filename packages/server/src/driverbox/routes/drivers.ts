@@ -19,6 +19,8 @@ import {
 } from '../../db/repositories/driver-profile.repo.js';
 import { pool } from '../../db/client.js';
 import { backfillDriverHistory } from '../services/idp/iracing-sync.service.js';
+import { getIRacingProfileSyncService } from '../../services/iracing-oauth/profile-sync-service.js';
+import { getIRacingOAuthService } from '../../services/iracing-oauth/iracing-oauth-service.js';
 import { getMetricsForDriver } from '../../db/repositories/session-metrics.repo.js';
 import { getAllAggregatesForDriver, getGlobalAggregate } from '../../db/repositories/driver-aggregates.repo.js';
 import { getCurrentTraits } from '../../db/repositories/driver-traits.repo.js';
@@ -143,6 +145,94 @@ router.get('/:id', allowPublic, async (req: Request, res: Response): Promise<voi
     } catch (error) {
         console.error('[IDP] Error fetching profile:', error);
         res.status(500).json({ error: 'Failed to fetch driver profile' });
+    }
+});
+
+/**
+ * GET /api/v1/drivers/me/sessions
+ * Get iRacing race results for the current user
+ */
+router.get('/me/sessions', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const limit = parseInt(req.query.limit as string) || 50;
+        const offset = parseInt(req.query.offset as string) || 0;
+
+        const syncService = getIRacingProfileSyncService();
+        const results = await syncService.getRaceResults(req.user!.id, limit, offset);
+        const count = await syncService.getRaceResultsCount(req.user!.id);
+
+        // Map DB rows to frontend-expected format
+        const sessions = results.map((r: any) => {
+            // Map license_category to discipline
+            const catMap: Record<string, string> = { 'oval': 'oval', 'road': 'sportsCar', 'dirt_oval': 'dirtOval', 'dirt_road': 'dirtRoad' };
+            return {
+                session_id: String(r.subsession_id),
+                started_at: r.session_start_time,
+                track_name: r.track_name || '',
+                track_config: r.track_config || '',
+                series_name: r.series_name || '',
+                discipline: catMap[r.license_category] || 'sportsCar',
+                start_pos: r.start_position,
+                finish_pos: r.finish_position,
+                finish_pos_class: r.finish_position_in_class,
+                incidents: r.incidents,
+                laps_complete: r.laps_complete,
+                laps_lead: r.laps_lead,
+                irating_change: r.irating_change,
+                new_irating: r.newi_rating,
+                old_irating: r.oldi_rating,
+                new_sub_level: r.new_sub_level,
+                old_sub_level: r.old_sub_level,
+                strength_of_field: r.strength_of_field,
+                field_size: r.field_size,
+                car_name: r.car_name || '',
+                event_type: r.event_type || 'race',
+            };
+        });
+
+        res.json({
+            count,
+            limit,
+            offset,
+            sessions,
+        });
+    } catch (error) {
+        console.error('[IDP] Error fetching iRacing sessions:', error);
+        res.status(500).json({ error: 'Failed to fetch session history' });
+    }
+});
+
+/**
+ * GET /api/v1/drivers/me/stats
+ * Get aggregate stats from iRacing race results
+ */
+router.get('/me/stats', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const syncService = getIRacingProfileSyncService();
+        const stats = await syncService.getAggregateStats(req.user!.id);
+
+        // Map to frontend-expected format
+        const catMap: Record<string, string> = { 'oval': 'oval', 'road': 'sportsCar', 'dirt_oval': 'dirtOval', 'dirt_road': 'dirtRoad' };
+        const disciplines = stats.map((s: any) => ({
+            discipline: catMap[s.license_category] || s.license_category || 'sportsCar',
+            starts: parseInt(s.total_races) || 0,
+            wins: parseInt(s.wins) || 0,
+            podiums: parseInt(s.podiums) || 0,
+            top5s: parseInt(s.top5s) || 0,
+            poles: parseInt(s.poles) || 0,
+            avgStart: parseFloat(s.avg_start) || 0,
+            avgFinish: parseFloat(s.avg_finish) || 0,
+            avgIncidents: parseFloat(s.avg_incidents) || 0,
+            totalLaps: parseInt(s.total_laps) || 0,
+            totalLapsLed: parseInt(s.total_laps_led) || 0,
+            avgSof: parseInt(s.avg_sof) || 0,
+            peakIrating: parseInt(s.peak_irating) || 0,
+        }));
+
+        res.json({ disciplines });
+    } catch (error) {
+        console.error('[IDP] Error fetching iRacing stats:', error);
+        res.status(500).json({ error: 'Failed to fetch stats' });
     }
 });
 

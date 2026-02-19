@@ -116,6 +116,12 @@ export class IRacingProfileSyncService {
             await this.storeProfile(userId, profile);
 
             console.log(`[iRacing Sync] Synced profile for user ${userId}, iRacing ${memberInfo.cust_id}`);
+
+            // Also sync recent race results (non-blocking - don't fail profile sync if this fails)
+            this.syncRaceResults(userId, accessToken, profile.iracingCustomerId).catch(err => {
+                console.error(`[iRacing Sync] Race results sync failed for user ${userId}:`, err);
+            });
+
             return profile;
 
         } catch (error) {
@@ -131,29 +137,292 @@ export class IRacingProfileSyncService {
         }
     }
 
+    // -----------------------------------------------------------------
+    // iRacing Data API helper
+    // -----------------------------------------------------------------
+
+    /**
+     * Generic iRacing Data API fetch (handles two-step link pattern)
+     */
+    private async iracingApiFetch<T>(accessToken: string, endpoint: string): Promise<T> {
+        const response = await fetch(`https://members-ng.iracing.com${endpoint}`, {
+            headers: { 'Authorization': `Bearer ${accessToken}` }
+        });
+
+        if (!response.ok) {
+            throw new Error(`iRacing API error ${endpoint}: ${response.status}`);
+        }
+
+        const linkOrData = await response.json() as any;
+
+        // iRacing returns { link: '...' } that points to actual data
+        if (linkOrData.link) {
+            const dataResponse = await fetch(linkOrData.link);
+            if (!dataResponse.ok) {
+                throw new Error(`iRacing data fetch error: ${dataResponse.status}`);
+            }
+            return dataResponse.json() as Promise<T>;
+        }
+
+        return linkOrData as T;
+    }
+
+    // -----------------------------------------------------------------
+    // Race Results Sync
+    // -----------------------------------------------------------------
+
+    /**
+     * Fetch and store recent race results from iRacing
+     */
+    async syncRaceResults(userId: string, accessToken: string, custId: string): Promise<number> {
+        console.log(`[iRacing Sync] Fetching race results for user ${userId} (cust_id ${custId})`);
+
+        try {
+            // Fetch recent official race results
+            // /data/results/search_series returns the user's recent results
+            const now = new Date();
+            const threeMonthsAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+            const finishStart = threeMonthsAgo.toISOString();
+            const finishEnd = now.toISOString();
+
+            const searchResults = await this.iracingApiFetch<any>(accessToken,
+                `/data/results/search_series?cust_id=${custId}&finish_range_begin=${finishStart}&finish_range_end=${finishEnd}`
+            );
+
+            // The response contains a chunk_info with base_download_url and chunk_file_names
+            // or it may contain results directly in data.results
+            let raceResults: any[] = [];
+
+            if (searchResults?.data?.chunk_info) {
+                // Chunked response - download each chunk
+                const chunkInfo = searchResults.data.chunk_info;
+                const baseUrl = chunkInfo.base_download_url;
+                const chunkNames = chunkInfo.chunk_file_names || [];
+
+                for (const chunkName of chunkNames) {
+                    try {
+                        const chunkResponse = await fetch(`${baseUrl}${chunkName}`);
+                        if (chunkResponse.ok) {
+                            const chunkData = await chunkResponse.json();
+                            if (Array.isArray(chunkData)) {
+                                raceResults.push(...chunkData);
+                            }
+                        }
+                    } catch (err) {
+                        console.warn(`[iRacing Sync] Failed to fetch chunk ${chunkName}:`, err);
+                    }
+                }
+            } else if (Array.isArray(searchResults)) {
+                raceResults = searchResults;
+            } else if (searchResults?.results) {
+                raceResults = searchResults.results;
+            } else if (searchResults?.data?.results) {
+                raceResults = searchResults.data.results;
+            }
+
+            console.log(`[iRacing Sync] Found ${raceResults.length} race results for user ${userId}`);
+
+            if (raceResults.length === 0) {
+                // Try the member_recent_races endpoint as fallback
+                try {
+                    const recentRaces = await this.iracingApiFetch<any>(accessToken,
+                        `/data/stats/member_recent_races?cust_id=${custId}`
+                    );
+                    const races = recentRaces?.races || recentRaces || [];
+                    if (Array.isArray(races) && races.length > 0) {
+                        raceResults = races;
+                        console.log(`[iRacing Sync] Fallback: found ${raceResults.length} recent races`);
+                    }
+                } catch (err) {
+                    console.warn(`[iRacing Sync] Fallback member_recent_races also failed:`, err);
+                }
+            }
+
+            // Also try member_summary for aggregate stats
+            try {
+                const summary = await this.iracingApiFetch<any>(accessToken,
+                    `/data/stats/member_summary?cust_id=${custId}`
+                );
+                if (summary) {
+                    console.log(`[iRacing Sync] Member summary keys:`, Object.keys(summary));
+                    // Store summary as metadata on the profile
+                    await pool.query(
+                        `UPDATE iracing_profiles SET raw_stats_summary = $1, updated_at = NOW() WHERE admin_user_id = $2`,
+                        [JSON.stringify(summary), userId]
+                    ).catch(() => {
+                        // Column may not exist yet, that's ok
+                    });
+                }
+            } catch (err) {
+                console.warn(`[iRacing Sync] member_summary fetch failed (non-critical):`, err);
+            }
+
+            // Store race results
+            let stored = 0;
+            for (const result of raceResults) {
+                try {
+                    await this.storeRaceResult(userId, custId, result);
+                    stored++;
+                } catch (err) {
+                    // Duplicate or error - skip
+                    if (!(err instanceof Error && err.message.includes('duplicate'))) {
+                        console.warn(`[iRacing Sync] Failed to store result:`, err);
+                    }
+                }
+            }
+
+            console.log(`[iRacing Sync] Stored ${stored}/${raceResults.length} race results for user ${userId}`);
+            return stored;
+
+        } catch (error) {
+            console.error(`[iRacing Sync] Race results sync error for user ${userId}:`, error);
+            return 0;
+        }
+    }
+
+    /**
+     * Store a single race result (upsert)
+     */
+    private async storeRaceResult(userId: string, custId: string, result: any): Promise<void> {
+        // Normalize field names - iRacing API uses different names in different endpoints
+        const subsessionId = result.subsession_id ?? result.subsessionid;
+        if (!subsessionId) {
+            console.warn(`[iRacing Sync] Race result missing subsession_id, skipping`);
+            return;
+        }
+
+        const trackName = result.track?.track_name || result.track_name || result.track || '';
+        const trackConfig = result.track?.config_name || result.track_config || '';
+        const trackId = result.track?.track_id || result.track_id || null;
+        const carName = result.car?.car_name || result.car_name || '';
+        const carId = result.car?.car_id || result.car_id || null;
+        const seriesName = result.series_name || result.series_short_name || '';
+        const seriesId = result.series_id || null;
+        const seasonId = result.season_id || null;
+
+        // Map license category
+        const categoryId = result.license_category_id || result.category_id || null;
+        let licenseCategory = result.license_category || null;
+        if (!licenseCategory && categoryId) {
+            const catMap: Record<number, string> = { 1: 'oval', 2: 'road', 3: 'dirt_oval', 4: 'dirt_road' };
+            licenseCategory = catMap[categoryId] || null;
+        }
+
+        const startPos = result.start_position ?? result.starting_position ?? result.newi_rating != null ? result.start_position : null;
+        const finishPos = result.finish_position ?? result.finishing_position ?? null;
+        const finishPosClass = result.finish_position_in_class ?? null;
+        const lapsComplete = result.laps_complete ?? result.laps_comp ?? null;
+        const lapsLead = result.laps_lead ?? result.laps_led ?? null;
+        const incidents = result.incidents ?? result.incident_count ?? null;
+        const oldiRating = result.oldi_rating ?? result.old_irating ?? null;
+        const newiRating = result.newi_rating ?? result.new_irating ?? null;
+        const iRatingChange = newiRating && oldiRating ? newiRating - oldiRating : (result.irating_change ?? null);
+        const oldSubLevel = result.old_sub_level ?? null;
+        const newSubLevel = result.new_sub_level ?? null;
+        const sof = result.strength_of_field ?? result.sof ?? null;
+        const fieldSize = result.field_size ?? result.size ?? null;
+        const sessionStartTime = result.session_start_time ?? result.start_time ?? result.race_week_start_time ?? null;
+        const eventType = result.event_type_name?.toLowerCase() || result.event_type || 'race';
+
+        await pool.query(
+            `INSERT INTO iracing_race_results (
+                admin_user_id, iracing_customer_id, subsession_id,
+                series_id, series_name, season_id,
+                track_id, track_name, track_config,
+                car_id, car_name,
+                session_start_time, event_type, license_category, license_category_id,
+                start_position, finish_position, finish_position_in_class,
+                laps_complete, laps_lead, incidents,
+                oldi_rating, newi_rating, irating_change,
+                old_sub_level, new_sub_level,
+                strength_of_field, field_size,
+                raw_result
+            ) VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+                $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29
+            )
+            ON CONFLICT (admin_user_id, subsession_id) DO UPDATE SET
+                finish_position = EXCLUDED.finish_position,
+                incidents = EXCLUDED.incidents,
+                newi_rating = EXCLUDED.newi_rating,
+                irating_change = EXCLUDED.irating_change,
+                new_sub_level = EXCLUDED.new_sub_level,
+                raw_result = EXCLUDED.raw_result,
+                updated_at = NOW()`,
+            [
+                userId, custId, subsessionId,
+                seriesId, seriesName, seasonId,
+                trackId, trackName, trackConfig,
+                carId, carName,
+                sessionStartTime, eventType, licenseCategory, categoryId,
+                startPos, finishPos, finishPosClass,
+                lapsComplete, lapsLead, incidents,
+                oldiRating, newiRating, iRatingChange,
+                oldSubLevel, newSubLevel,
+                sof, fieldSize,
+                JSON.stringify(result)
+            ]
+        );
+    }
+
+    /**
+     * Get stored race results for a user
+     */
+    async getRaceResults(userId: string, limit: number = 50, offset: number = 0): Promise<any[]> {
+        const result = await pool.query(
+            `SELECT * FROM iracing_race_results 
+             WHERE admin_user_id = $1 
+             ORDER BY session_start_time DESC NULLS LAST
+             LIMIT $2 OFFSET $3`,
+            [userId, limit, offset]
+        );
+        return result.rows;
+    }
+
+    /**
+     * Get race results count for a user
+     */
+    async getRaceResultsCount(userId: string): Promise<number> {
+        const result = await pool.query(
+            `SELECT COUNT(*) as count FROM iracing_race_results WHERE admin_user_id = $1`,
+            [userId]
+        );
+        return parseInt(result.rows[0]?.count || '0', 10);
+    }
+
+    /**
+     * Get aggregate stats from stored race results
+     */
+    async getAggregateStats(userId: string): Promise<any> {
+        const result = await pool.query(
+            `SELECT 
+                COUNT(*) as total_races,
+                COUNT(*) FILTER (WHERE finish_position = 1) as wins,
+                COUNT(*) FILTER (WHERE finish_position <= 3) as podiums,
+                COUNT(*) FILTER (WHERE finish_position <= 5) as top5s,
+                COUNT(*) FILTER (WHERE start_position = 1) as poles,
+                ROUND(AVG(start_position), 1) as avg_start,
+                ROUND(AVG(finish_position), 1) as avg_finish,
+                ROUND(AVG(incidents), 1) as avg_incidents,
+                SUM(laps_complete) as total_laps,
+                SUM(laps_lead) as total_laps_led,
+                ROUND(AVG(strength_of_field), 0) as avg_sof,
+                MAX(newi_rating) as peak_irating,
+                license_category
+             FROM iracing_race_results 
+             WHERE admin_user_id = $1 AND finish_position IS NOT NULL
+             GROUP BY license_category
+             ORDER BY COUNT(*) DESC`,
+            [userId]
+        );
+        return result.rows;
+    }
+
     /**
      * Fetch member info from iRacing Data API
      */
     private async fetchMemberInfo(accessToken: string): Promise<IRacingMemberInfoResponse> {
-        const response = await fetch('https://members-ng.iracing.com/data/member/info', {
-            headers: {
-                'Authorization': `Bearer ${accessToken}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error(`iRacing API error: ${response.status}`);
-        }
-
-        // iRacing returns a link to the actual data
-        const linkData = await response.json() as { link: string };
-
-        const dataResponse = await fetch(linkData.link);
-        if (!dataResponse.ok) {
-            throw new Error(`iRacing data fetch error: ${dataResponse.status}`);
-        }
-
-        return dataResponse.json() as Promise<IRacingMemberInfoResponse>;
+        return this.iracingApiFetch<IRacingMemberInfoResponse>(accessToken, '/data/member/info');
     }
 
     /**

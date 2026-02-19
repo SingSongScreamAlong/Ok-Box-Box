@@ -27,11 +27,21 @@ export interface DriverSessionSummary {
   sessionId: string;
   startedAt: string;
   trackName: string;
+  trackConfig?: string;
   seriesName: string;
   discipline: DriverDiscipline;
   startPos?: number;
   finishPos?: number;
   incidents?: number;
+  iRatingChange?: number;
+  newIRating?: number;
+  oldIRating?: number;
+  strengthOfField?: number;
+  fieldSize?: number;
+  carName?: string;
+  lapsComplete?: number;
+  lapsLead?: number;
+  eventType?: string;
 }
 
 export interface DriverStatsSnapshot {
@@ -101,19 +111,7 @@ export async function fetchDriverSessions(): Promise<DriverSessionSummary[]> {
       return [];
     }
 
-    // First get the driver profile to get the ID
-    const profileResponse = await fetch(`${API_BASE}/api/v1/drivers/me`, {
-      headers: { ...auth, 'Content-Type': 'application/json' },
-    });
-
-    if (!profileResponse.ok) {
-      console.log('[IDP] Profile API error:', profileResponse.status);
-      return [];
-    }
-
-    const profile = await profileResponse.json();
-    
-    const response = await fetch(`${API_BASE}/api/v1/drivers/${profile.id}/sessions?limit=25`, {
+    const response = await fetch(`${API_BASE}/api/v1/drivers/me/sessions?limit=50`, {
       headers: { ...auth, 'Content-Type': 'application/json' },
     });
 
@@ -127,13 +125,23 @@ export async function fetchDriverSessions(): Promise<DriverSessionSummary[]> {
 
     return sessions.map((s: any) => ({
       sessionId: String(s.session_id || s.id || ''),
-      startedAt: String(s.started_at || s.session_start || ''),
+      startedAt: String(s.started_at || ''),
       trackName: String(s.track_name || ''),
+      trackConfig: s.track_config || undefined,
       seriesName: String(s.series_name || ''),
       discipline: (s.discipline || 'sportsCar') as DriverDiscipline,
       startPos: s.start_pos ?? s.starting_position,
       finishPos: s.finish_pos ?? s.finishing_position,
       incidents: s.incidents ?? s.incident_count,
+      iRatingChange: s.irating_change ?? undefined,
+      newIRating: s.new_irating ?? undefined,
+      oldIRating: s.old_irating ?? undefined,
+      strengthOfField: s.strength_of_field ?? undefined,
+      fieldSize: s.field_size ?? undefined,
+      carName: s.car_name || undefined,
+      lapsComplete: s.laps_complete ?? undefined,
+      lapsLead: s.laps_lead ?? undefined,
+      eventType: s.event_type || undefined,
     }));
   } catch (error) {
     console.error('[IDP] Error fetching sessions:', error instanceof Error ? error.message : error);
@@ -149,20 +157,7 @@ export async function fetchDriverStats(): Promise<DriverStatsSnapshot[]> {
       return [];
     }
 
-    // Get driver profile first
-    const profileResponse = await fetch(`${API_BASE}/api/v1/drivers/me`, {
-      headers: { ...auth, 'Content-Type': 'application/json' },
-    });
-
-    if (!profileResponse.ok) {
-      console.log('[IDP] Profile API error:', profileResponse.status);
-      return [];
-    }
-
-    const profile = await profileResponse.json();
-
-    // Fetch performance/aggregates data
-    const response = await fetch(`${API_BASE}/api/v1/drivers/${profile.id}/performance`, {
+    const response = await fetch(`${API_BASE}/api/v1/drivers/me/stats`, {
       headers: { ...auth, 'Content-Type': 'application/json' },
     });
 
@@ -172,21 +167,17 @@ export async function fetchDriverStats(): Promise<DriverStatsSnapshot[]> {
     }
 
     const data = await response.json();
-    
-    // Transform aggregates into stats format
-    if (data.global) {
-      return [{
-        discipline: (profile.primary_discipline || 'sportsCar') as DriverDiscipline,
-        starts: data.global.total_sessions || 0,
-        wins: data.global.wins || 0,
-        top5s: data.global.top5s || 0,
-        poles: data.global.poles || 0,
-        avgStart: data.global.avg_start || 0,
-        avgFinish: data.global.avg_finish || 0,
-      }];
-    }
+    const disciplines = data.disciplines || [];
 
-    return [];
+    return disciplines.map((d: any) => ({
+      discipline: (d.discipline || 'sportsCar') as DriverDiscipline,
+      starts: d.starts || 0,
+      wins: d.wins || 0,
+      top5s: d.top5s || 0,
+      poles: d.poles || 0,
+      avgStart: d.avgStart || 0,
+      avgFinish: d.avgFinish || 0,
+    }));
   } catch (error) {
     console.error('[IDP] Error fetching stats:', error instanceof Error ? error.message : error);
     return [];
