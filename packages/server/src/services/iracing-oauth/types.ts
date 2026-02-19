@@ -56,22 +56,22 @@ export interface OAuthState {
  */
 export interface StoredIRacingToken {
     id: string;
-    adminUserId: string;
-    iracingCustomerId: string;
-    iracingDisplayName: string | null;
-    tokensEncrypted: Buffer;
-    encryptionIv: Buffer;
-    encryptionAuthTag: Buffer;
-    accessTokenExpiresAt: Date;
-    refreshTokenExpiresAt: Date | null;
+    admin_user_id: string;
+    iracing_customer_id: string;
+    iracing_display_name: string | null;
+    tokens_encrypted: Buffer;
+    encryption_iv: Buffer;
+    encryption_auth_tag: Buffer;
+    access_token_expires_at: Date;
+    refresh_token_expires_at: Date | null;
     scopes: string[] | null;
-    isValid: boolean;
-    lastRefreshAt: Date | null;
-    lastUsedAt: Date | null;
-    revokedAt: Date | null;
-    revokeReason: string | null;
-    createdAt: Date;
-    updatedAt: Date;
+    is_valid: boolean;
+    last_refresh_at: Date | null;
+    last_used_at: Date | null;
+    revoked_at: Date | null;
+    revoke_reason: string | null;
+    created_at: Date;
+    updated_at: Date;
 }
 
 /**
