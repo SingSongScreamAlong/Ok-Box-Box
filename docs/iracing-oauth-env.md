@@ -28,13 +28,16 @@ IRACING_OAUTH_BASE_URL=https://oauth.iracing.com
 
 ## Redirect URIs
 
-The following redirect URIs are registered with iRacing and must not be changed:
+The following redirect URIs must be registered with iRacing:
 
 | Environment | Redirect URI |
 |-------------|--------------|
-| Production | `https://app.okboxbox.com/oauth/iracing/callback` |
-| Staging | `https://staging.okboxbox.com/oauth/iracing/callback` |
-| Development | `http://localhost:3001/oauth/iracing/callback` |
+| Production | `https://app.okboxbox.com/api/oauth/iracing/callback` |
+| Staging | `https://staging.okboxbox.com/api/oauth/iracing/callback` |
+| Development | `http://localhost:3001/api/oauth/iracing/callback` |
+
+> **Note:** The `/api/` prefix is required so DigitalOcean routes the callback
+> to the API server instead of the static site SPA.
 
 ## Generation Commands
 

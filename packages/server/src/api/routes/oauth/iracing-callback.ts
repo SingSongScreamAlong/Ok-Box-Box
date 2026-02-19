@@ -91,6 +91,9 @@ async function triggerPostLinkActions(userId: string, iracingCustomerId: string)
 // the registered redirect URI exactly.
 
 router.get('/callback', async (req: Request, res: Response) => {
+    console.log('[OAuth iRacing] ===== CALLBACK HIT =====');
+    console.log('[OAuth iRacing] Query params:', JSON.stringify(req.query));
+
     const { code, state, error, error_description } = req.query;
 
     // Handle user denial or error from iRacing
@@ -102,17 +105,21 @@ router.get('/callback', async (req: Request, res: Response) => {
 
     // Validate required params
     if (!code || !state) {
+        console.error('[OAuth iRacing] Missing params - code:', !!code, 'state:', !!state);
         res.redirect('/settings?iracing_error=missing_params');
         return;
     }
 
     try {
+        console.log('[OAuth iRacing] Calling handleCallback with state:', String(state).substring(0, 16) + '...');
         const service = getIRacingOAuthService();
 
         const result = await service.handleCallback(
             String(code),
             String(state)
         );
+
+        console.log('[OAuth iRacing] handleCallback result:', JSON.stringify({ success: result.success, error: result.error, userId: result.userId, hasIdentity: !!result.identity }));
 
         if (!result.success) {
             console.error('[OAuth iRacing] Callback failed:', result.error);
@@ -130,6 +137,7 @@ router.get('/callback', async (req: Request, res: Response) => {
             ? `&name=${encodeURIComponent(result.identity.displayName)}`
             : '';
 
+        console.log('[OAuth iRacing] ===== SUCCESS - redirecting to /settings?iracing_linked=true =====');
         res.redirect(`/settings?iracing_linked=true${displayName}`);
 
     } catch (error) {
