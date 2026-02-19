@@ -198,47 +198,60 @@ router.post('/sync', requireAuth, async (req: Request, res: Response) => {
 // forwards the code+state here (under /api/) for server-side processing.
 // This avoids needing a DO routing rule for /oauth/iracing/callback.
 
-async function triggerPostLinkActions(userId: string, iracingCustomerId: string): Promise<void> {
-    console.log(`[OAuth iRacing] Starting post-link actions for user ${userId}, iRacing ${iracingCustomerId}`);
+async function triggerPostLinkActions(userId: string, iracingCustomerId: string, displayName: string | null): Promise<void> {
+    console.log(`[OAuth iRacing] Starting post-link actions for user ${userId}, iRacing ${iracingCustomerId}, name: ${displayName}`);
     try {
-        const syncService = getIRacingProfileSyncService();
-        const profile = await syncService.syncProfile(userId);
-        if (!profile) {
-            console.warn(`[OAuth iRacing] Profile sync failed for user ${userId}`);
-            return;
-        }
-        console.log(`[OAuth iRacing] Profile synced: ${profile.displayName}, Road iR: ${profile.iratingRoad}`);
-
+        // 1. Always ensure driver_profile exists (don't depend on iRacing API)
         let driverProfileId: string | null = null;
         const existingProfile = await pool.query(
             `SELECT id FROM driver_profiles WHERE user_account_id = $1`, [userId]
         );
         if (existingProfile.rows.length > 0) {
             driverProfileId = existingProfile.rows[0].id;
+            console.log(`[OAuth iRacing] Found existing driver_profile ${driverProfileId}`);
         } else {
             const newProfile = await pool.query(
                 `INSERT INTO driver_profiles (user_account_id, display_name, primary_discipline)
                  VALUES ($1, $2, $3) RETURNING id`,
-                [userId, profile.displayName || 'Driver', 'road']
+                [userId, displayName || 'Driver', 'road']
             );
             driverProfileId = newProfile.rows[0].id;
             console.log(`[OAuth iRacing] Created driver_profile ${driverProfileId} for user ${userId}`);
         }
 
-        await pool.query(
-            `INSERT INTO linked_racing_identities (driver_profile_id, platform, platform_user_id, platform_display_name, verified_at, verification_method)
-             VALUES ($1, 'iracing', $2, $3, NOW(), 'oauth')
-             ON CONFLICT (platform, platform_user_id) DO UPDATE SET
-                 driver_profile_id = EXCLUDED.driver_profile_id,
-                 platform_display_name = EXCLUDED.platform_display_name,
-                 verified_at = NOW(), updated_at = NOW()`,
-            [driverProfileId, iracingCustomerId, profile.displayName]
-        );
+        // 2. Link iRacing identity to driver profile
+        if (iracingCustomerId && iracingCustomerId !== 'undefined') {
+            await pool.query(
+                `INSERT INTO linked_racing_identities (driver_profile_id, platform, platform_user_id, platform_display_name, verified_at, verification_method)
+                 VALUES ($1, 'iracing', $2, $3, NOW(), 'oauth')
+                 ON CONFLICT (platform, platform_user_id) DO UPDATE SET
+                     driver_profile_id = EXCLUDED.driver_profile_id,
+                     platform_display_name = EXCLUDED.platform_display_name,
+                     verified_at = NOW(), updated_at = NOW()`,
+                [driverProfileId, iracingCustomerId, displayName]
+            );
+            console.log(`[OAuth iRacing] Linked iRacing identity ${iracingCustomerId} to profile ${driverProfileId}`);
+        }
 
-        if (driverProfileId) {
-            const goalGenerator = getGoalGeneratorService();
-            const goals = await goalGenerator.generateInitialGoals(driverProfileId, profile);
-            console.log(`[OAuth iRacing] Generated ${goals.length} initial goals for driver ${driverProfileId}`);
+        // 3. Try to sync iRacing profile (non-blocking, best-effort)
+        try {
+            const syncService = getIRacingProfileSyncService();
+            const profile = await syncService.syncProfile(userId);
+            if (profile) {
+                console.log(`[OAuth iRacing] Profile synced: ${profile.displayName}, Road iR: ${profile.iratingRoad}`);
+                // 4. Generate AI goals (best-effort)
+                try {
+                    const goalGenerator = getGoalGeneratorService();
+                    const goals = await goalGenerator.generateInitialGoals(driverProfileId!, profile);
+                    console.log(`[OAuth iRacing] Generated ${goals.length} initial goals`);
+                } catch (goalErr) {
+                    console.warn('[OAuth iRacing] Goal generation failed (non-critical):', goalErr);
+                }
+            } else {
+                console.warn(`[OAuth iRacing] Profile sync returned null for user ${userId} (will retry later)`);
+            }
+        } catch (syncErr) {
+            console.warn('[OAuth iRacing] Profile sync failed (non-critical):', syncErr);
         }
     } catch (error) {
         console.error('[OAuth iRacing] Post-link actions error:', error);
@@ -261,7 +274,9 @@ router.get('/exchange', async (req: Request, res: Response) => {
 
         console.log('[OAuth iRacing] handleCallback result:', JSON.stringify({
             success: result.success, error: result.error,
-            userId: result.userId, hasIdentity: !!result.identity
+            userId: result.userId, hasIdentity: !!result.identity,
+            customerId: result.identity?.customerId,
+            displayName: result.identity?.displayName
         }));
 
         if (!result.success) {
@@ -270,7 +285,7 @@ router.get('/exchange', async (req: Request, res: Response) => {
         }
 
         // Trigger async post-link actions
-        triggerPostLinkActions(result.userId!, result.identity!.customerId).catch(err => {
+        triggerPostLinkActions(result.userId!, result.identity!.customerId, result.identity?.displayName || null).catch(err => {
             console.error('[OAuth iRacing] Post-link actions failed:', err);
         });
 
