@@ -215,7 +215,7 @@ export class IRacingOAuthService {
             state,
             code_challenge: codeChallenge,
             code_challenge_method: 'S256',
-            scope: 'openid iracing.auth'  // openid for id_token with sub claim, iracing.auth for API access
+            scope: 'iracing.auth'  // iRacing does not support 'openid' scope; identity comes from member API
         });
 
         const authorizationUrl = `${IRACING_OAUTH_BASE_URL}/oauth2/authorize?${params.toString()}`;
@@ -256,25 +256,9 @@ export class IRacingOAuthService {
                 stateData.redirectUri
             );
 
-            // Extract identity from id_token or fetch from member API
-            let identity: IRacingIdentity;
-            if (tokenResponse.id_token) {
-                try {
-                    identity = this.extractIdentityFromIdToken(tokenResponse.id_token);
-                    console.log(`[IRacing OAuth] id_token identity: customerId=${identity.customerId}, displayName=${identity.displayName}`);
-                } catch (idTokenErr) {
-                    console.warn('[IRacing OAuth] id_token parsing failed, falling back to member API:', idTokenErr);
-                    identity = await this.fetchMemberInfo(tokenResponse.access_token);
-                }
-                // If id_token didn't have a sub claim, fall back to member API
-                if (!identity.customerId) {
-                    console.warn('[IRacing OAuth] id_token missing sub claim, falling back to member API');
-                    identity = await this.fetchMemberInfo(tokenResponse.access_token);
-                }
-            } else {
-                console.log('[IRacing OAuth] No id_token in response, using member API');
-                identity = await this.fetchMemberInfo(tokenResponse.access_token);
-            }
+            // Always use member API for identity (iRacing doesn't support openid scope)
+            const identity = await this.fetchMemberInfo(tokenResponse.access_token);
+            console.log(`[IRacing OAuth] Member API identity: customerId=${identity.customerId}, displayName=${identity.displayName}`);
 
             // Store encrypted tokens in database
             await this.storeTokens(
