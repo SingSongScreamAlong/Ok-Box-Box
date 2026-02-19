@@ -25,7 +25,7 @@ import { encryptTokens, decryptTokensFromDB } from './token-encryption';
 const IRACING_OAUTH_BASE_URL = process.env.IRACING_OAUTH_BASE_URL || 'https://oauth.iracing.com';
 const IRACING_CLIENT_ID = process.env.IRACING_CLIENT_ID || 'okboxbox';
 const IRACING_CLIENT_SECRET = process.env.IRACING_CLIENT_SECRET;
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const REDIS_URL = process.env.REDIS_URL;
 
 /**
  * iRacing requires client_secret to be "masked" before transmission.
@@ -67,11 +67,23 @@ async function getRedisClient(): Promise<RedisClientType | null> {
     if (!redisAvailable) return null;
     if (redisClient) return redisClient;
 
+    if (!REDIS_URL) {
+        console.warn('[IRacing OAuth] REDIS_URL not set, using in-memory state store');
+        redisAvailable = false;
+        return null;
+    }
+
     try {
-        redisClient = createClient({ url: REDIS_URL });
+        redisClient = createClient({
+            url: REDIS_URL,
+            socket: {
+                reconnectStrategy: false  // Don't auto-reconnect (prevents infinite retry spam)
+            }
+        });
         redisClient.on('error', (err) => {
-            console.error('[IRacing OAuth] Redis error:', err);
+            console.error('[IRacing OAuth] Redis error:', err.message || err);
             redisAvailable = false;
+            try { redisClient?.disconnect(); } catch (_) {}
             redisClient = null;
         });
         await redisClient.connect();
@@ -449,13 +461,13 @@ export class IRacingOAuthService {
 
         // Decrypt tokens
         const tokens = decryptTokensFromDB(
-            row.tokensEncrypted,
-            row.encryptionIv,
-            row.encryptionAuthTag
+            row.tokens_encrypted,
+            row.encryption_iv,
+            row.encryption_auth_tag
         );
 
         // Check if access token expires within buffer window
-        const expiresAt = new Date(row.accessTokenExpiresAt).getTime();
+        const expiresAt = new Date(row.access_token_expires_at).getTime();
         const needsRefresh = expiresAt - Date.now() < REFRESH_BUFFER_MS;
 
         if (!needsRefresh) {
