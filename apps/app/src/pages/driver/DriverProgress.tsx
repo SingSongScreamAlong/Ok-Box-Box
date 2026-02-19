@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDriverData } from '../../hooks/useDriverData';
+import { getLicenseColor } from '../../lib/driverService';
 import { 
   TrendingUp, Target, Clock, ArrowLeft,
   ChevronRight, CheckCircle2, Circle, Lightbulb, BookOpen,
@@ -35,7 +37,8 @@ function getSkillStatusColor(status: Skill['status']) {
 
 export function DriverProgress() {
   const { user } = useAuth();
-  const [data, setData] = useState<DevelopmentData | null>(null); // Demo disabled - start with null
+  const { profile } = useDriverData();
+  const [data, setData] = useState<DevelopmentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedFocus, setExpandedFocus] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<'focus' | 'skills' | 'goals' | 'journey'>('focus');
@@ -58,7 +61,9 @@ export function DriverProgress() {
       setData(devData);
       setGoals(goalsData);
       setSuggestions(suggestionsData);
-      setExpandedFocus(devData.focusAreas[0]?.id || null);
+      setExpandedFocus(devData?.focusAreas?.[0]?.id || null);
+      setLoading(false);
+    }).catch(() => {
       setLoading(false);
     });
   }, []);
@@ -85,18 +90,21 @@ export function DriverProgress() {
 
   // Handle drill completion toggle
   const handleDrillToggle = async (focusAreaId: string, drillName: string, completed: boolean) => {
+    if (!data) return;
     // Optimistic update
-    setData(prev => ({
+    setData(prev => prev ? ({
       ...prev,
       focusAreas: prev.focusAreas.map(fa => 
         fa.id === focusAreaId 
           ? { ...fa, drills: fa.drills.map(d => d.name === drillName ? { ...d, completed } : d) }
           : fa
       )
-    }));
+    }) : prev);
     // Sync with server (fire and forget)
     updateDrillCompletion(focusAreaId, drillName, completed);
   };
+
+  const hasIRacingData = profile && profile.licenses && profile.licenses.length > 0;
 
   if (loading) {
     return (
@@ -105,6 +113,129 @@ export function DriverProgress() {
           <Loader2 className="w-8 h-8 animate-spin text-[#f97316]" />
           <span className="text-white/50 text-sm">Loading development data...</span>
         </div>
+      </div>
+    );
+  }
+
+  // When no development data exists, show iRacing profile overview
+  if (!data || !data.focusAreas || data.focusAreas.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto py-8 px-4 space-y-8">
+        <div>
+          <Link to="/driver/home" className="flex items-center gap-2 text-white/50 hover:text-white text-xs mb-4 transition-colors">
+            <Flame className="w-3 h-3" />Back to Operations
+          </Link>
+          <h1 className="text-xl font-semibold text-white uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+            Driver Development
+          </h1>
+          <p className="text-xs text-white/40 mt-1">Your growth journey starts here</p>
+        </div>
+
+        {/* iRacing Profile Card */}
+        {hasIRacingData ? (
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg overflow-hidden">
+            <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
+              <TrendingUp className="w-5 h-5 text-blue-400" />
+              <h2 className="text-sm uppercase tracking-[0.15em] text-white/70" style={{ fontFamily: 'Orbitron, sans-serif' }}>iRacing Profile</h2>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="text-center p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <div className="text-3xl font-mono font-bold text-blue-400">{profile!.iRatingOverall ?? '—'}</div>
+                  <div className="text-[10px] text-blue-400/60 uppercase tracking-wider mt-1">iRating</div>
+                </div>
+                <div className="text-center p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+                  <div className="text-3xl font-mono font-bold text-green-400">{profile!.safetyRatingOverall?.toFixed(2) ?? '—'}</div>
+                  <div className="text-[10px] text-green-400/60 uppercase tracking-wider mt-1">Safety Rating</div>
+                </div>
+                <div className="text-center p-4 bg-white/[0.03] border border-white/[0.08] rounded-lg">
+                  <div className="text-3xl font-mono font-bold text-white/80">{profile!.licenses.length}</div>
+                  <div className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Disciplines</div>
+                </div>
+                <div className="text-center p-4 bg-white/[0.03] border border-white/[0.08] rounded-lg">
+                  <div className="text-3xl font-mono font-bold text-white/80">{profile!.custId ?? '—'}</div>
+                  <div className="text-[10px] text-white/40 uppercase tracking-wider mt-1">iRacing ID</div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {profile!.licenses.map((license) => (
+                  <div key={license.discipline} className="flex items-center justify-between p-4 bg-white/[0.02] rounded-lg border border-white/[0.06]">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold text-white" style={{ backgroundColor: getLicenseColor(license.licenseClass) }}>
+                        {license.licenseClass}
+                      </div>
+                      <div>
+                        <div className="text-sm text-white/80 font-medium">
+                          {license.discipline === 'sportsCar' ? 'Road' : license.discipline === 'dirtOval' ? 'Dirt Oval' : license.discipline === 'dirtRoad' ? 'Dirt Road' : 'Oval'}
+                        </div>
+                        <div className="text-[10px] text-white/40">Class {license.licenseClass} License</div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-mono font-bold text-blue-400">{license.iRating ?? '—'}</div>
+                      <div className="text-[10px] text-green-400">SR {license.safetyRating?.toFixed(2) ?? '—'}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg p-12 text-center">
+            <Sparkles className="w-12 h-12 text-white/20 mx-auto mb-4" />
+            <h2 className="text-lg text-white/60 mb-2">No Development Data Yet</h2>
+            <p className="text-sm text-white/40 max-w-md mx-auto">
+              Connect your iRacing account in <Link to="/settings" className="text-blue-400 hover:text-blue-300">Settings</Link> and complete sessions with the relay to unlock personalized development tracking.
+            </p>
+          </div>
+        )}
+
+        {/* Getting Started */}
+        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Target className="w-5 h-5 text-[#f97316]" />
+            <h3 className="text-sm uppercase tracking-[0.15em] text-white/70" style={{ fontFamily: 'Orbitron, sans-serif' }}>Getting Started</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-white/[0.02] rounded-lg border border-white/[0.06]">
+              <div className="text-lg font-mono text-[#f97316] mb-2">1</div>
+              <h4 className="text-sm text-white/80 mb-1">Connect iRacing</h4>
+              <p className="text-xs text-white/40">Link your iRacing account to import your profile and ratings.</p>
+            </div>
+            <div className="p-4 bg-white/[0.02] rounded-lg border border-white/[0.06]">
+              <div className="text-lg font-mono text-[#f97316] mb-2">2</div>
+              <h4 className="text-sm text-white/80 mb-1">Install Relay</h4>
+              <p className="text-xs text-white/40">Download the relay app to stream live telemetry during sessions.</p>
+            </div>
+            <div className="p-4 bg-white/[0.02] rounded-lg border border-white/[0.06]">
+              <div className="text-lg font-mono text-[#f97316] mb-2">3</div>
+              <h4 className="text-sm text-white/80 mb-1">Race & Improve</h4>
+              <p className="text-xs text-white/40">Complete sessions to unlock AI coaching, skill tracking, and goals.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Goals Section */}
+        {goals.length > 0 && (
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg overflow-hidden">
+            <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Flame className="w-4 h-4 text-[#f97316]" />
+                <h3 className="text-sm uppercase tracking-[0.15em] text-white/70" style={{ fontFamily: 'Orbitron, sans-serif' }}>Your Goals</h3>
+              </div>
+              <button onClick={() => setShowCreateModal(true)} className="flex items-center gap-1.5 px-2.5 py-1 bg-white/[0.05] hover:bg-white/[0.08] text-white/70 text-xs rounded transition-colors">
+                <Plus className="w-3.5 h-3.5" />New Goal
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              {goals.map(goal => (
+                <GoalCard key={goal.id} goal={goal} onUpdate={refreshGoals} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <CreateGoalModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} onCreated={refreshGoals} />
       </div>
     );
   }

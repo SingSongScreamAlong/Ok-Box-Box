@@ -1,11 +1,13 @@
 import { useRelay } from '../../hooks/useRelay';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDriverData } from '../../hooks/useDriverData';
 import { Link } from 'react-router-dom';
 import { 
   Wifi, WifiOff, Radio, Wrench, Eye, BarChart3, ChevronRight, 
   CheckCircle2, Circle, Play, Download, Clock,
-  TrendingUp, Calendar, MapPin, Gauge
+  TrendingUp, Calendar, MapPin, Gauge, Shield, Award
 } from 'lucide-react';
+import { getLicenseColor } from '../../lib/driverService';
 
 type CrewStatus = 'active' | 'ready' | 'standby';
 
@@ -21,7 +23,8 @@ interface RecentSession {
 export function DriverLanding() {
   const { user } = useAuth();
   const { status, session } = useRelay();
-  const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
+  const { profile } = useDriverData();
+  const displayName = profile?.displayName || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
 
   const isLive = status === 'in_session';
   const isConnected = status === 'connected' || status === 'in_session';
@@ -37,15 +40,9 @@ export function DriverLanding() {
   // Recent sessions - will come from API when implemented
   const recentSessions: RecentSession[] = [];
 
-  // Stats - will come from API when implemented
-  const stats = {
-    totalRaces: 0,
-    wins: 0,
-    podiums: 0,
-    incidentFreeStreak: 0,
-  };
-  
-  const hasStats = stats.totalRaces > 0;
+  // Stats from iRacing profile
+  const hasIRacingStats = profile && profile.licenses && profile.licenses.length > 0;
+  const hasStats = hasIRacingStats;
   const hasSessions = recentSessions.length > 0;
 
   return (
@@ -253,37 +250,77 @@ export function DriverLanding() {
         {/* Right Column - Stats & Quick Links */}
         <div className="space-y-6">
           
-          {/* Quick Stats */}
+          {/* iRacing Stats */}
           <div className="border border-white/10 bg-white/[0.02]">
-            <div className="px-5 py-4 border-b border-white/10">
+            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
               <h3 className="text-sm uppercase tracking-[0.15em] text-white/60" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                Your Stats
+                iRacing Stats
               </h3>
+              {hasStats && (
+                <Link to="/driver/ratings" className="text-[10px] text-white/40 hover:text-white/60 uppercase tracking-wider flex items-center gap-1">
+                  Details <ChevronRight className="w-3 h-3" />
+                </Link>
+              )}
             </div>
             {hasStats ? (
-              <div className="grid grid-cols-2 divide-x divide-y divide-white/10">
-                <div className="p-4 text-center">
-                  <p className="text-2xl font-bold text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>{stats.totalRaces}</p>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Races</p>
+              <div className="p-4 space-y-4">
+                {/* Overall */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded text-center">
+                    <div className="text-2xl font-bold font-mono text-blue-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                      {profile!.iRatingOverall ?? '—'}
+                    </div>
+                    <div className="text-[10px] text-blue-400/60 uppercase tracking-wider mt-1 flex items-center justify-center gap-1">
+                      <TrendingUp className="w-3 h-3" />iRating
+                    </div>
+                  </div>
+                  <div className="p-3 bg-green-500/10 border border-green-500/20 rounded text-center">
+                    <div className="text-2xl font-bold font-mono text-green-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                      {profile!.safetyRatingOverall?.toFixed(2) ?? '—'}
+                    </div>
+                    <div className="text-[10px] text-green-400/60 uppercase tracking-wider mt-1 flex items-center justify-center gap-1">
+                      <Shield className="w-3 h-3" />Safety Rating
+                    </div>
+                  </div>
                 </div>
-                <div className="p-4 text-center">
-                  <p className="text-2xl font-bold text-yellow-500" style={{ fontFamily: 'Orbitron, sans-serif' }}>{stats.wins}</p>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Wins</p>
+                {/* Per-discipline licenses */}
+                <div className="space-y-2">
+                  {profile!.licenses.map((license) => (
+                    <div key={license.discipline} className="flex items-center justify-between p-2.5 bg-white/[0.02] rounded border border-white/[0.06]">
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-7 h-7 rounded flex items-center justify-center text-xs font-bold text-white"
+                          style={{ backgroundColor: getLicenseColor(license.licenseClass) }}
+                        >
+                          {license.licenseClass}
+                        </div>
+                        <div>
+                          <div className="text-xs text-white/80">
+                            {license.discipline === 'sportsCar' ? 'Road' : license.discipline === 'dirtOval' ? 'Dirt Oval' : license.discipline === 'dirtRoad' ? 'Dirt Road' : 'Oval'}
+                          </div>
+                          <div className="text-[10px] text-white/40">SR {license.safetyRating?.toFixed(2) ?? '—'}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-mono font-bold text-blue-400">{license.iRating ?? '—'}</div>
+                        <div className="text-[10px] text-white/30">iRating</div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="p-4 text-center">
-                  <p className="text-2xl font-bold text-orange-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>{stats.podiums}</p>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Podiums</p>
-                </div>
-                <div className="p-4 text-center">
-                  <p className="text-2xl font-bold text-green-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>{stats.incidentFreeStreak}</p>
-                  <p className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Clean Streak</p>
-                </div>
+                {profile!.custId && (
+                  <div className="text-[10px] text-white/30 text-center pt-1">
+                    iRacing ID: {profile!.custId}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="p-8 text-center">
-                <BarChart3 className="w-8 h-8 text-white/20 mx-auto mb-3" />
-                <p className="text-xs text-white/40">No stats yet</p>
-                <p className="text-[10px] text-white/30 mt-1">Stats will appear after your first session</p>
+                <Award className="w-8 h-8 text-white/20 mx-auto mb-3" />
+                <p className="text-xs text-white/40">No iRacing data yet</p>
+                <p className="text-[10px] text-white/30 mt-1">
+                  <Link to="/settings" className="text-blue-400 hover:text-blue-300">Connect your iRacing account</Link> to see your stats
+                </p>
               </div>
             )}
           </div>
