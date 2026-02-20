@@ -13,9 +13,16 @@
  * │  - CPI Ring                 │  - Notifications         │
  * │  - Progress Bars            │  - Messages              │
  * │  - Driver Level + XP        │  - Invites               │
- * │  - Unlock Indicators        │                          │
+ * │  - Unlock Indicators        │  - Licenses              │
+ * │  - iRating Trend Sparkline  │                          │
  * ├──────────────────────────────┴──────────────────────────┤
- * │  RECENT PERFORMANCE (horizontal race cards)             │
+ * │  QUICK STATS (starts, wins, top 5s, poles)              │
+ * ├────────────────────────────────────────────────────────-─┤
+ * │  CREW INTELLIGENCE PREVIEW (engineer/spotter/analyst)   │
+ * ├─────────────────────────────────────────────────────────┤
+ * │  RECENT PERFORMANCE (horizontal race cards + streaks)   │
+ * ├─────────────────────────────────────────────────────────┤
+ * │  NEXT SESSION PROMPT (motivational forward-action)      │
  * └─────────────────────────────────────────────────────────┘
  */
 
@@ -27,22 +34,28 @@ import { Link } from 'react-router-dom';
 import {
   Wifi, WifiOff, Radio, ChevronRight,
   Play, Download, Gauge, Shield,
-  Target, ArrowUpRight, ArrowDownRight, Minus,
+  Target, ArrowUpRight,
   Lock, Unlock, Bell, MessageSquare, Users,
-  Trophy, AlertTriangle, TrendingDown, Zap
+  Trophy, AlertTriangle, TrendingDown, Zap,
+  Wrench, Eye, BarChart3, Award, TrendingUp,
+  Flame, Sparkles
 } from 'lucide-react';
 import {
   getLicenseColor,
   fetchPerformanceSnapshot,
   PerformanceSnapshot,
   DriverSessionSummary,
+  DriverStatsSnapshot,
 } from '../../lib/driverService';
 import {
   computePerformanceDirection,
   computeConsistency,
+  computeCrewInsights,
+  buildRatingTrend,
   type ConsistencyMetrics,
   type CPITier,
   type FocusFlag,
+  type RatingTrendPoint,
 } from '../../lib/driverIntelligence';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -376,10 +389,7 @@ function CareerProgressionPanel({ consistency, snapshot, sessionCount }: {
 }) {
   const driverLevel = computeDriverLevel(sessionCount);
   const bars = computeProgressBars(snapshot);
-  const xpProgress = driverLevel.xpToNext > 0
-    ? Math.round(((driverLevel.xp - (driverLevel.level > 1 ? driverLevel.xp - (driverLevel.xp % driverLevel.xpToNext || driverLevel.xpToNext) : 0)) / driverLevel.xpToNext) * 100)
-    : 100;
-  // Recalculate XP within current level properly
+  // Calculate XP within current level
   const thresholds = [0, 300, 800, 1500, 2500, 4000, 6000, 9000, 13000, 18000];
   const currentThreshold = thresholds[driverLevel.level - 1] || 0;
   const nextThreshold = thresholds[driverLevel.level] || currentThreshold + 5000;
@@ -465,6 +475,248 @@ function CareerProgressionPanel({ consistency, snapshot, sessionCount }: {
           <UnlockIndicator label="Crew Intelligence" unlocked={sessionCount >= 3} requirement="3 sessions required" />
           <UnlockIndicator label="Trend Modeling" unlocked={sessionCount >= 2} requirement="2 sessions required" />
           <UnlockIndicator label="Advanced Analysis" unlocked={sessionCount >= 5} requirement="5 sessions required" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// iRATING TREND SPARKLINE (pure SVG — no Recharts)
+// ═════════════════════════════════════════════════════════════════════════════
+
+function IRatingSparkline({ points }: { points: RatingTrendPoint[] }) {
+  if (points.length < 2) {
+    return (
+      <div className="border border-white/10 bg-white/[0.02]">
+        <div className="px-5 py-4 border-b border-white/10 flex items-center gap-2">
+          <TrendingUp className="w-3.5 h-3.5 text-white/20" />
+          <h3 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>iRating Trend</h3>
+        </div>
+        <div className="p-4">
+          <div className="h-16 relative overflow-hidden">
+            <svg width="100%" height="100%" viewBox="0 0 400 60" preserveAspectRatio="none" className="opacity-[0.06]">
+              <polyline points="0,45 60,42 120,38 180,35 240,32 300,30 360,28 400,26" fill="none" stroke="white" strokeWidth="2" strokeDasharray="6 4" />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <p className="text-[10px] text-white/25">Complete 2 sessions to activate trend</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const ratings = points.map(p => p.iRating);
+  const minR = Math.min(...ratings);
+  const maxR = Math.max(...ratings);
+  const range = maxR - minR || 1;
+  const delta = ratings[ratings.length - 1] - ratings[0];
+
+  const w = 400;
+  const h = 60;
+  const pad = 4;
+  const pts = ratings.map((r, i) => {
+    const x = pad + (i / (ratings.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((r - minR) / range) * (h - pad * 2);
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <div className="border border-white/10 bg-white/[0.02]">
+      <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-3.5 h-3.5 text-blue-400/50" />
+          <h3 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>iRating Trend</h3>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-mono text-white/40">{ratings[ratings.length - 1]}</span>
+          <span className={`text-[10px] font-mono ${delta > 0 ? 'text-green-400' : delta < 0 ? 'text-red-400' : 'text-white/30'}`}>
+            {delta > 0 ? '+' : ''}{delta}
+          </span>
+        </div>
+      </div>
+      <div className="p-4">
+        <svg width="100%" height="60" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.15" />
+              <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <polygon points={`${pad},${h} ${pts} ${w - pad},${h}`} fill="url(#sparkFill)" />
+          <polyline points={pts} fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinejoin="round" />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// QUICK STATS ROW
+// ═════════════════════════════════════════════════════════════════════════════
+
+function QuickStatsRow({ stats }: { stats: DriverStatsSnapshot[] }) {
+  const totalStarts = stats.reduce((a, s) => a + s.starts, 0);
+  const totalWins = stats.reduce((a, s) => a + s.wins, 0);
+  const totalTop5s = stats.reduce((a, s) => a + s.top5s, 0);
+  const totalPoles = stats.reduce((a, s) => a + s.poles, 0);
+
+  if (totalStarts === 0) return null;
+
+  const items = [
+    { label: 'Starts', value: totalStarts, icon: Flame, color: 'text-white/60' },
+    { label: 'Wins', value: totalWins, icon: Trophy, color: totalWins > 0 ? 'text-yellow-400' : 'text-white/30' },
+    { label: 'Top 5s', value: totalTop5s, icon: Award, color: totalTop5s > 0 ? 'text-orange-400' : 'text-white/30' },
+    { label: 'Poles', value: totalPoles, icon: Sparkles, color: totalPoles > 0 ? 'text-blue-400' : 'text-white/30' },
+  ];
+
+  return (
+    <div className="border border-white/10 bg-white/[0.02]">
+      <div className="grid grid-cols-4 divide-x divide-white/[0.06]">
+        {items.map(item => {
+          const Icon = item.icon;
+          return (
+            <div key={item.label} className="py-3 px-4 text-center">
+              <Icon className={`w-3.5 h-3.5 mx-auto mb-1 ${item.color}`} />
+              <div className="text-lg font-bold font-mono text-white" style={ORBITRON}>{item.value}</div>
+              <div className="text-[9px] text-white/30 uppercase tracking-wider">{item.label}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// CREW INTELLIGENCE PREVIEW
+// ═════════════════════════════════════════════════════════════════════════════
+
+function CrewPreviewPanel({ sessions, focus }: { sessions: DriverSessionSummary[]; focus: FocusFlag }) {
+  const insights = useMemo(() => computeCrewInsights(sessions, focus), [sessions, focus]);
+
+  const crewRoles = [
+    { key: 'engineer' as const, label: 'Engineer', icon: Wrench, color: '#f97316', link: '/driver/crew/engineer' },
+    { key: 'spotter' as const, label: 'Spotter', icon: Eye, color: '#3b82f6', link: '/driver/crew/spotter' },
+    { key: 'analyst' as const, label: 'Analyst', icon: BarChart3, color: '#8b5cf6', link: '/driver/crew/analyst' },
+  ];
+
+  return (
+    <div className="border border-white/10 bg-white/[0.02]">
+      <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+        <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Crew Intelligence</h2>
+        <Link to="/driver/crew" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
+          Full Crew <ChevronRight className="w-3 h-3" />
+        </Link>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/[0.06]">
+        {crewRoles.map(role => {
+          const Icon = role.icon;
+          const insight = insights.find(i => i.role === role.key);
+          return (
+            <Link key={role.key} to={role.link} className="p-4 hover:bg-white/[0.02] transition-colors group">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded flex items-center justify-center" style={{ backgroundColor: `${role.color}20`, border: `1px solid ${role.color}30` }}>
+                  <Icon className="w-3 h-3" style={{ color: role.color }} />
+                </div>
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-white/60">{role.label}</span>
+                <ChevronRight className="w-3 h-3 text-white/10 group-hover:text-white/30 ml-auto" />
+              </div>
+              {insight ? (
+                <p className="text-[11px] text-white/40 leading-relaxed line-clamp-2">{insight.message}</p>
+              ) : (
+                <p className="text-[10px] text-white/20 italic">Awaiting session data</p>
+              )}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// LICENSES PANEL (compact)
+// ═════════════════════════════════════════════════════════════════════════════
+
+function LicensesCompactPanel({ profile }: { profile: ReturnType<typeof useDriverData>['profile'] }) {
+  const licenses = profile?.licenses;
+  if (!licenses || licenses.length === 0) return null;
+
+  const DISC_LABELS: Record<string, string> = {
+    sportsCar: 'Road', oval: 'Oval', dirtOval: 'Dirt Oval', dirtRoad: 'Dirt Road', formula: 'Formula',
+  };
+
+  return (
+    <div className="border border-white/10 bg-white/[0.02]">
+      <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+        <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Licenses</h2>
+        <Link to="/driver/ratings" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
+          Details <ChevronRight className="w-3 h-3" />
+        </Link>
+      </div>
+      <div className="p-3 space-y-1.5">
+        {licenses.map(lic => (
+          <div key={lic.discipline} className="flex items-center justify-between py-2 px-3 bg-white/[0.02] rounded border border-white/[0.04]">
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold text-white"
+                style={{ backgroundColor: getLicenseColor(lic.licenseClass) }}
+              >
+                {lic.licenseClass}
+              </div>
+              <span className="text-[11px] text-white/60">{DISC_LABELS[lic.discipline] || lic.discipline}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <Shield className="w-3 h-3 text-green-400/40" />
+                <span className="text-[10px] font-mono text-green-400/60">{lic.safetyRating?.toFixed(2) ?? '—'}</span>
+              </div>
+              <span className="text-[11px] font-mono font-bold text-blue-400">{lic.iRating ?? '—'}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEXT SESSION PROMPT
+// ═════════════════════════════════════════════════════════════════════════════
+
+function NextSessionPrompt({ sessionCount, driverLevel }: { sessionCount: number; driverLevel: { level: number; title: string; xp: number; xpToNext: number } }) {
+  const thresholds = [0, 300, 800, 1500, 2500, 4000, 6000, 9000, 13000, 18000];
+  const nextThreshold = thresholds[driverLevel.level] || thresholds[thresholds.length - 1] + 5000;
+  const sessionsToNextLevel = Math.max(1, Math.ceil((nextThreshold - driverLevel.xp) / 100));
+
+  // Determine unlock milestones
+  let unlockMessage: string | null = null;
+  if (sessionCount < 2) unlockMessage = `${2 - sessionCount} more session${2 - sessionCount !== 1 ? 's' : ''} to unlock Trend Modeling`;
+  else if (sessionCount < 3) unlockMessage = '1 more session to unlock Crew Intelligence';
+  else if (sessionCount < 5) unlockMessage = `${5 - sessionCount} more session${5 - sessionCount !== 1 ? 's' : ''} to unlock Advanced Analysis`;
+
+  return (
+    <div className="border border-white/10 bg-white/[0.02] p-4">
+      <div className="flex items-start gap-3">
+        <div className="w-8 h-8 rounded bg-green-500/10 flex items-center justify-center shrink-0 mt-0.5">
+          <ArrowUpRight className="w-4 h-4 text-green-400" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-xs font-semibold uppercase tracking-wider text-green-400" style={ORBITRON}>
+            Next Session
+          </div>
+          <div className="mt-1.5 space-y-1">
+            <p className="text-[11px] text-white/50">
+              <span className="text-white/70 font-medium">+100 XP</span> — {sessionsToNextLevel} session{sessionsToNextLevel !== 1 ? 's' : ''} to Level {driverLevel.level + 1}
+            </p>
+            {unlockMessage && (
+              <p className="text-[11px] text-amber-400/60">
+                <Lock className="w-3 h-3 inline mr-1 -mt-0.5" />{unlockMessage}
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -579,7 +831,7 @@ function PerformanceDirectiveCard({ direction }: { direction: ReturnType<typeof 
 // RECENT PERFORMANCE (horizontal race cards)
 // ═════════════════════════════════════════════════════════════════════════════
 
-function RaceCard({ session }: { session: DriverSessionSummary }) {
+function RaceCard({ session, prevSession }: { session: DriverSessionSummary; prevSession?: DriverSessionSummary }) {
   const delta = (session.finishPos != null && session.startPos != null)
     ? session.startPos - session.finishPos
     : null;
@@ -589,15 +841,26 @@ function RaceCard({ session }: { session: DriverSessionSummary }) {
 
   return (
     <div className="border border-white/10 bg-white/[0.02] p-4 min-w-[220px] max-w-[260px] shrink-0 hover:bg-white/[0.04] transition-colors">
-      {/* Position badge */}
+      {/* Position badge + streak */}
       <div className="flex items-center justify-between mb-3">
-        <div className={`text-lg font-bold font-mono ${
-          session.finishPos === 1 ? 'text-yellow-400' :
-          (session.finishPos ?? 99) <= 3 ? 'text-orange-400' :
-          (session.finishPos ?? 99) <= 5 ? 'text-blue-400' :
-          'text-white/60'
-        }`} style={ORBITRON}>
-          {session.finishPos != null ? `P${session.finishPos}` : '—'}
+        <div className="flex items-center gap-1.5">
+          <div className={`text-lg font-bold font-mono ${
+            session.finishPos === 1 ? 'text-yellow-400' :
+            (session.finishPos ?? 99) <= 3 ? 'text-orange-400' :
+            (session.finishPos ?? 99) <= 5 ? 'text-blue-400' :
+            'text-white/60'
+          }`} style={ORBITRON}>
+            {session.finishPos != null ? `P${session.finishPos}` : '—'}
+          </div>
+          {prevSession && session.iRatingChange != null && prevSession.iRatingChange != null && (
+            <div className={`text-[9px] px-1 py-0.5 rounded ${
+              session.iRatingChange > prevSession.iRatingChange ? 'bg-green-500/15 text-green-400' :
+              session.iRatingChange < prevSession.iRatingChange ? 'bg-red-500/15 text-red-400' :
+              'bg-white/5 text-white/30'
+            }`}>
+              {session.iRatingChange > prevSession.iRatingChange ? '▲' : session.iRatingChange < prevSession.iRatingChange ? '▼' : '—'}
+            </div>
+          )}
         </div>
         <span className="text-[10px] text-white/25">{formatRelativeDate(session.startedAt)}</span>
       </div>
@@ -677,7 +940,7 @@ function RecentPerformanceStrip({ sessions, loading }: { sessions: DriverSession
 
       {!loading && recent.length > 0 && (
         <div className="p-4 flex gap-3 overflow-x-auto scrollbar-thin scrollbar-thumb-white/10">
-          {recent.map(s => <RaceCard key={s.sessionId} session={s} />)}
+          {recent.map((s, i) => <RaceCard key={s.sessionId} session={s} prevSession={recent[i + 1]} />)}
         </div>
       )}
 
@@ -697,7 +960,7 @@ function RecentPerformanceStrip({ sessions, loading }: { sessions: DriverSession
 export function DriverLanding() {
   const { user } = useAuth();
   const { status } = useRelay();
-  const { profile, sessions, loading } = useDriverData();
+  const { profile, sessions, stats, loading } = useDriverData();
   const displayName = profile?.displayName || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
 
   const isLive = status === 'in_session';
@@ -710,15 +973,13 @@ export function DriverLanding() {
 
   // Performance snapshot
   const [snapshot, setSnapshot] = useState<PerformanceSnapshot | null | undefined>(undefined);
-  const [snapshotError, setSnapshotError] = useState(false);
 
   const loadSnapshot = useCallback(async () => {
-    setSnapshotError(false);
     try {
       const data = await fetchPerformanceSnapshot();
       setSnapshot(data);
     } catch {
-      setSnapshotError(true);
+      setSnapshot(null);
     }
   }, []);
 
@@ -727,9 +988,11 @@ export function DriverLanding() {
   // Derived intelligence
   const direction = useMemo(() => computePerformanceDirection(snapshot ?? null), [snapshot]);
   const consistency = useMemo(() => computeConsistency(snapshot ?? null), [snapshot]);
+  const trendPoints = useMemo(() => buildRatingTrend(sessions), [sessions]);
 
   const sessionCount = sessions.length;
   const isTrainingMode = sessionCount < 3;
+  const driverLevel = computeDriverLevel(sessionCount);
 
   return (
     <div className="relative min-h-[calc(100vh-8rem)]">
@@ -751,44 +1014,57 @@ export function DriverLanding() {
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto space-y-5 pb-8">
-      {/* DRIVER IDENTITY STRIP */}
-      <DriverIdentityStrip
-        displayName={displayName}
-        profile={profile}
-        consistency={consistency}
-        relayStatus={status}
-        isLive={isLive}
-      />
+        {/* DRIVER IDENTITY STRIP */}
+        <DriverIdentityStrip
+          displayName={displayName}
+          profile={profile}
+          consistency={consistency}
+          relayStatus={status}
+          isLive={isLive}
+        />
 
-      {/* TRAINING MODE — consolidated onboarding (replaces all scattered empty states) */}
-      {!loading && isTrainingMode && (
-        <TrainingModeCard sessionCount={sessionCount} />
-      )}
+        {/* TRAINING MODE — consolidated onboarding (replaces all scattered empty states) */}
+        {!loading && isTrainingMode && (
+          <TrainingModeCard sessionCount={sessionCount} />
+        )}
 
-      {/* PERFORMANCE DIRECTIVE (compact — not dominant) */}
-      {!isTrainingMode && direction.primaryFocus !== 'needs_data' && (
-        <PerformanceDirectiveCard direction={direction} />
-      )}
+        {/* PERFORMANCE DIRECTIVE (compact — not dominant) */}
+        {!isTrainingMode && direction.primaryFocus !== 'needs_data' && (
+          <PerformanceDirectiveCard direction={direction} />
+        )}
 
-      {/* TWO-COLUMN LAYOUT */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-        {/* LEFT: Career Progression (3/5 width) */}
-        <div className="lg:col-span-3">
-          <CareerProgressionPanel
-            consistency={consistency}
-            snapshot={snapshot ?? null}
-            sessionCount={sessionCount}
-          />
+        {/* TWO-COLUMN LAYOUT */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+          {/* LEFT: Career Progression + iRating Trend (3/5 width) */}
+          <div className="lg:col-span-3 space-y-5">
+            <CareerProgressionPanel
+              consistency={consistency}
+              snapshot={snapshot ?? null}
+              sessionCount={sessionCount}
+            />
+            {!loading && <IRatingSparkline points={trendPoints} />}
+          </div>
+
+          {/* RIGHT: Racing Network + Licenses (2/5 width) */}
+          <div className="lg:col-span-2 space-y-5">
+            <RacingNetworkPanel />
+            <LicensesCompactPanel profile={profile} />
+          </div>
         </div>
 
-        {/* RIGHT: Racing Network (2/5 width) */}
-        <div className="lg:col-span-2">
-          <RacingNetworkPanel />
-        </div>
-      </div>
+        {/* QUICK STATS ROW */}
+        <QuickStatsRow stats={stats} />
 
-      {/* BOTTOM: Recent Performance (horizontal race cards) */}
-      <RecentPerformanceStrip sessions={sessions} loading={loading} />
+        {/* CREW INTELLIGENCE PREVIEW */}
+        {sessionCount > 0 && (
+          <CrewPreviewPanel sessions={sessions} focus={direction.primaryFocus} />
+        )}
+
+        {/* RECENT PERFORMANCE (horizontal race cards with streak indicators) */}
+        <RecentPerformanceStrip sessions={sessions} loading={loading} />
+
+        {/* NEXT SESSION PROMPT */}
+        <NextSessionPrompt sessionCount={sessionCount} driverLevel={driverLevel} />
       </div>
     </div>
   );
