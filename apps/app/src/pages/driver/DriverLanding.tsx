@@ -223,7 +223,7 @@ function DriverIdentityStrip({ displayName, profile, consistency, relayStatus, i
   const iRating = primaryLicense?.iRating;
 
   return (
-    <div className="border border-white/10 bg-white/[0.02] px-5 py-4">
+    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm px-5 py-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         {/* Left: Name + License */}
         <div className="flex items-center gap-4">
@@ -352,7 +352,7 @@ function TrainingModeCard({ sessionCount }: { sessionCount: number }) {
       </div>
 
       {/* XP accumulation */}
-      <div className="flex items-center justify-between py-2 px-3 bg-white/[0.02] rounded border border-white/[0.04]">
+      <div className="flex items-center justify-between py-2 px-3 bg-white/[0.03] rounded border border-white/[0.04]">
         <span className="text-[11px] text-white/40">XP Earned</span>
         <span className="text-[11px] font-mono text-white/60">{sessionCount * 100} XP</span>
       </div>
@@ -398,7 +398,7 @@ function CareerProgressionPanel({ consistency, snapshot, sessionCount }: {
   const xpPct = Math.min(100, Math.round((xpInLevel / xpNeeded) * 100));
 
   return (
-    <div className="border border-white/10 bg-white/[0.02]">
+    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
       <div className="px-5 py-4 border-b border-white/10">
         <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>
           Driver Development
@@ -488,7 +488,7 @@ function CareerProgressionPanel({ consistency, snapshot, sessionCount }: {
 function IRatingSparkline({ points }: { points: RatingTrendPoint[] }) {
   if (points.length < 2) {
     return (
-      <div className="border border-white/10 bg-white/[0.02]">
+      <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
         <div className="px-5 py-4 border-b border-white/10 flex items-center gap-2">
           <TrendingUp className="w-3.5 h-3.5 text-white/20" />
           <h3 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>iRating Trend</h3>
@@ -523,7 +523,7 @@ function IRatingSparkline({ points }: { points: RatingTrendPoint[] }) {
   }).join(' ');
 
   return (
-    <div className="border border-white/10 bg-white/[0.02]">
+    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
       <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <TrendingUp className="w-3.5 h-3.5 text-blue-400/50" />
@@ -572,7 +572,7 @@ function QuickStatsRow({ stats }: { stats: DriverStatsSnapshot[] }) {
   ];
 
   return (
-    <div className="border border-white/10 bg-white/[0.02]">
+    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
       <div className="grid grid-cols-4 divide-x divide-white/[0.06]">
         {items.map(item => {
           const Icon = item.icon;
@@ -603,7 +603,7 @@ function CrewPreviewPanel({ sessions, focus }: { sessions: DriverSessionSummary[
   ];
 
   return (
-    <div className="border border-white/10 bg-white/[0.02]">
+    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
       <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
         <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Crew Intelligence</h2>
         <Link to="/driver/crew" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
@@ -615,7 +615,7 @@ function CrewPreviewPanel({ sessions, focus }: { sessions: DriverSessionSummary[
           const Icon = role.icon;
           const insight = insights.find(i => i.role === role.key);
           return (
-            <Link key={role.key} to={role.link} className="p-4 hover:bg-white/[0.02] transition-colors group">
+            <Link key={role.key} to={role.link} className="p-4 hover:bg-white/[0.03] transition-colors group">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-6 h-6 rounded flex items-center justify-center" style={{ backgroundColor: `${role.color}20`, border: `1px solid ${role.color}30` }}>
                   <Icon className="w-3 h-3" style={{ color: role.color }} />
@@ -649,7 +649,7 @@ function LicensesCompactPanel({ profile }: { profile: ReturnType<typeof useDrive
   };
 
   return (
-    <div className="border border-white/10 bg-white/[0.02]">
+    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
       <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
         <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Licenses</h2>
         <Link to="/driver/ratings" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
@@ -658,7 +658,7 @@ function LicensesCompactPanel({ profile }: { profile: ReturnType<typeof useDrive
       </div>
       <div className="p-3 space-y-1.5">
         {licenses.map(lic => (
-          <div key={lic.discipline} className="flex items-center justify-between py-2 px-3 bg-white/[0.02] rounded border border-white/[0.04]">
+          <div key={lic.discipline} className="flex items-center justify-between py-2 px-3 bg-white/[0.03] rounded border border-white/[0.04]">
             <div className="flex items-center gap-2.5">
               <div
                 className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold text-white"
@@ -698,7 +698,7 @@ function NextSessionPrompt({ sessionCount, driverLevel }: { sessionCount: number
   else if (sessionCount < 5) unlockMessage = `${5 - sessionCount} more session${5 - sessionCount !== 1 ? 's' : ''} to unlock Advanced Analysis`;
 
   return (
-    <div className="border border-white/10 bg-white/[0.02] p-4">
+    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm p-4">
       <div className="flex items-start gap-3">
         <div className="w-8 h-8 rounded bg-green-500/10 flex items-center justify-center shrink-0 mt-0.5">
           <ArrowUpRight className="w-4 h-4 text-green-400" />
@@ -731,7 +731,7 @@ function RacingNetworkPanel() {
   // Real data would come from a notifications/messages API.
   // For now, show structured empty states (no fake data).
   return (
-    <div className="border border-white/10 bg-white/[0.02]">
+    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
       <div className="px-5 py-4 border-b border-white/10">
         <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>
           Racing Network
@@ -806,7 +806,7 @@ function PerformanceDirectiveCard({ direction }: { direction: ReturnType<typeof 
   const confidence = FOCUS_CONFIDENCE[direction.primaryFocus];
 
   return (
-    <div className="border border-white/10 bg-white/[0.02] p-4">
+    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm p-4">
       <div className="flex items-start gap-3">
         <div className="w-8 h-8 rounded bg-white/[0.04] flex items-center justify-center shrink-0 mt-0.5">
           <Icon className={`w-4 h-4 ${color}`} />
@@ -840,7 +840,7 @@ function RaceCard({ session, prevSession }: { session: DriverSessionSummary; pre
   const cleanPct = laps > 0 ? Math.max(0, Math.round(((laps - incidents) / laps) * 100)) : null;
 
   return (
-    <div className="border border-white/10 bg-white/[0.02] p-4 min-w-[220px] max-w-[260px] shrink-0 hover:bg-white/[0.04] transition-colors">
+    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm p-4 min-w-[220px] max-w-[260px] shrink-0 hover:bg-[#0e0e0e]/90 transition-colors">
       {/* Position badge + streak */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
@@ -918,7 +918,7 @@ function RecentPerformanceStrip({ sessions, loading }: { sessions: DriverSession
   const recent = sessions.slice(0, 8);
 
   return (
-    <div className="border border-white/10 bg-white/[0.02]">
+    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
       <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
         <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>
           Recent Performance
