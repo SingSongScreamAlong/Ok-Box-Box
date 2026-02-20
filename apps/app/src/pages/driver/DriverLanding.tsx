@@ -1,5 +1,5 @@
 /**
- * DriverLanding — Driver Command Center
+ * DriverLanding — Driver Command Center v0.2 (Intelligence Layer)
  *
  * ZERO-MOCK ENFORCEMENT:
  * This file must NEVER contain hard-coded sample data, placeholder arrays,
@@ -9,7 +9,7 @@
  * file, DELETE IT — it violates the data-integrity contract.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRelay } from '../../hooks/useRelay';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDriverData } from '../../hooks/useDriverData';
@@ -18,7 +18,7 @@ import {
   Wifi, WifiOff, Radio, Wrench, Eye, BarChart3, ChevronRight,
   Play, Download, Clock, TrendingUp, Calendar, MapPin, Gauge,
   Shield, Award, AlertTriangle, RefreshCw, Flag,
-  Target, ArrowUpRight, ArrowDownRight, Minus
+  Target, ArrowUpRight, ArrowDownRight, Minus, Activity
 } from 'lucide-react';
 import {
   getLicenseColor,
@@ -28,6 +28,14 @@ import {
   CrewBrief,
   DriverSessionSummary,
 } from '../../lib/driverService';
+import {
+  computePerformanceDirection,
+  computeConsistency,
+  computeCrewInsights,
+  buildRatingTrend,
+} from '../../lib/driverIntelligence';
+import { PerformanceDirectionPanel } from '../../components/driver/PerformanceDirectionPanel';
+import { RatingTrendGraph } from '../../components/driver/RatingTrendGraph';
 
 // ─── Shared skeleton for loading states (no numeric placeholders) ────────────
 function Skeleton({ className = '' }: { className?: string }) {
@@ -111,24 +119,14 @@ function DriverStatusPanel() {
   );
 }
 
-// ─── B) PERFORMANCE SNAPSHOT ─────────────────────────────────────────────────
-function PerformanceSnapshotPanel() {
-  const [snapshot, setSnapshot] = useState<PerformanceSnapshot | null | undefined>(undefined);
-  const [error, setError] = useState(false);
-
-  const load = useCallback(async () => {
-    setError(false);
-    try {
-      const data = await fetchPerformanceSnapshot();
-      setSnapshot(data);
-    } catch {
-      setError(true);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const isLoading = snapshot === undefined && !error;
+// ─── B) PERFORMANCE SNAPSHOT (with Consistency Index — Phase 4) ──────────────
+function PerformanceSnapshotPanel({ snapshot, snapshotLoading, snapshotError, onRetry }: {
+  snapshot: PerformanceSnapshot | null | undefined;
+  snapshotLoading: boolean;
+  snapshotError: boolean;
+  onRetry: () => void;
+}) {
+  const consistency = useMemo(() => computeConsistency(snapshot ?? null), [snapshot]);
 
   return (
     <div className="border border-white/10 bg-white/[0.02]">
@@ -143,25 +141,25 @@ function PerformanceSnapshotPanel() {
         )}
       </div>
 
-      {isLoading && (
+      {snapshotLoading && (
         <div className="p-5 space-y-3">
-          <div className="grid grid-cols-4 gap-3">
-            {[1,2,3,4].map(i => <Skeleton key={i} className="h-16" />)}
+          <div className="grid grid-cols-5 gap-3">
+            {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-16" />)}
           </div>
         </div>
       )}
 
-      {error && (
+      {snapshotError && (
         <div className="p-8 text-center">
           <AlertTriangle className="w-8 h-8 text-red-400/40 mx-auto mb-3" />
           <p className="text-xs text-white/40">Failed to load performance data</p>
-          <button onClick={load} className="mt-3 text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 mx-auto">
+          <button onClick={onRetry} className="mt-3 text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 mx-auto">
             <RefreshCw className="w-3 h-3" /> Retry
           </button>
         </div>
       )}
 
-      {!isLoading && !error && snapshot === null && (
+      {!snapshotLoading && !snapshotError && snapshot === null && (
         <div className="p-8 text-center">
           <Target className="w-8 h-8 text-white/20 mx-auto mb-3" />
           <p className="text-sm text-white/50 font-medium">No performance snapshot yet</p>
@@ -180,7 +178,7 @@ function PerformanceSnapshotPanel() {
 
       {snapshot && (
         <div className="p-5">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             <div className="p-3 bg-white/[0.03] border border-white/[0.06] rounded text-center">
               <div className="text-xl font-bold font-mono text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>
                 P{snapshot.avg_finish}
@@ -208,6 +206,25 @@ function PerformanceSnapshotPanel() {
               </div>
               <div className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Avg Start</div>
             </div>
+            {/* Consistency Index (Phase 4) */}
+            {consistency && (
+              <div className={`p-3 border rounded text-center ${
+                consistency.index >= 80 ? 'bg-green-500/[0.06] border-green-500/20' :
+                consistency.index >= 50 ? 'bg-yellow-500/[0.06] border-yellow-500/20' :
+                'bg-red-500/[0.06] border-red-500/20'
+              }`}>
+                <div className={`text-xl font-bold font-mono ${
+                  consistency.index >= 80 ? 'text-green-400' :
+                  consistency.index >= 50 ? 'text-yellow-400' :
+                  'text-red-400'
+                }`} style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                  {consistency.index}
+                </div>
+                <div className="text-[10px] text-white/40 uppercase tracking-wider mt-1 flex items-center justify-center gap-1">
+                  <Activity className="w-3 h-3" />CPI
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Mini session list */}
@@ -232,8 +249,8 @@ function PerformanceSnapshotPanel() {
   );
 }
 
-// ─── C) CREW INTELLIGENCE FEED ──────────────────────────────────────────────
-function CrewIntelFeed() {
+// ─── C) CREW INTELLIGENCE FEED (Phase 3 — rule-based insights) ──────────────
+function CrewIntelFeed({ sessions }: { sessions: DriverSessionSummary[] }) {
   const { status } = useRelay();
   const [briefs, setBriefs] = useState<CrewBrief[] | null | undefined>(undefined);
   const [error, setError] = useState(false);
@@ -255,10 +272,13 @@ function CrewIntelFeed() {
   const hasBriefs = briefs && briefs.length > 0;
   const isLoading = briefs === undefined && !error;
 
+  // Phase 3: Rule-based insights from session data
+  const ruleInsights = useMemo(() => computeCrewInsights(sessions), [sessions]);
+
   const crewRoles = [
-    { key: 'engineer', label: 'Engineer', subtitle: 'Strategy & Setup', icon: Wrench, color: 'orange', link: '/driver/crew/engineer' },
-    { key: 'spotter', label: 'Spotter', subtitle: 'Traffic & Awareness', icon: Eye, color: 'blue', link: '/driver/crew/spotter' },
-    { key: 'analyst', label: 'Analyst', subtitle: 'Data & Insights', icon: BarChart3, color: 'purple', link: '/driver/crew/analyst' },
+    { key: 'engineer' as const, label: 'Engineer', subtitle: 'Strategy & Setup', icon: Wrench, color: '#f97316', link: '/driver/crew/engineer' },
+    { key: 'spotter' as const, label: 'Spotter', subtitle: 'Traffic & Awareness', icon: Eye, color: '#3b82f6', link: '/driver/crew/spotter' },
+    { key: 'analyst' as const, label: 'Analyst', subtitle: 'Data & Insights', icon: BarChart3, color: '#8b5cf6', link: '/driver/crew/analyst' },
   ];
 
   return (
@@ -295,15 +315,20 @@ function CrewIntelFeed() {
         <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/10">
           {crewRoles.map((role) => {
             const Icon = role.icon;
-            const brief = hasBriefs ? briefs.find(b => b.type?.toLowerCase().includes(role.key)) : null;
+            // Prefer real server briefs, fall back to rule-based insights
+            const serverBrief = hasBriefs ? briefs.find(b => b.type?.toLowerCase().includes(role.key)) : null;
+            const ruleInsight = ruleInsights.find(i => i.role === role.key);
+
+            const displayMessage = serverBrief?.title || ruleInsight?.message || null;
 
             return (
               <Link key={role.key} to={role.link} className="p-5 hover:bg-white/[0.02] transition-colors group">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className={`w-10 h-10 bg-${role.color}-500/20 border border-${role.color}-500/30 flex items-center justify-center`}
-                    style={{ backgroundColor: `color-mix(in srgb, ${role.color === 'orange' ? '#f97316' : role.color === 'blue' ? '#3b82f6' : '#8b5cf6'} 20%, transparent)`, borderColor: `color-mix(in srgb, ${role.color === 'orange' ? '#f97316' : role.color === 'blue' ? '#3b82f6' : '#8b5cf6'} 30%, transparent)` }}
+                  <div
+                    className="w-10 h-10 flex items-center justify-center"
+                    style={{ backgroundColor: `${role.color}20`, border: `1px solid ${role.color}30` }}
                   >
-                    <Icon className="w-5 h-5" style={{ color: role.color === 'orange' ? '#f97316' : role.color === 'blue' ? '#3b82f6' : '#8b5cf6' }} />
+                    <Icon className="w-5 h-5" style={{ color: role.color }} />
                   </div>
                   <div>
                     <h4 className="text-sm font-semibold uppercase tracking-wider transition-colors" style={{ fontFamily: 'Orbitron, sans-serif' }}>
@@ -312,8 +337,8 @@ function CrewIntelFeed() {
                     <p className="text-[10px] text-white/40 uppercase tracking-wider">{role.subtitle}</p>
                   </div>
                 </div>
-                {brief ? (
-                  <p className="text-xs text-white/60 line-clamp-2">{brief.title}</p>
+                {displayMessage ? (
+                  <p className="text-xs text-white/60 line-clamp-2">{displayMessage}</p>
                 ) : (
                   <p className="text-xs text-white/30 italic">
                     {isLive ? 'Monitoring session...' : 'Standing by'}
@@ -325,11 +350,11 @@ function CrewIntelFeed() {
         </div>
       )}
 
-      {!isLoading && !error && !hasBriefs && !isLive && (
+      {!isLoading && !error && !hasBriefs && ruleInsights.length === 0 && !isLive && (
         <div className="px-5 pb-5">
           <div className="p-4 border border-dashed border-white/10 rounded text-center">
             <p className="text-xs text-white/40">Crew is standing by</p>
-            <p className="text-[10px] text-white/25 mt-1">Complete a session with relay connected to generate crew analysis</p>
+            <p className="text-[10px] text-white/25 mt-1">Complete a session to activate crew analysis</p>
           </div>
         </div>
       )}
@@ -337,7 +362,7 @@ function CrewIntelFeed() {
   );
 }
 
-// ─── D) RECENT SESSIONS ─────────────────────────────────────────────────────
+// ─── D) RECENT SESSIONS (Phase 5 — enhanced empty state) ────────────────────
 function RecentSessionsList({ sessions, loading }: { sessions: DriverSessionSummary[]; loading: boolean }) {
   const recent = sessions.slice(0, 5);
   const hasSessions = recent.length > 0;
@@ -425,8 +450,8 @@ function RecentSessionsList({ sessions, loading }: { sessions: DriverSessionSumm
       {!loading && !hasSessions && (
         <div className="p-8 text-center">
           <Flag className="w-8 h-8 text-white/20 mx-auto mb-3" />
-          <p className="text-sm text-white/50 font-medium">No sessions recorded yet</p>
-          <p className="text-xs text-white/30 mt-2">Complete a session with relay connected to generate your first report</p>
+          <p className="text-sm text-white/50 font-medium">No telemetry captured yet</p>
+          <p className="text-xs text-white/30 mt-2">Connect relay and complete 1 clean session to activate crew analysis.</p>
           <Link to="/driver/cockpit" className="inline-flex items-center gap-1 mt-4 text-xs text-green-400 hover:text-green-300 uppercase tracking-wider">
             <Gauge className="w-3 h-3" /> Open Cockpit
           </Link>
@@ -436,15 +461,19 @@ function RecentSessionsList({ sessions, loading }: { sessions: DriverSessionSumm
   );
 }
 
-// ─── E) IRACING STATS PANEL ─────────────────────────────────────────────────
+// ─── E) IRACING STATS PANEL (Phase 7 — per-license only, no combined SR) ────
 function IRacingStatsPanel({ profile }: { profile: ReturnType<typeof useDriverData>['profile'] }) {
   const hasStats = profile && profile.licenses && profile.licenses.length > 0;
+
+  const DISCIPLINE_LABELS: Record<string, string> = {
+    sportsCar: 'Road', oval: 'Oval', dirtOval: 'Dirt Oval', dirtRoad: 'Dirt Road', formula: 'Formula',
+  };
 
   return (
     <div className="border border-white/10 bg-white/[0.02]">
       <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
         <h3 className="text-sm uppercase tracking-[0.15em] text-white/60" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-          iRacing Stats
+          Licenses
         </h3>
         {hasStats && (
           <Link to="/driver/ratings" className="text-[10px] text-white/40 hover:text-white/60 uppercase tracking-wider flex items-center gap-1">
@@ -453,49 +482,36 @@ function IRacingStatsPanel({ profile }: { profile: ReturnType<typeof useDriverDa
         )}
       </div>
       {hasStats ? (
-        <div className="p-4 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded text-center">
-              <div className="text-2xl font-bold font-mono text-blue-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                {profile!.iRatingOverall ?? '—'}
-              </div>
-              <div className="text-[10px] text-blue-400/60 uppercase tracking-wider mt-1 flex items-center justify-center gap-1">
-                <TrendingUp className="w-3 h-3" />iRating
-              </div>
-            </div>
-            <div className="p-3 bg-green-500/10 border border-green-500/20 rounded text-center">
-              <div className="text-2xl font-bold font-mono text-green-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                {profile!.safetyRatingOverall?.toFixed(2) ?? '—'}
-              </div>
-              <div className="text-[10px] text-green-400/60 uppercase tracking-wider mt-1 flex items-center justify-center gap-1">
-                <Shield className="w-3 h-3" />Safety Rating
-              </div>
-            </div>
-          </div>
-          <div className="space-y-2">
-            {profile!.licenses.map((license) => (
-              <div key={license.discipline} className="flex items-center justify-between p-2.5 bg-white/[0.02] rounded border border-white/[0.06]">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-7 h-7 rounded flex items-center justify-center text-xs font-bold text-white"
-                    style={{ backgroundColor: getLicenseColor(license.licenseClass) }}
-                  >
-                    {license.licenseClass}
+        <div className="p-4 space-y-2">
+          {profile!.licenses.map((license) => (
+            <div key={license.discipline} className="flex items-center justify-between p-3 bg-white/[0.02] rounded border border-white/[0.06]">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-8 h-8 rounded flex items-center justify-center text-xs font-bold text-white"
+                  style={{ backgroundColor: getLicenseColor(license.licenseClass) }}
+                >
+                  {license.licenseClass}
+                </div>
+                <div>
+                  <div className="text-xs text-white/80 font-medium">
+                    {DISCIPLINE_LABELS[license.discipline] || license.discipline}
                   </div>
-                  <div>
-                    <div className="text-xs text-white/80">
-                      {license.discipline === 'sportsCar' ? 'Road' : license.discipline === 'dirtOval' ? 'Dirt Oval' : license.discipline === 'dirtRoad' ? 'Dirt Road' : 'Oval'}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-1">
+                      <Shield className="w-3 h-3 text-green-400/60" />
+                      <span className="text-[10px] font-mono text-green-400/80">{license.safetyRating?.toFixed(2) ?? '—'}</span>
                     </div>
-                    <div className="text-[10px] text-white/40">SR {license.safetyRating?.toFixed(2) ?? '—'}</div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-mono font-bold text-blue-400">{license.iRating ?? '—'}</div>
-                  <div className="text-[10px] text-white/30">iRating</div>
-                </div>
               </div>
-            ))}
-          </div>
+              <div className="text-right">
+                <div className="text-base font-mono font-bold text-blue-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                  {license.iRating ?? '—'}
+                </div>
+                <div className="text-[10px] text-white/30">iRating</div>
+              </div>
+            </div>
+          ))}
           {profile!.custId && (
             <div className="text-[10px] text-white/30 text-center pt-1">
               iRacing ID: {profile!.custId}
@@ -515,9 +531,8 @@ function IRacingStatsPanel({ profile }: { profile: ReturnType<typeof useDriverDa
   );
 }
 
-// ─── F) UPCOMING EVENTS ─────────────────────────────────────────────────────
+// ─── F) UPCOMING EVENTS (Phase 5 — enhanced empty state) ────────────────────
 function UpcomingEventsPanel() {
-  // No league/event tables are wired to this user yet — show honest empty state
   return (
     <div className="border border-white/10 bg-white/[0.02]">
       <div className="px-5 py-4 border-b border-white/10">
@@ -528,7 +543,7 @@ function UpcomingEventsPanel() {
       <div className="p-5 text-center">
         <Calendar className="w-8 h-8 text-white/20 mx-auto mb-3" />
         <p className="text-xs text-white/40">No scheduled events</p>
-        <p className="text-[10px] text-white/30 mt-1">Join a league to see upcoming races</p>
+        <p className="text-[10px] text-white/30 mt-1">Join or create a league to unlock strategic prep tools.</p>
       </div>
     </div>
   );
@@ -582,6 +597,30 @@ export function DriverLanding() {
 
   const isLive = status === 'in_session';
 
+  // Performance snapshot fetch (lifted so direction panel can use it)
+  const [snapshot, setSnapshot] = useState<PerformanceSnapshot | null | undefined>(undefined);
+  const [snapshotError, setSnapshotError] = useState(false);
+
+  const loadSnapshot = useCallback(async () => {
+    setSnapshotError(false);
+    try {
+      const data = await fetchPerformanceSnapshot();
+      setSnapshot(data);
+    } catch {
+      setSnapshotError(true);
+    }
+  }, []);
+
+  useEffect(() => { loadSnapshot(); }, [loadSnapshot]);
+
+  const snapshotLoading = snapshot === undefined && !snapshotError;
+
+  // Phase 1: Performance direction (derived from snapshot)
+  const direction = useMemo(() => computePerformanceDirection(snapshot ?? null), [snapshot]);
+
+  // Phase 2: Rating trend (derived from sessions)
+  const trendPoints = useMemo(() => buildRatingTrend(sessions), [sessions]);
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-8">
       {/* Welcome Header */}
@@ -606,16 +645,29 @@ export function DriverLanding() {
       {/* A) Driver Status Panel */}
       <DriverStatusPanel />
 
+      {/* Phase 1: Performance Direction — above the fold */}
+      {!snapshotLoading && !snapshotError && (
+        <PerformanceDirectionPanel direction={direction} />
+      )}
+
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* B) Performance Snapshot */}
-          <PerformanceSnapshotPanel />
+          {/* B) Performance Snapshot + Consistency Index */}
+          <PerformanceSnapshotPanel
+            snapshot={snapshot}
+            snapshotLoading={snapshotLoading}
+            snapshotError={snapshotError}
+            onRetry={loadSnapshot}
+          />
 
-          {/* C) Crew Intelligence Feed */}
-          <CrewIntelFeed />
+          {/* Phase 2: iRating Trend Graph */}
+          {!loading && <RatingTrendGraph points={trendPoints} />}
+
+          {/* C) Crew Intelligence Feed (Phase 3 — rule-based insights) */}
+          <CrewIntelFeed sessions={sessions} />
 
           {/* D) Recent Sessions */}
           <RecentSessionsList sessions={sessions} loading={loading} />
@@ -623,7 +675,7 @@ export function DriverLanding() {
 
         {/* Right Column */}
         <div className="space-y-6">
-          {/* E) iRacing Stats */}
+          {/* E) iRacing Stats (Phase 7 — per-license, no combined SR) */}
           <IRacingStatsPanel profile={profile} />
 
           {/* G) Quick Access */}
