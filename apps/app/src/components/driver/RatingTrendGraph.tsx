@@ -6,7 +6,7 @@
  */
 
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { TrendingUp, BarChart3 } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import type { RatingTrendPoint } from '../../lib/driverIntelligence';
 
 interface Props {
@@ -27,15 +27,31 @@ export function RatingTrendGraph({ points }: Props) {
     return (
       <div className="border border-white/10 bg-white/[0.02]">
         <div className="px-5 py-4 border-b border-white/10 flex items-center gap-2">
-          <TrendingUp className="w-4 h-4 text-white/40" />
+          <TrendingUp className="w-4 h-4 text-white/20" />
           <h3 className="text-sm uppercase tracking-[0.15em] text-white/60" style={{ fontFamily: 'Orbitron, sans-serif' }}>
             iRating Trend
           </h3>
         </div>
-        <div className="p-8 text-center">
-          <BarChart3 className="w-8 h-8 text-white/15 mx-auto mb-3" />
-          <p className="text-xs text-white/40">Not enough data for a trend line</p>
-          <p className="text-[10px] text-white/25 mt-1">Complete 2+ sessions to see your iRating trajectory</p>
+        <div className="p-4">
+          {/* Ghosted placeholder line */}
+          <div className="h-28 relative overflow-hidden">
+            <svg width="100%" height="100%" viewBox="0 0 400 100" preserveAspectRatio="none" className="opacity-[0.06]">
+              <polyline
+                points="0,70 50,65 100,60 150,55 200,50 250,48 300,45 350,42 400,40"
+                fill="none"
+                stroke="white"
+                strokeWidth="2"
+                strokeDasharray="6 4"
+              />
+              <line x1="0" y1="95" x2="400" y2="95" stroke="white" strokeWidth="0.5" />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <p className="text-xs text-white/40 font-medium">Trend initializing</p>
+                <p className="text-[10px] text-white/25 mt-1">Complete 2 sessions to activate trajectory modeling.</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );

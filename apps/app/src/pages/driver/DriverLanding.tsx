@@ -1,12 +1,15 @@
 /**
- * DriverLanding — Driver Command Center v0.2 (Intelligence Layer)
+ * DriverLanding — Driver Command Center v0.3 (Cohesion + Performance Narrative)
  *
  * ZERO-MOCK ENFORCEMENT:
  * This file must NEVER contain hard-coded sample data, placeholder arrays,
  * demo charts, or fake numbers. Every value displayed comes from a real API
- * response or is hidden behind an explicit empty-state. If you see a constant
- * like `const sampleData = [...]` or `const demoSessions = [...]` in this
- * file, DELETE IT — it violates the data-integrity contract.
+ * response or is hidden behind an explicit empty-state.
+ *
+ * NARRATIVE FLOW:
+ * 1) Relay Status → 2) Development Focus (Problem) → 3) Performance Snapshot (Metrics)
+ * → 4) CPI + Trend (Health) → 5) Crew Intelligence (Cause) → 6) Recent Sessions (Evidence)
+ * → 7) Licenses → 8) Upcoming
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -18,7 +21,7 @@ import {
   Wifi, WifiOff, Radio, Wrench, Eye, BarChart3, ChevronRight,
   Play, Download, Clock, TrendingUp, Calendar, MapPin, Gauge,
   Shield, Award, AlertTriangle, RefreshCw, Flag,
-  Target, ArrowUpRight, ArrowDownRight, Minus, Activity
+  Target, ArrowUpRight, ArrowDownRight, Minus, Info
 } from 'lucide-react';
 import {
   getLicenseColor,
@@ -33,16 +36,93 @@ import {
   computeConsistency,
   computeCrewInsights,
   buildRatingTrend,
+  type FocusFlag,
+  type ConsistencyMetrics,
 } from '../../lib/driverIntelligence';
 import { PerformanceDirectionPanel } from '../../components/driver/PerformanceDirectionPanel';
 import { RatingTrendGraph } from '../../components/driver/RatingTrendGraph';
 
-// ─── Shared skeleton for loading states (no numeric placeholders) ────────────
+// ─── Shared skeleton ─────────────────────────────────────────────────────────
 function Skeleton({ className = '' }: { className?: string }) {
   return <div className={`animate-pulse bg-white/[0.06] rounded ${className}`} />;
 }
 
-// ─── A) DRIVER STATUS PANEL ─────────────────────────────────────────────────
+// ─── CPI Tier Colors ─────────────────────────────────────────────────────────
+const CPI_COLORS = {
+  elite:        { stroke: '#22c55e', text: 'text-green-400', bg: 'bg-green-500/[0.06]', border: 'border-green-500/20' },
+  competitive:  { stroke: '#3b82f6', text: 'text-blue-400',  bg: 'bg-blue-500/[0.06]',  border: 'border-blue-500/20' },
+  inconsistent: { stroke: '#eab308', text: 'text-yellow-400', bg: 'bg-yellow-500/[0.06]', border: 'border-yellow-500/20' },
+  at_risk:      { stroke: '#ef4444', text: 'text-red-400',   bg: 'bg-red-500/[0.06]',   border: 'border-red-500/20' },
+};
+
+// ─── Phase 6: CPI Circular Gauge (Visual Anchor) ────────────────────────────
+function CPIGauge({ consistency }: { consistency: ConsistencyMetrics }) {
+  const colors = CPI_COLORS[consistency.tier];
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  const radius = 38;
+  const circumference = 2 * Math.PI * radius;
+  const progress = (consistency.index / 100) * circumference;
+  const dashOffset = circumference - progress;
+
+  return (
+    <div className={`border ${colors.border} ${colors.bg} p-5 relative`}>
+      <div className="flex items-center gap-5">
+        {/* Circular gauge */}
+        <div className="relative w-24 h-24 shrink-0">
+          <svg width="96" height="96" viewBox="0 0 96 96" className="-rotate-90">
+            <circle cx="48" cy="48" r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4" />
+            <circle
+              cx="48" cy="48" r={radius} fill="none"
+              stroke={colors.stroke} strokeWidth="4"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={dashOffset}
+              className="transition-all duration-1000 ease-out"
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className={`text-2xl font-bold font-mono ${colors.text}`} style={{ fontFamily: 'Orbitron, sans-serif' }}>
+              {consistency.index}
+            </span>
+            <span className="text-[9px] text-white/40 uppercase tracking-wider">CPI</span>
+          </div>
+        </div>
+
+        {/* Tier info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-semibold uppercase tracking-wider ${colors.text}`} style={{ fontFamily: 'Orbitron, sans-serif' }}>
+              {consistency.tierLabel}
+            </span>
+            <button
+              onClick={() => setShowTooltip(!showTooltip)}
+              className="text-white/20 hover:text-white/40 transition-colors"
+            >
+              <Info className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <p className="text-[11px] text-white/40 mt-1.5 leading-relaxed">{consistency.explanation}</p>
+        </div>
+      </div>
+
+      {/* Tooltip */}
+      {showTooltip && (
+        <div className="mt-4 pt-3 border-t border-white/[0.06] space-y-1.5">
+          <p className="text-[10px] text-white/30 uppercase tracking-wider">CPI Formula</p>
+          <p className="text-[11px] text-white/40">Start at 100. Subtract:</p>
+          <div className="text-[11px] text-white/40 space-y-0.5 pl-2">
+            <p>• −5 per incident avg above 2 <span className="text-white/25">(−{consistency.incidentPenalty} applied)</span></p>
+            <p>• −3 per avg position drop <span className="text-white/25">(−{consistency.positionDropPenalty} applied)</span></p>
+          </div>
+          <p className="text-[10px] text-white/25">Clamped 0–100. 80+ Elite, 60+ Competitive, 40+ Inconsistent, &lt;40 At Risk.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── 1) RELAY STATUS ─────────────────────────────────────────────────────────
 function DriverStatusPanel() {
   const { status, session } = useRelay();
 
@@ -87,9 +167,9 @@ function DriverStatusPanel() {
                   {session.trackName || 'Track'} — {session.sessionType?.toUpperCase() || 'LIVE'}
                 </span>
               ) : isConnected ? (
-                'Waiting for iRacing session to start'
+                'Telemetry idle — ready for session capture'
               ) : (
-                'Start the relay to connect to iRacing'
+                'Launch relay to enable telemetry capture'
               )}
             </p>
           </div>
@@ -119,15 +199,13 @@ function DriverStatusPanel() {
   );
 }
 
-// ─── B) PERFORMANCE SNAPSHOT (with Consistency Index — Phase 4) ──────────────
+// ─── 3) PERFORMANCE SNAPSHOT ─────────────────────────────────────────────────
 function PerformanceSnapshotPanel({ snapshot, snapshotLoading, snapshotError, onRetry }: {
   snapshot: PerformanceSnapshot | null | undefined;
   snapshotLoading: boolean;
   snapshotError: boolean;
   onRetry: () => void;
 }) {
-  const consistency = useMemo(() => computeConsistency(snapshot ?? null), [snapshot]);
-
   return (
     <div className="border border-white/10 bg-white/[0.02]">
       <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
@@ -143,8 +221,8 @@ function PerformanceSnapshotPanel({ snapshot, snapshotLoading, snapshotError, on
 
       {snapshotLoading && (
         <div className="p-5 space-y-3">
-          <div className="grid grid-cols-5 gap-3">
-            {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-16" />)}
+          <div className="grid grid-cols-4 gap-3">
+            {[1,2,3,4].map(i => <Skeleton key={i} className="h-16" />)}
           </div>
         </div>
       )}
@@ -162,8 +240,8 @@ function PerformanceSnapshotPanel({ snapshot, snapshotLoading, snapshotError, on
       {!snapshotLoading && !snapshotError && snapshot === null && (
         <div className="p-8 text-center">
           <Target className="w-8 h-8 text-white/20 mx-auto mb-3" />
-          <p className="text-sm text-white/50 font-medium">No performance snapshot yet</p>
-          <p className="text-xs text-white/30 mt-2">Complete 3 sessions to unlock your snapshot</p>
+          <p className="text-sm text-white/50 font-medium">Performance model initializing</p>
+          <p className="text-xs text-white/30 mt-2">Complete 3 sessions to activate performance analysis</p>
           <div className="flex items-center justify-center gap-3 mt-4">
             <Link to="/driver/cockpit" className="text-xs text-green-400 hover:text-green-300 uppercase tracking-wider flex items-center gap-1">
               <Gauge className="w-3 h-3" /> Go to Cockpit
@@ -178,7 +256,7 @@ function PerformanceSnapshotPanel({ snapshot, snapshotLoading, snapshotError, on
 
       {snapshot && (
         <div className="p-5">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="p-3 bg-white/[0.03] border border-white/[0.06] rounded text-center">
               <div className="text-xl font-bold font-mono text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>
                 P{snapshot.avg_finish}
@@ -206,25 +284,6 @@ function PerformanceSnapshotPanel({ snapshot, snapshotLoading, snapshotError, on
               </div>
               <div className="text-[10px] text-white/40 uppercase tracking-wider mt-1">Avg Start</div>
             </div>
-            {/* Consistency Index (Phase 4) */}
-            {consistency && (
-              <div className={`p-3 border rounded text-center ${
-                consistency.index >= 80 ? 'bg-green-500/[0.06] border-green-500/20' :
-                consistency.index >= 50 ? 'bg-yellow-500/[0.06] border-yellow-500/20' :
-                'bg-red-500/[0.06] border-red-500/20'
-              }`}>
-                <div className={`text-xl font-bold font-mono ${
-                  consistency.index >= 80 ? 'text-green-400' :
-                  consistency.index >= 50 ? 'text-yellow-400' :
-                  'text-red-400'
-                }`} style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                  {consistency.index}
-                </div>
-                <div className="text-[10px] text-white/40 uppercase tracking-wider mt-1 flex items-center justify-center gap-1">
-                  <Activity className="w-3 h-3" />CPI
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Mini session list */}
@@ -249,8 +308,8 @@ function PerformanceSnapshotPanel({ snapshot, snapshotLoading, snapshotError, on
   );
 }
 
-// ─── C) CREW INTELLIGENCE FEED (Phase 3 — rule-based insights) ──────────────
-function CrewIntelFeed({ sessions }: { sessions: DriverSessionSummary[] }) {
+// ─── 5) CREW INTELLIGENCE (focus-aware) ──────────────────────────────────────
+function CrewIntelFeed({ sessions, focus }: { sessions: DriverSessionSummary[]; focus: FocusFlag }) {
   const { status } = useRelay();
   const [briefs, setBriefs] = useState<CrewBrief[] | null | undefined>(undefined);
   const [error, setError] = useState(false);
@@ -272,8 +331,7 @@ function CrewIntelFeed({ sessions }: { sessions: DriverSessionSummary[] }) {
   const hasBriefs = briefs && briefs.length > 0;
   const isLoading = briefs === undefined && !error;
 
-  // Phase 3: Rule-based insights from session data
-  const ruleInsights = useMemo(() => computeCrewInsights(sessions), [sessions]);
+  const ruleInsights = useMemo(() => computeCrewInsights(sessions, focus), [sessions, focus]);
 
   const crewRoles = [
     { key: 'engineer' as const, label: 'Engineer', subtitle: 'Strategy & Setup', icon: Wrench, color: '#f97316', link: '/driver/crew/engineer' },
@@ -304,7 +362,7 @@ function CrewIntelFeed({ sessions }: { sessions: DriverSessionSummary[] }) {
       {error && (
         <div className="p-6 text-center">
           <AlertTriangle className="w-6 h-6 text-red-400/40 mx-auto mb-2" />
-          <p className="text-xs text-white/40">Failed to load crew data</p>
+          <p className="text-xs text-white/40">Crew data unavailable</p>
           <button onClick={load} className="mt-2 text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 mx-auto">
             <RefreshCw className="w-3 h-3" /> Retry
           </button>
@@ -315,10 +373,8 @@ function CrewIntelFeed({ sessions }: { sessions: DriverSessionSummary[] }) {
         <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/10">
           {crewRoles.map((role) => {
             const Icon = role.icon;
-            // Prefer real server briefs, fall back to rule-based insights
             const serverBrief = hasBriefs ? briefs.find(b => b.type?.toLowerCase().includes(role.key)) : null;
             const ruleInsight = ruleInsights.find(i => i.role === role.key);
-
             const displayMessage = serverBrief?.title || ruleInsight?.message || null;
 
             return (
@@ -331,17 +387,17 @@ function CrewIntelFeed({ sessions }: { sessions: DriverSessionSummary[] }) {
                     <Icon className="w-5 h-5" style={{ color: role.color }} />
                   </div>
                   <div>
-                    <h4 className="text-sm font-semibold uppercase tracking-wider transition-colors" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                    <h4 className="text-sm font-semibold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
                       {role.label}
                     </h4>
                     <p className="text-[10px] text-white/40 uppercase tracking-wider">{role.subtitle}</p>
                   </div>
                 </div>
                 {displayMessage ? (
-                  <p className="text-xs text-white/60 line-clamp-2">{displayMessage}</p>
+                  <p className="text-xs text-white/60 leading-relaxed line-clamp-3">{displayMessage}</p>
                 ) : (
                   <p className="text-xs text-white/30 italic">
-                    {isLive ? 'Monitoring session...' : 'Standing by'}
+                    {isLive ? 'Analyzing session...' : 'Awaiting session data'}
                   </p>
                 )}
               </Link>
@@ -353,8 +409,8 @@ function CrewIntelFeed({ sessions }: { sessions: DriverSessionSummary[] }) {
       {!isLoading && !error && !hasBriefs && ruleInsights.length === 0 && !isLive && (
         <div className="px-5 pb-5">
           <div className="p-4 border border-dashed border-white/10 rounded text-center">
-            <p className="text-xs text-white/40">Crew is standing by</p>
-            <p className="text-[10px] text-white/25 mt-1">Complete a session to activate crew analysis</p>
+            <p className="text-xs text-white/40">Crew awaiting session data</p>
+            <p className="text-[10px] text-white/25 mt-1">Complete a session to activate crew analysis pipeline</p>
           </div>
         </div>
       )}
@@ -362,7 +418,7 @@ function CrewIntelFeed({ sessions }: { sessions: DriverSessionSummary[] }) {
   );
 }
 
-// ─── D) RECENT SESSIONS (Phase 5 — enhanced empty state) ────────────────────
+// ─── 6) RECENT SESSIONS ─────────────────────────────────────────────────────
 function RecentSessionsList({ sessions, loading }: { sessions: DriverSessionSummary[]; loading: boolean }) {
   const recent = sessions.slice(0, 5);
   const hasSessions = recent.length > 0;
@@ -385,11 +441,11 @@ function RecentSessionsList({ sessions, loading }: { sessions: DriverSessionSumm
     <div className="border border-white/10 bg-white/[0.02]">
       <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
         <h3 className="text-sm uppercase tracking-[0.15em] text-white/60" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-          Recent Sessions
+          Session Evidence
         </h3>
         {hasSessions && (
           <Link to="/driver/history" className="text-xs text-white/40 hover:text-white/60 uppercase tracking-wider flex items-center gap-1">
-            View All <ChevronRight className="w-3 h-3" />
+            Full Log <ChevronRight className="w-3 h-3" />
           </Link>
         )}
       </div>
@@ -450,8 +506,8 @@ function RecentSessionsList({ sessions, loading }: { sessions: DriverSessionSumm
       {!loading && !hasSessions && (
         <div className="p-8 text-center">
           <Flag className="w-8 h-8 text-white/20 mx-auto mb-3" />
-          <p className="text-sm text-white/50 font-medium">No telemetry captured yet</p>
-          <p className="text-xs text-white/30 mt-2">Connect relay and complete 1 clean session to activate crew analysis.</p>
+          <p className="text-sm text-white/50 font-medium">No session data captured</p>
+          <p className="text-xs text-white/30 mt-2">Connect relay and complete 1 session to populate the evidence log.</p>
           <Link to="/driver/cockpit" className="inline-flex items-center gap-1 mt-4 text-xs text-green-400 hover:text-green-300 uppercase tracking-wider">
             <Gauge className="w-3 h-3" /> Open Cockpit
           </Link>
@@ -461,7 +517,7 @@ function RecentSessionsList({ sessions, loading }: { sessions: DriverSessionSumm
   );
 }
 
-// ─── E) IRACING STATS PANEL (Phase 7 — per-license only, no combined SR) ────
+// ─── 7) LICENSES ─────────────────────────────────────────────────────────────
 function IRacingStatsPanel({ profile }: { profile: ReturnType<typeof useDriverData>['profile'] }) {
   const hasStats = profile && profile.licenses && profile.licenses.length > 0;
 
@@ -496,11 +552,9 @@ function IRacingStatsPanel({ profile }: { profile: ReturnType<typeof useDriverDa
                   <div className="text-xs text-white/80 font-medium">
                     {DISCIPLINE_LABELS[license.discipline] || license.discipline}
                   </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <div className="flex items-center gap-1">
-                      <Shield className="w-3 h-3 text-green-400/60" />
-                      <span className="text-[10px] font-mono text-green-400/80">{license.safetyRating?.toFixed(2) ?? '—'}</span>
-                    </div>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Shield className="w-3 h-3 text-green-400/60" />
+                    <span className="text-[10px] font-mono text-green-400/80">{license.safetyRating?.toFixed(2) ?? '—'}</span>
                   </div>
                 </div>
               </div>
@@ -521,9 +575,9 @@ function IRacingStatsPanel({ profile }: { profile: ReturnType<typeof useDriverDa
       ) : (
         <div className="p-8 text-center">
           <Award className="w-8 h-8 text-white/20 mx-auto mb-3" />
-          <p className="text-xs text-white/40">No iRacing data yet</p>
+          <p className="text-xs text-white/40">No iRacing data linked</p>
           <p className="text-[10px] text-white/30 mt-1">
-            <Link to="/settings" className="text-blue-400 hover:text-blue-300">Connect your iRacing account</Link> to see your stats
+            <Link to="/settings" className="text-blue-400 hover:text-blue-300">Connect iRacing account</Link> to import license data
           </p>
         </div>
       )}
@@ -531,7 +585,7 @@ function IRacingStatsPanel({ profile }: { profile: ReturnType<typeof useDriverDa
   );
 }
 
-// ─── F) UPCOMING EVENTS (Phase 5 — enhanced empty state) ────────────────────
+// ─── 8) UPCOMING ─────────────────────────────────────────────────────────────
 function UpcomingEventsPanel() {
   return (
     <div className="border border-white/10 bg-white/[0.02]">
@@ -542,14 +596,14 @@ function UpcomingEventsPanel() {
       </div>
       <div className="p-5 text-center">
         <Calendar className="w-8 h-8 text-white/20 mx-auto mb-3" />
-        <p className="text-xs text-white/40">No scheduled events</p>
-        <p className="text-[10px] text-white/30 mt-1">Join or create a league to unlock strategic prep tools.</p>
+        <p className="text-xs text-white/40">No race scheduled</p>
+        <p className="text-[10px] text-white/30 mt-1">Join a league to activate strategy tools.</p>
       </div>
     </div>
   );
 }
 
-// ─── G) QUICK ACCESS ─────────────────────────────────────────────────────────
+// ─── QUICK ACCESS ────────────────────────────────────────────────────────────
 function QuickAccessPanel() {
   return (
     <div className="border border-white/10 bg-white/[0.02]">
@@ -586,7 +640,7 @@ function QuickAccessPanel() {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// MAIN PAGE COMPONENT
+// MAIN PAGE — NARRATIVE FLOW
 // ═════════════════════════════════════════════════════════════════════════════
 
 export function DriverLanding() {
@@ -597,7 +651,7 @@ export function DriverLanding() {
 
   const isLive = status === 'in_session';
 
-  // Performance snapshot fetch (lifted so direction panel can use it)
+  // Performance snapshot (lifted for shared state)
   const [snapshot, setSnapshot] = useState<PerformanceSnapshot | null | undefined>(undefined);
   const [snapshotError, setSnapshotError] = useState(false);
 
@@ -615,10 +669,9 @@ export function DriverLanding() {
 
   const snapshotLoading = snapshot === undefined && !snapshotError;
 
-  // Phase 1: Performance direction (derived from snapshot)
+  // Derived intelligence
   const direction = useMemo(() => computePerformanceDirection(snapshot ?? null), [snapshot]);
-
-  // Phase 2: Rating trend (derived from sessions)
+  const consistency = useMemo(() => computeConsistency(snapshot ?? null), [snapshot]);
   const trendPoints = useMemo(() => buildRatingTrend(sessions), [sessions]);
 
   return (
@@ -626,7 +679,7 @@ export function DriverLanding() {
       {/* Welcome Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-white/40 text-sm uppercase tracking-wider">Welcome back</p>
+          <p className="text-white/40 text-sm uppercase tracking-wider">Driver Evaluation</p>
           <h1 className="text-2xl md:text-3xl font-bold uppercase tracking-wider mt-1" style={{ fontFamily: 'Orbitron, sans-serif' }}>
             {displayName}
           </h1>
@@ -642,10 +695,10 @@ export function DriverLanding() {
         )}
       </div>
 
-      {/* A) Driver Status Panel */}
+      {/* 1) Relay Status */}
       <DriverStatusPanel />
 
-      {/* Phase 1: Performance Direction — above the fold */}
+      {/* 2) Development Focus (Problem) — above the fold */}
       {!snapshotLoading && !snapshotError && (
         <PerformanceDirectionPanel direction={direction} />
       )}
@@ -653,9 +706,9 @@ export function DriverLanding() {
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* Left Column */}
+        {/* Left Column — Narrative */}
         <div className="lg:col-span-2 space-y-6">
-          {/* B) Performance Snapshot + Consistency Index */}
+          {/* 3) Performance Snapshot (Metrics) */}
           <PerformanceSnapshotPanel
             snapshot={snapshot}
             snapshotLoading={snapshotLoading}
@@ -663,25 +716,26 @@ export function DriverLanding() {
             onRetry={loadSnapshot}
           />
 
-          {/* Phase 2: iRating Trend Graph */}
+          {/* 4) CPI + Trend (Health) */}
+          {consistency && <CPIGauge consistency={consistency} />}
           {!loading && <RatingTrendGraph points={trendPoints} />}
 
-          {/* C) Crew Intelligence Feed (Phase 3 — rule-based insights) */}
-          <CrewIntelFeed sessions={sessions} />
+          {/* 5) Crew Intelligence (Cause) */}
+          <CrewIntelFeed sessions={sessions} focus={direction.primaryFocus} />
 
-          {/* D) Recent Sessions */}
+          {/* 6) Recent Sessions (Evidence) */}
           <RecentSessionsList sessions={sessions} loading={loading} />
         </div>
 
         {/* Right Column */}
         <div className="space-y-6">
-          {/* E) iRacing Stats (Phase 7 — per-license, no combined SR) */}
+          {/* 7) Licenses */}
           <IRacingStatsPanel profile={profile} />
 
-          {/* G) Quick Access */}
+          {/* Quick Access */}
           <QuickAccessPanel />
 
-          {/* F) Upcoming Events */}
+          {/* 8) Upcoming */}
           <UpcomingEventsPanel />
         </div>
       </div>

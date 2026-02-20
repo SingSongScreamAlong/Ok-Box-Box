@@ -1,9 +1,12 @@
 /**
- * Driver Intelligence Types & Computation
+ * Driver Intelligence Types & Computation — v0.3 (Cohesion Layer)
  *
  * Rule-based analysis derived from real session data.
  * No mock data. No placeholder values. All computations
  * are deterministic functions of real DriverSessionSummary[].
+ *
+ * Crew insights are focus-aware: they align with the current
+ * PerformanceDirection so the narrative is coherent, not fragmented.
  */
 
 import type { DriverSessionSummary, PerformanceSnapshot } from './driverService';
@@ -29,20 +32,34 @@ export interface CrewInsight {
   message: string;
 }
 
+export type CPITier = 'elite' | 'competitive' | 'inconsistent' | 'at_risk';
+
 export interface ConsistencyMetrics {
   index: number; // 0–100
+  tier: CPITier;
+  tierLabel: string;
   incidentPenalty: number;
   positionDropPenalty: number;
+  explanation: string;
 }
 
 export interface RatingTrendPoint {
-  date: string;        // ISO date string
+  date: string;
   iRating: number;
   safetyRating: number;
   discipline: string;
 }
 
-// ─── Performance Direction (Phase 1) ─────────────────────────────────────────
+// ─── CPI Tier Resolution ─────────────────────────────────────────────────────
+
+function resolveCPITier(index: number): { tier: CPITier; tierLabel: string } {
+  if (index >= 80) return { tier: 'elite', tierLabel: 'Elite' };
+  if (index >= 60) return { tier: 'competitive', tierLabel: 'Competitive' };
+  if (index >= 40) return { tier: 'inconsistent', tierLabel: 'Inconsistent' };
+  return { tier: 'at_risk', tierLabel: 'At Risk' };
+}
+
+// ─── Performance Direction ───────────────────────────────────────────────────
 
 export function computePerformanceDirection(
   snapshot: PerformanceSnapshot | null,
@@ -50,9 +67,9 @@ export function computePerformanceDirection(
   if (!snapshot || snapshot.session_count < 3) {
     return {
       primaryFocus: 'needs_data',
-      label: 'Insufficient Data',
-      reasons: ['Complete at least 3 sessions to generate a development focus.'],
-      action: 'Run a session with relay connected to start building your driver model.',
+      label: 'Awaiting Driver Model',
+      reasons: ['Minimum 3 completed sessions required to initialize performance analysis.'],
+      action: 'Connect relay and complete a session to begin building your driver profile.',
     };
   }
 
@@ -64,36 +81,32 @@ export function computePerformanceDirection(
   const avgStart = snapshot.avg_start;
   const irDelta = snapshot.irating_delta;
 
-  // Rule 1: High incidents
   if (avgIncidents > 3) {
     focus = 'incident_management';
-    reasons.push(`${avgIncidents}x average incidents over last ${snapshot.session_count} sessions`);
+    reasons.push(`${avgIncidents}x average incidents across ${snapshot.session_count} sessions — suppressing iRating gains`);
   }
 
-  // Rule 2: Losing positions (finish worse than start)
   if (avgFinish > avgStart) {
     const drop = Math.round((avgFinish - avgStart) * 10) / 10;
     if (focus === 'strong_momentum') focus = 'racecraft_traffic';
-    reasons.push(`Avg ${drop} position drop from start to finish`);
+    reasons.push(`Losing ${drop} positions on average from grid to flag`);
   }
 
-  // Rule 3: Plateau / negative iR trend
   if (irDelta <= 0) {
     if (focus === 'strong_momentum') focus = 'plateau_detection';
     reasons.push(irDelta < 0
-      ? `iRating trending down (${irDelta} over ${snapshot.session_count} sessions)`
-      : `iRating neutral over last ${snapshot.session_count} sessions`
+      ? `iRating declining (${irDelta}) over ${snapshot.session_count} sessions`
+      : `iRating stagnant — no net gain over ${snapshot.session_count} sessions`
     );
   }
 
-  // Positive momentum
   if (focus === 'strong_momentum') {
     reasons.push(`iRating +${irDelta} over last ${snapshot.session_count} sessions`);
     if (avgFinish < avgStart) {
-      reasons.push(`Gaining ${Math.round((avgStart - avgFinish) * 10) / 10} positions on average`);
+      reasons.push(`Gaining ${Math.round((avgStart - avgFinish) * 10) / 10} positions on average — strong race pace`);
     }
     if (avgIncidents <= 2) {
-      reasons.push(`Clean racing: ${avgIncidents}x avg incidents`);
+      reasons.push(`Clean execution: ${avgIncidents}x avg incidents`);
     }
   }
 
@@ -102,15 +115,15 @@ export function computePerformanceDirection(
     racecraft_traffic: 'Racecraft & Traffic',
     plateau_detection: 'Plateau Detection',
     strong_momentum: 'Strong Momentum',
-    needs_data: 'Insufficient Data',
+    needs_data: 'Awaiting Driver Model',
   };
 
   const actions: Record<FocusFlag, string> = {
-    incident_management: 'Run a 10-lap clean baseline session focusing on smooth inputs and corner entry.',
-    racecraft_traffic: 'Practice traffic awareness — focus on late-braking defense and clean overtakes.',
-    plateau_detection: 'Review recent sessions for recurring mistakes. Consider a setup change or new approach.',
-    strong_momentum: 'Maintain current approach. Consider pushing into higher-split races.',
-    needs_data: 'Run a session with relay connected to start building your driver model.',
+    incident_management: 'Incident rate is suppressing iRating gains. Reset performance baseline with 10 clean laps emphasizing controlled entry speed and throttle discipline.',
+    racecraft_traffic: 'Position loss concentrated in race phase. Focus on defensive positioning under braking and clean traffic navigation through mid-corner.',
+    plateau_detection: 'Performance plateau detected. Isolate recurring error patterns from recent sessions and evaluate setup or approach changes.',
+    strong_momentum: 'Current trajectory is positive. Consider entering higher-split sessions to test performance ceiling.',
+    needs_data: 'Connect relay and complete a session to begin building your driver profile.',
   };
 
   return {
@@ -121,7 +134,7 @@ export function computePerformanceDirection(
   };
 }
 
-// ─── Consistency Index (Phase 4) ─────────────────────────────────────────────
+// ─── Consistency Performance Index ───────────────────────────────────────────
 
 export function computeConsistency(
   snapshot: PerformanceSnapshot | null,
@@ -132,60 +145,83 @@ export function computeConsistency(
   const avgFinish = snapshot.avg_finish;
   const avgStart = snapshot.avg_start;
 
-  // Penalty: 5 pts per incident avg above 2
   const incidentPenalty = Math.max(0, (avgIncidents - 2) * 5);
-
-  // Penalty: 3 pts per position drop
   const positionDrop = Math.max(0, avgFinish - avgStart);
   const positionDropPenalty = positionDrop * 3;
 
   const index = Math.round(Math.max(0, Math.min(100, 100 - incidentPenalty - positionDropPenalty)));
+  const { tier, tierLabel } = resolveCPITier(index);
 
-  return { index, incidentPenalty: Math.round(incidentPenalty), positionDropPenalty: Math.round(positionDropPenalty) };
+  const factors: string[] = [];
+  if (incidentPenalty > 0) factors.push('incident frequency');
+  if (positionDropPenalty > 0) factors.push('finishing variance');
+  const explanation = factors.length > 0
+    ? `CPI impacted by ${factors.join(' and ')}.`
+    : 'Clean execution across recent sessions.';
+
+  return {
+    index,
+    tier,
+    tierLabel,
+    incidentPenalty: Math.round(incidentPenalty),
+    positionDropPenalty: Math.round(positionDropPenalty),
+    explanation,
+  };
 }
 
-// ─── Crew Insights (Phase 3) ─────────────────────────────────────────────────
+// ─── Focus-Aware Crew Insights ───────────────────────────────────────────────
 
 export function computeCrewInsights(
   sessions: DriverSessionSummary[],
+  focus?: FocusFlag,
 ): CrewInsight[] {
   if (sessions.length === 0) return [];
 
   const insights: CrewInsight[] = [];
-  const last = sessions[0]; // most recent
+  const last = sessions[0];
   const recent5 = sessions.slice(0, 5);
 
-  // Engineer insight
-  if (last.incidents != null && last.incidents > 5) {
-    insights.push({ role: 'engineer', message: `Last session: ${last.incidents}x incidents. Review corner entry speed and braking points.` });
-  } else if (last.finishPos != null && last.startPos != null && last.finishPos > last.startPos) {
-    const drop = last.finishPos - last.startPos;
-    insights.push({ role: 'engineer', message: `Lost ${drop} position${drop > 1 ? 's' : ''} last race. Traffic positioning may need work.` });
+  // ── Engineer: aligned to focus ──
+  if (focus === 'incident_management') {
+    const inc = last.incidents ?? 0;
+    insights.push({ role: 'engineer', message: `${inc}x incidents last session. Evaluate braking reference points and entry speed — contact is likely initiated under deceleration.` });
+  } else if (focus === 'racecraft_traffic') {
+    const drop = (last.finishPos ?? 0) - (last.startPos ?? 0);
+    if (drop > 0) {
+      insights.push({ role: 'engineer', message: `Lost ${drop} position${drop > 1 ? 's' : ''} in traffic. Review defensive line selection and throttle application on exit.` });
+    } else {
+      insights.push({ role: 'engineer', message: 'Position held but traffic management remains the priority area. Monitor mid-corner proximity.' });
+    }
+  } else if (focus === 'plateau_detection') {
+    insights.push({ role: 'engineer', message: 'Performance plateau active. Isolate whether pace deficit is setup-related or driver-input-related before next session.' });
   } else if (last.finishPos != null && last.startPos != null && last.finishPos < last.startPos) {
     const gain = last.startPos - last.finishPos;
-    insights.push({ role: 'engineer', message: `Gained ${gain} position${gain > 1 ? 's' : ''} last race. Race pace is strong.` });
+    insights.push({ role: 'engineer', message: `+${gain} position${gain > 1 ? 's' : ''} last race. Race pace exceeding qualifying pace — strong execution.` });
   } else {
-    insights.push({ role: 'engineer', message: 'Held position last race. Consistent but look for overtake opportunities.' });
+    insights.push({ role: 'engineer', message: 'Stable output. Look for marginal gains in corner exit speed and pit timing.' });
   }
 
-  // Spotter insight — track familiarity
-  if (recent5.length >= 2) {
+  // ── Spotter: aligned to focus ──
+  if (focus === 'incident_management') {
+    insights.push({ role: 'spotter', message: 'Incident pattern suggests close-quarters risk. Increase following distance in braking zones and avoid side-by-side through high-speed sections.' });
+  } else if (focus === 'racecraft_traffic') {
+    insights.push({ role: 'spotter', message: 'Position loss in traffic detected. Prioritize clean air over aggressive overtakes — patience through lap 1 compounds.' });
+  } else if (recent5.length >= 2) {
     const trackCounts: Record<string, number> = {};
     for (const s of recent5) {
       if (s.trackName) trackCounts[s.trackName] = (trackCounts[s.trackName] || 0) + 1;
     }
     const repeated = Object.entries(trackCounts).find(([, count]) => count >= 2);
     if (repeated) {
-      insights.push({ role: 'spotter', message: `${repeated[1]} recent sessions at ${repeated[0]}. Track familiarity building.` });
+      insights.push({ role: 'spotter', message: `${repeated[1]} sessions at ${repeated[0]} — track familiarity building. Reference points should be sharpening.` });
     } else {
-      const uniqueTracks = Object.keys(trackCounts).length;
-      insights.push({ role: 'spotter', message: `${uniqueTracks} different tracks in recent sessions. Broad exposure, good adaptability.` });
+      insights.push({ role: 'spotter', message: `${Object.keys(trackCounts).length} different circuits recently. Broad exposure — adaptability is developing.` });
     }
   } else {
-    insights.push({ role: 'spotter', message: 'Limited recent data. More sessions will improve traffic pattern analysis.' });
+    insights.push({ role: 'spotter', message: 'Limited recent data. Additional sessions will improve traffic pattern recognition.' });
   }
 
-  // Analyst insight — finishing spread / consistency
+  // ── Analyst: aligned to focus ──
   if (recent5.length >= 3) {
     const finishes = recent5.map(s => s.finishPos).filter((p): p is number => p != null);
     if (finishes.length >= 3) {
@@ -193,39 +229,41 @@ export function computeCrewInsights(
       const variance = finishes.reduce((s, f) => s + Math.pow(f - avg, 2), 0) / finishes.length;
       const stdDev = Math.sqrt(variance);
 
-      if (stdDev < 3) {
-        insights.push({ role: 'analyst', message: `Finishing spread: ±${stdDev.toFixed(1)} positions. Highly consistent.` });
+      if (focus === 'incident_management') {
+        insights.push({ role: 'analyst', message: `Finishing variance ±${stdDev.toFixed(1)} positions. Incident rate is the primary destabilizer — clean sessions will compress this spread.` });
+      } else if (focus === 'plateau_detection') {
+        insights.push({ role: 'analyst', message: `Finishing variance ±${stdDev.toFixed(1)} positions. Plateau may be ceiling-related — evaluate whether split level matches current skill.` });
+      } else if (stdDev < 3) {
+        insights.push({ role: 'analyst', message: `Finishing spread: ±${stdDev.toFixed(1)} positions. Highly consistent output.` });
       } else if (stdDev < 6) {
-        insights.push({ role: 'analyst', message: `Finishing spread: ±${stdDev.toFixed(1)} positions. Moderate variance — look for patterns.` });
+        insights.push({ role: 'analyst', message: `Finishing spread: ±${stdDev.toFixed(1)} positions. Moderate variance — isolate outlier sessions.` });
       } else {
-        insights.push({ role: 'analyst', message: `Finishing spread: ±${stdDev.toFixed(1)} positions. High variance — results are unpredictable.` });
+        insights.push({ role: 'analyst', message: `Finishing spread: ±${stdDev.toFixed(1)} positions. High variance — results are unpredictable. Prioritize consistency over pace.` });
       }
     } else {
       insights.push({ role: 'analyst', message: 'Insufficient finishing data for variance analysis.' });
     }
   } else {
-    insights.push({ role: 'analyst', message: 'Need 3+ sessions for statistical analysis.' });
+    insights.push({ role: 'analyst', message: 'Minimum 3 sessions required for statistical analysis.' });
   }
 
   return insights;
 }
 
-// ─── Rating Trend Points (Phase 2) ──────────────────────────────────────────
+// ─── Rating Trend Points ─────────────────────────────────────────────────────
 
 export function buildRatingTrend(
   sessions: DriverSessionSummary[],
 ): RatingTrendPoint[] {
-  // Sessions come newest-first from the API. We need oldest-first for the chart.
   const withRatings = sessions
     .filter(s => s.newIRating != null && s.startedAt)
-    .slice(0, 30) // last 30 sessions max
-    .reverse(); // oldest first
+    .slice(0, 30)
+    .reverse();
 
   return withRatings.map(s => ({
     date: s.startedAt,
     iRating: s.newIRating!,
-    // Derive SR from sub_level if available, otherwise 0
-    safetyRating: 0, // SR per-session not available from current API; omit from chart
+    safetyRating: 0,
     discipline: s.discipline || 'sportsCar',
   }));
 }
