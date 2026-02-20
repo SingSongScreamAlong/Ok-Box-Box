@@ -19,7 +19,7 @@
  * └─────────────────────────────────────────────────────────┘
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRelay } from '../../hooks/useRelay';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDriverData } from '../../hooks/useDriverData';
@@ -702,6 +702,12 @@ export function DriverLanding() {
 
   const isLive = status === 'in_session';
 
+  // Background video
+  const videoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = 0.6;
+  }, []);
+
   // Performance snapshot
   const [snapshot, setSnapshot] = useState<PerformanceSnapshot | null | undefined>(undefined);
   const [snapshotError, setSnapshotError] = useState(false);
@@ -726,7 +732,25 @@ export function DriverLanding() {
   const isTrainingMode = sessionCount < 3;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-5 pb-8">
+    <div className="relative min-h-[calc(100vh-8rem)]">
+      {/* Background video */}
+      <div className="fixed inset-0 z-0">
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+          className="w-full h-full object-cover opacity-70"
+        >
+          <source src="/videos/bg-2.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/80 via-[#0e0e0e]/60 to-[#0e0e0e]/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />
+      </div>
+
+      <div className="relative z-10 max-w-6xl mx-auto space-y-5 pb-8">
       {/* DRIVER IDENTITY STRIP */}
       <DriverIdentityStrip
         displayName={displayName}
@@ -765,6 +789,7 @@ export function DriverLanding() {
 
       {/* BOTTOM: Recent Performance (horizontal race cards) */}
       <RecentPerformanceStrip sessions={sessions} loading={loading} />
+      </div>
     </div>
   );
 }
