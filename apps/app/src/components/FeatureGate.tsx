@@ -35,6 +35,7 @@ const FEATURE_TIERS: Record<keyof UserEntitlements['features'], EntitlementTier>
   teamRoster: 'team',
   teamStrategy: 'team',
   teamReports: 'team',
+  teamIncidents: 'team',
   shareLinks: 'team',
   leagueManagement: 'league',
   leagueEvents: 'league',

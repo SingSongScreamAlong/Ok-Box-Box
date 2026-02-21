@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { UserPlus, Search, Filter, Users, Crown, Wrench, User, LinkIcon, Target, Loader2 } from 'lucide-react';
 import { useTeamData } from '../../hooks/useTeamData';
-import { InviteBuilder, InviteManager } from '../../components/InviteBuilder';
+import { InviteBuilder } from '../../components/InviteBuilder';
 
 // Types from legacy
 interface DriverSummary {
