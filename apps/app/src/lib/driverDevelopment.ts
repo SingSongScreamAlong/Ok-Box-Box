@@ -40,6 +40,36 @@ export interface Goal {
   deadline?: string;
 }
 
+export interface GamificationData {
+  xp: number;
+  level: number;
+  levelName: string;
+  xpToNextLevel: number;
+  xpInCurrentLevel: number;
+  cleanStreak: number;
+  bestCleanStreak: number;
+  totalAchievements: number;
+  recentAchievements: { id: string; title: string; description: string; earnedAt: string; icon: string }[];
+}
+
+export interface JourneyTimelineEntry {
+  period: string;
+  sessions: number;
+  summary: string;
+  iRatingChange: number | null;
+  highlight: 'perfect-week' | 'positive' | 'neutral' | 'milestone';
+}
+
+export interface GrowthStats {
+  sessionsCompleted: number;
+  cleanRaces: number;
+  skillsImproved: number;
+  iRatingChange: number;
+  pacePercentile: number;
+  consistencyIndex: number;
+  safetyScore: number;
+}
+
 export interface DevelopmentData {
   currentPhase: string;
   phaseProgress: number;
@@ -57,6 +87,9 @@ export interface DevelopmentData {
     drills: string[];
     reminder: string;
   };
+  gamification?: GamificationData;
+  journeyTimeline?: JourneyTimelineEntry[];
+  growthStats?: GrowthStats;
 }
 
 export interface DriverMemory {

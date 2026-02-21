@@ -781,7 +781,7 @@ router.get('/me/development', requireAuth, async (req: Request, res: Response): 
         const [globalAggregate, traits, metrics] = await Promise.all([
             getGlobalAggregate(profile.id, 'all_time'),
             getCurrentTraits(profile.id),
-            getMetricsForDriver(profile.id, 10, 0), // Last 10 sessions
+            getMetricsForDriver(profile.id, 30, 0), // Last 30 sessions for gamification
         ]);
 
         // Build development data from real performance metrics
@@ -795,6 +795,10 @@ router.get('/me/development', requireAuth, async (req: Request, res: Response): 
             goals: [], // Goals come from separate goals API
             coachingNotes: buildCoachingNotes(traits, globalAggregate),
             nextSession: buildNextSessionPlan(traits, metrics),
+            // Gamification & enhanced journey data
+            gamification: calculateGamification(globalAggregate, metrics),
+            journeyTimeline: buildJourneyTimeline(metrics, globalAggregate),
+            growthStats: buildGrowthStats(globalAggregate, metrics),
         };
 
         res.json(developmentData);
@@ -1346,174 +1350,647 @@ function buildFallbackCoachingInsight(aggregate: any, traits: any[]): string {
     return 'Your recent form is solid. Focus on consistency — try to string together 3 clean races in a row with similar lap times.';
 }
 
+// ========================
 // Helper functions for development data
+// ========================
 
-function determineDevelopmentPhase(aggregate: any, _traits: any[]): string {
+// Skill status type used across helpers
+type SkillStatus = 'mastered' | 'learning' | 'next' | 'locked';
+
+function skillFromValue(value: number, thresholds: [number, number, number]): { level: number; progress: number; status: SkillStatus } {
+    // thresholds = [learning, advanced, mastered] (0-100 scale)
+    if (value >= thresholds[2]) return { level: 3, progress: 100, status: 'mastered' };
+    if (value >= thresholds[1]) return { level: 2, progress: Math.round(((value - thresholds[1]) / (thresholds[2] - thresholds[1])) * 100), status: 'learning' };
+    if (value >= thresholds[0]) return { level: 1, progress: Math.round(((value - thresholds[0]) / (thresholds[1] - thresholds[0])) * 100), status: 'learning' };
+    if (value > 0) return { level: 1, progress: Math.round((value / thresholds[0]) * 100), status: 'learning' };
+    return { level: 0, progress: 0, status: 'next' };
+}
+
+function determineDevelopmentPhase(aggregate: any, traits: any[]): string {
     if (!aggregate) return 'Getting Started';
-    
-    const sessions = aggregate.total_sessions || 0;
-    const avgFinish = aggregate.avg_finish || 20;
-    
-    if (sessions < 10) return 'Getting Started';
-    if (sessions < 50) return 'Building Foundation';
-    if (avgFinish > 15) return 'Consistency Building';
-    if (avgFinish > 10) return 'Competitive Development';
-    if (avgFinish > 5) return 'Race Craft Refinement';
+    const sessions = aggregate.session_count || 0;
+    const pace = parseFloat(aggregate.avg_pace_percentile) || 0;
+    const consistency = parseFloat(aggregate.consistency_index) || 0;
+    const risk = parseFloat(aggregate.risk_index) || 100;
+    const hasStrengths = traits.some((t: any) => t.trait_category === 'strength');
+
+    if (sessions < 5) return 'Getting Started';
+    if (sessions < 15) return 'Building Foundation';
+    if (risk > 60) return 'Safety First';
+    if (consistency < 40) return 'Consistency Building';
+    if (pace < 40) return 'Pace Development';
+    if (pace < 65) return 'Competitive Development';
+    if (pace < 80 || !hasStrengths) return 'Race Craft Refinement';
     return 'Elite Performance';
 }
 
 function calculatePhaseProgress(aggregate: any): number {
     if (!aggregate) return 0;
-    
-    const sessions = aggregate.total_sessions || 0;
-    const wins = aggregate.wins || 0;
-    const top5s = aggregate.top5s || 0;
-    
-    // Simple progress calculation based on results
-    const baseProgress = Math.min(sessions / 50, 1) * 30;
-    const winProgress = Math.min(wins / 5, 1) * 35;
-    const top5Progress = Math.min(top5s / 20, 1) * 35;
-    
-    return Math.round(baseProgress + winProgress + top5Progress);
+    const sessions = Math.min(parseFloat(aggregate.session_count) || 0, 100);
+    const pace = parseFloat(aggregate.avg_pace_percentile) || 0;
+    const consistency = parseFloat(aggregate.consistency_index) || 0;
+    const safety = Math.max(0, 100 - (parseFloat(aggregate.risk_index) || 50));
+
+    // Weighted composite: sessions contribute early, then performance takes over
+    const sessionWeight = sessions < 20 ? 0.4 : 0.15;
+    const perfWeight = 1 - sessionWeight;
+    const sessionScore = Math.min(sessions / 50, 1) * 100;
+    const perfScore = (pace * 0.35 + consistency * 0.35 + safety * 0.30);
+
+    return Math.round(sessionScore * sessionWeight + perfScore * perfWeight);
 }
 
 function determineWeeklyFocus(traits: any[], metrics: any[]): string {
     if (!traits.length && !metrics.length) return 'Complete your first session';
-    
-    // Look for weakness traits
-    const weaknesses = traits.filter(t => t.trait_category === 'weakness');
-    if (weaknesses.length > 0) {
-        return `Improve ${weaknesses[0].trait_label}`;
+
+    // Prioritize: high-incident rate → consistency → pace → racecraft
+    if (metrics.length >= 2) {
+        const recentIncidents = metrics.slice(0, 3).reduce((s: number, m: any) => s + (parseFloat(m.incident_count) || 0), 0);
+        const avgInc = recentIncidents / Math.min(metrics.length, 3);
+        if (avgInc > 4) return 'Incident Reduction — Focus on Clean Laps';
+
+        const recentStdDev = metrics.slice(0, 3).reduce((s: number, m: any) => s + (parseFloat(m.lap_time_std_dev_ms) || 0), 0) / Math.min(metrics.length, 3);
+        if (recentStdDev > 2000) return 'Lap Consistency — Reduce Variation';
+
+        const recentPace = metrics.slice(0, 3).reduce((s: number, m: any) => s + (parseFloat(m.pace_percentile) || 0), 0) / Math.min(metrics.length, 3);
+        if (recentPace < 40) return 'Raw Pace — Find Time in Key Corners';
+
+        const posGained = metrics.slice(0, 3).reduce((s: number, m: any) => s + (parseFloat(m.positions_gained) || 0), 0) / Math.min(metrics.length, 3);
+        if (posGained < -1) return 'Race Starts & Position Defense';
     }
-    
-    // Default focuses based on recent performance
-    if (metrics.length > 0) {
-        const recentIncidents = metrics.reduce((sum, m) => sum + (m.incidents || 0), 0);
-        if (recentIncidents > metrics.length * 2) {
-            return 'Clean Racing & Incident Reduction';
-        }
-    }
-    
+
+    const weaknesses = traits.filter((t: any) => t.trait_category === 'weakness');
+    if (weaknesses.length > 0) return `Improve ${weaknesses[0].trait_label}`;
+
     return 'Consistency & Pace Development';
 }
 
-function buildFocusAreas(traits: any[], _metrics: any[]): any[] {
+function buildFocusAreas(traits: any[], metrics: any[]): any[] {
     const areas: any[] = [];
-    
-    // Build focus areas from traits
-    traits.slice(0, 3).forEach((trait, i) => {
+
+    // Drill templates keyed by trait_key patterns
+    const drillBank: Record<string, { name: string; completed: boolean }[]> = {
+        incident: [
+            { name: 'Complete 3 races with 0 incidents', completed: false },
+            { name: 'Practice 10 laps leaving extra space in braking zones', completed: false },
+            { name: 'Run a full race focusing only on survival, not position', completed: false },
+        ],
+        consistency: [
+            { name: 'Run 10 consecutive laps within 0.5s of each other', completed: false },
+            { name: 'Complete a race without a single off-track', completed: false },
+            { name: 'Match your best lap time 3 times in a single session', completed: false },
+        ],
+        pace: [
+            { name: 'Study the fastest replay and note 3 braking differences', completed: false },
+            { name: 'Run 20 practice laps focusing on one corner at a time', completed: false },
+            { name: 'Beat your personal best by 0.3s in practice', completed: false },
+        ],
+        racecraft: [
+            { name: 'Complete a race gaining 3+ positions without contact', completed: false },
+            { name: 'Practice side-by-side racing in an open practice session', completed: false },
+            { name: 'Successfully defend position for 5+ laps', completed: false },
+        ],
+        endurance: [
+            { name: 'Maintain pace within 1% over a full stint', completed: false },
+            { name: 'Complete a race with less than 0.5s pace drop-off last→first stint', completed: false },
+            { name: 'Run a 30-minute practice session without losing concentration', completed: false },
+        ],
+    };
+
+    function getDrills(traitKey: string): { name: string; completed: boolean }[] {
+        for (const [key, drills] of Object.entries(drillBank)) {
+            if (traitKey.toLowerCase().includes(key)) return drills.map(d => ({ ...d }));
+        }
+        return drillBank.consistency.map(d => ({ ...d }));
+    }
+
+    // Derive recent improvement from metrics
+    function getRecentImprovement(metricKey: string): string | undefined {
+        if (metrics.length < 3) return undefined;
+        const recent = metrics.slice(0, 3);
+        const older = metrics.slice(3, 6);
+        if (!older.length) return undefined;
+
+        const recentAvg = recent.reduce((s: number, m: any) => s + (parseFloat(m[metricKey]) || 0), 0) / recent.length;
+        const olderAvg = older.reduce((s: number, m: any) => s + (parseFloat(m[metricKey]) || 0), 0) / older.length;
+
+        if (metricKey === 'incident_count' && recentAvg < olderAvg) {
+            return `Incidents down ${((olderAvg - recentAvg)).toFixed(1)} per race`;
+        }
+        if (metricKey === 'lap_time_std_dev_ms' && recentAvg < olderAvg) {
+            return `Consistency improved ${((olderAvg - recentAvg) / 1000).toFixed(2)}s std dev`;
+        }
+        if (metricKey === 'pace_percentile' && recentAvg > olderAvg) {
+            return `Pace up ${(recentAvg - olderAvg).toFixed(0)} percentile points`;
+        }
+        return undefined;
+    }
+
+    // Build from traits
+    traits.slice(0, 4).forEach((trait: any, i: number) => {
+        const traitKey = trait.trait_key || '';
         areas.push({
             id: `trait-${i}`,
             title: trait.trait_label || 'Skill Development',
             description: trait.evidence_summary || 'Based on your recent performance',
-            insight: `Your ${trait.trait_category} in this area shows room for growth`,
-            evidence: `Confidence: ${Math.round((trait.confidence || 0) * 100)}%`,
-            progress: Math.round((trait.confidence || 0) * 100),
-            drills: [],
-            recentImprovement: undefined,
+            insight: trait.trait_category === 'weakness'
+                ? `This is your biggest area for improvement right now`
+                : trait.trait_category === 'strength'
+                    ? `This is one of your strengths — maintain and build on it`
+                    : `Your ${trait.trait_category} here shows room for growth`,
+            evidence: trait.evidence_summary || `Confidence: ${Math.round((parseFloat(trait.confidence) || 0) * 100)}%`,
+            progress: Math.round((parseFloat(trait.confidence) || 0) * 100),
+            drills: getDrills(traitKey),
+            recentImprovement: traitKey.includes('incident') ? getRecentImprovement('incident_count')
+                : traitKey.includes('consistency') ? getRecentImprovement('lap_time_std_dev_ms')
+                    : traitKey.includes('pace') ? getRecentImprovement('pace_percentile')
+                        : undefined,
         });
     });
-    
+
+    // If no traits, build from metrics analysis
+    if (areas.length === 0 && metrics.length > 0) {
+        const avgInc = metrics.reduce((s: number, m: any) => s + (parseFloat(m.incident_count) || 0), 0) / metrics.length;
+        const avgStdDev = metrics.reduce((s: number, m: any) => s + (parseFloat(m.lap_time_std_dev_ms) || 0), 0) / metrics.length;
+
+        if (avgInc > 2) {
+            areas.push({
+                id: 'auto-incidents', title: 'Incident Reduction', description: `Averaging ${avgInc.toFixed(1)} incidents per race`,
+                insight: 'Reducing incidents is the fastest path to higher SR and iRating',
+                evidence: `${avgInc.toFixed(1)} avg incidents across ${metrics.length} recent sessions`,
+                progress: Math.round(Math.max(0, (1 - avgInc / 8) * 100)),
+                drills: getDrills('incident'), recentImprovement: getRecentImprovement('incident_count'),
+            });
+        }
+        if (avgStdDev > 1500) {
+            areas.push({
+                id: 'auto-consistency', title: 'Lap Consistency', description: `Lap time std dev: ${(avgStdDev / 1000).toFixed(2)}s`,
+                insight: 'Consistent laps compound into better race results',
+                evidence: `${(avgStdDev / 1000).toFixed(2)}s average lap time variation`,
+                progress: Math.round(Math.max(0, (1 - avgStdDev / 5000) * 100)),
+                drills: getDrills('consistency'), recentImprovement: getRecentImprovement('lap_time_std_dev_ms'),
+            });
+        }
+    }
+
     return areas;
 }
 
-function buildSkillTree(aggregate: any, _traits: any[]): any[] {
+function buildSkillTree(aggregate: any, traits: any[]): any[] {
+    // Extract real values from aggregate
+    const pace = parseFloat(aggregate?.avg_pace_percentile) || 0;
+    const consistency = parseFloat(aggregate?.consistency_index) || 0;
+    const risk = parseFloat(aggregate?.risk_index) || 100;
+    const safety = Math.max(0, 100 - risk);
+    const posGained = parseFloat(aggregate?.avg_positions_gained) || 0;
+    const startPerf = parseFloat(aggregate?.start_performance_index) || 0;
+    const endurance = parseFloat(aggregate?.endurance_fitness_index) || 0;
+    const paceTrend = parseFloat(aggregate?.pace_trend) || 0;
+    const sessions = parseFloat(aggregate?.session_count) || 0;
+
+    // Derive racecraft from positions gained + safety
+    const racecraft = Math.min(100, Math.max(0, (posGained + 3) * 15 + safety * 0.3));
+    // Derive pressure management from start performance + endurance
+    const pressure = Math.min(100, (startPerf + endurance) / 2);
+
     const categories = [
         {
             category: 'Car Control',
             skills: [
-                { name: 'Throttle Control', level: 1, maxLevel: 3, progress: 30, status: 'learning' as 'learning' | 'next' | 'mastered', description: 'Smooth throttle application' },
-                { name: 'Braking', level: 1, maxLevel: 3, progress: 30, status: 'learning' as 'learning' | 'next' | 'mastered', description: 'Consistent braking points' },
-                { name: 'Weight Transfer', level: 1, maxLevel: 3, progress: 0, status: 'next' as 'learning' | 'next' | 'mastered', description: 'Use weight to rotate' },
+                { name: 'Raw Pace', maxLevel: 5, description: 'Outright speed relative to the field', ...skillFromValue(pace, [20, 50, 85]) },
+                { name: 'Consistency', maxLevel: 5, description: 'Repeatable, low-variance lap times', ...skillFromValue(consistency, [25, 55, 85]) },
+                { name: 'Endurance', maxLevel: 5, description: 'Maintain pace over long stints', ...skillFromValue(endurance, [20, 50, 80]) },
+                { name: 'Pace Trend', maxLevel: 5, description: 'Improving speed over time', ...skillFromValue(Math.max(0, paceTrend * 50 + 50), [20, 50, 80]) },
             ]
         },
         {
             category: 'Race Craft',
             skills: [
-                { name: 'Clean Racing', level: 1, maxLevel: 3, progress: 30, status: 'learning' as const, description: 'Avoid incidents' },
-                { name: 'Overtaking', level: 1, maxLevel: 3, progress: 0, status: 'next' as const, description: 'Safe, decisive passes' },
-                { name: 'Defending', level: 1, maxLevel: 3, progress: 0, status: 'next' as const, description: 'Protect position legally' },
+                { name: 'Clean Racing', maxLevel: 5, description: 'Low incident rate per race', ...skillFromValue(safety, [30, 60, 90]) },
+                { name: 'Overtaking', maxLevel: 5, description: 'Gaining positions safely', ...skillFromValue(racecraft, [20, 50, 80]) },
+                { name: 'Race Starts', maxLevel: 5, description: 'Lap 1 position management', ...skillFromValue(startPerf, [20, 50, 80]) },
             ]
         },
         {
             category: 'Mental',
             skills: [
-                { name: 'Consistency', level: 1, maxLevel: 3, progress: 30, status: 'learning' as const, description: 'Repeatable lap times' },
-                { name: 'Pressure Management', level: 1, maxLevel: 3, progress: 0, status: 'next' as const, description: 'Perform when it counts' },
+                { name: 'Pressure Management', maxLevel: 5, description: 'Perform when it counts', ...skillFromValue(pressure, [20, 50, 80]) },
+                { name: 'Experience', maxLevel: 5, description: 'Race wisdom from time on track', ...skillFromValue(Math.min(100, sessions * 2), [10, 30, 80]) },
             ]
         },
     ];
-    
-    // Adjust based on aggregate data
-    if (aggregate) {
-        const sessions = aggregate.total_sessions || 0;
-        const avgIncidents = (aggregate.total_incidents || 0) / Math.max(sessions, 1);
-        
-        // Update clean racing skill based on incident rate
-        if (avgIncidents < 2) {
-            categories[1].skills[0].level = 2;
-            categories[1].skills[0].progress = 70;
+
+    // Apply trait-based overrides (traits can boost or penalize)
+    traits.forEach((trait: any) => {
+        const key = (trait.trait_key || '').toLowerCase();
+        const conf = parseFloat(trait.confidence) || 0;
+        const isMastered = trait.trait_category === 'strength' && conf > 0.8;
+
+        if (key.includes('consistency') && isMastered) {
+            categories[0].skills[1].status = 'mastered';
+            categories[0].skills[1].level = Math.max(categories[0].skills[1].level, 4);
         }
-        if (avgIncidents < 1) {
-            categories[1].skills[0].level = 3;
-            categories[1].skills[0].progress = 100;
+        if (key.includes('clean') && isMastered) {
             categories[1].skills[0].status = 'mastered';
+            categories[1].skills[0].level = Math.max(categories[1].skills[0].level, 4);
         }
-    }
-    
+    });
+
     return categories;
 }
 
 function buildLearningMoments(metrics: any[]): any[] {
     if (!metrics.length) return [];
-    
-    return metrics.slice(0, 3).map((m, i) => ({
-        session: m.track_name || 'Recent Session',
-        date: i === 0 ? 'Recent' : `${i + 1} sessions ago`,
-        insight: m.incidents === 0 ? 'Clean race completed' : `Finished with ${m.incidents}x incidents`,
-        improvement: m.finish_pos < m.start_pos 
-            ? `Gained ${m.start_pos - m.finish_pos} positions`
-            : m.finish_pos === m.start_pos 
-                ? 'Held position'
-                : `Lost ${m.finish_pos - m.start_pos} positions`,
-    }));
+
+    return metrics.slice(0, 5).map((m: any) => {
+        const incidents = parseFloat(m.incident_count) || 0;
+        const posGained = parseFloat(m.positions_gained) || 0;
+        const pacePercentile = parseFloat(m.pace_percentile) || 0;
+        const iRatingChange = parseFloat(m.irating_change) || 0;
+        const stdDev = parseFloat(m.lap_time_std_dev_ms) || 0;
+        const finishPos = parseFloat(m.finish_position) || 0;
+        const startPos = parseFloat(m.start_position) || 0;
+        const computedAt = m.computed_at ? new Date(m.computed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recent';
+
+        // Pick the most notable insight for this session
+        let insight = '';
+        let improvement = '';
+
+        if (incidents === 0 && posGained > 0) {
+            insight = `Clean race — zero incidents with ${posGained} positions gained`;
+            improvement = iRatingChange > 0 ? `iRating +${Math.round(iRatingChange)}` : 'Solid execution';
+        } else if (incidents === 0) {
+            insight = 'Clean race completed with zero incidents';
+            improvement = 'Building safety rating momentum';
+        } else if (pacePercentile > 70) {
+            insight = `Strong pace — top ${Math.round(100 - pacePercentile)}% of the field`;
+            improvement = posGained > 0 ? `Gained ${posGained} positions` : 'Pace is there, results will follow';
+        } else if (posGained >= 3) {
+            insight = `Great racecraft — gained ${posGained} positions from P${Math.round(startPos)}`;
+            improvement = `Finished P${Math.round(finishPos)}`;
+        } else if (stdDev < 800) {
+            insight = `Excellent consistency — ${(stdDev / 1000).toFixed(2)}s lap time variation`;
+            improvement = 'Machine-like consistency';
+        } else {
+            insight = incidents > 3 ? `Tough race with ${incidents}x incidents` : `Finished P${Math.round(finishPos)} from P${Math.round(startPos)}`;
+            improvement = posGained > 0 ? `Gained ${posGained} positions` : posGained < 0 ? `Lost ${Math.abs(posGained)} positions` : 'Held position';
+        }
+
+        return {
+            session: m.track_name || 'Recent Session',
+            date: computedAt,
+            insight,
+            improvement,
+            metric: iRatingChange !== 0 ? {
+                label: 'iRating',
+                before: String(Math.round((m.sof || 1500) - iRatingChange)),
+                after: String(Math.round(m.sof || 1500)),
+            } : stdDev > 0 ? {
+                label: 'Lap Std Dev',
+                before: `${(stdDev / 1000).toFixed(2)}s`,
+                after: pacePercentile > 0 ? `P${Math.round(pacePercentile)}%` : '--',
+            } : undefined,
+        };
+    });
 }
 
-function buildCoachingNotes(_traits: any[], aggregate: any): string[] {
+function buildCoachingNotes(traits: any[], aggregate: any): string[] {
     const notes: string[] = [];
-    
-    if (!aggregate || !aggregate.total_sessions) {
+    if (!aggregate || !aggregate.session_count) {
         notes.push('Complete more sessions to unlock personalized coaching.');
         notes.push('Focus on finishing races cleanly before chasing pace.');
         return notes;
     }
-    
-    const avgIncidents = (aggregate.total_incidents || 0) / aggregate.total_sessions;
-    
-    if (avgIncidents < 2) {
-        notes.push('Your clean racing is a strength. Build on it.');
-    } else {
-        notes.push('Focus on reducing incidents before pushing for pace.');
+
+    const sessions = parseFloat(aggregate.session_count) || 0;
+    const risk = parseFloat(aggregate.risk_index) || 50;
+    const consistency = parseFloat(aggregate.consistency_index) || 0;
+    const pace = parseFloat(aggregate.avg_pace_percentile) || 0;
+    const posGained = parseFloat(aggregate.avg_positions_gained) || 0;
+    const endurance = parseFloat(aggregate.endurance_fitness_index) || 0;
+
+    // Safety-first coaching
+    if (risk > 60) {
+        notes.push(`Your risk index is ${Math.round(risk)} — reducing incidents should be priority #1. Clean races build SR, confidence, and iRating faster than raw speed.`);
+    } else if (risk < 25) {
+        notes.push('Your clean racing is excellent. You have the discipline to push harder without losing control.');
     }
-    
-    if (aggregate.wins > 0) {
-        notes.push('You know how to win. Stay consistent.');
+
+    // Consistency coaching
+    if (consistency < 40) {
+        notes.push('Focus on hitting the same marks every lap. Consistency compounds — a reliable 1:32.5 beats an occasional 1:31.0 with 1:34s mixed in.');
+    } else if (consistency > 70) {
+        notes.push('Your consistency is a real strength. Now look for small pace gains in specific corners.');
     }
-    
-    notes.push('Review your best laps to understand what works.');
-    
-    return notes;
+
+    // Pace coaching
+    if (pace < 30 && sessions > 10) {
+        notes.push('Study faster drivers\' replays. Focus on one corner per session — brake point, turn-in, and throttle application.');
+    } else if (pace > 60) {
+        notes.push('Your raw pace is competitive. Focus on converting speed into results through smart racecraft.');
+    }
+
+    // Racecraft
+    if (posGained < -1) {
+        notes.push('You\'re losing positions on average. Work on race starts and first-lap survival — protect what you qualify.');
+    } else if (posGained > 2) {
+        notes.push('Great racecraft — you consistently gain positions. Keep making clean, decisive moves.');
+    }
+
+    // Endurance
+    if (endurance < 30 && sessions > 5) {
+        notes.push('Your pace drops off in longer stints. Practice maintaining focus and smooth inputs for 20+ consecutive laps.');
+    }
+
+    // Trait-specific
+    const strengths = traits.filter((t: any) => t.trait_category === 'strength');
+    if (strengths.length > 0) {
+        notes.push(`Your biggest strength: ${strengths[0].trait_label}. Build your race strategy around it.`);
+    }
+
+    return notes.slice(0, 4); // Cap at 4 notes
 }
 
-function buildNextSessionPlan(_traits: any[], _metrics: any[]): any {
+function buildNextSessionPlan(traits: any[], metrics: any[]): any {
+    if (!metrics.length) {
+        return {
+            focus: 'Complete your first session to get a personalized plan',
+            drills: ['Run 10 clean practice laps', 'Focus on learning the track layout', 'Don\'t worry about lap times yet'],
+            reminder: 'Every expert was once a beginner. Just get laps in.',
+        };
+    }
+
+    const recentInc = metrics.slice(0, 3).reduce((s: number, m: any) => s + (parseFloat(m.incident_count) || 0), 0) / Math.min(metrics.length, 3);
+    const recentStdDev = metrics.slice(0, 3).reduce((s: number, m: any) => s + (parseFloat(m.lap_time_std_dev_ms) || 0), 0) / Math.min(metrics.length, 3);
+    const recentPace = metrics.slice(0, 3).reduce((s: number, m: any) => s + (parseFloat(m.pace_percentile) || 0), 0) / Math.min(metrics.length, 3);
+    const recentPosGained = metrics.slice(0, 3).reduce((s: number, m: any) => s + (parseFloat(m.positions_gained) || 0), 0) / Math.min(metrics.length, 3);
+
+    // Priority: incidents → consistency → pace → racecraft
+    if (recentInc > 4) {
+        return {
+            focus: 'Incident Reduction Session',
+            drills: [
+                'Run 10 practice laps at 90% pace, focusing on clean lines',
+                'In the race, leave extra space in braking zones — brake 5m earlier',
+                'If someone is faster behind you, let them by cleanly',
+            ],
+            reminder: 'A clean P15 gains more iRating than a DNF from P5. Survive first, compete second.',
+        };
+    }
+
+    if (recentStdDev > 2000) {
+        return {
+            focus: 'Consistency Training',
+            drills: [
+                'Run 15 practice laps trying to hit the exact same time every lap',
+                'Pick 3 reference points per corner and hit them every lap',
+                'In the race, ignore the cars around you — focus on your rhythm',
+            ],
+            reminder: 'Consistency is the foundation of speed. Nail the basics before chasing tenths.',
+        };
+    }
+
+    if (recentPace < 35) {
+        return {
+            focus: 'Pace Development',
+            drills: [
+                'Watch the fastest replay and note 3 differences in braking/turn-in',
+                'Focus on one corner per run — try different lines and brake points',
+                'Run 5 qualifying-style laps: full push, then analyze',
+            ],
+            reminder: 'Speed comes from precision, not aggression. Smooth is fast.',
+        };
+    }
+
+    if (recentPosGained < -1) {
+        return {
+            focus: 'Race Start & Position Defense',
+            drills: [
+                'Practice race starts in test sessions — focus on clean getaways',
+                'In traffic, focus on exit speed over entry speed',
+                'Defend the inside line into braking zones, but yield if alongside',
+            ],
+            reminder: 'The first lap sets the tone. Stay calm, stay clean, stay in it.',
+        };
+    }
+
+    // Default: balanced improvement
+    const weaknesses = traits.filter((t: any) => t.trait_category === 'weakness');
+    const focusArea = weaknesses.length > 0 ? weaknesses[0].trait_label : 'overall performance';
+
     return {
-        focus: 'Continue building consistency',
+        focus: `Continue developing ${focusArea}`,
         drills: [
-            'Focus on hitting your marks consistently',
-            'Practice smooth inputs',
-            'Stay aware of cars around you',
+            'Warm up with 5 smooth laps before pushing',
+            `Focus on ${focusArea.toLowerCase()} during practice`,
+            'Set a mini-goal for the race: one specific thing to improve',
         ],
-        reminder: 'Progress comes from consistent practice, not single heroic laps.',
+        reminder: 'You\'re making progress. Trust the process and stay patient.',
+    };
+}
+
+// ========================
+// Gamification: XP, Levels, Streaks, Achievements
+// ========================
+
+interface GamificationData {
+    xp: number;
+    level: number;
+    levelName: string;
+    xpToNextLevel: number;
+    xpInCurrentLevel: number;
+    cleanStreak: number;
+    bestCleanStreak: number;
+    totalAchievements: number;
+    recentAchievements: { id: string; title: string; description: string; earnedAt: string; icon: string }[];
+}
+
+const LEVEL_THRESHOLDS = [
+    { xp: 0, name: 'Rookie' },
+    { xp: 100, name: 'Novice' },
+    { xp: 300, name: 'Clubman' },
+    { xp: 600, name: 'Amateur' },
+    { xp: 1000, name: 'Semi-Pro' },
+    { xp: 1500, name: 'Professional' },
+    { xp: 2200, name: 'Expert' },
+    { xp: 3000, name: 'Master' },
+    { xp: 4000, name: 'Grand Master' },
+    { xp: 5500, name: 'Legend' },
+];
+
+function calculateGamification(aggregate: any, metrics: any[]): GamificationData {
+    // XP sources:
+    //   - 10 XP per session completed
+    //   - 5 bonus XP for clean race (0 incidents)
+    //   - 3 bonus XP per position gained
+    //   - 5 bonus XP for top-5 finish
+    //   - 10 bonus XP for a win (P1)
+    //   - 2 bonus XP for pace percentile > 50
+    //   - 3 bonus XP for consistency index > 60 (from aggregate)
+
+    const sessions = parseFloat(aggregate?.session_count) || 0;
+    let xp = sessions * 10; // Base XP
+
+    // Bonus from aggregate stats
+    const consistency = parseFloat(aggregate?.consistency_index) || 0;
+    if (consistency > 60) xp += sessions * 3;
+    if (consistency > 80) xp += sessions * 2;
+
+    const pace = parseFloat(aggregate?.avg_pace_percentile) || 0;
+    if (pace > 50) xp += sessions * 2;
+    if (pace > 75) xp += sessions * 2;
+
+    // Per-session bonuses from recent metrics
+    let cleanStreak = 0;
+    let bestCleanStreak = 0;
+    let currentStreak = 0;
+
+    metrics.forEach((m: any) => {
+        const inc = parseFloat(m.incident_count) || 0;
+        const pos = parseFloat(m.finish_position) || 99;
+        const posGained = parseFloat(m.positions_gained) || 0;
+
+        if (inc === 0) {
+            xp += 5;
+            currentStreak++;
+            bestCleanStreak = Math.max(bestCleanStreak, currentStreak);
+        } else {
+            currentStreak = 0;
+        }
+        if (pos <= 5) xp += 5;
+        if (pos === 1) xp += 10;
+        if (posGained > 0) xp += Math.min(posGained * 3, 15);
+    });
+
+    // The clean streak is from the most recent sessions (metrics are ordered newest first)
+    cleanStreak = 0;
+    for (const m of metrics) {
+        if ((parseFloat(m.incident_count) || 0) === 0) cleanStreak++;
+        else break;
+    }
+
+    // Determine level
+    let level = 0;
+    let levelName = 'Rookie';
+    let xpToNextLevel = LEVEL_THRESHOLDS[1]?.xp || 100;
+    let xpInCurrentLevel = xp;
+
+    for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+        if (xp >= LEVEL_THRESHOLDS[i].xp) {
+            level = i;
+            levelName = LEVEL_THRESHOLDS[i].name;
+            xpInCurrentLevel = xp - LEVEL_THRESHOLDS[i].xp;
+            xpToNextLevel = (LEVEL_THRESHOLDS[i + 1]?.xp || LEVEL_THRESHOLDS[i].xp + 1000) - LEVEL_THRESHOLDS[i].xp;
+            break;
+        }
+    }
+
+    // Achievements
+    const achievements: GamificationData['recentAchievements'] = [];
+
+    if (sessions >= 1) achievements.push({ id: 'first-race', title: 'First Race', description: 'Completed your first session', earnedAt: '', icon: 'flag' });
+    if (sessions >= 10) achievements.push({ id: '10-races', title: 'Getting Serious', description: 'Completed 10 sessions', earnedAt: '', icon: 'trophy' });
+    if (sessions >= 50) achievements.push({ id: '50-races', title: 'Veteran', description: 'Completed 50 sessions', earnedAt: '', icon: 'medal' });
+    if (sessions >= 100) achievements.push({ id: '100-races', title: 'Centurion', description: 'Completed 100 sessions', earnedAt: '', icon: 'star' });
+    if (bestCleanStreak >= 3) achievements.push({ id: 'clean-3', title: 'Clean Sweep', description: '3 consecutive clean races', earnedAt: '', icon: 'shield' });
+    if (bestCleanStreak >= 5) achievements.push({ id: 'clean-5', title: 'Spotless', description: '5 consecutive clean races', earnedAt: '', icon: 'shield' });
+    if (bestCleanStreak >= 10) achievements.push({ id: 'clean-10', title: 'Untouchable', description: '10 consecutive clean races', earnedAt: '', icon: 'shield' });
+    if (pace > 70) achievements.push({ id: 'pace-70', title: 'Quick', description: 'Top 30% pace in the field', earnedAt: '', icon: 'zap' });
+    if (pace > 90) achievements.push({ id: 'pace-90', title: 'Alien Pace', description: 'Top 10% pace in the field', earnedAt: '', icon: 'zap' });
+    if (consistency > 70) achievements.push({ id: 'consistent-70', title: 'Metronome', description: 'Consistency index above 70', earnedAt: '', icon: 'target' });
+    if (consistency > 90) achievements.push({ id: 'consistent-90', title: 'Machine', description: 'Consistency index above 90', earnedAt: '', icon: 'target' });
+
+    return {
+        xp: Math.round(xp),
+        level,
+        levelName,
+        xpToNextLevel,
+        xpInCurrentLevel: Math.round(xpInCurrentLevel),
+        cleanStreak,
+        bestCleanStreak,
+        totalAchievements: achievements.length,
+        recentAchievements: achievements.slice(-5),
+    };
+}
+
+function buildJourneyTimeline(metrics: any[], aggregate: any): any[] {
+    const timeline: any[] = [];
+
+    if (!metrics.length) return timeline;
+
+    // This week's sessions
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+    // Summarize recent sessions into timeline entries
+    const thisWeek = metrics.filter((m: any) => m.computed_at && new Date(m.computed_at) > weekAgo);
+    const lastWeek = metrics.filter((m: any) => m.computed_at && new Date(m.computed_at) > twoWeeksAgo && new Date(m.computed_at) <= weekAgo);
+
+    if (thisWeek.length > 0) {
+        const avgInc = thisWeek.reduce((s: number, m: any) => s + (parseFloat(m.incident_count) || 0), 0) / thisWeek.length;
+        const avgPace = thisWeek.reduce((s: number, m: any) => s + (parseFloat(m.pace_percentile) || 0), 0) / thisWeek.length;
+        const iRChange = thisWeek.reduce((s: number, m: any) => s + (parseFloat(m.irating_change) || 0), 0);
+        timeline.push({
+            period: 'This Week',
+            sessions: thisWeek.length,
+            summary: `${thisWeek.length} session${thisWeek.length > 1 ? 's' : ''} — ${avgInc < 1 ? 'clean racing' : `${avgInc.toFixed(1)} avg incidents`}, pace P${Math.round(avgPace)}%`,
+            iRatingChange: Math.round(iRChange),
+            highlight: avgInc === 0 ? 'perfect-week' : iRChange > 0 ? 'positive' : 'neutral',
+        });
+    }
+
+    if (lastWeek.length > 0) {
+        const avgInc = lastWeek.reduce((s: number, m: any) => s + (parseFloat(m.incident_count) || 0), 0) / lastWeek.length;
+        const iRChange = lastWeek.reduce((s: number, m: any) => s + (parseFloat(m.irating_change) || 0), 0);
+        timeline.push({
+            period: 'Last Week',
+            sessions: lastWeek.length,
+            summary: `${lastWeek.length} session${lastWeek.length > 1 ? 's' : ''} — ${avgInc.toFixed(1)} avg incidents`,
+            iRatingChange: Math.round(iRChange),
+            highlight: iRChange > 0 ? 'positive' : 'neutral',
+        });
+    }
+
+    // Overall summary
+    if (aggregate) {
+        const sessions = parseFloat(aggregate.session_count) || 0;
+        const pace = parseFloat(aggregate.avg_pace_percentile) || 0;
+        timeline.push({
+            period: 'All Time',
+            sessions: Math.round(sessions),
+            summary: `${Math.round(sessions)} total sessions — pace P${Math.round(pace)}%`,
+            iRatingChange: null,
+            highlight: 'milestone',
+        });
+    }
+
+    return timeline;
+}
+
+function buildGrowthStats(aggregate: any, metrics: any[]): any {
+    const sessions = parseFloat(aggregate?.session_count) || 0;
+    const pace = parseFloat(aggregate?.avg_pace_percentile) || 0;
+    const consistency = parseFloat(aggregate?.consistency_index) || 0;
+    const safety = Math.max(0, 100 - (parseFloat(aggregate?.risk_index) || 50));
+
+    // Count clean races from metrics
+    const cleanRaces = metrics.filter((m: any) => (parseFloat(m.incident_count) || 0) === 0).length;
+    const totalIRChange = metrics.reduce((s: number, m: any) => s + (parseFloat(m.irating_change) || 0), 0);
+
+    // Count skills at various levels (from skill tree)
+    const skillTree = buildSkillTree(aggregate, []);
+    let skillsImproved = 0;
+    skillTree.forEach((cat: any) => cat.skills.forEach((s: any) => { if (s.level >= 2) skillsImproved++; }));
+
+    return {
+        sessionsCompleted: Math.round(sessions),
+        cleanRaces,
+        skillsImproved,
+        iRatingChange: Math.round(totalIRChange),
+        pacePercentile: Math.round(pace),
+        consistencyIndex: Math.round(consistency),
+        safetyScore: Math.round(safety),
     };
 }
 

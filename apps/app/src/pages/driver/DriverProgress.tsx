@@ -6,13 +6,15 @@ import { getLicenseColor } from '../../lib/driverService';
 import { 
   TrendingUp, Target, Clock, ArrowLeft,
   ChevronRight, CheckCircle2, Circle, Lightbulb, BookOpen,
-  Flame, Zap, MessageSquare, Play, BarChart2, Loader2, Plus, Sparkles
+  Flame, Zap, MessageSquare, Play, BarChart2, Loader2, Plus, Sparkles,
+  Award, Shield, Star, Trophy, Medal, Flag
 } from 'lucide-react';
 import { 
   fetchDevelopmentData, 
   updateDrillCompletion,
   type DevelopmentData,
-  type Skill
+  type Skill,
+  type JourneyTimelineEntry,
 } from '../../lib/driverDevelopment';
 import { 
   fetchGoals, 
@@ -32,6 +34,29 @@ function getSkillStatusColor(status: Skill['status']) {
     case 'learning': return 'text-[#f97316] bg-[#f97316]/20 border-[#f97316]/30';
     case 'next': return 'text-blue-400 bg-blue-500/20 border-blue-500/30';
     default: return 'text-white/20 bg-white/[0.02] border-white/[0.06]';
+  }
+}
+
+function AchievementIcon({ icon, className }: { icon: string; className?: string }) {
+  const cn = className || 'w-4 h-4';
+  switch (icon) {
+    case 'flag': return <Flag className={cn} />;
+    case 'trophy': return <Trophy className={cn} />;
+    case 'medal': return <Medal className={cn} />;
+    case 'star': return <Star className={cn} />;
+    case 'shield': return <Shield className={cn} />;
+    case 'zap': return <Zap className={cn} />;
+    case 'target': return <Target className={cn} />;
+    default: return <Award className={cn} />;
+  }
+}
+
+function getTimelineColor(highlight: string) {
+  switch (highlight) {
+    case 'perfect-week': return 'bg-emerald-500';
+    case 'positive': return 'bg-blue-500';
+    case 'milestone': return 'bg-[#f97316]';
+    default: return 'bg-white/20';
   }
 }
 
@@ -266,6 +291,47 @@ export function DriverProgress() {
             </div>
           </div>
         </div>
+
+        {/* Gamification - XP & Level */}
+        {data.gamification && (
+          <div className="p-4 border-b border-white/[0.06]">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#f97316] to-amber-600 flex items-center justify-center text-sm font-bold text-white font-mono">
+                  {data.gamification.level}
+                </div>
+                <div>
+                  <div className="text-xs font-semibold text-white/90">{data.gamification.levelName}</div>
+                  <div className="text-[9px] text-white/40">{data.gamification.xp.toLocaleString()} XP</div>
+                </div>
+              </div>
+              {data.gamification.cleanStreak > 0 && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                  <Flame className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-xs font-mono text-emerald-400">{data.gamification.cleanStreak}</span>
+                </div>
+              )}
+            </div>
+            <div className="mt-2">
+              <div className="flex items-center justify-between text-[9px] mb-1">
+                <span className="text-white/30">Level Progress</span>
+                <span className="text-white/50 font-mono">{data.gamification.xpInCurrentLevel} / {data.gamification.xpToNextLevel}</span>
+              </div>
+              <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[#f97316] to-amber-400 rounded-full transition-all duration-700"
+                  style={{ width: `${Math.min(100, (data.gamification.xpInCurrentLevel / data.gamification.xpToNextLevel) * 100)}%` }}
+                />
+              </div>
+            </div>
+            {data.gamification.totalAchievements > 0 && (
+              <div className="mt-2 flex items-center gap-1.5 text-[9px] text-white/40">
+                <Award className="w-3 h-3 text-amber-400" />
+                <span>{data.gamification.totalAchievements} achievement{data.gamification.totalAchievements !== 1 ? 's' : ''} earned</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Current Phase */}
         <div className="p-4 border-b border-white/[0.06]">
@@ -569,91 +635,159 @@ export function DriverProgress() {
 
           {activeSection === 'journey' && (
             <div className="space-y-4">
-              {/* Learning Moments */}
-              <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg overflow-hidden">
-                <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-purple-400" />
-                  <h3 className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/70" style={{ fontFamily: 'Orbitron, sans-serif' }}>Learning Moments</h3>
-                </div>
-                <div className="divide-y divide-white/[0.04]">
-                  {data.learningMoments.map((moment, idx) => (
-                    <div key={idx} className="p-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-white/90">{moment.session}</span>
-                        <span className="text-[10px] text-white/40">{moment.date}</span>
-                      </div>
-                      <p className="text-xs text-white/60 mb-2">{moment.insight}</p>
-                      <div className="flex items-center gap-2 text-emerald-400">
-                        <TrendingUp className="w-3 h-3" />
-                        <span className="text-[11px]">{moment.improvement}</span>
-                      </div>
-                      {moment.metric && (
-                        <div className="mt-2 flex items-center gap-4 text-[10px]">
-                          <span className="text-white/40">{moment.metric.label}:</span>
-                          <span className="text-red-400/60 line-through">{moment.metric.before}</span>
-                          <span className="text-white/20">→</span>
-                          <span className="text-emerald-400">{moment.metric.after}</span>
+              {/* Achievements */}
+              {data.gamification && data.gamification.recentAchievements.length > 0 && (
+                <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg overflow-hidden">
+                  <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                    <Award className="w-4 h-4 text-amber-400" />
+                    <h3 className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/70" style={{ fontFamily: 'Orbitron, sans-serif' }}>Achievements</h3>
+                    <span className="ml-auto text-[10px] text-white/30 font-mono">{data.gamification.totalAchievements} earned</span>
+                  </div>
+                  <div className="p-4 grid grid-cols-2 gap-3">
+                    {data.gamification.recentAchievements.map((ach) => (
+                      <div key={ach.id} className="flex items-center gap-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+                        <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400">
+                          <AchievementIcon icon={ach.icon} />
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-xs font-medium text-white/90 truncate">{ach.title}</div>
+                          <div className="text-[10px] text-white/40 truncate">{ach.description}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Progress Timeline */}
-              <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Clock className="w-4 h-4 text-blue-400" />
-                  <h3 className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/70" style={{ fontFamily: 'Orbitron, sans-serif' }}>Your Journey</h3>
-                </div>
-                <div className="relative pl-4 border-l border-white/10 space-y-4">
-                  <div className="relative">
-                    <div className="absolute -left-[21px] w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#0e0e0e]" />
-                    <div className="text-[10px] text-white/40">This Week</div>
-                    <p className="text-xs text-white/70">Working on corner exit patience. Seeing early gains.</p>
+              {/* Journey Timeline */}
+              {data.journeyTimeline && data.journeyTimeline.length > 0 && (
+                <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Clock className="w-4 h-4 text-blue-400" />
+                    <h3 className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/70" style={{ fontFamily: 'Orbitron, sans-serif' }}>Your Journey</h3>
                   </div>
-                  <div className="relative">
-                    <div className="absolute -left-[21px] w-3 h-3 rounded-full bg-[#f97316] border-2 border-[#0e0e0e]" />
-                    <div className="text-[10px] text-white/40">Last Week</div>
-                    <p className="text-xs text-white/70">Completed basic trail braking module. Ready for advanced.</p>
-                  </div>
-                  <div className="relative">
-                    <div className="absolute -left-[21px] w-3 h-3 rounded-full bg-blue-500 border-2 border-[#0e0e0e]" />
-                    <div className="text-[10px] text-white/40">2 Weeks Ago</div>
-                    <p className="text-xs text-white/70">Started consistency phase. 5 clean races in a row.</p>
-                  </div>
-                  <div className="relative">
-                    <div className="absolute -left-[21px] w-3 h-3 rounded-full bg-white/20 border-2 border-[#0e0e0e]" />
-                    <div className="text-[10px] text-white/40">Month Start</div>
-                    <p className="text-xs text-white/70">Completed fundamentals phase. iRating +124.</p>
+                  <div className="relative pl-4 border-l border-white/10 space-y-4">
+                    {data.journeyTimeline.map((entry: JourneyTimelineEntry, idx: number) => (
+                      <div key={idx} className="relative">
+                        <div className={`absolute -left-[21px] w-3 h-3 rounded-full ${getTimelineColor(entry.highlight)} border-2 border-[#0e0e0e]`} />
+                        <div className="flex items-center gap-2">
+                          <div className="text-[10px] text-white/40">{entry.period}</div>
+                          <span className="text-[9px] text-white/20 font-mono">{entry.sessions} session{entry.sessions !== 1 ? 's' : ''}</span>
+                        </div>
+                        <p className="text-xs text-white/70 mt-0.5">{entry.summary}</p>
+                        {entry.iRatingChange !== null && entry.iRatingChange !== 0 && (
+                          <div className={`text-[10px] mt-1 font-mono ${entry.iRatingChange > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                            iRating {entry.iRatingChange > 0 ? '+' : ''}{entry.iRatingChange}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Summary Stats */}
+              {/* Learning Moments */}
+              {data.learningMoments.length > 0 && (
+                <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg overflow-hidden">
+                  <div className="px-4 py-3 border-b border-white/[0.06] flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-purple-400" />
+                    <h3 className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/70" style={{ fontFamily: 'Orbitron, sans-serif' }}>Recent Sessions</h3>
+                  </div>
+                  <div className="divide-y divide-white/[0.04]">
+                    {data.learningMoments.map((moment, idx) => (
+                      <div key={idx} className="p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm text-white/90">{moment.session}</span>
+                          <span className="text-[10px] text-white/40">{moment.date}</span>
+                        </div>
+                        <p className="text-xs text-white/60 mb-2">{moment.insight}</p>
+                        <div className="flex items-center gap-2 text-emerald-400">
+                          <TrendingUp className="w-3 h-3" />
+                          <span className="text-[11px]">{moment.improvement}</span>
+                        </div>
+                        {moment.metric && (
+                          <div className="mt-2 flex items-center gap-4 text-[10px]">
+                            <span className="text-white/40">{moment.metric.label}:</span>
+                            <span className="text-red-400/60 line-through">{moment.metric.before}</span>
+                            <span className="text-white/20">→</span>
+                            <span className="text-emerald-400">{moment.metric.after}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Growth Stats */}
               <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-4">
                   <Zap className="w-4 h-4 text-amber-400" />
                   <h3 className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/70" style={{ fontFamily: 'Orbitron, sans-serif' }}>Growth Summary</h3>
                 </div>
-                <div className="grid grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-mono text-white">12</div>
-                    <div className="text-[9px] text-white/40">Skills Improved</div>
+                {data.growthStats ? (
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-mono text-white">{data.growthStats.sessionsCompleted}</div>
+                      <div className="text-[9px] text-white/40">Sessions</div>
+                    </div>
+                    <div className="text-center">
+                      <div className={`text-2xl font-mono ${data.growthStats.iRatingChange >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {data.growthStats.iRatingChange >= 0 ? '+' : ''}{data.growthStats.iRatingChange}
+                      </div>
+                      <div className="text-[9px] text-white/40">iRating Change</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-mono text-white">{data.growthStats.cleanRaces}</div>
+                      <div className="text-[9px] text-white/40">Clean Races</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-mono text-[#f97316]">{data.growthStats.skillsImproved}</div>
+                      <div className="text-[9px] text-white/40">Skills Lvl 2+</div>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-mono text-emerald-400">+0.4s</div>
-                    <div className="text-[9px] text-white/40">Avg Lap Gain</div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-mono text-white/30">—</div>
+                      <div className="text-[9px] text-white/40">Sessions</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-mono text-white/30">—</div>
+                      <div className="text-[9px] text-white/40">iRating Change</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-mono text-white/30">—</div>
+                      <div className="text-[9px] text-white/40">Clean Races</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-mono text-white/30">—</div>
+                      <div className="text-[9px] text-white/40">Skills Lvl 2+</div>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-mono text-white">8</div>
-                    <div className="text-[9px] text-white/40">Drills Completed</div>
+                )}
+
+                {/* Performance Radar */}
+                {data.growthStats && (
+                  <div className="mt-4 pt-4 border-t border-white/[0.06]">
+                    <div className="text-[9px] uppercase tracking-wider text-white/30 mb-3">Performance Profile</div>
+                    <div className="space-y-2">
+                      {[
+                        { label: 'Pace', value: data.growthStats.pacePercentile, color: 'bg-blue-500' },
+                        { label: 'Consistency', value: data.growthStats.consistencyIndex, color: 'bg-purple-500' },
+                        { label: 'Safety', value: data.growthStats.safetyScore, color: 'bg-emerald-500' },
+                      ].map((stat) => (
+                        <div key={stat.label} className="flex items-center gap-3">
+                          <span className="text-[10px] text-white/50 w-20">{stat.label}</span>
+                          <div className="flex-1 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                            <div className={`h-full ${stat.color} rounded-full transition-all duration-700`} style={{ width: `${stat.value}%` }} />
+                          </div>
+                          <span className="text-[10px] font-mono text-white/50 w-8 text-right">{stat.value}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-mono text-[#f97316]">3</div>
-                    <div className="text-[9px] text-white/40">Focus Areas</div>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           )}
