@@ -203,14 +203,41 @@ router.get('/me/sessions', requireAuth, async (req: Request, res: Response): Pro
 
 /**
  * GET /api/v1/drivers/me/stats
- * Get aggregate stats from iRacing race results
+ * Get aggregate stats — prefers lifetime career stats from iRacing /data/stats/member_career,
+ * falls back to computing from stored race results (limited to sync window).
  */
 router.get('/me/stats', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
         const syncService = getIRacingProfileSyncService();
-        const stats = await syncService.getAggregateStats(req.user!.id);
 
-        // Map to frontend-expected format
+        // Try career stats first (accurate lifetime data from iRacing API)
+        const careerStats = await syncService.getCareerStats(req.user!.id);
+        if (careerStats && careerStats.length > 0) {
+            // iRacing career stats use category names like "oval", "road", "dirt_oval", "dirt_road"
+            // Field names from iRacing: starts, wins, top5, poles, avgStart, avgFinish, avgIncPerRace, lapsLed, totalLaps, category
+            const catMap: Record<string, string> = { 'oval': 'oval', 'road': 'sportsCar', 'dirt_oval': 'dirtOval', 'dirt_road': 'dirtRoad' };
+            const disciplines = careerStats.map((s: any) => ({
+                discipline: catMap[s.category] || s.category || 'sportsCar',
+                starts: s.starts || 0,
+                wins: s.wins || 0,
+                podiums: 0, // Not provided by career endpoint
+                top5s: s.top5 || 0,
+                poles: s.poles || 0,
+                avgStart: s.avgStart || 0,
+                avgFinish: s.avgFinish || 0,
+                avgIncidents: s.avgIncPerRace || 0,
+                totalLaps: s.totalLaps || 0,
+                totalLapsLed: s.lapsLed || 0,
+                avgSof: 0,
+                peakIrating: 0,
+                source: 'career',
+            }));
+            res.json({ disciplines });
+            return;
+        }
+
+        // Fallback: compute from stored race results (limited to sync window)
+        const stats = await syncService.getAggregateStats(req.user!.id);
         const catMap: Record<string, string> = { 'oval': 'oval', 'road': 'sportsCar', 'dirt_oval': 'dirtOval', 'dirt_road': 'dirtRoad' };
         const disciplines = stats.map((s: any) => ({
             discipline: catMap[s.license_category] || s.license_category || 'sportsCar',
@@ -226,6 +253,7 @@ router.get('/me/stats', requireAuth, async (req: Request, res: Response): Promis
             totalLapsLed: parseInt(s.total_laps_led) || 0,
             avgSof: parseInt(s.avg_sof) || 0,
             peakIrating: parseInt(s.peak_irating) || 0,
+            source: 'aggregate',
         }));
 
         res.json({ disciplines });
@@ -331,6 +359,31 @@ router.get('/me/crew-brief', requireAuth, async (req: Request, res: Response): P
     } catch (error) {
         console.error('[IDP] Error fetching crew brief:', error);
         res.status(500).json({ error: 'Failed to fetch crew brief' });
+    }
+});
+
+/**
+ * POST /api/v1/drivers/me/resync-profile
+ * Trigger a full OAuth-based profile + career stats re-sync for the current user
+ */
+router.post('/me/resync-profile', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const syncService = getIRacingProfileSyncService();
+        const profile = await syncService.syncProfile(req.user!.id);
+
+        if (!profile) {
+            res.status(400).json({ error: 'Profile sync failed — no valid iRacing OAuth token' });
+            return;
+        }
+
+        res.json({
+            success: true,
+            displayName: profile.displayName,
+            message: 'Profile and career stats synced from iRacing',
+        });
+    } catch (error) {
+        console.error('[IDP] Error re-syncing profile:', error);
+        res.status(500).json({ error: 'Failed to re-sync profile' });
     }
 });
 

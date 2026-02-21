@@ -122,6 +122,11 @@ export class IRacingProfileSyncService {
                 console.error(`[iRacing Sync] Race results sync failed for user ${userId}:`, err);
             });
 
+            // Also sync career stats (non-blocking)
+            this.syncCareerStats(userId, accessToken, profile.iracingCustomerId).catch(err => {
+                console.error(`[iRacing Sync] Career stats sync failed for user ${userId}:`, err);
+            });
+
             return profile;
 
         } catch (error) {
@@ -390,8 +395,66 @@ export class IRacingProfileSyncService {
         return parseInt(result.rows[0]?.count || '0', 10);
     }
 
+    // -----------------------------------------------------------------
+    // Career Stats (lifetime from iRacing API)
+    // -----------------------------------------------------------------
+
     /**
-     * Get aggregate stats from stored race results
+     * Fetch and store lifetime career stats from iRacing /data/stats/member_career
+     * Returns accurate lifetime wins/starts/top5s/poles per category
+     */
+    async syncCareerStats(userId: string, accessToken: string, custId: string): Promise<any[]> {
+        console.log(`[iRacing Sync] Fetching career stats for user ${userId} (cust_id ${custId})`);
+
+        try {
+            const careerData = await this.iracingApiFetch<any>(accessToken,
+                `/data/stats/member_career?cust_id=${custId}`
+            );
+
+            // Response is { stats: [...] } or directly an array
+            let stats: any[] = [];
+            if (Array.isArray(careerData)) {
+                stats = careerData;
+            } else if (careerData?.stats) {
+                stats = careerData.stats;
+            } else if (careerData?.data) {
+                stats = Array.isArray(careerData.data) ? careerData.data : [];
+            }
+
+            if (stats.length > 0) {
+                await pool.query(
+                    `UPDATE iracing_profiles 
+                     SET career_stats_json = $1, career_stats_synced_at = NOW(), updated_at = NOW() 
+                     WHERE admin_user_id = $2`,
+                    [JSON.stringify(stats), userId]
+                );
+                console.log(`[iRacing Sync] Stored career stats for user ${userId}: ${stats.length} categories`);
+            } else {
+                console.log(`[iRacing Sync] No career stats returned for user ${userId}`);
+            }
+
+            return stats;
+        } catch (error) {
+            console.error(`[iRacing Sync] Career stats sync error for user ${userId}:`, error);
+            return [];
+        }
+    }
+
+    /**
+     * Get stored career stats for a user
+     */
+    async getCareerStats(userId: string): Promise<any[] | null> {
+        const result = await pool.query(
+            `SELECT career_stats_json FROM iracing_profiles WHERE admin_user_id = $1`,
+            [userId]
+        );
+        const row = result.rows[0];
+        if (!row || !row.career_stats_json) return null;
+        return row.career_stats_json;
+    }
+
+    /**
+     * Get aggregate stats from stored race results (fallback when career stats not available)
      */
     async getAggregateStats(userId: string): Promise<any> {
         const result = await pool.query(
