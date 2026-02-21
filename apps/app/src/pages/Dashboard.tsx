@@ -166,32 +166,32 @@ export function Dashboard() {
             Driver Systems
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* HUD */}
-            <div className="bg-black/30 border border-white/5 p-4 opacity-50">
+            {/* Cockpit / HUD */}
+            <Link to="/driver/cockpit" className="bg-black/30 border border-white/10 p-4 hover:border-[#3b82f6]/50 transition-colors group">
               <div className="flex items-center gap-2 mb-2">
-                <Gauge className="w-4 h-4 text-white/40" />
-                <span className="text-xs uppercase tracking-wider text-white/40">HUD Overlay</span>
+                <Gauge className="w-4 h-4 text-[#3b82f6]" />
+                <span className="text-xs uppercase tracking-wider text-white/70 group-hover:text-white">Cockpit</span>
               </div>
-              <span className="text-[10px] text-white/20 uppercase">Coming Soon</span>
-            </div>
+              <span className="text-[10px] text-white/40 group-hover:text-[#3b82f6] transition-colors">Live telemetry & HUD →</span>
+            </Link>
 
             {/* AI Engineer */}
-            <div className="bg-black/30 border border-white/5 p-4 opacity-50">
+            <Link to="/driver/crew/engineer" className="bg-black/30 border border-white/10 p-4 hover:border-[#f97316]/50 transition-colors group">
               <div className="flex items-center gap-2 mb-2">
-                <Mic className="w-4 h-4 text-white/40" />
-                <span className="text-xs uppercase tracking-wider text-white/40">AI Engineer</span>
+                <Mic className="w-4 h-4 text-[#f97316]" />
+                <span className="text-xs uppercase tracking-wider text-white/70 group-hover:text-white">AI Engineer</span>
               </div>
-              <span className="text-[10px] text-white/20 uppercase">Coming Soon</span>
-            </div>
+              <span className="text-[10px] text-white/40 group-hover:text-[#f97316] transition-colors">Setup & strategy chat →</span>
+            </Link>
 
             {/* AI Spotter */}
-            <div className="bg-black/30 border border-white/5 p-4 opacity-50">
+            <Link to="/driver/crew/spotter" className="bg-black/30 border border-white/10 p-4 hover:border-[#22c55e]/50 transition-colors group">
               <div className="flex items-center gap-2 mb-2">
-                <Radio className="w-4 h-4 text-white/40" />
-                <span className="text-xs uppercase tracking-wider text-white/40">AI Spotter</span>
+                <Radio className="w-4 h-4 text-[#22c55e]" />
+                <span className="text-xs uppercase tracking-wider text-white/70 group-hover:text-white">AI Spotter</span>
               </div>
-              <span className="text-[10px] text-white/20 uppercase">Coming Soon</span>
-            </div>
+              <span className="text-[10px] text-white/40 group-hover:text-[#22c55e] transition-colors">Race awareness & calls →</span>
+            </Link>
 
             {/* Driver Cam */}
             <div className="bg-black/30 border border-white/5 p-4 opacity-50">

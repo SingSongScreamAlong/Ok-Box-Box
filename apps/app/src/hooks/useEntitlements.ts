@@ -130,13 +130,12 @@ export function useEntitlements(): UserEntitlements & {
     }
 
     try {
-      // TODO: Fetch from subscriptions table
+      // TODO: Fetch from subscriptions table when billing is live
       // For now, check user metadata or default to free
       const tier = (user.user_metadata?.subscription_tier as EntitlementTier) || 'free';
       
-      // In development/winter testing, grant team tier to all users
-      const isDev = import.meta.env.DEV;
-      const effectiveTier = isDev ? 'team' : tier;
+      // Winter testing: grant team tier to all authenticated users
+      const effectiveTier = tier === 'free' ? 'team' : tier;
       
       setEntitlements({
         ...TIER_MAP[effectiveTier],

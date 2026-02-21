@@ -1,13 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getDriverProfile, updateDriverProfile, DriverProfile } from '../../lib/driverProfile';
-import { User, Hash, Edit2, Check, X, Loader2 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { User, Hash, Edit2, Check, X, Loader2, Link2, Unlink, CheckCircle, AlertTriangle } from 'lucide-react';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
 
 export function DriverProfilePage() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [profile, setProfile] = useState<DriverProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // iRacing link state
+  const [iracingStatus, setIracingStatus] = useState<{
+    linked: boolean;
+    iracingDisplayName?: string;
+    iracingCustomerId?: string;
+    isValid?: boolean;
+  } | null>(null);
+  const [iracingLoading, setIracingLoading] = useState(true);
+  const [iracingError, setIracingError] = useState('');
   const [editingName, setEditingName] = useState(false);
   const [editingCustId, setEditingCustId] = useState(false);
   const [tempName, setTempName] = useState('');
@@ -33,6 +46,67 @@ export function DriverProfilePage() {
     }
     loadProfile();
   }, [user]);
+
+  // Check iRacing link status
+  useEffect(() => {
+    async function checkIracingStatus() {
+      if (!session?.access_token) {
+        setIracingLoading(false);
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/oauth/iracing/status`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setIracingStatus(data);
+        }
+      } catch (err) {
+        console.error('Failed to check iRacing status:', err);
+      } finally {
+        setIracingLoading(false);
+      }
+    }
+    checkIracingStatus();
+
+    // Check URL params for OAuth callback result
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('iracing_linked') === 'true') {
+      const name = params.get('name');
+      setIracingStatus({ linked: true, iracingDisplayName: name || undefined, isValid: true });
+      setIracingLoading(false);
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (params.get('iracing_error')) {
+      setIracingError(`iRacing link failed: ${params.get('iracing_error')}`);
+      setIracingLoading(false);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [session?.access_token]);
+
+  const handleConnectIRacing = async () => {
+    const { data: { session: s } } = await supabase.auth.getSession();
+    const token = s?.access_token || '';
+    window.location.href = `${API_BASE}/api/oauth/iracing/start?token=${encodeURIComponent(token)}`;
+  };
+
+  const handleDisconnectIRacing = async () => {
+    if (!session?.access_token) return;
+    const confirmed = window.confirm('Disconnect your iRacing account? You can reconnect anytime.');
+    if (!confirmed) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/oauth/iracing/revoke`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) {
+        setIracingStatus({ linked: false });
+        setIracingError('');
+      }
+    } catch (err) {
+      setIracingError('Failed to disconnect iRacing account');
+    }
+  };
 
   const handleSaveName = async () => {
     if (!profile || !user) return;
@@ -265,7 +339,7 @@ export function DriverProfilePage() {
         </div>
       </div>
 
-      {/* Linked Identities Placeholder */}
+      {/* Linked Racing Identities */}
       <div className="bg-black/40 backdrop-blur-sm border border-white/10 p-6">
         <h2 
           className="text-xs uppercase tracking-[0.15em] text-white/60 mb-4"
@@ -273,8 +347,56 @@ export function DriverProfilePage() {
         >
           Linked Racing Identities
         </h2>
-        <div className="text-center py-8 text-white/30 text-sm">
-          Identity linking coming soon
+
+        {iracingError && (
+          <div className="flex items-center gap-2 text-red-400 text-sm mb-4 bg-red-500/10 border border-red-500/20 p-3">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            {iracingError}
+          </div>
+        )}
+
+        {/* iRacing */}
+        <div className="border border-white/10 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#1a73e8]/20 border border-[#1a73e8]/30 flex items-center justify-center">
+                <span className="text-[#1a73e8] font-bold text-sm">iR</span>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-white">iRacing</div>
+                {iracingLoading ? (
+                  <div className="flex items-center gap-1 text-xs text-white/40">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Checking...
+                  </div>
+                ) : iracingStatus?.linked ? (
+                  <div className="flex items-center gap-1 text-xs text-green-400">
+                    <CheckCircle className="w-3 h-3" />
+                    Connected{iracingStatus.iracingDisplayName ? ` as ${iracingStatus.iracingDisplayName}` : ''}
+                    {iracingStatus.iracingCustomerId ? ` (#${iracingStatus.iracingCustomerId})` : ''}
+                  </div>
+                ) : (
+                  <div className="text-xs text-white/40">Not connected</div>
+                )}
+              </div>
+            </div>
+            <div>
+              {iracingLoading ? null : iracingStatus?.linked ? (
+                <button
+                  onClick={handleDisconnectIRacing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-red-400 border border-red-500/30 hover:bg-red-500/10 transition-colors"
+                >
+                  <Unlink className="w-3 h-3" /> Disconnect
+                </button>
+              ) : (
+                <button
+                  onClick={handleConnectIRacing}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-[#1a73e8] border border-[#1a73e8]/30 hover:bg-[#1a73e8]/10 transition-colors"
+                >
+                  <Link2 className="w-3 h-3" /> Connect
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
