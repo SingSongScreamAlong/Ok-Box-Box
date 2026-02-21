@@ -5,6 +5,7 @@ export * from './iracing-sync.service.js';
 export * from './session-metrics.service.js';
 export * from './report-generation.service.js';
 export * from './pipeline.service.js';
+export * from './driver-memory.service.js';
 
 import { getGlobalAggregate } from '../../../db/repositories/driver-aggregates.repo.js';
 import { getCurrentTraits } from '../../../db/repositories/driver-traits.repo.js';
