@@ -480,14 +480,18 @@ export function DriverProgress() {
                         <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Practice Drills</div>
                         <div className="space-y-2">
                           {area.drills.map((drill, idx) => (
-                            <div key={idx} className={`flex items-center gap-3 p-2 rounded ${drill.completed ? 'bg-emerald-500/10' : 'bg-white/[0.02]'}`}>
+                            <button
+                              key={idx}
+                              onClick={() => handleDrillToggle(area.id, drill.name, !drill.completed)}
+                              className={`flex items-center gap-3 p-2 rounded w-full text-left transition-colors hover:bg-white/[0.04] ${drill.completed ? 'bg-emerald-500/10' : 'bg-white/[0.02]'}`}
+                            >
                               {drill.completed ? (
-                                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                               ) : (
-                                <Circle className="w-4 h-4 text-white/20" />
+                                <Circle className="w-4 h-4 text-white/20 shrink-0" />
                               )}
-                              <span className={`text-xs ${drill.completed ? 'text-white/60' : 'text-white/80'}`}>{drill.name}</span>
-                            </div>
+                              <span className={`text-xs ${drill.completed ? 'text-white/60 line-through' : 'text-white/80'}`}>{drill.name}</span>
+                            </button>
                           ))}
                         </div>
                       </div>
