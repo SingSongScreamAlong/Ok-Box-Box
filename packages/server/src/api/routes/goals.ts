@@ -293,6 +293,50 @@ router.post('/accept-suggestion', async (req: Request, res: Response) => {
 });
 
 // =====================================================================
+// GET /api/v1/goals/achievements
+// Get recent achievements
+// =====================================================================
+router.get('/achievements', async (req: Request, res: Response) => {
+    try {
+        const userId = req.user!.id;
+
+        const driverProfileId = await getDriverProfileId(userId);
+        if (!driverProfileId) {
+            res.status(404).json({ error: 'Driver profile not found' });
+            return;
+        }
+
+        const result = await pool.query(
+            `SELECT 
+                ga.id, ga.achieved_value, ga.celebration_message, ga.achieved_at,
+                dg.title, dg.category, dg.target_value
+             FROM goal_achievements ga
+             JOIN driver_goals dg ON ga.goal_id = dg.id
+             WHERE ga.driver_profile_id = $1
+             ORDER BY ga.achieved_at DESC
+             LIMIT 20`,
+            [driverProfileId]
+        );
+
+        res.json({
+            achievements: result.rows.map(row => ({
+                id: row.id,
+                goalTitle: row.title,
+                category: row.category,
+                targetValue: parseFloat(row.target_value),
+                achievedValue: parseFloat(row.achieved_value),
+                celebrationMessage: row.celebration_message,
+                achievedAt: row.achieved_at
+            }))
+        });
+
+    } catch (error) {
+        console.error('[Goals API] Error fetching achievements:', error);
+        res.status(500).json({ error: 'Failed to fetch achievements' });
+    }
+});
+
+// =====================================================================
 // PATCH /api/v1/goals/:goalId
 // Update a goal (progress, status, etc.)
 // =====================================================================
@@ -448,50 +492,6 @@ router.get('/:goalId/history', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('[Goals API] Error fetching history:', error);
         res.status(500).json({ error: 'Failed to fetch history' });
-    }
-});
-
-// =====================================================================
-// GET /api/v1/goals/achievements
-// Get recent achievements
-// =====================================================================
-router.get('/achievements', async (req: Request, res: Response) => {
-    try {
-        const userId = req.user!.id;
-
-        const driverProfileId = await getDriverProfileId(userId);
-        if (!driverProfileId) {
-            res.status(404).json({ error: 'Driver profile not found' });
-            return;
-        }
-
-        const result = await pool.query(
-            `SELECT 
-                ga.id, ga.achieved_value, ga.celebration_message, ga.achieved_at,
-                dg.title, dg.category, dg.target_value
-             FROM goal_achievements ga
-             JOIN driver_goals dg ON ga.goal_id = dg.id
-             WHERE ga.driver_profile_id = $1
-             ORDER BY ga.achieved_at DESC
-             LIMIT 20`,
-            [driverProfileId]
-        );
-
-        res.json({
-            achievements: result.rows.map(row => ({
-                id: row.id,
-                goalTitle: row.title,
-                category: row.category,
-                targetValue: parseFloat(row.target_value),
-                achievedValue: parseFloat(row.achieved_value),
-                celebrationMessage: row.celebration_message,
-                achievedAt: row.achieved_at
-            }))
-        });
-
-    } catch (error) {
-        console.error('[Goals API] Error fetching achievements:', error);
-        res.status(500).json({ error: 'Failed to fetch achievements' });
     }
 });
 
