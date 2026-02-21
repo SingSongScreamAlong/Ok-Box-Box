@@ -142,8 +142,8 @@ export function DriverProgress() {
     );
   }
 
-  // When no development data exists, show iRacing profile overview
-  if (!data || !data.focusAreas || data.focusAreas.length === 0) {
+  // When no development data exists at all, show iRacing profile overview
+  if (!data) {
     return (
       <div className="max-w-4xl mx-auto py-8 px-4 space-y-8">
         <div>
@@ -434,6 +434,15 @@ export function DriverProgress() {
 
           {activeSection === 'focus' && (
             <div className="space-y-4">
+              {/* Empty state */}
+              {data.focusAreas.length === 0 && (
+                <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg p-8 text-center">
+                  <Target className="w-10 h-10 text-white/15 mx-auto mb-3" />
+                  <h3 className="text-sm text-white/60 mb-1">No Focus Areas Yet</h3>
+                  <p className="text-xs text-white/30 max-w-sm mx-auto">Complete more sessions with the relay to unlock personalized focus areas and practice drills.</p>
+                </div>
+              )}
+
               {/* Focus Areas */}
               {data.focusAreas.map(area => (
                 <div key={area.id} className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg overflow-hidden">

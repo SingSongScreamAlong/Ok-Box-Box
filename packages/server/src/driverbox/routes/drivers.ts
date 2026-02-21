@@ -1531,6 +1531,18 @@ function buildFocusAreas(traits: any[], metrics: any[]): any[] {
                 drills: getDrills('consistency'), recentImprovement: getRecentImprovement('lap_time_std_dev_ms'),
             });
         }
+
+        // Always provide at least one focus area when we have metrics
+        if (areas.length === 0) {
+            const avgPace = metrics.reduce((s: number, m: any) => s + (parseFloat(m.pace_percentile) || 0), 0) / metrics.length;
+            areas.push({
+                id: 'auto-pace', title: 'Pace Development', description: `Current pace: P${Math.round(avgPace)}%`,
+                insight: 'Finding more speed while maintaining consistency is the key to climbing',
+                evidence: `P${Math.round(avgPace)}% average pace across ${metrics.length} sessions`,
+                progress: Math.round(avgPace),
+                drills: getDrills('pace'), recentImprovement: getRecentImprovement('pace_percentile'),
+            });
+        }
     }
 
     return areas;

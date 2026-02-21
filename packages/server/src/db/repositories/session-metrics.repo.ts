@@ -113,8 +113,8 @@ export async function getMetricsForDriver(
     limit: number = 50,
     offset: number = 0
 ): Promise<SessionMetrics[]> {
-    const result = await pool.query<SessionMetrics>(
-        `SELECT sm.* FROM session_metrics sm
+    const result = await pool.query<SessionMetrics & { track_name?: string }>(
+        `SELECT sm.*, s.track_name FROM session_metrics sm
      JOIN sessions s ON s.id = sm.session_id
      WHERE sm.driver_profile_id = $1
      ORDER BY s.started_at DESC
