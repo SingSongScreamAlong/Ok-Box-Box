@@ -427,6 +427,93 @@ export async function fetchTeamStrategy(teamId: string): Promise<any | null> {
 }
 
 /**
+ * Fetch a driver's full profile data for team context
+ * Uses existing public/team endpoints: /:id, /:id/performance, /:id/sessions, /:id/traits
+ */
+export interface TeamDriverProfile {
+  profile: {
+    id: string;
+    display_name: string;
+    avatar_url: string | null;
+    bio: string | null;
+    primary_discipline: string;
+    total_sessions: number;
+    total_laps: number;
+    total_incidents: number;
+  } | null;
+  performance: {
+    global: any;
+    traits: { key: string; label: string; category: string; confidence: number }[];
+  } | null;
+  sessions: {
+    id: string;
+    session_name: string | null;
+    track_name: string | null;
+    total_laps: number;
+    best_lap_time_ms: number | null;
+    incident_count: number;
+    finish_position: number | null;
+    start_position: number | null;
+    irating_change: number | null;
+    date: string;
+  }[];
+}
+
+export async function fetchDriverProfileForTeam(driverId: string): Promise<TeamDriverProfile | null> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) return null;
+
+    const headers = { ...auth, 'Content-Type': 'application/json' };
+
+    const [profileRes, perfRes, sessionsRes] = await Promise.all([
+      fetch(`${API_BASE}/api/v1/drivers/${driverId}`, { headers }),
+      fetch(`${API_BASE}/api/v1/drivers/${driverId}/performance`, { headers }),
+      fetch(`${API_BASE}/api/v1/drivers/${driverId}/sessions?limit=20`, { headers }),
+    ]);
+
+    const profile = profileRes.ok ? await profileRes.json() : null;
+    const perf = perfRes.ok ? await perfRes.json() : null;
+    const sessData = sessionsRes.ok ? await sessionsRes.json() : null;
+
+    // Map sessions from backend format
+    const sessions = (sessData?.sessions || sessData?.results || []).map((s: any) => ({
+      id: s.id || s.subsession_id || '',
+      session_name: s.session_name || s.series_name || null,
+      track_name: s.track_name || null,
+      total_laps: s.total_laps || s.laps_complete || 0,
+      best_lap_time_ms: s.best_lap_time_ms || null,
+      incident_count: s.incident_count ?? s.incidents ?? 0,
+      finish_position: s.finish_position ?? s.finish_pos ?? null,
+      start_position: s.start_position ?? s.start_pos ?? null,
+      irating_change: s.irating_change ?? ((s.newi_rating != null && s.oldi_rating != null) ? (s.newi_rating - s.oldi_rating) : null),
+      date: s.date || s.started_at || s.session_start_time || '',
+    }));
+
+    return {
+      profile: profile ? {
+        id: profile.id,
+        display_name: profile.display_name,
+        avatar_url: profile.avatar_url || null,
+        bio: profile.bio || null,
+        primary_discipline: profile.primary_discipline || 'road',
+        total_sessions: profile.total_sessions || 0,
+        total_laps: profile.total_laps || 0,
+        total_incidents: profile.total_incidents || 0,
+      } : null,
+      performance: perf ? {
+        global: perf.global,
+        traits: perf.traits || [],
+      } : null,
+      sessions,
+    };
+  } catch (error) {
+    console.error('[Team] Error fetching driver profile:', error);
+    return null;
+  }
+}
+
+/**
  * Fetch team roster (uses existing backend endpoint)
  */
 export async function fetchTeamRoster(teamId: string): Promise<any> {
