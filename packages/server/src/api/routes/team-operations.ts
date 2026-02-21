@@ -561,4 +561,75 @@ router.delete('/:teamId/stints/:stintId', async (req: Request, res: Response) =>
     }
 });
 
+// =====================================================================
+// GET /api/v1/teams/:teamId/incidents
+// Get recent incidents for team members from iRacing race results
+// =====================================================================
+router.get('/:teamId/incidents', async (req: Request, res: Response) => {
+    try {
+        const userId = req.user!.id;
+        const { teamId } = req.params;
+        const { limit: limitParam } = req.query;
+        const resultLimit = Math.min(parseInt(limitParam as string) || 50, 100);
+
+        const hasAccess = await checkTeamAccess(userId, teamId);
+        if (!hasAccess) {
+            res.status(403).json({ error: 'Not a member of this team' });
+            return;
+        }
+
+        // Query iRacing race results for team members that had incidents
+        const result = await pool.query(
+            `SELECT 
+                r.id,
+                r.subsession_id,
+                r.track_name,
+                r.car_name,
+                r.session_start_time,
+                r.event_type,
+                r.incidents,
+                r.laps_complete,
+                r.start_position,
+                r.finish_position,
+                r.irating_change,
+                dp.display_name as driver_name,
+                dp.id as driver_profile_id
+             FROM iracing_race_results r
+             JOIN driver_profiles dp ON dp.user_account_id = r.admin_user_id
+             JOIN team_memberships tm ON tm.driver_profile_id = dp.id AND tm.team_id = $1 AND tm.status = 'active'
+             WHERE r.incidents > 0
+             ORDER BY r.session_start_time DESC
+             LIMIT $2`,
+            [teamId, resultLimit]
+        );
+
+        // Group by session for a cleaner view
+        const incidents = result.rows.map(row => ({
+            id: row.id,
+            sessionId: row.subsession_id?.toString(),
+            sessionName: `${row.track_name || 'Unknown Track'} ${row.event_type || 'Race'}`,
+            trackName: row.track_name,
+            carName: row.car_name,
+            timestamp: row.session_start_time,
+            eventType: row.event_type,
+            incidentCount: row.incidents,
+            lapsComplete: row.laps_complete,
+            startPosition: row.start_position,
+            finishPosition: row.finish_position,
+            iratingChange: row.irating_change,
+            driverName: row.driver_name,
+            driverProfileId: row.driver_profile_id,
+            severity: row.incidents >= 8 ? 'heavy' : row.incidents >= 4 ? 'medium' : 'light',
+        }));
+
+        res.json({
+            incidents,
+            total: incidents.length,
+        });
+    } catch (error) {
+        console.error('[Team API] Error fetching incidents:', error);
+        res.status(500).json({ error: 'Failed to fetch team incidents' });
+    }
+});
+
 export default router;
