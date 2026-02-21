@@ -15,42 +15,6 @@ interface TeamEvent {
   drivers: number;
 }
 
-const mockEvents: TeamEvent[] = [
-  {
-    id: 'te1',
-    name: 'Daytona 24 Hours',
-    track: 'Daytona International Speedway',
-    date: '2026-01-25',
-    time: '13:30',
-    duration: '24h',
-    type: 'endurance',
-    status: 'upcoming',
-    drivers: 4
-  },
-  {
-    id: 'te2',
-    name: 'Spa 6 Hours',
-    track: 'Circuit de Spa-Francorchamps',
-    date: '2026-02-15',
-    time: '14:00',
-    duration: '6h',
-    type: 'endurance',
-    status: 'upcoming',
-    drivers: 3
-  },
-  {
-    id: 'te3',
-    name: 'Sebring 12 Hours',
-    track: 'Sebring International Raceway',
-    date: '2026-03-20',
-    time: '10:00',
-    duration: '12h',
-    type: 'endurance',
-    status: 'upcoming',
-    drivers: 4
-  }
-];
-
 const statusStyles: Record<string, string> = {
   upcoming: 'bg-[#f97316]/20 text-[#f97316] border-[#f97316]/30',
   live: 'bg-green-500/20 text-green-400 border-green-500/30',

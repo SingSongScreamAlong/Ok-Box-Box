@@ -119,10 +119,11 @@ export function Team() {
                                 </p>
                             </div>
                             <div>
-                                <h3 className="text-xs uppercase tracking-wider text-white font-semibold mb-2">Spotter / Engineer Workflows</h3>
+                                <h3 className="text-xs uppercase tracking-wider text-white font-semibold mb-2">Race Planning + Stint Management</h3>
                                 <p className="text-white/70">
-                                    Purpose-built views for spotters and engineers. Each role sees what they need 
-                                    without being overwhelmed by information meant for someone else.
+                                    Plan race strategies, manage stint rotations, and track fuel windows 
+                                    with shared tools. Compare driver performance across the roster 
+                                    and make data-informed decisions about who drives when.
                                 </p>
                             </div>
                         </div>

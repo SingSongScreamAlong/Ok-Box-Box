@@ -33,8 +33,8 @@ function SystemSection() {
                     <Link to="/driver" className="text-center hover:translate-y-[-2px] transition-transform duration-150 group cursor-pointer">
                         <div className="text-sm uppercase tracking-[0.2em] font-semibold text-white mb-3 group-hover:text-[#3b82f6] transition-colors duration-150" style={{ textShadow: '0 2px 4px rgba(0,0,0,0.8)' }}>Driver</div>
                         <p className="text-base text-white/80 leading-relaxed" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}>
-                            Identity. Telemetry. Sessions.<br />
-                            Starts with the Relay.
+                            Identity. Intelligence. Development.<br />
+                            Your crew is always on.
                         </p>
                     </Link>
                     <Link to="/team" className="text-center hover:translate-y-[-2px] transition-transform duration-150 group cursor-pointer">

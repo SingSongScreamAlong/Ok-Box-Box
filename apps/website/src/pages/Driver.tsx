@@ -57,8 +57,8 @@ export function Driver() {
                             Driver
                         </h1>
                         <p className="text-sm text-white/70 leading-relaxed">
-                            Identity. Telemetry. Sessions.<br />
-                            Starts with the Relay.
+                            Identity. Intelligence. Development.<br />
+                            Your crew is always on.
                         </p>
                     </div>
                 </div>
@@ -71,20 +71,22 @@ export function Driver() {
                         index={0}
                         id="overview"
                         title="Overview"
-                        subtitle="Driver access is built around continuity and personal performance."
+                        subtitle="A persistent racing identity with AI crew intelligence and structured development."
                         stripeColor="#3b82f6"
                     >
                         <div className="text-sm text-white/80 leading-relaxed space-y-4">
                             <p>
-                                Driver access is built around continuity and personal performance.
+                                Driver access is built around continuity, intelligence, and structured development.
                             </p>
                             <p>
-                                The system maintains a persistent driver identity across sessions, tracks, and seasons. 
-                                Telemetry, results, and session history stay connected so progress is not lost between races.
+                                The system maintains a persistent driver identity across sessions, tracks, and seasons.
+                                Every result, every incident, every iRating change feeds into a living profile that tracks
+                                your progression — not just your stats.
                             </p>
                             <p>
-                                Instead of treating each session as an isolated event, drivers can review patterns, 
-                                compare runs, and understand how changes in setup, conditions, or approach affect performance over time.
+                                You get an AI crew — Engineer, Spotter, and Analyst — that knows your data and gives
+                                specific, grounded advice based on your actual performance. No generic tips.
+                                Real analysis from your real sessions.
                             </p>
                         </div>
                     </StackingSection>
@@ -93,42 +95,55 @@ export function Driver() {
                         index={1}
                         id="what-you-get"
                         title="What You Get"
-                        subtitle="Identity, telemetry, session history, and driver-focused views."
+                        subtitle="AI crew, development tracking, live cockpit, and full session intelligence."
                         stripeColor="#3b82f6"
                     >
                         <div className="text-sm text-white/80 leading-relaxed space-y-6">
                             <div>
-                                <h3 className="text-xs uppercase tracking-wider text-white font-semibold mb-2">Driver Identity (IDP)</h3>
+                                <h3 className="text-xs uppercase tracking-wider text-white font-semibold mb-2">AI Crew — Engineer, Spotter, Analyst</h3>
                                 <p className="text-white/70">
-                                    A persistent identity that follows you across sessions, tracks, and seasons. 
-                                    Your racing history stays connected instead of scattered across tools and exports.
+                                    Three AI crew members that study your actual session data and give targeted advice.
+                                    Your Engineer focuses on strategy and race preparation. Your Spotter analyzes racecraft
+                                    and situational awareness. Your Analyst breaks down performance trends, track-specific
+                                    strengths, and areas for improvement — all grounded in your real numbers.
                                 </p>
                             </div>
                             <div>
-                                <h3 className="text-xs uppercase tracking-wider text-white font-semibold mb-2">Session History</h3>
+                                <h3 className="text-xs uppercase tracking-wider text-white font-semibold mb-2">Individual Development Plan (IDP)</h3>
                                 <p className="text-white/70">
-                                    Every session is recorded and accessible. Review past performances, 
-                                    compare conditions, and track progress without manual exports or external tools.
+                                    A structured progression system with skill trees, focus areas, and coaching notes
+                                    derived from your performance data. Track your development phase, earn XP,
+                                    unlock achievements, and see exactly where you are improving and where to focus next.
                                 </p>
                             </div>
                             <div>
-                                <h3 className="text-xs uppercase tracking-wider text-white font-semibold mb-2">Telemetry + Trends</h3>
+                                <h3 className="text-xs uppercase tracking-wider text-white font-semibold mb-2">Consistency Performance Index (CPI)</h3>
                                 <p className="text-white/70">
-                                    Live telemetry streams from the Relay. Historical data builds over time, 
-                                    revealing patterns in your driving that single-session tools cannot show.
+                                    A composite score that measures your overall consistency across incidents, pace,
+                                    and finishing positions. CPI gives you a single number that reflects how reliably
+                                    you perform — not just how fast you are on your best day.
                                 </p>
                             </div>
                             <div>
-                                <h3 className="text-xs uppercase tracking-wider text-white font-semibold mb-2">Driver Views</h3>
+                                <h3 className="text-xs uppercase tracking-wider text-white font-semibold mb-2">Live Cockpit + Telemetry</h3>
                                 <p className="text-white/70">
-                                    Purpose-built interfaces for reviewing your own data. 
-                                    No team overhead, no league complexity — just what matters to you as a driver.
+                                    A second-screen cockpit view with live position, lap times, fuel status,
+                                    track map, leaderboard, and team radio — all streaming from the Relay in real time.
+                                    iRating trends and session history build automatically over time.
+                                </p>
+                            </div>
+                            <div>
+                                <h3 className="text-xs uppercase tracking-wider text-white font-semibold mb-2">Session History + Track Analysis</h3>
+                                <p className="text-white/70">
+                                    Every session is recorded with full context — finish position, incidents, iRating change,
+                                    positions gained, and more. Per-track analysis shows your performance trends, strengths,
+                                    and weaknesses at specific circuits over time.
                                 </p>
                             </div>
                             <div>
                                 <h3 className="text-xs uppercase tracking-wider text-white font-semibold mb-2">Relay Connectivity</h3>
                                 <p className="text-white/70">
-                                    The Relay is the bridge between iRacing and Ok, Box Box. 
+                                    The Relay is the bridge between iRacing and Ok, Box Box.
                                     It runs locally, observes your sessions, and transmits data securely to the platform.
                                 </p>
                             </div>
@@ -139,20 +154,21 @@ export function Driver() {
                         index={2}
                         id="who-its-for"
                         title="Who It's For"
-                        subtitle="Drivers who want progress that carries forward."
+                        subtitle="Drivers who want structured development, not just lap times."
                         stripeColor="#3b82f6"
                     >
                         <div className="text-sm text-white/80 leading-relaxed space-y-4">
                             <p>
-                                Drivers who want progress that carries forward — not one-off sessions.
+                                Drivers who want structured development — not just lap times and leaderboard positions.
                             </p>
                             <p>
-                                If you race alone and want to track your own performance over time, 
-                                the driver tier is sufficient. You do not need team or league access to use Ok, Box Box.
+                                If you want to understand why your results look the way they do, where your consistency
+                                breaks down, and what to focus on next — the driver tier gives you that intelligence.
+                                You do not need team or league access to use Ok, Box Box.
                             </p>
                             <p className="text-white/60">
-                                Every driver begins with the Relay. It establishes the data connection 
-                                and unlocks driver-focused views without requiring teams or league involvement.
+                                Every driver begins with the Relay. It establishes the data connection
+                                and unlocks your crew, your development plan, and your full session intelligence.
                             </p>
                         </div>
                     </StackingSection>

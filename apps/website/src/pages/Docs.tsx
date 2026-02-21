@@ -119,22 +119,28 @@ export function Docs() {
                         index={1}
                         id="for-drivers"
                         title="For Drivers"
-                        subtitle="Continuity and personal performance."
+                        subtitle="AI crew intelligence, structured development, and session analysis."
                         stripeColor="#3b82f6"
                     >
                         <div className="text-sm text-white/80 leading-relaxed space-y-4">
                             <p>
-                                For drivers, Ok, Box Box is about continuity and personal performance.
+                                For drivers, Ok, Box Box is about intelligence, development, and continuity.
                             </p>
                             <p>
-                                The system maintains a persistent driver identity across sessions, tracks, and seasons. Telemetry, results, and session history stay connected so progress is not lost between races.
+                                The system maintains a persistent driver identity across sessions, tracks, and seasons.
+                                Every result feeds into an AI crew — Engineer, Spotter, and Analyst — that gives
+                                specific, data-grounded advice based on your actual performance history.
                             </p>
                             <p>
-                                Instead of treating each session as an isolated event, drivers can review patterns, compare runs, and understand how changes in setup, conditions, or approach affect performance over time.
+                                An Individual Development Plan (IDP) tracks your progression with skill trees,
+                                focus areas, coaching notes, and a Consistency Performance Index (CPI) that measures
+                                how reliably you perform across sessions. A live cockpit provides a second-screen
+                                view during races with real-time telemetry, leaderboard, and team radio.
                             </p>
                             <p className="text-white/50">
                                 Every driver begins with the Relay.
-                                It establishes the data connection and unlocks driver-focused views without requiring teams or league involvement.
+                                It establishes the data connection and unlocks your crew, your development plan,
+                                and your full session intelligence.
                             </p>
                             <Link to="/driver" className="text-xs text-[#3b82f6]/70 hover:text-[#3b82f6] transition-colors duration-150 inline-block">
                                 Learn more about Driver access →
@@ -146,7 +152,7 @@ export function Docs() {
                         index={2}
                         id="for-teams"
                         title="For Teams"
-                        subtitle="Coordination and shared decision-making."
+                        subtitle="Shared pit wall, race planning, and multi-driver coordination."
                         stripeColor="#f97316"
                     >
                         <div className="text-sm text-white/80 leading-relaxed space-y-4">
@@ -157,10 +163,12 @@ export function Docs() {
                                 Teams operate through a shared pit wall that brings timing, strategy, and driver context into a single, consistent view. Everyone sees the same information at the same time.
                             </p>
                             <p>
-                                The system is designed for endurance racing, multi-driver lineups, and organized teams where communication, timing, and context matter as much as raw pace.
+                                Plan stints, manage driver rotations, compare driver performance across the roster,
+                                and coordinate race strategy with shared tools designed for endurance racing
+                                and multi-driver lineups.
                             </p>
                             <p className="text-white/50">
-                                Teams can plan stints, review sessions, and coordinate strategy without relying on external tools or fragmented communication.
+                                Teams can plan races, track fuel windows, and coordinate strategy without relying on external tools or fragmented communication.
                             </p>
                             <Link to="/team" className="text-xs text-[#f97316]/70 hover:text-[#f97316] transition-colors duration-150 inline-block">
                                 Learn more about Team access →

@@ -301,15 +301,15 @@ export function Pricing() {
                         videoPosition="30% center"
                         videosReady={videosReady}
                         bullets={[
-                            "Driver IDP + session history",
-                            "Telemetry + trends over time",
-                            "Driver views",
-                            "Relay connectivity"
+                            "AI Crew — Engineer, Spotter, Analyst",
+                            "Development plan + skill progression",
+                            "CPI scoring + performance trends",
+                            "Live cockpit + session history"
                         ]}
                         ctaText="Get Started"
                         ctaStyle="outline"
                         expanders={[
-                            { title: "What you get", content: "Driver access is built around continuity. Your sessions, telemetry, and results stay connected across tracks and seasons so you can review patterns, compare runs, and understand what actually improved your pace." },
+                            { title: "What you get", content: "Three AI crew members grounded in your real data. A structured development plan with skill trees, focus areas, and coaching notes. CPI consistency scoring. A live second-screen cockpit. Full session history with per-track performance analysis. iRating trends over time." },
                             { title: "Who it's for", content: "Drivers who want progress that carries forward — not one-off sessions." },
                             { title: "Trial access", content: "During testing phases, driver trials are rate-limited and focused on core driver workflows. You'll be able to connect the Relay, view key driver screens, and validate the experience without full access to team or league operations.", showCta: true }
                         ]}
@@ -325,12 +325,12 @@ export function Pricing() {
                             "Shared pit wall",
                             "Strategy + timing coordination",
                             "Multi-driver context",
-                            "Spotter / engineer workflows"
+                            "Race planning + stint management"
                         ]}
                         ctaText="Start Trial"
                         ctaStyle="primary"
                         expanders={[
-                            { title: "What you get", content: "Team access exists because racing decisions are shared. The pit wall brings timing, strategy, and driver context into one coordinated view so everyone is operating off the same reality in real time." },
+                            { title: "What you get", content: "A shared pit wall that brings timing, strategy, and driver context into one coordinated view. Plan stints, manage driver rotations, compare driver performance, and coordinate race strategy — all in real time." },
                             { title: "Who it's for", content: "Teams running endurance, multi-driver programs, or any group that needs coordination under pressure." },
                             { title: "Trial access", content: "Team trials are guided and rate-limited. You can explore how teams operate inside the system and preview coordination workflows, but full live race operation tools remain restricted until the platform is ready for broader use.", showCta: true }
                         ]}
