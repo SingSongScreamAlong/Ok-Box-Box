@@ -520,6 +520,33 @@ export function DriverProgress() {
                   ))}
                 </div>
               </div>
+
+              {/* Next Session Plan */}
+              {data.nextSession && (
+                <div className="bg-gradient-to-br from-[#f97316]/5 to-transparent backdrop-blur-xl border border-[#f97316]/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Play className="w-4 h-4 text-[#f97316]" />
+                    <h3 className="text-[10px] uppercase tracking-[0.15em] font-semibold text-white/70" style={{ fontFamily: 'Orbitron, sans-serif' }}>Next Session Plan</h3>
+                  </div>
+                  <div className="text-sm font-medium text-white/90 mb-3">{data.nextSession.focus}</div>
+                  <div className="space-y-2 mb-3">
+                    {data.nextSession.drills.map((drill, idx) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        <div className="w-5 h-5 rounded-full bg-[#f97316]/10 border border-[#f97316]/20 flex items-center justify-center shrink-0 mt-0.5">
+                          <span className="text-[9px] font-mono text-[#f97316]">{idx + 1}</span>
+                        </div>
+                        <span className="text-xs text-white/70">{drill}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="pt-3 border-t border-white/[0.06]">
+                    <div className="flex items-start gap-2">
+                      <Lightbulb className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-white/50 italic">{data.nextSession.reminder}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
