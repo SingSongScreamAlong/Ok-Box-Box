@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Settings, Download, Upload, Star, Loader2 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
 
 interface Setup {
   id: string;
@@ -13,51 +16,45 @@ interface Setup {
   notes?: string;
 }
 
-const mockSetups: Setup[] = [
-  {
-    id: 's1',
-    name: 'Daytona Baseline v3',
-    car: 'Porsche 963 GTP',
-    track: 'Daytona International Speedway',
-    author: 'Alex Rivera',
-    created_at: '2026-01-15T10:00:00Z',
-    is_baseline: true,
-    notes: 'Stable in traffic, good tire life'
-  },
-  {
-    id: 's2',
-    name: 'Daytona Quali',
-    car: 'Porsche 963 GTP',
-    track: 'Daytona International Speedway',
-    author: 'Jordan Chen',
-    created_at: '2026-01-16T14:00:00Z',
-    is_baseline: false,
-    notes: 'Low fuel, aggressive camber'
-  },
-  {
-    id: 's3',
-    name: 'Spa Wet',
-    car: 'Porsche 963 GTP',
-    track: 'Circuit de Spa-Francorchamps',
-    author: 'Sam Williams',
-    created_at: '2026-01-10T09:00:00Z',
-    is_baseline: false,
-    notes: 'Wet weather setup'
-  }
-];
-
 export function PitwallSetups() {
   const { teamId } = useParams<{ teamId: string }>();
+  const { session } = useAuth();
   const [setups, setSetups] = useState<Setup[]>([]);
   const [loading, setLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    setTimeout(() => {
-      setSetups(mockSetups);
-      setLoading(false);
-    }, 300);
-  }, [teamId]);
+    async function loadSetups() {
+      if (!teamId || !session?.access_token) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/teams/${teamId}/setups`, {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const rows = json.data?.setups || [];
+          setSetups(rows.map((r: any) => ({
+            id: r.id,
+            name: r.name,
+            car: r.car_name,
+            track: r.track_name,
+            author: r.uploaded_by_name || 'Unknown',
+            created_at: r.created_at,
+            is_baseline: r.tags?.includes('baseline') || false,
+            notes: r.notes,
+          })));
+        }
+      } catch (err) {
+        console.error('[PitwallSetups] Failed to load setups:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadSetups();
+  }, [teamId, session?.access_token]);
 
   useEffect(() => {
     if (videoRef.current) {

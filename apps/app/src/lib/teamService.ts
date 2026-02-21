@@ -400,6 +400,33 @@ export async function deleteStint(teamId: string, stintId: string): Promise<bool
 }
 
 /**
+ * Fetch active strategy plan for a team
+ */
+export async function fetchTeamStrategy(teamId: string): Promise<any | null> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) {
+      return null;
+    }
+
+    const response = await fetch(`${API_BASE}/api/teams/${teamId}/strategy?status=active`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    const plans = data.data?.plans || [];
+    return plans[0] || null;
+  } catch (error) {
+    console.error('[Team] Error fetching strategy:', error);
+    return null;
+  }
+}
+
+/**
  * Fetch team roster (uses existing backend endpoint)
  */
 export async function fetchTeamRoster(teamId: string): Promise<any> {

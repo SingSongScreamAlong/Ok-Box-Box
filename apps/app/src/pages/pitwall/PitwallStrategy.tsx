@@ -75,68 +75,6 @@ interface StrategyPlan {
   risk_assessment: { level: 'low' | 'medium' | 'high'; factors: string[] };
 }
 
-// Mock data - professional depth
-const mockStrategy: StrategyPlan = {
-  id: 'strat1',
-  event_name: 'Daytona 24 Hours',
-  track_name: 'Daytona International Speedway',
-  car_class: 'GT3',
-  race_duration: '24h',
-  race_type: 'timed',
-  total_laps: 750,
-  avg_lap_time: 115.2,
-  fuel_per_lap: 2.8,
-  fuel_per_lap_save: 2.45,
-  tank_capacity: 100,
-  pit_time_loss: 45,
-  pit_lane_delta: 38,
-  min_pit_time: 7,
-  mandatory_stops: 0,
-  tire_sets_available: { soft: 2, medium: 6, hard: 4, wet: 2, inter: 2 },
-  stints: [
-    { stint: 1, driver: 'd1', driver_name: 'Alex Rivera', start_lap: 1, end_lap: 35, fuel_load: 100, tire_compound: 'medium', tire_age: 0, expected_deg: 0.12, pit_in_window: { earliest: 32, latest: 37 }, fuel_save_mode: false, predicted_lap_time: '1:55.2', predicted_total_time: '1:07:12' },
-    { stint: 2, driver: 'd2', driver_name: 'Jordan Chen', start_lap: 36, end_lap: 70, fuel_load: 100, tire_compound: 'medium', tire_age: 0, expected_deg: 0.12, pit_in_window: { earliest: 67, latest: 72 }, fuel_save_mode: false, predicted_lap_time: '1:55.4', predicted_total_time: '1:07:29' },
-    { stint: 3, driver: 'd3', driver_name: 'Sam Williams', start_lap: 71, end_lap: 105, fuel_load: 100, tire_compound: 'hard', tire_age: 0, expected_deg: 0.08, pit_in_window: { earliest: 102, latest: 108 }, fuel_save_mode: false, predicted_lap_time: '1:56.1', predicted_total_time: '1:08:08', notes: 'Night transition - track cooling' },
-    { stint: 4, driver: 'd4', driver_name: 'Casey Morgan', start_lap: 106, end_lap: 140, fuel_load: 100, tire_compound: 'hard', tire_age: 0, expected_deg: 0.08, pit_in_window: { earliest: 137, latest: 143 }, fuel_save_mode: false, predicted_lap_time: '1:56.3', predicted_total_time: '1:08:20' },
-    { stint: 5, driver: 'd1', driver_name: 'Alex Rivera', start_lap: 141, end_lap: 175, fuel_load: 100, tire_compound: 'medium', tire_age: 0, expected_deg: 0.10, pit_in_window: { earliest: 172, latest: 178 }, fuel_save_mode: true, predicted_lap_time: '1:56.8', predicted_total_time: '1:08:48', notes: 'Fuel save for safety car buffer' },
-  ],
-  pit_stops: [
-    { lap: 35, duration: 12.4, fuel_added: 100, tire_change: true, new_compound: 'medium', driver_change: true, new_driver: 'Jordan Chen' },
-    { lap: 70, duration: 12.1, fuel_added: 100, tire_change: true, new_compound: 'hard', driver_change: true, new_driver: 'Sam Williams' },
-    { lap: 105, duration: 11.8, fuel_added: 100, tire_change: true, new_compound: 'hard', driver_change: true, new_driver: 'Casey Morgan' },
-    { lap: 140, duration: 12.2, fuel_added: 100, tire_change: true, new_compound: 'medium', driver_change: true, new_driver: 'Alex Rivera' },
-  ],
-  weather_forecast: [
-    { time: '13:30', condition: 'clear', track_temp: 42, air_temp: 28, humidity: 65, wind_speed: 12, rain_chance: 5 },
-    { time: '16:00', condition: 'clear', track_temp: 38, air_temp: 26, humidity: 70, wind_speed: 8, rain_chance: 5 },
-    { time: '19:00', condition: 'cloudy', track_temp: 28, air_temp: 22, humidity: 78, wind_speed: 6, rain_chance: 15 },
-    { time: '22:00', condition: 'clear', track_temp: 22, air_temp: 18, humidity: 82, wind_speed: 4, rain_chance: 10 },
-    { time: '01:00', condition: 'clear', track_temp: 18, air_temp: 15, humidity: 88, wind_speed: 3, rain_chance: 5 },
-    { time: '04:00', condition: 'cloudy', track_temp: 16, air_temp: 14, humidity: 90, wind_speed: 5, rain_chance: 25 },
-    { time: '07:00', condition: 'light_rain', track_temp: 18, air_temp: 16, humidity: 92, wind_speed: 8, rain_chance: 60 },
-    { time: '10:00', condition: 'cloudy', track_temp: 24, air_temp: 20, humidity: 75, wind_speed: 10, rain_chance: 20 },
-  ],
-  tire_models: [
-    { compound: 'soft', base_grip: 100, deg_per_lap: 0.18, optimal_window: { start: 1, end: 18 }, cliff_lap: 22 },
-    { compound: 'medium', base_grip: 96, deg_per_lap: 0.12, optimal_window: { start: 1, end: 28 }, cliff_lap: 35 },
-    { compound: 'hard', base_grip: 92, deg_per_lap: 0.08, optimal_window: { start: 1, end: 38 }, cliff_lap: 48 },
-  ],
-  optimal_strategy: '4-stop with medium-medium-hard-hard-medium rotation. Fuel save in stint 5 builds 2-lap safety car buffer.',
-  alternative_strategies: [
-    '5-stop aggressive: All mediums, shorter stints, attack mode',
-    '3-stop conservative: Hard-hard-hard-medium, requires fuel save',
-    'Weather contingency: Switch to inters at lap ~520 if rain develops'
-  ],
-  risk_assessment: {
-    level: 'medium',
-    factors: [
-      'Dawn rain probability 60% - may require tire strategy pivot',
-      'Night stint driver fatigue - Casey on 4th stint',
-      'Fuel margin tight in stint 5 without save mode'
-    ]
-  }
-};
-
 const tireColors: Record<string, string> = {
   soft: 'bg-red-500 text-white',
   medium: 'bg-yellow-500 text-black',

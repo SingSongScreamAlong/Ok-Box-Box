@@ -9,6 +9,7 @@ import {
   fetchRacePlans,
   fetchStints,
   fetchTeamRoster,
+  fetchTeamStrategy,
 } from '../lib/teamService';
 import {
   type Driver,
@@ -198,13 +199,18 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
         }
         // No roster fallback - leave as null if no data
 
+        // Fetch strategy plan from new team-strategy endpoint
+        const apiStrategy = await fetchTeamStrategy(teamId);
+        if (apiStrategy) {
+          setStrategyPlan(apiStrategy);
+        }
+
         // These remain empty until live session provides data via WebSocket
         // No mock data - real racing system only
         setTracks([]);
         setRadioChannels([]);
         setRunPlans([]);
         setDriverStints([]);
-        setStrategyPlan(null);
 
         console.log('[TeamData] Loaded real data for team:', teamId);
       } catch (error) {
