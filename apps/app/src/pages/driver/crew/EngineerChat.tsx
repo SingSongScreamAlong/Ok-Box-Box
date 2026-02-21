@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { EngineerDataPanel } from '../../../components/EngineerDataPanel';
 import { fetchUpcomingRaces, UpcomingRace } from '../../../lib/driverService';
+import { sendCrewMessage } from '../../../lib/crewChatService';
 import { 
   Wrench, Send, ArrowLeft, Calendar, Flag,
   Settings2, Clock, ChevronRight, Loader2,
@@ -16,10 +17,6 @@ interface Message {
   timestamp: Date;
 }
 
-// AI responses will come from the backend API when implemented
-const getEngineerResponse = (): string => {
-  return 'Engineer AI responses coming soon. This feature is under development.';
-};
 
 export function EngineerChat() {
   const { user } = useAuth();
@@ -67,8 +64,14 @@ export function EngineerChat() {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1500));
-    const engineerResponse: Message = { id: (Date.now() + 1).toString(), role: 'engineer', content: getEngineerResponse(), timestamp: new Date() };
+
+    // Build history for context (exclude greeting)
+    const history = messages
+      .filter(m => m.id !== 'greeting')
+      .map(m => ({ role: m.role, content: m.content }));
+
+    const response = await sendCrewMessage(input, 'engineer', history);
+    const engineerResponse: Message = { id: (Date.now() + 1).toString(), role: 'engineer', content: response, timestamp: new Date() };
     setIsTyping(false);
     setMessages(prev => [...prev, engineerResponse]);
   };

@@ -4,6 +4,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { SpotterDataPanel } from '../../../components/SpotterDataPanel';
 import { LiveSpotter } from '../../../components/LiveSpotter';
 import { fetchUpcomingRaces, UpcomingRace } from '../../../lib/driverService';
+import { sendCrewMessage } from '../../../lib/crewChatService';
 import { useRelay } from '../../../hooks/useRelay';
 import { 
   Eye, Send, ArrowLeft, Calendar,
@@ -18,10 +19,6 @@ interface Message {
   timestamp: Date;
 }
 
-// AI responses will come from the backend API when implemented
-const getSpotterResponse = (): string => {
-  return 'Spotter AI responses coming soon. This feature is under development.';
-};
 
 type ViewMode = 'live' | 'track' | 'chat';
 
@@ -70,8 +67,13 @@ export function SpotterChat() {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
-    await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 1000));
-    const spotterResponse: Message = { id: (Date.now() + 1).toString(), role: 'spotter', content: getSpotterResponse(), timestamp: new Date() };
+
+    const history = messages
+      .filter(m => m.id !== 'greeting')
+      .map(m => ({ role: m.role, content: m.content }));
+
+    const response = await sendCrewMessage(input, 'spotter', history);
+    const spotterResponse: Message = { id: (Date.now() + 1).toString(), role: 'spotter', content: response, timestamp: new Date() };
     setIsTyping(false);
     setMessages(prev => [...prev, spotterResponse]);
   };

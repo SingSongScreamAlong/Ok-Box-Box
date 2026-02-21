@@ -158,6 +158,23 @@ apiRouter.use('/v1/teams', teamsV1Router);
 import goalsRouter from './goals.js';
 apiRouter.use('/v1/goals', goalsRouter);
 
+// Schedule (Upcoming races)
+import scheduleRouter from './schedule.js';
+apiRouter.use('/v1/schedule', scheduleRouter);
+
 // Team Operations (Events, Race Plans, Stints)
 import teamOperationsRouter from './team-operations.js';
 apiRouter.use('/v1/teams', teamOperationsRouter);
+
+// Team Setups (Car setup file sharing)
+import teamSetupsRouter from './team-setups.js';
+apiRouter.use('/teams', teamSetupsRouter);
+
+// Team Strategy (Race strategy planning)
+import teamStrategyRouter from './team-strategy.js';
+apiRouter.use('/teams', teamStrategyRouter);
+
+// Team Practice (Practice session tracking)
+import teamPracticeRouter from './team-practice.js';
+apiRouter.use('/teams', teamPracticeRouter);
+

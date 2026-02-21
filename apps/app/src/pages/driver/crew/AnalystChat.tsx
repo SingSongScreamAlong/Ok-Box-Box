@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { AnalystDataPanel } from '../../../components/AnalystDataPanel';
 import { fetchDriverSessions } from '../../../lib/driverService';
+import { sendCrewMessage } from '../../../lib/crewChatService';
 import { 
   BarChart3, Send, ArrowLeft, Calendar,
   Settings2, ChevronRight, Loader2,
@@ -31,10 +32,6 @@ interface SessionForPanel {
   incidents: number;
 }
 
-// AI responses will come from the backend API when implemented
-const getAnalystResponse = (): string => {
-  return 'Analyst AI responses coming soon. This feature is under development.';
-};
 
 export function AnalystChat() {
   const { user } = useAuth();
@@ -91,8 +88,13 @@ export function AnalystChat() {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsTyping(true);
-    await new Promise(resolve => setTimeout(resolve, 1200 + Math.random() * 1500));
-    const analystResponse: Message = { id: (Date.now() + 1).toString(), role: 'analyst', content: getAnalystResponse(), timestamp: new Date() };
+
+    const history = messages
+      .filter(m => m.id !== 'greeting')
+      .map(m => ({ role: m.role, content: m.content }));
+
+    const response = await sendCrewMessage(input, 'analyst', history);
+    const analystResponse: Message = { id: (Date.now() + 1).toString(), role: 'analyst', content: response, timestamp: new Date() };
     setIsTyping(false);
     setMessages(prev => [...prev, analystResponse]);
   };
