@@ -424,6 +424,69 @@ export async function fetchUpcomingRaces(): Promise<UpcomingRace[]> {
   }
 }
 
+// ========================
+// Track Analysis (real data from backend)
+// ========================
+
+export interface TrackAnalysisData {
+  trackName: string;
+  sessions: number;
+  stats: {
+    avgFinish: number;
+    bestFinish: number;
+    avgStart: number;
+    avgIncidents: number;
+    avgPacePercentile: number;
+    avgStdDevMs: number;
+    totalIRatingChange: number;
+    avgPositionsGained: number;
+    cleanRaces: number;
+  };
+  trends: {
+    paceImproving: boolean;
+    incidentsDecreasing: boolean;
+    consistencyImproving: boolean;
+    recentPace: number;
+    olderPace: number;
+    recentIncidents: number;
+    olderIncidents: number;
+  };
+  insights: string[];
+  improvements: string[];
+  strengths: string[];
+  strategy: string[];
+  history: {
+    date: string;
+    finish: number;
+    started: number;
+    incidents: number;
+    pacePercentile: number;
+    stdDevMs: number;
+    iRatingChange: number;
+    laps: number;
+    positionsGained: number;
+  }[];
+}
+
+export async function fetchTrackAnalysis(trackName: string): Promise<TrackAnalysisData | null> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) return null;
+
+    const response = await fetch(`${API_BASE}/api/v1/drivers/me/track-analysis?track=${encodeURIComponent(trackName)}`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) return null;
+    const data = await response.json();
+    if (!data || data.sessions === 0) return null;
+    return data as TrackAnalysisData;
+  } catch (error) {
+    console.error('[IDP] Error fetching track analysis:', error instanceof Error ? error.message : error);
+    return null;
+  }
+}
+
 // Get all unique tracks from session history
 export async function fetchTracksFromHistory(): Promise<string[]> {
   try {

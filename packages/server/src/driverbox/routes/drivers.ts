@@ -808,6 +808,156 @@ router.get('/me/development', requireAuth, async (req: Request, res: Response): 
     }
 });
 
+/**
+ * GET /api/v1/drivers/me/track-analysis?track=TrackName
+ * Returns real performance analysis for a specific track using session_metrics data
+ */
+router.get('/me/track-analysis', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const profile = await getDriverProfileByUserId(req.user!.id);
+        if (!profile) { res.status(404).json({ error: 'No driver profile found' }); return; }
+
+        const trackName = req.query.track as string;
+        if (!trackName) { res.status(400).json({ error: 'track query parameter required' }); return; }
+
+        const { getMetricsForContext } = await import('../../db/repositories/session-metrics.repo.js');
+        const metrics = await getMetricsForContext(profile.id, undefined, trackName, 20);
+
+        if (metrics.length === 0) {
+            res.json({ trackName, sessions: 0, analysis: null, message: 'No sessions found for this track' });
+            return;
+        }
+
+        // Compute real track-specific stats
+        const finishes = metrics.map((m: any) => parseFloat(m.finish_position) || 0).filter((p: number) => p > 0);
+        const starts = metrics.map((m: any) => parseFloat(m.start_position) || 0).filter((p: number) => p > 0);
+        const incidents = metrics.map((m: any) => parseFloat(m.incident_count) || 0);
+        const paces = metrics.map((m: any) => parseFloat(m.pace_percentile) || 0);
+        const stdDevs = metrics.map((m: any) => parseFloat(m.lap_time_std_dev_ms) || 0);
+        const iRChanges = metrics.map((m: any) => parseFloat(m.irating_change) || 0);
+        const posGained = metrics.map((m: any) => parseFloat(m.positions_gained) || 0);
+
+        const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+        const best = (arr: number[]) => arr.length ? Math.min(...arr) : 0;
+
+        const avgFinish = avg(finishes);
+        const bestFinish = best(finishes);
+        const avgStart = avg(starts);
+        const avgIncidents = avg(incidents);
+        const avgPace = avg(paces);
+        const avgStdDev = avg(stdDevs);
+        const totalIRChange = iRChanges.reduce((a, b) => a + b, 0);
+        const avgPosGained = avg(posGained);
+        const cleanRaces = incidents.filter(i => i === 0).length;
+
+        // Trend: compare first half vs second half of sessions (newest first)
+        const half = Math.floor(metrics.length / 2);
+        const recentHalf = metrics.slice(0, half);
+        const olderHalf = metrics.slice(half);
+        const recentAvgPace = avg(recentHalf.map((m: any) => parseFloat(m.pace_percentile) || 0));
+        const olderAvgPace = avg(olderHalf.map((m: any) => parseFloat(m.pace_percentile) || 0));
+        const recentAvgInc = avg(recentHalf.map((m: any) => parseFloat(m.incident_count) || 0));
+        const olderAvgInc = avg(olderHalf.map((m: any) => parseFloat(m.incident_count) || 0));
+        const recentAvgStdDev = avg(recentHalf.map((m: any) => parseFloat(m.lap_time_std_dev_ms) || 0));
+        const olderAvgStdDev = avg(olderHalf.map((m: any) => parseFloat(m.lap_time_std_dev_ms) || 0));
+
+        // Generate real insights based on data
+        const insights: string[] = [];
+        if (avgPosGained > 0.5) insights.push(`You gain ${avgPosGained.toFixed(1)} positions on average here — strong racecraft at this track`);
+        else if (avgPosGained < -0.5) insights.push(`You lose ${Math.abs(avgPosGained).toFixed(1)} positions on average — focus on race starts and early-lap survival`);
+
+        if (avgIncidents > 3) insights.push(`High incident rate (${avgIncidents.toFixed(1)}/race) — leave extra margin in braking zones`);
+        else if (cleanRaces > metrics.length * 0.5) insights.push(`${cleanRaces}/${metrics.length} clean races — excellent discipline at this track`);
+
+        if (recentAvgPace > olderAvgPace + 3) insights.push(`Pace improving: recent P${Math.round(recentAvgPace)}% vs earlier P${Math.round(olderAvgPace)}%`);
+        else if (recentAvgPace < olderAvgPace - 3) insights.push(`Pace declining: recent P${Math.round(recentAvgPace)}% vs earlier P${Math.round(olderAvgPace)}%`);
+
+        if (recentAvgInc < olderAvgInc - 0.5) insights.push(`Incidents trending down: ${recentAvgInc.toFixed(1)} recent vs ${olderAvgInc.toFixed(1)} earlier`);
+
+        if (avgStdDev > 2000) insights.push(`Lap consistency needs work — ${(avgStdDev / 1000).toFixed(2)}s average variation`);
+        else if (avgStdDev < 800) insights.push(`Excellent consistency — ${(avgStdDev / 1000).toFixed(2)}s average variation`);
+
+        // Generate improvement areas from data
+        const improvements: string[] = [];
+        if (avgIncidents > 2) improvements.push(`Reduce incidents from ${avgIncidents.toFixed(1)}/race — brake 5m earlier into heavy braking zones`);
+        if (avgStdDev > 1500) improvements.push(`Improve consistency — ${(avgStdDev / 1000).toFixed(2)}s std dev suggests inconsistent corner execution`);
+        if (avgPace < 40) improvements.push(`Pace at P${Math.round(avgPace)}% — study faster drivers' replays for braking and line differences`);
+        if (avgPosGained < -1) improvements.push(`Losing ${Math.abs(avgPosGained).toFixed(1)} positions/race — work on race starts and first-lap positioning`);
+        if (improvements.length === 0) improvements.push('Solid performance — focus on marginal gains in your weakest corners');
+
+        // Generate strengths from data
+        const strengthsList: string[] = [];
+        if (avgPace > 60) strengthsList.push(`Strong pace — P${Math.round(avgPace)}% average at this track`);
+        if (avgStdDev < 1200) strengthsList.push(`Consistent laps — ${(avgStdDev / 1000).toFixed(2)}s average variation`);
+        if (cleanRaces > 2) strengthsList.push(`${cleanRaces} clean races out of ${metrics.length} — good discipline`);
+        if (avgPosGained > 1) strengthsList.push(`Gaining ${avgPosGained.toFixed(1)} positions/race — strong racecraft`);
+        if (totalIRChange > 0) strengthsList.push(`Net iRating gain of +${Math.round(totalIRChange)} at this track`);
+        if (strengthsList.length === 0) strengthsList.push('Building experience — each session adds to your track knowledge');
+
+        // Strategy recommendations based on data
+        const strategy: string[] = [];
+        if (avgIncidents > 3) {
+            strategy.push('Priority: survival. Run 90% pace for first 3 laps, then build rhythm');
+            strategy.push('Leave extra space in braking zones — a clean race gains more iRating than a risky overtake');
+        } else if (avgPace < 35) {
+            strategy.push('Focus practice on the corners where you lose the most time');
+            strategy.push('Study the fastest replay and note 3 braking/line differences');
+        } else if (avgPosGained < -1) {
+            strategy.push('Practice race starts — focus on clean getaways and first-corner survival');
+            strategy.push('In traffic, prioritize exit speed over entry speed');
+        } else {
+            strategy.push('Your form is solid here — focus on converting pace into consistent results');
+            strategy.push('Set a mini-goal: improve your average finish by 1 position');
+        }
+
+        // Session history for the panel
+        const history = metrics.slice(0, 8).map((m: any) => ({
+            date: m.computed_at ? new Date(m.computed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Recent',
+            finish: Math.round(parseFloat(m.finish_position) || 0),
+            started: Math.round(parseFloat(m.start_position) || 0),
+            incidents: Math.round(parseFloat(m.incident_count) || 0),
+            pacePercentile: Math.round(parseFloat(m.pace_percentile) || 0),
+            stdDevMs: Math.round(parseFloat(m.lap_time_std_dev_ms) || 0),
+            iRatingChange: Math.round(parseFloat(m.irating_change) || 0),
+            laps: Math.round(parseFloat(m.total_laps) || 0),
+            positionsGained: Math.round(parseFloat(m.positions_gained) || 0),
+        }));
+
+        res.json({
+            trackName,
+            sessions: metrics.length,
+            stats: {
+                avgFinish: Math.round(avgFinish * 10) / 10,
+                bestFinish: Math.round(bestFinish),
+                avgStart: Math.round(avgStart * 10) / 10,
+                avgIncidents: Math.round(avgIncidents * 10) / 10,
+                avgPacePercentile: Math.round(avgPace),
+                avgStdDevMs: Math.round(avgStdDev),
+                totalIRatingChange: Math.round(totalIRChange),
+                avgPositionsGained: Math.round(avgPosGained * 10) / 10,
+                cleanRaces,
+            },
+            trends: {
+                paceImproving: recentAvgPace > olderAvgPace + 2,
+                incidentsDecreasing: recentAvgInc < olderAvgInc - 0.3,
+                consistencyImproving: recentAvgStdDev < olderAvgStdDev - 100,
+                recentPace: Math.round(recentAvgPace),
+                olderPace: Math.round(olderAvgPace),
+                recentIncidents: Math.round(recentAvgInc * 10) / 10,
+                olderIncidents: Math.round(olderAvgInc * 10) / 10,
+            },
+            insights,
+            improvements,
+            strengths: strengthsList,
+            strategy,
+            history,
+        });
+    } catch (error) {
+        console.error('[IDP] Error in track analysis:', error);
+        res.status(500).json({ error: 'Failed to analyze track performance' });
+    }
+});
+
 // ========================
 // Driver Memory & Development Endpoints
 // ========================
@@ -1222,30 +1372,39 @@ router.post('/me/crew-chat', requireAuth, async (req: Request, res: Response): P
             const [aggregate, traits, recentSessions] = await Promise.all([
                 getGlobalAggregate(profile.id, 'all_time'),
                 getCurrentTraits(profile.id),
-                getMetricsForDriver(profile.id, 5, 0),
+                getMetricsForDriver(profile.id, 10, 0),
             ]);
             driverContext = buildDriverContextForAI(profile, aggregate, traits, recentSessions);
         }
 
         const systemPrompts: Record<string, string> = {
-            engineer: `You are a professional motorsport race engineer working with a sim racer. 
-You are technical, precise, and data-driven. You reference the driver's actual performance data.
-You help with car setup, strategy, track analysis, and race preparation.
-Keep responses concise (2-4 sentences) unless the driver asks for detail.
-Use racing terminology naturally. Address the driver directly.
-${driverContext ? `\nDriver data:\n${driverContext}` : ''}`,
+            engineer: `You are a professional motorsport race engineer working with a sim racer on iRacing.
+You are technical, precise, and data-driven. You ALWAYS reference the driver's actual performance numbers when available.
+You help with: car setup philosophy, race strategy, fuel/tire management, track-specific preparation, and pre-race briefings.
+When discussing strategy, reference their actual pace percentile, consistency, and incident patterns.
+When discussing setup, relate it to their driving style (e.g., if they have high incidents, suggest more stable setups).
+Keep responses concise (2-4 sentences) unless the driver asks for detail. Use racing terminology naturally.
+IMPORTANT: Never make up data. Only reference numbers from the driver data below. If data is missing, say so.
+${driverContext ? `\n${driverContext}` : '\nNo driver data available yet — encourage them to complete sessions.'}`,
 
-            spotter: `You are a professional motorsport spotter working with a sim racer.
-You are alert, direct, and focused on situational awareness. You speak in short, clear callouts.
-You help with race starts, traffic management, competitor analysis, and on-track awareness.
-Keep responses brief and punchy (1-3 sentences). Use spotter language naturally.
-${driverContext ? `\nDriver data:\n${driverContext}` : ''}`,
+            spotter: `You are a professional motorsport spotter working with a sim racer on iRacing.
+You are alert, direct, and focused on situational awareness. You speak in short, clear radio-style callouts.
+You help with: race starts, traffic management, competitor tendencies, track awareness, and race-day mental preparation.
+Reference their actual race data — if they lose positions on average, focus on starts. If incidents are high, focus on awareness.
+When not in a live session, help them prepare mentally: review their recent results, discuss approach for upcoming races.
+Keep responses brief and punchy (1-3 sentences). Use spotter radio language naturally ("Clear high", "Car inside", etc).
+IMPORTANT: Never make up data. Only reference numbers from the driver data below.
+${driverContext ? `\n${driverContext}` : '\nNo driver data available yet — encourage them to complete sessions.'}`,
 
-            analyst: `You are a professional motorsport performance analyst working with a sim racer.
-You are analytical, thorough, and focused on data patterns. You find insights in the numbers.
-You help with session debrief, performance trends, consistency analysis, and improvement areas.
-Keep responses focused (2-4 sentences) with specific data references when available.
-${driverContext ? `\nDriver data:\n${driverContext}` : ''}`,
+            analyst: `You are a professional motorsport performance analyst working with a sim racer on iRacing.
+You are analytical, thorough, and obsessed with finding patterns in data. You speak with precision and cite specific numbers.
+You help with: session debrief, performance trends, consistency analysis, identifying improvement areas, and tracking progress.
+ALWAYS cite specific numbers: pace percentiles, incident counts, std dev, positions gained, iRating changes.
+Compare recent performance to overall averages. Identify trends (improving/declining). Prioritize actionable insights.
+When debriefing a session, analyze: pace vs field, consistency, incidents, positions gained/lost, and what to work on next.
+Keep responses focused (3-5 sentences) with specific data references. Use tables or bullet points for clarity.
+IMPORTANT: Never make up data. Only reference numbers from the driver data below. If you see patterns, explain them.
+${driverContext ? `\n${driverContext}` : '\nNo driver data available yet — encourage them to complete sessions.'}`,
         };
 
         const systemPrompt = systemPrompts[role] || systemPrompts.engineer;
@@ -1306,26 +1465,63 @@ function buildDriverContextForAI(profile: any, aggregate: any, traits: any[], re
     lines.push(`Driver: ${profile.display_name || 'Unknown'}`);
 
     if (aggregate) {
-        lines.push(`Total sessions: ${aggregate.total_sessions || 0}`);
-        lines.push(`Avg finish: P${aggregate.avg_finish?.toFixed(1) || '?'}`);
-        lines.push(`Avg start: P${aggregate.avg_start?.toFixed(1) || '?'}`);
-        lines.push(`Wins: ${aggregate.wins || 0}`);
-        lines.push(`Podiums: ${aggregate.top3s || aggregate.podiums || 0}`);
-        lines.push(`Avg incidents/race: ${((aggregate.total_incidents || 0) / Math.max(aggregate.total_sessions || 1, 1)).toFixed(1)}`);
+        const sessions = parseFloat(aggregate.session_count) || 0;
+        const pace = parseFloat(aggregate.avg_pace_percentile) || 0;
+        const consistency = parseFloat(aggregate.consistency_index) || 0;
+        const risk = parseFloat(aggregate.risk_index) || 0;
+        const safety = Math.max(0, 100 - risk);
+        const posGained = parseFloat(aggregate.avg_positions_gained) || 0;
+        const startPerf = parseFloat(aggregate.start_performance_index) || 0;
+        const endurance = parseFloat(aggregate.endurance_fitness_index) || 0;
+        const paceTrend = parseFloat(aggregate.pace_trend) || 0;
+        const avgStdDev = parseFloat(aggregate.avg_std_dev_ms) || 0;
+        const avgIncPer100 = parseFloat(aggregate.avg_incidents_per_100_laps) || 0;
+
+        lines.push(`\n--- Overall Stats (${Math.round(sessions)} sessions) ---`);
+        lines.push(`Pace percentile: ${Math.round(pace)}% (100 = fastest in field)`);
+        lines.push(`Consistency index: ${Math.round(consistency)}/100 (lap time variation: ${(avgStdDev / 1000).toFixed(2)}s std dev)`);
+        lines.push(`Safety score: ${Math.round(safety)}/100 (risk index: ${Math.round(risk)}, incidents per 100 laps: ${avgIncPer100.toFixed(1)})`);
+        lines.push(`Avg positions gained per race: ${posGained > 0 ? '+' : ''}${posGained.toFixed(1)}`);
+        lines.push(`Start performance: ${Math.round(startPerf)}/100`);
+        lines.push(`Endurance fitness: ${Math.round(endurance)}/100`);
+        lines.push(`Pace trend: ${paceTrend > 0 ? 'improving' : paceTrend < 0 ? 'declining' : 'stable'} (${paceTrend.toFixed(3)})`);
     }
 
     if (traits.length > 0) {
-        const strengths = traits.filter(t => t.trait_category === 'strength').map(t => t.trait_label);
-        const weaknesses = traits.filter(t => t.trait_category === 'weakness').map(t => t.trait_label);
-        if (strengths.length) lines.push(`Strengths: ${strengths.join(', ')}`);
-        if (weaknesses.length) lines.push(`Weaknesses: ${weaknesses.join(', ')}`);
+        lines.push(`\n--- Driver Traits ---`);
+        const strengths = traits.filter(t => t.trait_category === 'strength');
+        const weaknesses = traits.filter(t => t.trait_category === 'weakness');
+        const tendencies = traits.filter(t => t.trait_category !== 'strength' && t.trait_category !== 'weakness');
+        if (strengths.length) lines.push(`Strengths: ${strengths.map(t => `${t.trait_label} (${Math.round((parseFloat(t.confidence) || 0) * 100)}% confidence)`).join(', ')}`);
+        if (weaknesses.length) lines.push(`Weaknesses: ${weaknesses.map(t => `${t.trait_label} (${Math.round((parseFloat(t.confidence) || 0) * 100)}% confidence)`).join(', ')}`);
+        if (tendencies.length) lines.push(`Tendencies: ${tendencies.map(t => `${t.trait_label} [${t.trait_category}]`).join(', ')}`);
     }
 
     if (recentSessions.length > 0) {
-        lines.push(`Recent sessions:`);
-        recentSessions.slice(0, 5).forEach((s: any) => {
-            lines.push(`  - ${s.track_name || 'Unknown'}: P${s.finish_pos || '?'} (started P${s.start_pos || '?'}, ${s.incidents || 0}x)`);
+        lines.push(`\n--- Recent Sessions (newest first) ---`);
+        recentSessions.slice(0, 8).forEach((s: any) => {
+            const track = s.track_name || 'Unknown Track';
+            const finish = s.finish_position ? `P${Math.round(parseFloat(s.finish_position))}` : 'DNF';
+            const start = s.start_position ? `P${Math.round(parseFloat(s.start_position))}` : '?';
+            const inc = parseFloat(s.incident_count) || 0;
+            const paceP = parseFloat(s.pace_percentile) || 0;
+            const stdDev = parseFloat(s.lap_time_std_dev_ms) || 0;
+            const iRChange = parseFloat(s.irating_change) || 0;
+            const laps = parseFloat(s.total_laps) || 0;
+            const posGained = parseFloat(s.positions_gained) || 0;
+
+            lines.push(`  ${track}: ${finish} (started ${start}, ${posGained > 0 ? '+' : ''}${posGained} pos) | ` +
+                `${laps} laps, ${inc}x incidents, pace P${Math.round(paceP)}%, ` +
+                `std dev ${(stdDev / 1000).toFixed(2)}s, iR ${iRChange > 0 ? '+' : ''}${Math.round(iRChange)}`);
         });
+
+        // Compute trends from recent sessions
+        const recent3 = recentSessions.slice(0, 3);
+        const avgRecentInc = recent3.reduce((s: number, m: any) => s + (parseFloat(m.incident_count) || 0), 0) / recent3.length;
+        const avgRecentPace = recent3.reduce((s: number, m: any) => s + (parseFloat(m.pace_percentile) || 0), 0) / recent3.length;
+        const avgRecentStdDev = recent3.reduce((s: number, m: any) => s + (parseFloat(m.lap_time_std_dev_ms) || 0), 0) / recent3.length;
+        lines.push(`\n--- Recent Trends (last 3) ---`);
+        lines.push(`Avg incidents: ${avgRecentInc.toFixed(1)} | Avg pace: P${Math.round(avgRecentPace)}% | Avg consistency: ${(avgRecentStdDev / 1000).toFixed(2)}s std dev`);
     }
 
     return lines.join('\n');

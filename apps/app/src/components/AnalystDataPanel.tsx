@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
-import { MapPin, BarChart3, TrendingUp, TrendingDown, Target, Loader2, Clock, Zap, Activity, Award } from 'lucide-react';
-import { fetchTrackPerformance, TrackPerformanceData } from '../lib/driverService';
-import { TrackMapRive } from './TrackMapRive';
-import { useRelay } from '../hooks/useRelay';
+import { BarChart3, TrendingUp, TrendingDown, Target, Loader2, Zap, Activity, Award, AlertTriangle, Gauge } from 'lucide-react';
+import { fetchTrackAnalysis, TrackAnalysisData } from '../lib/driverService';
 
 interface AnalystDataPanelProps {
   track: {
@@ -21,107 +19,19 @@ interface AnalystDataPanelProps {
   };
 }
 
-interface TrackMetadata {
-  config: string;
-  country: string;
-  length: string;
-  sectors: { name: string; focus: string }[];
-  improvementAreas: string[];
-  strengthAreas: string[];
-}
-
-const TRACK_METADATA: Record<string, TrackMetadata> = {
-  'Watkins Glen': {
-    config: 'Boot', country: 'USA', length: '3.4 mi',
-    sectors: [
-      { name: 'S1 - Esses', focus: 'Rhythm and commitment through high-speed sweepers' },
-      { name: 'S2 - Back Straight', focus: 'Exit speed from T5, braking into Bus Stop' },
-      { name: 'S3 - Boot', focus: 'Patience through chicane, exit speed onto straight' },
-    ],
-    improvementAreas: [
-      'Trail braking into T1 - data shows early brake release',
-      'Boot chicane exit - losing 0.3s to optimal line',
-      'Tire management in Esses - pace drops after lap 15',
-    ],
-    strengthAreas: [
-      'Strong race craft - consistent position gains',
-      'Good fuel management through stints',
-      'Clean driving - low incident rate',
-    ],
-  },
-  'Spa-Francorchamps': {
-    config: 'Grand Prix', country: 'Belgium', length: '4.35 mi',
-    sectors: [
-      { name: 'S1 - La Source to Raidillon', focus: 'La Source exit sets up Eau Rouge commitment' },
-      { name: 'S2 - Kemmel to Rivage', focus: 'Braking zones and double-apex corners' },
-      { name: 'S3 - Stavelot to Bus Stop', focus: 'High-speed commitment and chicane precision' },
-    ],
-    improvementAreas: [
-      'Eau Rouge flat commitment - lifting costs 0.5s',
-      'Pouhon double apex - early apex losing exit speed',
-      'Bus Stop chicane - over-aggressive entry',
-    ],
-    strengthAreas: [
-      'Strong Kemmel straight speed',
-      'Good tire preservation in long corners',
-      'Consistent lap times in traffic',
-    ],
-  },
-  'Laguna Seca': {
-    config: 'Full Course', country: 'USA', length: '2.24 mi',
-    sectors: [
-      { name: 'S1 - Andretti Hairpin', focus: 'Late apex, maximize exit onto back straight' },
-      { name: 'S2 - Corkscrew', focus: 'Blind entry commitment, downhill braking' },
-      { name: 'S3 - Rainey Curve', focus: 'Late apex, use all exit curb' },
-    ],
-    improvementAreas: [
-      'Corkscrew entry - braking too early, losing 0.4s',
-      'T2 commitment - can go flat with good T1 exit',
-      'Rainey Curve apex - early turn-in hurting exit',
-    ],
-    strengthAreas: [
-      'Excellent Andretti Hairpin execution',
-      'Strong race starts',
-      'Good overtaking judgment',
-    ],
-  },
-};
-
-const getTrackMetadata = (trackName: string): TrackMetadata => {
-  for (const [key, value] of Object.entries(TRACK_METADATA)) {
-    if (trackName.toLowerCase().includes(key.toLowerCase())) {
-      return value;
-    }
-  }
-  return {
-    config: 'Unknown', country: 'Unknown', length: 'N/A',
-    sectors: [{ name: 'Full Lap', focus: 'Analyze practice data for insights' }],
-    improvementAreas: ['Complete more sessions for detailed analysis'],
-    strengthAreas: ['Building track experience'],
-  };
-};
-
 export function AnalystDataPanel({ track }: AnalystDataPanelProps) {
   const [loading, setLoading] = useState(true);
-  const [trackData, setTrackData] = useState<TrackPerformanceData | null>(null);
-  const { telemetry, getCarMapPosition } = useRelay();
-  const metadata = getTrackMetadata(track.track);
-  
-  // Get car position for map visualization
-  const carPosition = telemetry.trackPosition !== null 
-    ? getCarMapPosition(telemetry.trackPosition) 
-    : undefined;
+  const [analysis, setAnalysis] = useState<TrackAnalysisData | null>(null);
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
-    fetchTrackPerformance(track.track).then(data => {
-      if (mounted) { setTrackData(data); setLoading(false); }
+    fetchTrackAnalysis(track.track).then(data => {
+      if (mounted) { setAnalysis(data); setLoading(false); }
     });
     return () => { mounted = false; };
   }, [track.track]);
 
-  // Calculate performance metrics
   const positionChange = track.started && track.position ? track.started - track.position : 0;
   const isImprovement = positionChange > 0;
 
@@ -132,6 +42,31 @@ export function AnalystDataPanel({ track }: AnalystDataPanelProps) {
       </div>
     );
   }
+
+  // No data state
+  if (!analysis) {
+    return (
+      <div className="p-4 space-y-4">
+        <div className="bg-white/[0.03] border border-white/[0.12] rounded p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <BarChart3 className="w-3.5 h-3.5 text-[#8b5cf6]" />
+            <span className="text-[10px] uppercase tracking-[0.15em] text-[#8b5cf6]">Performance Analysis</span>
+          </div>
+          <h2 className="text-lg font-bold uppercase tracking-wider text-white/90" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+            {track.track}
+          </h2>
+          <p className="text-xs text-white/40 mt-2">{track.series}</p>
+        </div>
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-8 text-center">
+          <BarChart3 className="w-10 h-10 text-white/10 mx-auto mb-3" />
+          <h3 className="text-sm text-white/50 mb-1">No Session Data for This Track</h3>
+          <p className="text-xs text-white/30 max-w-sm mx-auto">Complete sessions at {track.track} with the relay running to unlock real performance analysis.</p>
+        </div>
+      </div>
+    );
+  }
+
+  const s = analysis.stats;
 
   return (
     <div className="space-y-4 p-4">
@@ -147,12 +82,11 @@ export function AnalystDataPanel({ track }: AnalystDataPanelProps) {
               {track.track}
             </h2>
             <div className="flex items-center gap-4 mt-1 text-xs text-white/40">
-              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{metadata.country}</span>
-              <span>{metadata.length}</span>
+              <span>{analysis.sessions} sessions analyzed</span>
               <span>{track.series}</span>
             </div>
           </div>
-          {track.position && (
+          {track.position ? (
             <div className="text-right">
               <div className={`text-2xl font-bold ${isImprovement ? 'text-green-400' : positionChange < 0 ? 'text-red-400' : 'text-white'}`}>
                 P{track.position}
@@ -161,107 +95,136 @@ export function AnalystDataPanel({ track }: AnalystDataPanelProps) {
                 {isImprovement ? `+${positionChange} positions` : positionChange < 0 ? `${positionChange} positions` : 'No change'}
               </div>
             </div>
+          ) : (
+            <div className="text-right">
+              <div className="text-2xl font-bold text-emerald-400">P{s.bestFinish}</div>
+              <div className="text-xs text-white/40">best finish</div>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Track Map with Sector Analysis */}
-      <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
-        <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
-          <Target className="w-3 h-3" />
-          Sector Performance
-        </h3>
-        <div className="h-48 relative">
-          <TrackMapRive 
-            trackId={track.track.toLowerCase().replace(/[^a-z]/g, '-').replace(/-+/g, '-')}
-            currentSector={telemetry.sector || 1}
-            sectorDeltas={[-0.2, 0.1, 0.3]} // Mock deltas - would come from real data
-            carPosition={carPosition}
-            speed={telemetry.speed || undefined}
-            className="w-full h-full"
-          />
-          <div className="absolute bottom-2 left-2 flex items-center gap-3 text-[10px]">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-green-500 rounded-full"></span> Faster</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-yellow-500 rounded-full"></span> Neutral</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 bg-red-500 rounded-full"></span> Slower</span>
+      {/* Performance Metrics Grid */}
+      <div className="grid grid-cols-4 gap-3">
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
+          <Gauge className="w-3.5 h-3.5 text-[#8b5cf6] mx-auto mb-1" />
+          <div className="text-base font-mono font-bold text-white/80">P{s.avgPacePercentile}%</div>
+          <div className="text-[10px] text-white/30">Avg Pace</div>
+        </div>
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
+          <Activity className="w-3.5 h-3.5 text-white/30 mx-auto mb-1" />
+          <div className="text-base font-mono font-bold text-white/80">{(s.avgStdDevMs / 1000).toFixed(2)}s</div>
+          <div className="text-[10px] text-white/30">Lap Std Dev</div>
+        </div>
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
+          <AlertTriangle className="w-3.5 h-3.5 text-white/30 mx-auto mb-1" />
+          <div className={`text-base font-mono font-bold ${s.avgIncidents > 2 ? 'text-red-400' : 'text-emerald-400'}`}>
+            {s.avgIncidents}x
           </div>
+          <div className="text-[10px] text-white/30">Avg Incidents</div>
+        </div>
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
+          {s.avgPositionsGained >= 0 ? <TrendingUp className="w-3.5 h-3.5 text-emerald-400 mx-auto mb-1" /> : <TrendingDown className="w-3.5 h-3.5 text-red-400 mx-auto mb-1" />}
+          <div className={`text-base font-mono font-bold ${s.avgPositionsGained >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {s.avgPositionsGained > 0 ? '+' : ''}{s.avgPositionsGained}
+          </div>
+          <div className="text-[10px] text-white/30">Avg Pos Gained</div>
         </div>
       </div>
 
-      {/* Performance Metrics */}
-      {(track.bestLap || track.consistency || track.incidents !== undefined) && (
-        <div className="grid grid-cols-4 gap-3">
-          <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
-            <Clock className="w-3.5 h-3.5 text-white/30 mx-auto mb-1" />
-            <div className="text-base font-mono font-bold text-white/80">{track.bestLap || '--:--.---'}</div>
-            <div className="text-[10px] text-white/30">Best Lap</div>
+      {/* Track Record Summary */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center">
+          <div className="text-lg font-mono font-bold text-white/80">P{s.avgFinish}</div>
+          <div className="text-[10px] text-white/30">Avg Finish</div>
+        </div>
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center">
+          <div className={`text-lg font-mono font-bold ${s.totalIRatingChange > 0 ? 'text-emerald-400' : s.totalIRatingChange < 0 ? 'text-red-400' : 'text-white/80'}`}>
+            {s.totalIRatingChange > 0 ? '+' : ''}{s.totalIRatingChange}
           </div>
-          <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
-            <Activity className="w-3.5 h-3.5 text-white/30 mx-auto mb-1" />
-            <div className="text-base font-bold text-white/80">{track.consistency || 85}%</div>
-            <div className="text-[10px] text-white/30">Consistency</div>
-          </div>
-          <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
-            <Target className="w-3.5 h-3.5 text-white/30 mx-auto mb-1" />
-            <div className={`text-base font-bold ${(track.incidents || 0) > 2 ? 'text-red-400' : 'text-emerald-400'}`}>
-              {track.incidents || 0}x
+          <div className="text-[10px] text-white/30">Net iRating</div>
+        </div>
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center">
+          <div className="text-lg font-mono font-bold text-emerald-400">{s.cleanRaces}/{analysis.sessions}</div>
+          <div className="text-[10px] text-white/30">Clean Races</div>
+        </div>
+      </div>
+
+      {/* Trends */}
+      {analysis.sessions >= 4 && (
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
+          <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+            <TrendingUp className="w-3 h-3" />
+            Performance Trends
+          </h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className={`text-sm font-bold ${analysis.trends.paceImproving ? 'text-emerald-400' : 'text-white/60'}`}>
+                P{analysis.trends.recentPace}%
+              </div>
+              <div className="text-[10px] text-white/30">Recent Pace</div>
+              <div className="text-[9px] text-white/20 mt-0.5">was P{analysis.trends.olderPace}%</div>
             </div>
-            <div className="text-[10px] text-white/30">Incidents</div>
-          </div>
-          <div className="bg-white/[0.02] border border-white/[0.10] rounded p-3 text-center shadow-md shadow-black/20">
-            {isImprovement ? <TrendingUp className="w-3.5 h-3.5 text-emerald-400 mx-auto mb-1" /> : <TrendingDown className="w-3.5 h-3.5 text-red-400 mx-auto mb-1" />}
-            <div className={`text-base font-bold ${isImprovement ? 'text-emerald-400' : 'text-red-400'}`}>
-              {isImprovement ? '+' : ''}{positionChange}
+            <div className="text-center">
+              <div className={`text-sm font-bold ${analysis.trends.incidentsDecreasing ? 'text-emerald-400' : 'text-white/60'}`}>
+                {analysis.trends.recentIncidents}x
+              </div>
+              <div className="text-[10px] text-white/30">Recent Inc</div>
+              <div className="text-[9px] text-white/20 mt-0.5">was {analysis.trends.olderIncidents}x</div>
             </div>
-            <div className="text-[10px] text-white/30">Pos. Change</div>
+            <div className="text-center">
+              <div className={`text-sm font-bold ${analysis.trends.consistencyImproving ? 'text-emerald-400' : 'text-white/60'}`}>
+                {analysis.trends.consistencyImproving ? 'Improving' : 'Stable'}
+              </div>
+              <div className="text-[10px] text-white/30">Consistency</div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Sector Analysis */}
-      <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
-        <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
-          <Target className="w-3 h-3" />
-          Sector Focus Areas
-        </h3>
-        <div className="space-y-3">
-          {metadata.sectors.map((sector, i) => (
-            <div key={i} className="border-l-2 border-white/20 pl-3">
-              <div className="text-sm font-medium text-white">{sector.name}</div>
-              <div className="text-xs text-white/60 mt-1">{sector.focus}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Two Column Layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Areas to Improve */}
+      {/* Data-Driven Insights */}
+      {analysis.insights.length > 0 && (
         <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
           <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
-            <TrendingUp className="w-3 h-3 text-red-400" />
+            <Zap className="w-3 h-3 text-[#8b5cf6]" />
+            Key Insights
+          </h3>
+          <div className="space-y-2">
+            {analysis.insights.map((insight, i) => (
+              <div key={i} className="flex items-start gap-2 text-xs text-white/70">
+                <span className="text-[#8b5cf6] mt-0.5 flex-shrink-0">●</span>
+                {insight}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Two Column: Improvements + Strengths */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
+          <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
+            <Target className="w-3 h-3 text-red-400" />
             Areas to Improve
           </h3>
           <ul className="space-y-2">
-            {metadata.improvementAreas.map((area, i) => (
+            {analysis.improvements.map((area, i) => (
               <li key={i} className="flex items-start gap-2 text-xs text-white/60">
-                <span className="text-white/30 mt-0.5">▸</span>
+                <span className="text-red-400/50 mt-0.5 flex-shrink-0">▸</span>
                 {area}
               </li>
             ))}
           </ul>
         </div>
-
-        {/* Strengths */}
         <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
           <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
             <Award className="w-3 h-3 text-emerald-400" />
             Your Strengths
           </h3>
           <ul className="space-y-2">
-            {metadata.strengthAreas.map((area, i) => (
+            {analysis.strengths.map((area, i) => (
               <li key={i} className="flex items-start gap-2 text-xs text-white/60">
-                <span className="text-white/30 mt-0.5">▸</span>
+                <span className="text-emerald-400/50 mt-0.5 flex-shrink-0">▸</span>
                 {area}
               </li>
             ))}
@@ -269,65 +232,39 @@ export function AnalystDataPanel({ track }: AnalystDataPanelProps) {
         </div>
       </div>
 
-      {/* Historical Performance */}
-      {trackData && trackData.history.length > 0 && (
+      {/* Session History */}
+      {analysis.history.length > 0 && (
         <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
           <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
             <BarChart3 className="w-3 h-3" />
-            Performance Trend at {track.track}
+            Session History at {track.track}
           </h3>
-          <div className="space-y-2">
-            {trackData.history.map((session, i) => (
+          <div className="space-y-1">
+            {analysis.history.map((session, i) => (
               <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-white/40 w-14">{session.date}</span>
-                  <span className="text-xs text-white/60">{session.series}</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className={`text-xs flex items-center gap-1 ${session.position < session.started ? 'text-green-400' : 'text-red-400'}`}>
-                    {session.position < session.started ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                    P{session.position}
+                  <span className={`text-xs font-mono ${session.finish < session.started ? 'text-green-400' : session.finish > session.started ? 'text-red-400' : 'text-white/60'}`}>
+                    P{session.finish}
                   </span>
-                  <span className="text-xs text-white/40">from P{session.started}</span>
-                  <span className={`text-xs ${session.incidents > 2 ? 'text-red-400' : 'text-white/40'}`}>{session.incidents}x</span>
+                  <span className="text-[10px] text-white/30">from P{session.started}</span>
+                </div>
+                <div className="flex items-center gap-3 text-[10px]">
+                  <span className="text-white/40">P{session.pacePercentile}%</span>
+                  <span className={session.incidents > 2 ? 'text-red-400' : 'text-white/40'}>{session.incidents}x</span>
+                  <span className={`font-mono ${session.iRatingChange > 0 ? 'text-emerald-400' : session.iRatingChange < 0 ? 'text-red-400' : 'text-white/30'}`}>
+                    {session.iRatingChange > 0 ? '+' : ''}{session.iRatingChange}
+                  </span>
                 </div>
               </div>
             ))}
           </div>
-          {trackData.sessions > 0 && (
-            <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-xs">
-              <span className="text-white/40">{trackData.sessions} total sessions</span>
-              <span className="text-white/60">Best: <span className="text-green-400">P{trackData.bestFinish}</span> | Avg: P{trackData.avgFinish.toFixed(1)}</span>
-            </div>
-          )}
+          <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+            <span className="text-white/40">{analysis.sessions} total sessions</span>
+            <span className="text-white/60">Best: <span className="text-green-400">P{s.bestFinish}</span> | Avg: P{s.avgFinish}</span>
+          </div>
         </div>
       )}
-
-      {/* Consistency Score Breakdown */}
-      <div className="bg-white/[0.02] border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
-        <h3 className="text-[10px] uppercase tracking-[0.15em] text-white/40 mb-3 flex items-center gap-2">
-          <Zap className="w-3 h-3" />
-          Key Insights
-        </h3>
-        <div className="grid grid-cols-2 gap-4 text-xs">
-          <div>
-            <span className="text-white/40">Qualifying vs Race:</span>
-            <span className="text-white ml-2">You typically gain positions</span>
-          </div>
-          <div>
-            <span className="text-white/40">Incident Pattern:</span>
-            <span className="text-white ml-2">Most occur in opening laps</span>
-          </div>
-          <div>
-            <span className="text-white/40">Pace Trend:</span>
-            <span className="text-white ml-2">Strongest in final stint</span>
-          </div>
-          <div>
-            <span className="text-white/40">Tire Management:</span>
-            <span className="text-white ml-2">Good preservation</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
