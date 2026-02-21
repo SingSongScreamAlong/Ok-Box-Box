@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Monitor,
   Wrench,
@@ -18,8 +18,24 @@ interface HUDWidget {
   position: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
 }
 
+const HUD_STORAGE_KEY = 'okboxbox_hud_settings';
+
+function loadHUDSettings(): HUDWidget[] | null {
+  try {
+    const stored = localStorage.getItem(HUD_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch { return null; }
+}
+
+function saveHUDSettings(widgets: HUDWidget[]) {
+  try { localStorage.setItem(HUD_STORAGE_KEY, JSON.stringify(widgets)); } catch {}
+}
+
 export function DriverHUD() {
-  const [widgets, setWidgets] = useState<HUDWidget[]>([
+  const videoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = 0.6; }, []);
+
+  const [widgets, setWidgets] = useState<HUDWidget[]>(loadHUDSettings() || [
     {
       id: 'fuel-calc',
       name: 'Fuel Calculator',
@@ -71,9 +87,11 @@ export function DriverHUD() {
   ]);
 
   const toggleWidget = (id: string) => {
-    setWidgets(widgets.map(w => 
+    const updated = widgets.map(w => 
       w.id === id ? { ...w, enabled: !w.enabled } : w
-    ));
+    );
+    setWidgets(updated);
+    saveHUDSettings(updated);
   };
 
   const getCrewIcon = (crewMember: HUDWidget['crewMember']) => {
@@ -95,7 +113,17 @@ export function DriverHUD() {
   const enabledWidgets = widgets.filter(w => w.enabled);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="relative min-h-[calc(100vh-8rem)]">
+      {/* Background video */}
+      <div className="fixed inset-0 z-0">
+        <video ref={videoRef} autoPlay loop muted playsInline preload="auto" className="w-full h-full object-cover opacity-70">
+          <source src="/videos/bg-2.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/80 via-[#0e0e0e]/60 to-[#0e0e0e]/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />
+      </div>
+
+    <div className="relative z-10 max-w-5xl mx-auto space-y-8 py-6">
       {/* Header */}
       <div className="text-center">
         <h1 
@@ -264,6 +292,7 @@ export function DriverHUD() {
           </p>
         </div>
       </div>
+    </div>
     </div>
   );
 }

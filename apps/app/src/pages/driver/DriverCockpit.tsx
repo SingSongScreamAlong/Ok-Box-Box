@@ -17,7 +17,7 @@ import { TrackMap } from '../../components/TrackMapRive';
 
 export function DriverCockpit() {
   const { status, telemetry: realTelemetry, session, getCarMapPosition } = useRelay();
-  const { criticalMessages } = useEngineer();
+  const { messages: engineerMessages, criticalMessages } = useEngineer();
   const { isEnabled: voiceEnabled, toggleVoice, speak } = useVoice();
 
   // LIVE DATA ONLY - No demo fallback
@@ -172,7 +172,7 @@ export function DriverCockpit() {
         <div className="h-12 border-b border-white/[0.06] bg-[#0e0e0e]/60 backdrop-blur-xl flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-sm text-white/70">{session?.trackName || 'Daytona International Speedway'}</span>
+            <span className="text-sm text-white/70">{session?.trackName || 'No Track'}</span>
             <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border ${isConnected ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-white/40 bg-white/[0.04] border-white/[0.06]'}`}>
               {isConnected ? 'Live' : 'Offline'}
             </span>
@@ -219,7 +219,7 @@ export function DriverCockpit() {
               <span className="font-mono text-4xl font-bold text-white/90">
                 {Math.round(activeTelemetry.speed ?? 0)}
               </span>
-              <span className="text-sm text-[#f97316] font-semibold">KPH</span>
+              <span className="text-sm text-[#f97316] font-semibold">MPH</span>
             </div>
           </div>
 
@@ -311,33 +311,29 @@ export function DriverCockpit() {
         {/* Team Radio Transcripts - F1 Style */}
         <div className="border-t border-white/[0.06] flex flex-col">
           <div className="px-3 py-2 border-b border-white/[0.06] flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <div className={`w-2 h-2 rounded-full ${criticalMessages.length > 0 ? 'bg-red-500 animate-pulse' : engineerMessages.length > 0 ? 'bg-green-500' : 'bg-white/20'}`} />
             <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-semibold">Team Radio</span>
           </div>
           <div className="p-2 space-y-2 max-h-32 overflow-hidden">
-            {/* Latest message - highlighted */}
-            <div className="bg-[#f97316]/10 border-l-2 border-l-[#f97316] rounded-r p-2">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[9px] uppercase tracking-wider text-[#f97316] font-bold">Engineer</span>
-                <span className="text-[9px] text-white/30">LAP 12</span>
+            {engineerMessages.length > 0 ? (
+              engineerMessages.slice(-3).reverse().map((msg, i) => {
+                const roleLabel = msg.domain === 'racecraft' ? 'Spotter' : msg.domain === 'consistency' || msg.domain === 'development' ? 'Analyst' : 'Engineer';
+                const roleColor = msg.domain === 'racecraft' ? 'text-blue-400' : msg.domain === 'consistency' || msg.domain === 'development' ? 'text-purple-400' : 'text-[#f97316]';
+                const bgColor = i === 0 ? (msg.urgency === 'critical' ? 'bg-red-500/10 border-l-2 border-l-red-500' : 'bg-[#f97316]/10 border-l-2 border-l-[#f97316]') : 'bg-white/[0.02] border-l-2 border-l-white/20';
+                return (
+                  <div key={i} className={`${bgColor} rounded-r p-2 ${i > 0 ? 'opacity-50' : ''}`}>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className={`text-[9px] uppercase tracking-wider font-bold ${i === 0 ? roleColor : 'text-white/40'}`}>{roleLabel}</span>
+                    </div>
+                    <p className={`text-[11px] leading-tight ${i === 0 ? 'text-white/90' : 'text-white/60'}`}>"{msg.content}"</p>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="flex items-center justify-center h-16 text-white/20 text-xs">
+                {isConnected ? 'Listening...' : 'Connect relay for team radio'}
               </div>
-              <p className="text-[11px] text-white/90 leading-tight">"Looking good, keep this pace. Fuel is on target."</p>
-            </div>
-            {/* Previous messages */}
-            <div className="bg-white/[0.02] border-l-2 border-l-emerald-500/50 rounded-r p-2 opacity-70">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[9px] uppercase tracking-wider text-emerald-400 font-bold">Spotter</span>
-                <span className="text-[9px] text-white/30">LAP 11</span>
-              </div>
-              <p className="text-[11px] text-white/70 leading-tight">"Clear behind, gap is 2.4 seconds."</p>
-            </div>
-            <div className="bg-white/[0.02] border-l-2 border-l-cyan-500/50 rounded-r p-2 opacity-50">
-              <div className="flex items-center gap-2 mb-0.5">
-                <span className="text-[9px] uppercase tracking-wider text-cyan-400 font-bold">Strategist</span>
-                <span className="text-[9px] text-white/30">LAP 10</span>
-              </div>
-              <p className="text-[11px] text-white/60 leading-tight">"Box window opens in 5 laps."</p>
-            </div>
+            )}
           </div>
         </div>
       </div>

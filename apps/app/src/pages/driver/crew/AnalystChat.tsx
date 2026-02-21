@@ -55,11 +55,11 @@ export function AnalystChat() {
         series: s.seriesName,
         date: new Date(s.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         time: new Date(s.startedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        laps: 30,
+        laps: s.lapsComplete || 0,
         position: s.finishPos || 0,
         started: s.startPos || 0,
         bestLap: '--:--.---',
-        consistency: 0, // Will come from API when implemented
+        consistency: 0,
         incidents: s.incidents || 0,
       }));
       setSessions(mapped);

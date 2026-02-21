@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
   Wrench,
   Eye,
@@ -19,9 +19,33 @@ interface CalloutCategory {
   examples: string[];
 }
 
+const VOICE_STORAGE_KEY = 'okboxbox_voice_settings';
+
+interface VoiceSettings {
+  engineerVolume: number;
+  spotterVolume: number;
+  engineerCallouts: Record<string, boolean>;
+  spotterCallouts: Record<string, boolean>;
+}
+
+function loadVoiceSettings(): VoiceSettings | null {
+  try {
+    const stored = localStorage.getItem(VOICE_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch { return null; }
+}
+
+function saveVoiceSettings(settings: VoiceSettings) {
+  try { localStorage.setItem(VOICE_STORAGE_KEY, JSON.stringify(settings)); } catch {}
+}
+
 export function DriverVoice() {
-  const [engineerVolume, setEngineerVolume] = useState(80);
-  const [spotterVolume, setSpotterVolume] = useState(100);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = 0.6; }, []);
+
+  const saved = loadVoiceSettings();
+  const [engineerVolume, setEngineerVolume] = useState(saved?.engineerVolume ?? 80);
+  const [spotterVolume, setSpotterVolume] = useState(saved?.spotterVolume ?? 100);
   const [engineerExpanded, setEngineerExpanded] = useState(true);
   const [spotterExpanded, setSpotterExpanded] = useState(true);
 
@@ -118,6 +142,17 @@ export function DriverVoice() {
     },
   ]);
 
+  const persistSettings = useCallback(() => {
+    saveVoiceSettings({
+      engineerVolume,
+      spotterVolume,
+      engineerCallouts: Object.fromEntries(engineerCallouts.map(c => [c.id, c.enabled])),
+      spotterCallouts: Object.fromEntries(spotterCallouts.map(c => [c.id, c.enabled])),
+    });
+  }, [engineerVolume, spotterVolume, engineerCallouts, spotterCallouts]);
+
+  useEffect(() => { persistSettings(); }, [persistSettings]);
+
   const toggleCallout = (
     callouts: CalloutCategory[], 
     setCallouts: React.Dispatch<React.SetStateAction<CalloutCategory[]>>,
@@ -129,7 +164,17 @@ export function DriverVoice() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="relative min-h-[calc(100vh-8rem)]">
+      {/* Background video */}
+      <div className="fixed inset-0 z-0">
+        <video ref={videoRef} autoPlay loop muted playsInline preload="auto" className="w-full h-full object-cover opacity-70">
+          <source src="/videos/bg-2.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/80 via-[#0e0e0e]/60 to-[#0e0e0e]/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />
+      </div>
+
+    <div className="relative z-10 max-w-4xl mx-auto space-y-8 py-6">
       {/* Header */}
       <div className="text-center">
         <h1 
@@ -333,6 +378,7 @@ export function DriverVoice() {
           </p>
         </div>
       </div>
+    </div>
     </div>
   );
 }
