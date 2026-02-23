@@ -92,38 +92,39 @@ export function getTierFromRequest(req: Request): RateLimitTier {
 // RATE LIMITERS BY TIER
 // =====================================================================
 
-const tierLimiters: Map<string, RateLimitRequestHandler> = new Map();
+function createLimiterForTier(tier: RateLimitTier): RateLimitRequestHandler {
+    return rateLimit({
+        windowMs: tier.windowMs,
+        limit: tier.limit,
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: (req: Request) => {
+            // Use user ID if authenticated, fallback to IP
+            const user = (req as any).user;
+            return user?.id || req.ip || 'unknown';
+        },
+        handler: (_req: Request, res: Response) => {
+            res.status(429).json({
+                success: false,
+                error: {
+                    code: 'RATE_LIMIT_EXCEEDED',
+                    message: `Rate limit exceeded. Limit: ${tier.limit} requests per ${tier.windowMs / 60000} minutes.`,
+                    tier: tier.name,
+                    retryAfterMs: tier.windowMs
+                }
+            });
+        }
+    });
+}
+
+// Pre-create all limiters at module load time to avoid
+// ERR_ERL_CREATED_IN_REQUEST_HANDLER warning from express-rate-limit v7+
+const tierLimiters: Map<string, RateLimitRequestHandler> = new Map(
+    Object.values(RATE_LIMIT_TIERS).map(tier => [tier.name, createLimiterForTier(tier)])
+);
 
 function getLimiterForTier(tier: RateLimitTier): RateLimitRequestHandler {
-    let limiter = tierLimiters.get(tier.name);
-
-    if (!limiter) {
-        limiter = rateLimit({
-            windowMs: tier.windowMs,
-            limit: tier.limit,
-            standardHeaders: true,
-            legacyHeaders: false,
-            keyGenerator: (req: Request) => {
-                // Use user ID if authenticated, fallback to IP
-                const user = (req as any).user;
-                return user?.id || req.ip || 'unknown';
-            },
-            handler: (_req: Request, res: Response) => {
-                res.status(429).json({
-                    success: false,
-                    error: {
-                        code: 'RATE_LIMIT_EXCEEDED',
-                        message: `Rate limit exceeded. Limit: ${tier.limit} requests per ${tier.windowMs / 60000} minutes.`,
-                        tier: tier.name,
-                        retryAfterMs: tier.windowMs
-                    }
-                });
-            }
-        });
-        tierLimiters.set(tier.name, limiter);
-    }
-
-    return limiter;
+    return tierLimiters.get(tier.name)!;
 }
 
 // =====================================================================
