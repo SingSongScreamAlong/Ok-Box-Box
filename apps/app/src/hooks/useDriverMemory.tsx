@@ -55,43 +55,10 @@ export function useDriverMemory() {
         return;
       }
 
-      const driverProfileId = profile.id;
-
-      // Fetch memory, identity, opinions, and events in parallel
-      const [memoryResult, identityResult, opinionsResult, eventsResult] = await Promise.all([
-        supabase
-          .from('driver_memory')
-          .select('*')
-          .eq('driver_profile_id', driverProfileId)
-          .single(),
-        supabase
-          .from('driver_identity')
-          .select('*')
-          .eq('driver_profile_id', driverProfileId)
-          .single(),
-        supabase
-          .from('engineer_opinions')
-          .select('*')
-          .eq('driver_profile_id', driverProfileId)
-          .is('valid_until', null)
-          .order('priority', { ascending: false })
-          .limit(10),
-        supabase
-          .from('driver_memory_events')
-          .select('*')
-          .eq('driver_profile_id', driverProfileId)
-          .order('created_at', { ascending: false })
-          .limit(20),
-      ]);
-
-      setState({
-        memory: memoryResult.data ? transformMemory(memoryResult.data) : null,
-        identity: identityResult.data ? transformIdentity(identityResult.data) : null,
-        opinions: opinionsResult.data ? opinionsResult.data.map(transformOpinion) : [],
-        recentEvents: eventsResult.data ? eventsResult.data.map(transformEvent) : [],
-        loading: false,
-        error: null,
-      });
+      // TODO: Enable when driver_memory, driver_identity, engineer_opinions,
+      // and driver_memory_events tables are created in Supabase.
+      // These tables don't exist yet — querying them causes 406 errors.
+      setState(prev => ({ ...prev, loading: false }));
     } catch (err) {
       console.error('Error fetching driver memory:', err);
       setState(prev => ({
