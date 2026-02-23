@@ -13,9 +13,9 @@ let currentSessionInfo: { sessionId: string; trackName: string; sessionType: str
 export class TelemetryHandler {
     private static firstPacketLogged = false;
     private lastSessionInfoEmit = 0;
-    private lastCompetitorDataEmit = 0;
     private static readonly SLOW_EMIT_INTERVAL = 1000; // 1Hz for slowly-changing data
     private lastWeather: { trackTemp: number; airTemp: number; humidity: number; windSpeed: number; windDir: number; skyCondition: string } | null = null;
+    private cachedStandings: any[] = []; // Full standings from 1Hz standings event (no cap)
     
     constructor(private io: Server) { }
     
@@ -92,6 +92,35 @@ export class TelemetryHandler {
             this.io.emit('race:event', rawData);
         });
 
+        // Standings (1Hz) — ALL cars on track, no cap
+        socket.on('standings', (data: unknown) => {
+            const rawData = data as any;
+            if (!rawData?.standings) return;
+
+            // Cache full standings for use by telemetry and strategy_raw handlers
+            this.cachedStandings = rawData.standings;
+
+            // Update telemetry cache for voice AI context
+            updateTelemetryCache('live', {
+                standings: rawData.standings,
+                totalCars: rawData.totalCars || rawData.standings.length,
+            });
+
+            // Emit competitor_data to frontend (all cars)
+            const competitorData = rawData.standings
+                .sort((a: any, b: any) => (a.position || 0) - (b.position || 0))
+                .map((s: any) => ({
+                    position: s.position || 0,
+                    driver: s.driverName || `Car ${s.carIdx}`,
+                    carNumber: s.carNumber || String(s.carIdx || ''),
+                    lapDistPct: s.lapDistPct ?? 0,
+                    isPlayer: !!s.isPlayer,
+                    gap: s.isPlayer ? '—' : (s.gapToLeader ? `+${s.gapToLeader.toFixed(1)}s` : '--'),
+                    lastLap: s.lastLapTime > 0 ? this.formatLapTime(s.lastLapTime) : '—',
+                }));
+            this.io.volatile.emit('competitor_data', competitorData);
+        });
+
         // Telemetry snapshot
         socket.on('telemetry', (data: unknown) => {
             const rawData = data as any;
@@ -125,7 +154,7 @@ export class TelemetryHandler {
                     sessionLaps: rawData.sessionLaps,
                     sessionTimeRemain: rawData.sessionTimeRemain,
                     flagStatus: rawData.flagStatus,
-                    totalCars: rawData.totalCars,
+                    totalCars: this.cachedStandings.length || undefined,
                     
                     // Weather & Conditions (convert to Fahrenheit)
                     trackTemp: rawData.trackTemp ? Math.round(rawData.trackTemp * 9/5 + 32) : undefined,
@@ -186,9 +215,6 @@ export class TelemetryHandler {
                     
                     // Pit tracking (server-side)
                     pitStops: inferred.pit.stops,
-                    
-                    // Standings (all cars on track)
-                    standings: rawData.standings
                 };
                 
                 updateTelemetryCache('live', cacheData);
@@ -336,8 +362,11 @@ export class TelemetryHandler {
                 this.io.volatile.emit('telemetry_update', lrocTelemetry);
                 
                 // Also emit telemetry:driver for Driver Tier app compatibility
+                // Include cached standings so frontend can build otherCars array
                 this.io.volatile.emit('telemetry:driver', {
                     ...rawData,
+                    standings: this.cachedStandings,
+                    totalCars: this.cachedStandings.length || undefined,
                     trackName: rawData.trackName || session?.trackName,
                     sessionType: rawData.sessionType || session?.sessionType,
                     rpmRedline: currentSessionInfo?.rpmRedline,
@@ -367,23 +396,7 @@ export class TelemetryHandler {
                 });
                 } // end session_info throttle
                 
-                // Emit competitor_data for standings (throttled to 1Hz)
-                const standings = rawData.standings || rawData.drivers || validData.cars;
-                if (standings && standings.length > 0 && now - this.lastCompetitorDataEmit >= TelemetryHandler.SLOW_EMIT_INTERVAL) {
-                    this.lastCompetitorDataEmit = now;
-                    const competitorData = standings
-                        .sort((a: any, b: any) => (a.position || 0) - (b.position || 0))
-                        .map((s: any) => ({
-                            position: s.position || 0,
-                            driver: s.driverName || `Car ${s.carId || s.carIdx}`,
-                            carNumber: s.carNumber || String(s.carId || s.carIdx || ''),
-                            lapDistPct: s.lapDistPct ?? 0,
-                            isPlayer: !!s.isPlayer,
-                            gap: s.isPlayer ? '—' : (s.gapToLeader ? `+${s.gapToLeader.toFixed(1)}s` : '--'),
-                            lastLap: s.lastLapTime > 0 ? this.formatLapTime(s.lastLapTime) : '—'
-                        }));
-                    this.io.volatile.emit('competitor_data', competitorData);
-                }
+                // competitor_data now emitted by the dedicated 'standings' handler (1Hz, all cars)
             }
         });
 
@@ -536,7 +549,7 @@ export class TelemetryHandler {
             // Compute gap from car behind using standings
             let gapFromCarBehind = 0;
             const playerPos = rawCar.position || 1;
-            const standings = data.standings || data.drivers;
+            const standings = this.cachedStandings;
             if (standings && standings.length > 0) {
                 const carBehind = standings.find((s: any) => s.position === playerPos + 1);
                 const playerStanding = standings.find((s: any) => s.isPlayer || s.carIdx === rawCar.carId);

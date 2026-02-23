@@ -49,7 +49,7 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
         // Debug: Log all incoming events
         socket.onAny((eventName, ...args) => {
             // Filter high-frequency events (telemetry=60Hz, strategy_raw=1Hz, etc.)
-            const quietEvents = ['telemetry', 'video_frame', 'strategy_raw', 'competitor_data'];
+            const quietEvents = ['telemetry', 'video_frame', 'strategy_raw', 'competitor_data', 'standings'];
             if (!quietEvents.includes(eventName)) {
                 console.log(`📨 Event received: ${eventName}`, JSON.stringify(args).substring(0, 200));
             }
