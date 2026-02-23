@@ -323,13 +323,34 @@ export function getTrackId(trackName: string): string {
   const normalized = trackName.toLowerCase().replace(/[^a-z0-9]/g, '');
   const normalizedNoYear = stripTrackYear(trackName.toLowerCase());
 
-  // First check TRACK_SLUG_MAP for direct slug match
+  // Two-pass matching: first find slugs the input CONTAINS (input is more specific),
+  // then fall back to slugs that CONTAIN the input (input is less specific).
+  // Within each pass, prefer the longest matching slug for specificity.
+  // This ensures 'daytona 2011 oval' → 'daytona-oval' (191) not 'daytona' (381).
+  let bestContains: { id: string; len: number } | null = null;   // input contains slug
+  let bestContainedBy: { id: string; len: number } | null = null; // slug contains input
   for (const [slug, id] of Object.entries(TRACK_SLUG_MAP)) {
     const slugNorm = slug.replace(/-/g, '');
-    if (normalized.includes(slugNorm) || slugNorm.includes(normalized)
-      || normalizedNoYear.includes(slugNorm) || slugNorm.includes(normalizedNoYear)) {
-      return id; // Return the numeric ID
+    // Pass 1: input contains slug (e.g. "daytonaoval" contains "daytonaoval" or "daytona")
+    if (normalized.includes(slugNorm) || normalizedNoYear.includes(slugNorm)) {
+      if (!bestContains || slugNorm.length > bestContains.len) {
+        bestContains = { id, len: slugNorm.length };
+      }
     }
+    // Pass 2: slug contains input (e.g. "daytonaroad" contains "daytona")
+    else if (slugNorm.includes(normalized) || slugNorm.includes(normalizedNoYear)) {
+      if (!bestContainedBy || slugNorm.length < bestContainedBy.len) {
+        // Prefer SHORTEST slug that contains input (closest match)
+        bestContainedBy = { id, len: slugNorm.length };
+      }
+    }
+  }
+  // Prefer "input contains slug" matches (more precise)
+  if (bestContains) {
+    return bestContains.id;
+  }
+  if (bestContainedBy) {
+    return bestContainedBy.id;
   }
 
   // Check if it's already a numeric ID

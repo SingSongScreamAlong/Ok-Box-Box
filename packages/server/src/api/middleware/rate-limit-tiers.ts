@@ -98,10 +98,14 @@ function createLimiterForTier(tier: RateLimitTier): RateLimitRequestHandler {
         limit: tier.limit,
         standardHeaders: true,
         legacyHeaders: false,
+        validate: { xForwardedForHeader: false, default: true },
         keyGenerator: (req: Request) => {
             // Use user ID if authenticated, fallback to IP
             const user = (req as any).user;
-            return user?.id || req.ip || 'unknown';
+            if (user?.id) return user.id;
+            // Normalize IPv6-mapped IPv4 (::ffff:1.2.3.4 → 1.2.3.4)
+            const ip = req.ip || 'unknown';
+            return ip.startsWith('::ffff:') ? ip.slice(7) : ip;
         },
         handler: (_req: Request, res: Response) => {
             res.status(429).json({

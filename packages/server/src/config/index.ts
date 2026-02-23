@@ -19,8 +19,15 @@ export const config = {
     jwtSecret: process.env.JWT_SECRET || 'controlbox_dev_secret',
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
 
-    // CORS
-    corsOrigins: (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000,https://app.okboxbox.com,https://okboxbox.com,https://octopus-app-qsi3i.ondigitalocean.app').split(','),
+    // CORS — auto-strip localhost in production
+    corsOrigins: (() => {
+        const origins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000,https://app.okboxbox.com,https://okboxbox.com,https://octopus-app-qsi3i.ondigitalocean.app').split(',');
+        if (process.env.NODE_ENV === 'production') {
+            const filtered = origins.filter(o => !o.includes('localhost') && !o.includes('127.0.0.1'));
+            return filtered.length > 0 ? filtered : origins; // fallback to all if nothing left
+        }
+        return origins;
+    })(),
 
     // AI
     aiInferenceUrl: process.env.AI_INFERENCE_URL || 'http://localhost:8000',
