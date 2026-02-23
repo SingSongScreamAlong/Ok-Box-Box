@@ -65,4 +65,13 @@ if (config.nodeEnv === 'production') {
     if (!process.env.REDIS_URL) {
         console.warn('⚠️  REDIS_URL not set — OAuth state will use in-memory store (not suitable for multi-instance)');
     }
+
+    // Validate CORS origins — no localhost in production
+    if (!process.env.CORS_ORIGINS) {
+        console.warn('⚠️  CORS_ORIGINS not explicitly set — using built-in defaults. Set CORS_ORIGINS for explicit control.');
+    }
+    const localhostOrigins = config.corsOrigins.filter(o => o.includes('localhost') || o.includes('127.0.0.1'));
+    if (localhostOrigins.length > 0) {
+        console.warn(`⚠️  CORS_ORIGINS contains localhost entries in production: ${localhostOrigins.join(', ')}. Remove them for production security.`);
+    }
 }

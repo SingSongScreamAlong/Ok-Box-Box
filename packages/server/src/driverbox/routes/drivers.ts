@@ -25,6 +25,8 @@ import { getAllAggregatesForDriver, getGlobalAggregate } from '../../db/reposito
 import { getCurrentTraits } from '../../db/repositories/driver-traits.repo.js';
 import { getReportsForDriver } from '../../db/repositories/driver-reports.repo.js';
 import { chatCompletion, isLLMConfigured } from '../../services/ai/llm-service.js';
+import { getTelemetryForVoice } from '../../websocket/telemetry-cache.js';
+import { getAnalyzer } from '../../services/ai/live-session-analyzer.js';
 import {
     requireOwner,
     requireTeamStandard,
@@ -1366,7 +1368,7 @@ router.post('/me/crew-chat', requireAuth, async (req: Request, res: Response): P
             return;
         }
 
-        // Gather driver context
+        // Gather driver context (historical stats + live telemetry)
         let driverContext = '';
         if (profile) {
             const [aggregate, traits, recentSessions] = await Promise.all([
@@ -1377,6 +1379,25 @@ router.post('/me/crew-chat', requireAuth, async (req: Request, res: Response): P
             driverContext = buildDriverContextForAI(profile, aggregate, traits, recentSessions);
         }
 
+        // Inject live telemetry if driver is in a session
+        const liveContext = buildLiveTelemetryContext();
+        const isLive = liveContext.length > 0;
+
+        const liveInstructions = isLive
+            ? `\nThe driver is CURRENTLY IN A LIVE SESSION. You have real-time telemetry data below.
+When they ask about fuel, tires, gaps, position, damage, weather, or anything about the current session — answer from the LIVE data.
+Be conversational and direct. They're driving. Keep it short unless they ask for detail.
+If they ask "how's the car?" or "what's my fuel?" — answer with the live numbers.
+If they ask strategy questions, use both their historical data AND the live session data to give the best answer.`
+            : '';
+
+        const noLiveNote = !isLive ? '\nThe driver is NOT currently in a live session. Answer from historical data and general knowledge.' : '';
+
+        const allContext = [
+            driverContext || 'No driver data available yet — encourage them to complete sessions.',
+            liveContext,
+        ].filter(Boolean).join('\n');
+
         const systemPrompts: Record<string, string> = {
             engineer: `You are a professional motorsport race engineer working with a sim racer on iRacing.
 You are technical, precise, and data-driven. You ALWAYS reference the driver's actual performance numbers when available.
@@ -1384,8 +1405,18 @@ You help with: car setup philosophy, race strategy, fuel/tire management, track-
 When discussing strategy, reference their actual pace percentile, consistency, and incident patterns.
 When discussing setup, relate it to their driving style (e.g., if they have high incidents, suggest more stable setups).
 Keep responses concise (2-4 sentences) unless the driver asks for detail. Use racing terminology naturally.
-IMPORTANT: Never make up data. Only reference numbers from the driver data below. If data is missing, say so.
-${driverContext ? `\n${driverContext}` : '\nNo driver data available yet — encourage them to complete sessions.'}`,
+
+DURING A LIVE SESSION you have access to ACCUMULATED RACE INTELLIGENCE — not just a snapshot, but the full story:
+- Use PACE ANALYSIS to answer questions about lap time trends, consistency, and whether they're improving or degrading.
+- Use FUEL ANALYSIS for precise fuel strategy: actual burn rate, projected laps, whether they can make it without stopping.
+- Use TIRE ANALYSIS for tire strategy: degradation rate per lap, estimated laps left, tire cliff warnings.
+- Use POSITION & GAPS for gap trends (closing/opening), overtake opportunities, and defensive needs.
+- Use STRATEGY RECOMMENDATION as your primary advice — it synthesizes all the data into one actionable call.
+- If they ask "how's the car?" give them fuel, tires, damage, and the strategy recommendation in one breath.
+- If they ask about pit strategy, use the optimal pit window calculation and fuel/tire projections together.
+
+IMPORTANT: Never make up data. Only reference numbers from the data below. If data is missing, say so.${liveInstructions}${noLiveNote}
+\n${allContext}`,
 
             spotter: `You are a professional motorsport spotter working with a sim racer on iRacing.
 You are alert, direct, and focused on situational awareness. You speak in short, clear radio-style callouts.
@@ -1393,8 +1424,18 @@ You help with: race starts, traffic management, competitor tendencies, track awa
 Reference their actual race data — if they lose positions on average, focus on starts. If incidents are high, focus on awareness.
 When not in a live session, help them prepare mentally: review their recent results, discuss approach for upcoming races.
 Keep responses brief and punchy (1-3 sentences). Use spotter radio language naturally ("Clear high", "Car inside", etc).
-IMPORTANT: Never make up data. Only reference numbers from the driver data below.
-${driverContext ? `\n${driverContext}` : '\nNo driver data available yet — encourage them to complete sessions.'}`,
+
+DURING A LIVE SESSION you have access to ACCUMULATED RACE INTELLIGENCE with real gap and position data:
+- Use POSITION & GAPS to tell them about closing/opening gaps. "Car behind closing, 1.2 seconds" or "You're reeling him in, gap down to 0.8."
+- Use gap TRENDS (closing/stable/opening) — don't just report the number, tell them the direction.
+- If OVERTAKE OPPORTUNITY is flagged, call it: "Gap under a second, he's struggling. Set up the move."
+- If UNDER THREAT is flagged, warn them: "Car behind is faster. Cover the inside."
+- Use INCIDENTS & MENTAL STATE to adjust your tone — if they're tilted or fatigued, be calming. If they're fresh, be energizing.
+- Use RACECRAFT data to reference their overtake success rate if relevant.
+- Reference STANDINGS data to tell them about specific competitors by name and iRating.
+
+IMPORTANT: Never make up data. Only reference numbers from the data below.${liveInstructions}${noLiveNote}
+\n${allContext}`,
 
             analyst: `You are a professional motorsport performance analyst working with a sim racer on iRacing.
 You are analytical, thorough, and obsessed with finding patterns in data. You speak with precision and cite specific numbers.
@@ -1403,8 +1444,18 @@ ALWAYS cite specific numbers: pace percentiles, incident counts, std dev, positi
 Compare recent performance to overall averages. Identify trends (improving/declining). Prioritize actionable insights.
 When debriefing a session, analyze: pace vs field, consistency, incidents, positions gained/lost, and what to work on next.
 Keep responses focused (3-5 sentences) with specific data references. Use tables or bullet points for clarity.
-IMPORTANT: Never make up data. Only reference numbers from the driver data below. If you see patterns, explain them.
-${driverContext ? `\n${driverContext}` : '\nNo driver data available yet — encourage them to complete sessions.'}`,
+
+DURING A LIVE SESSION you have access to ACCUMULATED RACE INTELLIGENCE with deep analysis:
+- Use PACE ANALYSIS for lap time trends, std dev, consistency rating, and whether pace is improving/degrading/erratic.
+- Use STINT HISTORY to compare performance across stints — avg pace, fuel efficiency, tire degradation, positions gained.
+- Use FUEL ANALYSIS to validate their fuel strategy with actual burn rates vs projected.
+- Use TIRE ANALYSIS for degradation curves and tire cliff warnings.
+- Use INCIDENTS & MENTAL STATE to identify patterns — incident clustering, pace after incidents, mental fatigue level.
+- Use RACECRAFT data for overtake efficiency and positions lost to mistakes.
+- Cross-reference live data with their HISTORICAL performance to identify if this session is above/below their norm.
+
+IMPORTANT: Never make up data. Only reference numbers from the data below. If you see patterns, explain them.${liveInstructions}${noLiveNote}
+\n${allContext}`,
         };
 
         const systemPrompt = systemPrompts[role] || systemPrompts.engineer;
@@ -1522,6 +1573,154 @@ function buildDriverContextForAI(profile: any, aggregate: any, traits: any[], re
         const avgRecentStdDev = recent3.reduce((s: number, m: any) => s + (parseFloat(m.lap_time_std_dev_ms) || 0), 0) / recent3.length;
         lines.push(`\n--- Recent Trends (last 3) ---`);
         lines.push(`Avg incidents: ${avgRecentInc.toFixed(1)} | Avg pace: P${Math.round(avgRecentPace)}% | Avg consistency: ${(avgRecentStdDev / 1000).toFixed(2)}s std dev`);
+    }
+
+    return lines.join('\n');
+}
+
+function buildLiveTelemetryContext(): string {
+    // Try both 'live' key and any active session
+    const snapshot = getTelemetryForVoice('live');
+    if (!snapshot || !snapshot.updatedAt) return '';
+
+    // Stale check — if data is older than 30 seconds, session is probably over
+    const age = Date.now() - snapshot.updatedAt;
+    if (age > 30000) return '';
+
+    const lines: string[] = [];
+    lines.push('\n--- LIVE SESSION DATA (REAL-TIME) ---');
+
+    // Session
+    if (snapshot.trackName) lines.push(`Track: ${snapshot.trackName}`);
+    if (snapshot.sessionType) lines.push(`Session: ${snapshot.sessionType}`);
+    if (snapshot.sessionLaps) lines.push(`Session laps: ${snapshot.sessionLaps}`);
+    if (snapshot.sessionTimeRemain != null) lines.push(`Time remaining: ${Math.floor(snapshot.sessionTimeRemain / 60)}m ${Math.round(snapshot.sessionTimeRemain % 60)}s`);
+    if (snapshot.flagStatus) lines.push(`Flag: ${snapshot.flagStatus}`);
+    if (snapshot.totalCars) lines.push(`Cars in session: ${snapshot.totalCars}`);
+
+    // Weather
+    if (snapshot.trackTemp != null || snapshot.airTemp != null) {
+        const parts: string[] = [];
+        if (snapshot.trackTemp != null) parts.push(`Track: ${snapshot.trackTemp}°F`);
+        if (snapshot.airTemp != null) parts.push(`Air: ${snapshot.airTemp}°F`);
+        if (snapshot.humidity != null) parts.push(`Humidity: ${snapshot.humidity}%`);
+        if (snapshot.windSpeed != null) parts.push(`Wind: ${snapshot.windSpeed} mph`);
+        if (snapshot.skyCondition) parts.push(snapshot.skyCondition);
+        lines.push(`Weather: ${parts.join(', ')}`);
+    }
+
+    // Position
+    lines.push('');
+    if (snapshot.position != null) lines.push(`Position: P${snapshot.position}${snapshot.classPosition ? ` (class P${snapshot.classPosition})` : ''}`);
+    if (snapshot.lap != null) lines.push(`Current lap: ${snapshot.lap}`);
+
+    // Speed
+    if (snapshot.speed != null) lines.push(`Speed: ${snapshot.speed} mph`);
+    if (snapshot.gear != null) lines.push(`Gear: ${snapshot.gear}`);
+
+    // Lap times
+    if (snapshot.lastLapTime != null && snapshot.lastLapTime > 0) {
+        const mins = Math.floor(snapshot.lastLapTime / 60);
+        const secs = (snapshot.lastLapTime % 60).toFixed(3);
+        lines.push(`Last lap: ${mins}:${secs.padStart(6, '0')}`);
+    }
+    if (snapshot.bestLapTime != null && snapshot.bestLapTime > 0) {
+        const mins = Math.floor(snapshot.bestLapTime / 60);
+        const secs = (snapshot.bestLapTime % 60).toFixed(3);
+        lines.push(`Best lap: ${mins}:${secs.padStart(6, '0')}`);
+    }
+    if (snapshot.deltaToSessionBest != null) {
+        lines.push(`Delta to session best: ${snapshot.deltaToSessionBest > 0 ? '+' : ''}${snapshot.deltaToSessionBest.toFixed(3)}s`);
+    }
+
+    // Fuel
+    lines.push('');
+    if (snapshot.fuelLevel != null) lines.push(`Fuel level: ${snapshot.fuelLevel.toFixed(2)} L`);
+    if (snapshot.fuelPct != null) lines.push(`Fuel %: ${snapshot.fuelPct}%`);
+    if (snapshot.fuelPerLap != null) lines.push(`Fuel per lap: ${snapshot.fuelPerLap.toFixed(3)} L`);
+    if (snapshot.fuelLevel != null && snapshot.fuelPerLap != null && snapshot.fuelPerLap > 0) {
+        const lapsRemaining = Math.floor(snapshot.fuelLevel / snapshot.fuelPerLap);
+        lines.push(`Fuel laps remaining: ${lapsRemaining}`);
+    }
+
+    // Gaps
+    if (snapshot.gapToLeader != null && snapshot.gapToLeader > 0) lines.push(`Gap to leader: +${snapshot.gapToLeader.toFixed(1)}s`);
+    if (snapshot.gapToCarAhead != null && snapshot.gapToCarAhead > 0) lines.push(`Gap to car ahead: +${snapshot.gapToCarAhead.toFixed(1)}s`);
+
+    // Tires
+    if (snapshot.tireWear) {
+        lines.push('');
+        lines.push(`Tire wear — FL: ${Math.round(snapshot.tireWear.fl * 100)}%, FR: ${Math.round(snapshot.tireWear.fr * 100)}%, RL: ${Math.round(snapshot.tireWear.rl * 100)}%, RR: ${Math.round(snapshot.tireWear.rr * 100)}%`);
+    }
+    if (snapshot.tireStintLaps != null) lines.push(`Tire stint laps: ${snapshot.tireStintLaps}`);
+    if (snapshot.tireTemps) {
+        const avgTemp = (corner: { l: number; m: number; r: number }) => Math.round((corner.l + corner.m + corner.r) / 3);
+        lines.push(`Tire temps (avg °C) — FL: ${avgTemp(snapshot.tireTemps.fl)}, FR: ${avgTemp(snapshot.tireTemps.fr)}, RL: ${avgTemp(snapshot.tireTemps.rl)}, RR: ${avgTemp(snapshot.tireTemps.rr)}`);
+    }
+
+    // Damage
+    if (snapshot.damageAero != null && snapshot.damageAero > 0.01) lines.push(`Aero damage: ${Math.round(snapshot.damageAero * 100)}%`);
+    if (snapshot.damageEngine != null && snapshot.damageEngine > 0.01) lines.push(`Engine damage: ${Math.round(snapshot.damageEngine * 100)}%`);
+
+    // Engine
+    if (snapshot.oilTemp != null || snapshot.waterTemp != null) {
+        const parts: string[] = [];
+        if (snapshot.oilTemp != null) parts.push(`Oil: ${snapshot.oilTemp}°F`);
+        if (snapshot.waterTemp != null) parts.push(`Water: ${snapshot.waterTemp}°F`);
+        if (snapshot.oilPressure != null) parts.push(`Oil pressure: ${snapshot.oilPressure.toFixed(1)}`);
+        if (snapshot.voltage != null) parts.push(`Voltage: ${snapshot.voltage.toFixed(1)}V`);
+        lines.push(`Engine: ${parts.join(', ')}`);
+    }
+
+    // Pit stops & status
+    if (snapshot.pitStops != null) lines.push(`Pit stops: ${snapshot.pitStops}`);
+    if (snapshot.onPitRoad) lines.push('STATUS: Currently on pit road');
+    if (snapshot.incidentCount != null) lines.push(`Incidents this session: ${snapshot.incidentCount}x`);
+
+    // Standings (top 10 + nearby)
+    if (snapshot.standings && snapshot.standings.length > 0) {
+        lines.push('');
+        lines.push('--- LIVE STANDINGS ---');
+        const sorted = [...snapshot.standings].sort((a, b) => a.position - b.position);
+        const playerIdx = sorted.findIndex(s => s.isPlayer);
+        
+        // Show top 5
+        sorted.slice(0, 5).forEach(s => {
+            const marker = s.isPlayer ? ' ← YOU' : '';
+            const lapTime = s.bestLapTime > 0 ? ` | best ${Math.floor(s.bestLapTime / 60)}:${(s.bestLapTime % 60).toFixed(3).padStart(6, '0')}` : '';
+            lines.push(`  P${s.position} ${s.driverName} (${s.carName}, iR ${s.iRating})${lapTime}${s.onPitRoad ? ' [PIT]' : ''}${marker}`);
+        });
+
+        // If player is outside top 5, show nearby cars
+        if (playerIdx >= 5) {
+            lines.push('  ...');
+            const start = Math.max(playerIdx - 1, 5);
+            const end = Math.min(playerIdx + 2, sorted.length);
+            sorted.slice(start, end).forEach(s => {
+                const marker = s.isPlayer ? ' ← YOU' : '';
+                const lapTime = s.bestLapTime > 0 ? ` | best ${Math.floor(s.bestLapTime / 60)}:${(s.bestLapTime % 60).toFixed(3).padStart(6, '0')}` : '';
+                lines.push(`  P${s.position} ${s.driverName} (${s.carName}, iR ${s.iRating})${lapTime}${s.onPitRoad ? ' [PIT]' : ''}${marker}`);
+            });
+        }
+    }
+
+    // ACCUMULATED RACE INTELLIGENCE from LiveSessionAnalyzer
+    // This gives the AI the full story of the race so far — not just a snapshot
+    const analyzer = getAnalyzer('live');
+    if (analyzer && snapshot.tireWear && snapshot.fuelLevel != null) {
+        const analysisContext = analyzer.buildContextForAI({
+            fuelLevel: snapshot.fuelLevel,
+            fuelPerLap: snapshot.fuelPerLap ?? null,
+            tireWear: snapshot.tireWear,
+            position: snapshot.position ?? 1,
+            gapToCarAhead: snapshot.gapToCarAhead ?? 0,
+            gapFromCarBehind: 0,
+            gapToLeader: snapshot.gapToLeader ?? 0,
+            totalLaps: snapshot.sessionLaps,
+        });
+        if (analysisContext) {
+            lines.push(analysisContext);
+        }
     }
 
     return lines.join('\n');

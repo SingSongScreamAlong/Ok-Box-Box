@@ -71,24 +71,48 @@ export interface TelemetrySnapshot {
     fuelPct?: number;
     fuelUsePerHour?: number;
     
-    // Tires
-    tireLFwear?: number;
-    tireRFwear?: number;
-    tireLRwear?: number;
-    tireRRwear?: number;
+    // Tires — inferred overall life (1.0 = fresh, 0.0 = dead)
+    tireWear?: { fl: number; fr: number; rl: number; rr: number };
+    // Tire surface wear (raw iRacing L/M/R averaged per corner)
+    tireSurfaceWear?: { fl: number; fr: number; rl: number; rr: number };
+    tireStintLaps?: number;
+    // Tire temps (L/M/R per corner, Celsius)
+    tireTemps?: {
+        fl: { l: number; m: number; r: number };
+        fr: { l: number; m: number; r: number };
+        rl: { l: number; m: number; r: number };
+        rr: { l: number; m: number; r: number };
+    };
+    tireCompound?: number;
     
-    // Temperatures
+    // Brake pressure per corner (0-100 scale)
+    brakePressure?: { fl: number; fr: number; rl: number; rr: number };
+    
+    // Damage (0.0 = none, 1.0 = totaled) — inferred from telemetry
+    damageAero?: number;
+    damageEngine?: number;
+    
+    // Engine health
     oilTemp?: number;
+    oilPressure?: number;
     waterTemp?: number;
+    voltage?: number;
+    engineWarnings?: number;
     
     // Status
     onPitRoad?: boolean;
     isOnTrack?: boolean;
     incidentCount?: number;
     
-    // Gaps
+    // Pit tracking
+    pitStops?: number;
+    
+    // Gaps (seconds)
     gapToLeader?: number;
     gapToCarAhead?: number;
+    
+    // Fuel per lap (liters)
+    fuelPerLap?: number;
     
     // All cars on track (standings)
     standings?: CarStanding[];

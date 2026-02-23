@@ -20,19 +20,22 @@ export const app: Express = express();
 app.use(correlationMiddleware);
 
 // CORS configuration - Must be FIRST before any security middleware
+// Production: explicit allowlist from CORS_ORIGINS env var
+// Development/test: permissive (origin: true) for local dev convenience
+const corsOrigin: cors.CorsOptions['origin'] = config.nodeEnv === 'production'
+    ? config.corsOrigins
+    : true;
+
+const corsOptions: cors.CorsOptions = {
+    origin: corsOrigin,
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+};
+
 // Handle preflight OPTIONS requests explicitly
-app.options('*', cors({
-    origin: true,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-}));
-app.use(cors({
-    origin: true,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-}));
+app.options('*', cors(corsOptions));
+app.use(cors(corsOptions));
 
 // Security middleware - after CORS to not interfere with preflight
 app.use(helmet({

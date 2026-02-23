@@ -5,6 +5,7 @@
 // =====================================================================
 
 import { chatCompletion, isLLMConfigured } from './llm-service.js';
+import { getAnalyzer } from './live-session-analyzer.js';
 
 // ============================================================================
 // TYPES
@@ -38,6 +39,9 @@ export interface DriverState {
     sector2Delta?: number;
     onPitRoad: boolean;
     incidentCount: number;
+    damageAero?: number;
+    damageEngine?: number;
+    pitStops?: number;
 }
 
 export interface TrafficInfo {
@@ -229,8 +233,36 @@ export class SituationalAwarenessService {
             lines.push('⚠️ YELLOW FLAGS in sector');
         }
 
+        // Inject accumulated race intelligence from LiveSessionAnalyzer
+        const analyzer = getAnalyzer('live');
+        if (analyzer) {
+            const intel = analyzer.getIntelligence({
+                fuelLevel: driver.fuelLevel,
+                fuelPerLap: driver.fuelLaps > 0 ? driver.fuelLevel / driver.fuelLaps : null,
+                tireWear: driver.tireCondition,
+                position: driver.position,
+                gapToCarAhead: driver.gapAhead ?? 0,
+                gapFromCarBehind: driver.gapBehind ?? 0,
+                gapToLeader: 0,
+            });
+
+            lines.push('');
+            lines.push('--- ACCUMULATED RACE INTELLIGENCE ---');
+            lines.push(`Pace trend: ${intel.paceTrend} | Consistency: ${intel.consistencyRating}%`);
+            lines.push(`Fuel: ${intel.projectedFuelLaps.toFixed(1)} laps projected | ${intel.fuelToFinish ? 'Can finish' : 'NEEDS PIT'}`);
+            if (intel.optimalPitLap) lines.push(`Optimal pit window: lap ${intel.optimalPitLap}`);
+            lines.push(`Tire deg rate: ${(intel.tireDegRate * 100).toFixed(2)}%/lap | Est laps left: ${intel.estimatedTireLapsLeft}${intel.tireCliff ? ' ⚠️ CLIFF WARNING' : ''}`);
+            lines.push(`Gap ahead trend: ${intel.gapAheadTrend} | Gap behind trend: ${intel.gapBehindTrend}`);
+            if (intel.overtakeOpportunity) lines.push('🟢 OVERTAKE OPPORTUNITY — gap closing, car ahead struggling');
+            if (intel.underThreat) lines.push('🔴 UNDER THREAT — car behind closing fast');
+            lines.push(`Mental state: ${intel.mentalFatigue} | Incidents: ${intel.totalIncidents} (${intel.incidentRate.toFixed(2)}/lap)${intel.incidentClustering ? ' ⚠️ CLUSTERING' : ''}`);
+            lines.push(`Positions gained: ${intel.positionsGainedTotal > 0 ? '+' : ''}${intel.positionsGainedTotal}`);
+            lines.push(`Strategy recommendation: ${intel.recommendedAction}`);
+        }
+
         lines.push('');
         lines.push('What situational updates should the driver receive right now?');
+        lines.push('Prioritize the most actionable insight. Use the accumulated intelligence above — not just the snapshot.');
         lines.push('Only include updates that are actionable or important. Do not repeat obvious information.');
 
         return lines.join('\n');
@@ -245,6 +277,18 @@ export class SituationalAwarenessService {
         traffic: TrafficInfo
     ): SituationalUpdate[] {
         const updates: SituationalUpdate[] = [];
+
+        // Use accumulated intelligence if available
+        const analyzer = getAnalyzer('live');
+        const intel = analyzer ? analyzer.getIntelligence({
+            fuelLevel: driver.fuelLevel,
+            fuelPerLap: driver.fuelLaps > 0 ? driver.fuelLevel / driver.fuelLaps : null,
+            tireWear: driver.tireCondition,
+            position: driver.position,
+            gapToCarAhead: driver.gapAhead ?? 0,
+            gapFromCarBehind: driver.gapBehind ?? 0,
+            gapToLeader: 0,
+        }) : null;
 
         // Critical fuel warning
         if (driver.fuelLaps < 2) {
@@ -263,23 +307,68 @@ export class SituationalAwarenessService {
             });
         }
 
-        // Gap opportunities
+        // Gap opportunities — enhanced with trend data
         if (driver.gapAhead !== null && driver.gapAhead < 1.0 && traffic.carAhead) {
+            const trendNote = intel?.gapAheadTrend === 'closing' ? ' and closing' : '';
             updates.push({
                 type: 'opportunity',
                 priority: 'high',
-                message: `${traffic.carAhead.driverName} is ${driver.gapAhead.toFixed(1)}s ahead - DRS range`,
-                spokenMessage: `Gap under one second. Push now.`
+                message: `${traffic.carAhead.driverName} is ${driver.gapAhead.toFixed(1)}s ahead${trendNote} - DRS range`,
+                spokenMessage: `Gap under one second${trendNote}. Push now.`
+            });
+        } else if (intel?.overtakeOpportunity && driver.gapAhead !== null && driver.gapAhead < 2.0) {
+            updates.push({
+                type: 'opportunity',
+                priority: 'medium',
+                message: `Gap closing to car ahead: ${driver.gapAhead.toFixed(1)}s and trending down`,
+                spokenMessage: `Reeling them in. Gap ${driver.gapAhead.toFixed(1)}.`
             });
         }
 
-        // Threat from behind
+        // Threat from behind — enhanced with trend data
         if (driver.gapBehind !== null && driver.gapBehind < 1.0 && traffic.carBehind?.attacking) {
             updates.push({
                 type: 'traffic',
                 priority: 'high',
                 message: `${traffic.carBehind.driverName} attacking - ${driver.gapBehind.toFixed(1)}s behind`,
                 spokenMessage: `Car behind in DRS. Defend.`
+            });
+        } else if (intel?.underThreat && driver.gapBehind !== null) {
+            updates.push({
+                type: 'traffic',
+                priority: 'medium',
+                message: `Car behind closing: ${driver.gapBehind.toFixed(1)}s and gaining`,
+                spokenMessage: `Car behind closing. ${driver.gapBehind.toFixed(1)} seconds.`
+            });
+        }
+
+        // Tire cliff warning from accumulated data
+        if (intel?.tireCliff) {
+            updates.push({
+                type: 'strategy',
+                priority: 'high',
+                message: `Tire cliff approaching — est. ${intel.estimatedTireLapsLeft} laps left on these tires`,
+                spokenMessage: `Tires going off. ${intel.estimatedTireLapsLeft} laps left.`
+            });
+        }
+
+        // Pit window recommendation
+        if (intel?.optimalPitLap && intel.optimalPitLap <= (intel.lapCount + 3)) {
+            updates.push({
+                type: 'strategy',
+                priority: 'high',
+                message: `Pit window open — optimal pit lap ${intel.optimalPitLap}`,
+                spokenMessage: `Pit window. Consider boxing lap ${intel.optimalPitLap}.`
+            });
+        }
+
+        // Damage awareness
+        if (driver.damageAero && driver.damageAero > 0.3) {
+            updates.push({
+                type: 'caution',
+                priority: driver.damageAero > 0.6 ? 'critical' : 'high',
+                message: `Aero damage: ${Math.round(driver.damageAero * 100)}% — affecting pace`,
+                spokenMessage: `Aero damage ${Math.round(driver.damageAero * 100)} percent.`
             });
         }
 

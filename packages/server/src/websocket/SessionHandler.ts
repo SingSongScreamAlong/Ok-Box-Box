@@ -1,6 +1,10 @@
 import { Socket } from 'socket.io';
 import { RelayAdapter } from '../services/RelayAdapter.js';
 import { Server } from 'socket.io';
+import { destroyEngine } from './inference-engine.js';
+import { clearTelemetryCache } from './telemetry-cache.js';
+import { getAnalyzer, destroyAnalyzer } from '../services/ai/live-session-analyzer.js';
+import { destroySpotterState } from '../services/ai/proactive-spotter.js';
 
 export interface DriverSessionState {
     driverId: string;
@@ -128,8 +132,44 @@ export class SessionHandler {
                 }
             }
 
+            // POST-SESSION LEARNING: Extract intelligence before cleanup
+            const sessionAnalyzer = getAnalyzer(data.sessionId);
+            if (sessionAnalyzer) {
+                const summary = sessionAnalyzer.getPostSessionSummary();
+                console.log(`[PostSession] Session ${data.sessionId} summary:`, JSON.stringify(summary));
+
+                // Emit session intelligence to connected clients for debrief
+                this.io.to(`session:${data.sessionId}`).emit('session:intelligence', {
+                    sessionId: data.sessionId,
+                    summary,
+                });
+
+                // Update driver memory with learned insights
+                try {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const { updateDriverMemoryFromSession } = await import('../services/ai/post-session-learner.js') as any;
+                    for (const [driverId] of session.drivers) {
+                        updateDriverMemoryFromSession(driverId, data.sessionId, summary).catch((err: any) => {
+                            console.error(`[PostSession] Memory update failed for driver ${driverId} in session ${data.sessionId}:`, err);
+                        });
+                    }
+                    console.log(`[PostSession] Queued memory updates for ${session.drivers.size} driver(s) in session ${data.sessionId}`);
+                } catch (err) {
+                    // Dynamic import can fail if the module or its dependencies have issues.
+                    // This is non-fatal — the session still ends cleanly.
+                    console.error(`[PostSession] Failed to load post-session-learner module (path: ../services/ai/post-session-learner.js):`, err instanceof Error ? err.message : err);
+                }
+            }
+
             // Clean up session from active map
             activeSessions.delete(data.sessionId);
+            destroyEngine(data.sessionId);
+            destroyAnalyzer(data.sessionId);
+            destroyAnalyzer('live');
+            destroySpotterState(data.sessionId);
+            destroySpotterState('live');
+            clearTelemetryCache(data.sessionId);
+            clearTelemetryCache('live');
 
             socket.emit('ack', { originalType: 'session_end', success: true });
         });
@@ -140,9 +180,13 @@ export class SessionHandler {
         setInterval(() => {
             const now = Date.now();
             for (const [sessionId, session] of activeSessions) {
-                if (now - session.lastUpdate > 60000) { // 1 minute timeout
+                if (now - session.lastUpdate > 300000) { // 5 minute timeout (handles red flags, long pits)
                     console.log(`   Cleaning up stale session: ${sessionId}`);
                     activeSessions.delete(sessionId);
+                    destroyEngine(sessionId);
+                    destroyAnalyzer(sessionId);
+                    destroySpotterState(sessionId);
+                    clearTelemetryCache(sessionId);
                 }
             }
         }, 30000);

@@ -94,3 +94,14 @@ export const StrategySnapshotSchema = RelayMessageSchema.extend({
 });
 
 export type StrategySnapshot = z.infer<typeof StrategySnapshotSchema>;
+
+// strategy_raw: The relay sends raw iRacing vars; server does all inference.
+// Same car shape as strategy_update but with type 'strategy_raw'.
+export const StrategyRawSchema = RelayMessageSchema.extend({
+    type: z.literal('strategy_raw'),
+    sessionId: z.string(),
+    timestamp: z.number(),
+    cars: z.array(CarStrategySnapshotSchema)
+});
+
+export type StrategyRaw = z.infer<typeof StrategyRawSchema>;
