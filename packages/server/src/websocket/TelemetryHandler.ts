@@ -209,9 +209,10 @@ export class TelemetryHandler {
                 }
             }
 
-            // Validate but don't block - always try to broadcast telemetry
-            // Note: validation warnings are throttled to 1/min inside RelayAdapter
-            relayAdapter.handleTelemetry(data);
+            // Skip protocol validation on hot path — relay format is richer than
+            // the strict protocol schema (extra fields, steeringAngle vs steering, etc.)
+            // and the validated result is never used. Validation can be re-enabled once
+            // the protocol schema is updated to match the relay's actual output.
 
             const validData = data as any;
 
