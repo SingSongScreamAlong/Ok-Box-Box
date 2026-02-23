@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import { useTrackData } from '../hooks/useTrackData';
-import { getTrackId, TRACK_SLUG_MAP } from '../data/tracks';
+import { getTrackId } from '../data/tracks';
 
 interface TrackMapProps {
     trackId: string;
@@ -11,20 +11,8 @@ interface TrackMapProps {
     showTrace?: boolean; // Debug: show raw points
 }
 
-// Logic to resolve slug -> shape ID
 function getShapeId(slug: string): string {
-    // Normalize
-    const s = slug.toLowerCase().replace(/[^a-z0-9]/g, '');
-
-    // Check numeric first (optimization)
-    if (/^\d+$/.test(slug)) return slug;
-
-    // Check map
-    for (const [k, v] of Object.entries(TRACK_SLUG_MAP)) {
-        if (s.includes(k.replace(/[^a-z0-9]/g, ''))) return v;
-    }
-
-    return slug;
+    return getTrackId(slug);
 }
 
 export function TrackMap({

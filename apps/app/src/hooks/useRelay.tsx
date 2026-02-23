@@ -399,19 +399,18 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     });
 
     socket.on('competitor_data', (data: any[]) => {
-      console.log('[Relay] Competitor data:', data?.length, 'cars');
       if (data && Array.isArray(data)) {
         setTelemetry(prev => ({
           ...prev,
           otherCars: data.map((car, idx) => ({
-            trackPercentage: 0,
-            carNumber: String(car.position || idx + 1),
+            trackPercentage: car.lapDistPct ?? 0,
+            carNumber: car.carNumber || String(car.position || idx + 1),
             driverName: car.driver || `Car ${idx + 1}`,
             position: car.position || idx + 1,
             gap: car.gap,
             lastLap: car.lastLap,
-            color: '#374151',
-            isPlayer: car.gap === '—',
+            color: car.isPlayer ? '#10b981' : '#374151',
+            isPlayer: !!car.isPlayer,
           })),
         }));
       }

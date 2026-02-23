@@ -5,7 +5,7 @@ import { useTrackData } from '../../hooks/useTrackData';
 import { TrackVisuals } from './TrackVisuals';
 import { TrackControls } from './TrackControls';
 import { TrackLabels } from './TrackLabels';
-import { getTrackData, TRACK_SLUG_MAP } from '../../data/tracks';
+import { getTrackData, getTrackId } from '../../data/tracks';
 
 /* 
   TrackMapPro: The Ultimate Race Control Surface
@@ -38,12 +38,8 @@ interface TrackMapProProps {
 }
 
 function getShapeId(slug: string): string {
-    const s = slug.toLowerCase().replace(/[^a-z0-9]/g, '');
-    for (const [k, v] of Object.entries(TRACK_SLUG_MAP)) {
-        if (s.includes(k.replace(/[^a-z0-9]/g, ''))) return v;
-    }
-    if (/^\d+$/.test(slug)) return slug;
-    return slug;
+    // Delegate to getTrackId which handles year stripping and slug resolution
+    return getTrackId(slug);
 }
 
 export function TrackMapPro({

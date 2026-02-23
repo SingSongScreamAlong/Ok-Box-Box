@@ -375,7 +375,10 @@ export class TelemetryHandler {
                         .sort((a: any, b: any) => (a.position || 0) - (b.position || 0))
                         .map((s: any) => ({
                             position: s.position || 0,
-                            driver: s.driverName || s.driverName || `Car ${s.carId || s.carIdx}`,
+                            driver: s.driverName || `Car ${s.carId || s.carIdx}`,
+                            carNumber: s.carNumber || String(s.carId || s.carIdx || ''),
+                            lapDistPct: s.lapDistPct ?? 0,
+                            isPlayer: !!s.isPlayer,
                             gap: s.isPlayer ? '—' : (s.gapToLeader ? `+${s.gapToLeader.toFixed(1)}s` : '--'),
                             lastLap: s.lastLapTime > 0 ? this.formatLapTime(s.lastLapTime) : '—'
                         }));

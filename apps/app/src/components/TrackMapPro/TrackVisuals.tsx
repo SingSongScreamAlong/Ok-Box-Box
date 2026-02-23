@@ -154,10 +154,46 @@ export function TrackVisuals({ shape, carPosition, otherCars }: TrackVisualsProp
                 strokeLinejoin="round"
             />
 
+            {/* Start/Finish Line */}
+            {shape.centerline && shape.centerline.length > 1 && (() => {
+                const sf = shape.centerline[0];
+                const next = shape.centerline[1];
+                const dx = next.x - sf.x;
+                const dy = next.y - sf.y;
+                const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                const nx = -dy / len * 20;
+                const ny = dx / len * 20;
+                return (
+                    <line
+                        x1={sf.x - nx} y1={sf.y - ny}
+                        x2={sf.x + nx} y2={sf.y + ny}
+                        stroke="white" strokeWidth="3" opacity="0.5"
+                        strokeDasharray="4 4"
+                    />
+                );
+            })()}
+
+            {/* Pit Lane */}
+            {shape.pitlane && shape.pitlane.length > 1 && (
+                <path
+                    d={shape.pitlane.reduce((acc, point, index) =>
+                        acc + `${index === 0 ? 'M' : 'L'} ${point.x},${point.y} `, ''
+                    )}
+                    stroke="#f97316"
+                    strokeWidth="4"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity="0.3"
+                    strokeDasharray="8 6"
+                />
+            )}
+
             {/* Other Cars */}
             {otherCars && otherCars.map((car, idx) => {
                 const coords = getCarCoords(car);
                 if (!coords) return null;
+                if (car.isPlayer) return null;
                 const color = car.color || '#64748b';
                 return (
                     <motion.g
@@ -169,7 +205,22 @@ export function TrackVisuals({ shape, carPosition, otherCars }: TrackVisualsProp
                         {/* Outer ring */}
                         <circle r="12" fill="none" stroke={color} strokeWidth="1.5" opacity="0.4" />
                         {/* Inner dot */}
-                        <circle r="5" fill={color} opacity="0.9" />
+                        <circle r="6" fill={color} opacity="0.9" />
+                        {/* Car number label */}
+                        {car.carNumber && (
+                            <text
+                                y="-16"
+                                textAnchor="middle"
+                                fill="white"
+                                fontSize="10"
+                                fontFamily="monospace"
+                                fontWeight="bold"
+                                opacity="0.7"
+                                style={{ filter: 'drop-shadow(0 1px 2px black)' }}
+                            >
+                                {car.carNumber}
+                            </text>
+                        )}
                     </motion.g>
                 );
             })}
@@ -189,6 +240,18 @@ export function TrackVisuals({ shape, carPosition, otherCars }: TrackVisualsProp
                     <circle r="8" fill="#06b6d4" filter="url(#carGlow)" />
                     {/* Center highlight */}
                     <circle r="3" fill="white" opacity="0.9" />
+                    {/* Player label */}
+                    <text
+                        y="-22"
+                        textAnchor="middle"
+                        fill="#06b6d4"
+                        fontSize="12"
+                        fontFamily="monospace"
+                        fontWeight="bold"
+                        style={{ filter: 'drop-shadow(0 1px 3px black)' }}
+                    >
+                        YOU
+                    </text>
                 </motion.g>
             )}
         </>

@@ -312,14 +312,22 @@ export function getTrackData(trackName: string): TrackData | null {
   return null;
 }
 
+// Strip year suffixes and version numbers from iRacing track names
+// e.g. 'daytona 2011 oval' -> 'daytonaoval', 'spa 2024' -> 'spa'
+function stripTrackYear(name: string): string {
+  return name.replace(/\b(19|20)\d{2}\b/g, '').replace(/[^a-z0-9]/g, '');
+}
+
 // Get track ID from name - returns numeric iRacing ID for shape file loading
 export function getTrackId(trackName: string): string {
   const normalized = trackName.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normalizedNoYear = stripTrackYear(trackName.toLowerCase());
 
   // First check TRACK_SLUG_MAP for direct slug match
   for (const [slug, id] of Object.entries(TRACK_SLUG_MAP)) {
     const slugNorm = slug.replace(/-/g, '');
-    if (normalized.includes(slugNorm) || slugNorm.includes(normalized)) {
+    if (normalized.includes(slugNorm) || slugNorm.includes(normalized)
+      || normalizedNoYear.includes(slugNorm) || slugNorm.includes(normalizedNoYear)) {
       return id; // Return the numeric ID
     }
   }

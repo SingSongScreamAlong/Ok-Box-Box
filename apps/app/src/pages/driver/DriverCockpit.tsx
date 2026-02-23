@@ -6,9 +6,11 @@ import { useVoice } from '../../hooks/useVoice';
 // useRaceSimulation removed - using live data only
 import { 
   Volume2, VolumeX, Gauge, Fuel, Flag, Clock, 
-  TrendingUp, TrendingDown, Minus, MapPin
+  TrendingUp, TrendingDown, Minus, MapPin,
+  AlertTriangle, CircleDot, Wrench
 } from 'lucide-react';
 import { TrackMap } from '../../components/TrackMapRive';
+import { getTrackId } from '../../data/tracks';
 
 /**
  * DriverCockpit - Glanceable Second Monitor / iPad View
@@ -16,7 +18,7 @@ import { TrackMap } from '../../components/TrackMapRive';
  */
 
 export function DriverCockpit() {
-  const { status, telemetry: realTelemetry, session, getCarMapPosition } = useRelay();
+  const { status, telemetry: realTelemetry, session } = useRelay();
   const { messages: engineerMessages, criticalMessages } = useEngineer();
   const { isEnabled: voiceEnabled, toggleVoice, speak } = useVoice();
 
@@ -31,16 +33,21 @@ export function DriverCockpit() {
     return mins > 0 ? `${mins}:${secs.padStart(6, '0')}` : secs;
   };
 
+  const strat = realTelemetry.strategy;
+  const gapAheadStr = strat.gapToCarAhead > 0 ? `+${strat.gapToCarAhead.toFixed(1)}s` : '--';
+  const fuelLapsStr = strat.fuelLapsRemaining != null ? String(strat.fuelLapsRemaining) : '--';
+  const hasDamage = strat.damageAero > 0.05 || strat.damageEngine > 0.05;
+
   const activeTelemetry = {
     ...realTelemetry,
-    carPosition: realTelemetry.trackPosition !== null ? getCarMapPosition(realTelemetry.trackPosition) : undefined,
+    carPosition: realTelemetry.trackPosition !== null ? { x: 0, y: 0, trackPercentage: realTelemetry.trackPosition } : undefined,
     position: realTelemetry.position || 0,
     delta: realTelemetry.delta || 0,
     fuel: realTelemetry.fuel || 0,
     lapsRemaining: realTelemetry.lapsRemaining || 0,
     lastLap: formatLapTime(realTelemetry.lastLap),
     bestLap: formatLapTime(realTelemetry.bestLap),
-    gap: '--'
+    gap: gapAheadStr
   };
 
   useEffect(() => {
@@ -49,8 +56,8 @@ export function DriverCockpit() {
     }
   }, [voiceEnabled, criticalMessages, speak]);
 
-  // Use track from session, fallback to daytona for demo
-  const trackId = session?.trackName?.toLowerCase().replace(/\s+/g, '-') || 'daytona';
+  // Use track from session — getTrackId handles year stripping and slug resolution
+  const trackId = session?.trackName ? getTrackId(session.trackName) : 'daytona';
 
   // Heatmap data will come from live telemetry when available
   const [heatmapData] = useState<{ speed: number }[]>([]);
@@ -121,7 +128,7 @@ export function DriverCockpit() {
               <span className={`text-sm font-mono ${deltaColor}`}>
                 {activeTelemetry.delta > 0 ? '+' : ''}{activeTelemetry.delta.toFixed(2)}s
               </span>
-              <span className="text-[10px] text-white/30 uppercase">to leader</span>
+              <span className="text-[10px] text-white/30 uppercase">to best</span>
             </div>
           </div>
         </div>
@@ -143,25 +150,135 @@ export function DriverCockpit() {
           </div>
         </div>
 
-        {/* Fuel & Laps */}
-        <div className="p-4 flex-1">
+        {/* Fuel & Gaps */}
+        <div className="p-4 border-b border-white/[0.06]">
           <h3 className="text-[10px] uppercase tracking-[0.15em] text-emerald-400 mb-3 flex items-center gap-2">
-            <Fuel className="w-3 h-3" />Race Status
+            <Fuel className="w-3 h-3" />Fuel & Gaps
           </h3>
-          <div className="space-y-3 bg-white/[0.03] rounded p-3 border border-white/[0.08] backdrop-blur-sm">
+          <div className="space-y-2 bg-white/[0.03] rounded p-3 border border-white/[0.08] backdrop-blur-sm">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-white/40">Fuel Remaining</span>
+              <span className="text-white/40">Fuel</span>
               <span className="text-white/80 font-mono">{activeTelemetry.fuel?.toFixed(1)}L</span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-white/40">Laps to Go</span>
-              <span className="text-white/80 font-mono">{activeTelemetry.lapsRemaining}</span>
+              <span className="text-white/40">Fuel Laps</span>
+              <span className={`font-mono ${strat.fuelLapsRemaining != null && strat.fuelLapsRemaining < 3 ? 'text-red-400' : 'text-white/80'}`}>{fuelLapsStr}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-white/40">Gap Ahead</span>
-              <span className="text-white/80 font-mono">{activeTelemetry.gap}</span>
+              <span className="text-white/80 font-mono">{gapAheadStr}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/40">Gap to Leader</span>
+              <span className="text-white/80 font-mono">{strat.gapToLeader > 0 ? `+${strat.gapToLeader.toFixed(1)}s` : '--'}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-white/40">Pit Stops</span>
+              <span className="text-white/80 font-mono">{strat.pitStops}</span>
             </div>
           </div>
+        </div>
+
+        {/* Tire Wear */}
+        <div className="p-4 border-b border-white/[0.06]">
+          <h3 className="text-[10px] uppercase tracking-[0.15em] text-emerald-400 mb-3 flex items-center gap-2">
+            <CircleDot className="w-3 h-3" />Tires
+            <span className="text-white/30 ml-auto">Stint L{strat.tireStintLaps}</span>
+          </h3>
+          <div className="grid grid-cols-2 gap-2">
+            {(['fl', 'fr', 'rl', 'rr'] as const).map((corner) => {
+              const wear = strat.tireWear[corner];
+              const pct = Math.round(wear * 100);
+              const color = wear > 0.6 ? 'bg-emerald-500' : wear > 0.3 ? 'bg-yellow-500' : 'bg-red-500';
+              const label = corner === 'fl' ? 'FL' : corner === 'fr' ? 'FR' : corner === 'rl' ? 'RL' : 'RR';
+              const temps = strat.tireTemps?.[corner];
+              const avgTemp = temps ? Math.round(((temps.l || 0) + (temps.m || 0) + (temps.r || 0)) / 3) : null;
+              const tempColor = avgTemp === null ? 'text-white/30'
+                : avgTemp > 110 ? 'text-red-400'
+                : avgTemp > 95 ? 'text-yellow-400'
+                : avgTemp < 60 ? 'text-blue-400'
+                : 'text-white/50';
+              return (
+                <div key={corner} className="bg-white/[0.03] rounded p-2 border border-white/[0.08]">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-white/50 font-mono">{label}</span>
+                    <span className="text-[10px] text-white/70 font-mono">{pct}%</span>
+                  </div>
+                  <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                    <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
+                  </div>
+                  {avgTemp !== null && (
+                    <div className={`text-[9px] font-mono mt-1 text-right ${tempColor}`}>{avgTemp}°C</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Damage & Engine */}
+        <div className="p-4 flex-1">
+          {hasDamage ? (
+            <>
+              <h3 className="text-[10px] uppercase tracking-[0.15em] text-red-400 mb-3 flex items-center gap-2">
+                <AlertTriangle className="w-3 h-3" />Damage
+              </h3>
+              <div className="space-y-2 bg-red-500/[0.05] rounded p-3 border border-red-500/20">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-white/50">Aero</span>
+                  <span className={`font-mono ${strat.damageAero > 0.3 ? 'text-red-400' : strat.damageAero > 0.05 ? 'text-yellow-400' : 'text-emerald-400'}`}>
+                    {strat.damageAero > 0.05 ? `${Math.round(strat.damageAero * 100)}%` : 'OK'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-white/50">Engine</span>
+                  <span className={`font-mono ${strat.damageEngine > 0.3 ? 'text-red-400' : strat.damageEngine > 0.05 ? 'text-yellow-400' : 'text-emerald-400'}`}>
+                    {strat.damageEngine > 0.05 ? `${Math.round(strat.damageEngine * 100)}%` : 'OK'}
+                  </span>
+                </div>
+              </div>
+              {strat.engine && (
+                <div className="mt-2 space-y-1 bg-white/[0.02] rounded p-2 border border-white/[0.06]">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-white/30">Oil</span>
+                    <span className={`font-mono ${strat.engine.oilTemp > 130 ? 'text-red-400' : strat.engine.oilTemp > 110 ? 'text-yellow-400' : 'text-white/50'}`}>{Math.round(strat.engine.oilTemp)}°C</span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-white/30">Water</span>
+                    <span className={`font-mono ${strat.engine.waterTemp > 110 ? 'text-red-400' : strat.engine.waterTemp > 100 ? 'text-yellow-400' : 'text-white/50'}`}>{Math.round(strat.engine.waterTemp)}°C</span>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <h3 className="text-[10px] uppercase tracking-[0.15em] text-emerald-400 mb-3 flex items-center gap-2">
+                <Wrench className="w-3 h-3" />Car Status
+              </h3>
+              <div className="bg-white/[0.03] rounded p-3 border border-white/[0.08] backdrop-blur-sm">
+                <div className="flex items-center gap-2 text-xs text-emerald-400">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  No damage detected
+                </div>
+                {strat.engine && (
+                  <div className="mt-2 space-y-1">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-white/30">Oil</span>
+                      <span className={`font-mono ${strat.engine.oilTemp > 130 ? 'text-red-400' : strat.engine.oilTemp > 110 ? 'text-yellow-400' : 'text-white/50'}`}>{Math.round(strat.engine.oilTemp)}°C</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-white/30">Water</span>
+                      <span className={`font-mono ${strat.engine.waterTemp > 110 ? 'text-red-400' : strat.engine.waterTemp > 100 ? 'text-yellow-400' : 'text-white/50'}`}>{Math.round(strat.engine.waterTemp)}°C</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-white/30">Voltage</span>
+                      <span className={`font-mono ${strat.engine.voltage < 12 ? 'text-yellow-400' : 'text-white/50'}`}>{strat.engine.voltage.toFixed(1)}V</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
