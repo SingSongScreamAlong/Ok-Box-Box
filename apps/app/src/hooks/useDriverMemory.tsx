@@ -46,7 +46,7 @@ export function useDriverMemory() {
       const { data: profile, error: profileError } = await supabase
         .from('driver_profiles')
         .select('id')
-        .eq('user_account_id', user.id)
+        .eq('user_id', user.id)
         .single();
 
       if (profileError || !profile) {
@@ -177,7 +177,7 @@ export function useDriverMemory() {
       const { data: profile } = await supabase
         .from('driver_profiles')
         .select('id')
-        .eq('user_account_id', user.id)
+        .eq('user_id', user.id)
         .single();
 
       if (!profile) return;
