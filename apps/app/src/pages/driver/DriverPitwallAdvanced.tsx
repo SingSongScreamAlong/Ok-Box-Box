@@ -26,28 +26,21 @@ export function DriverPitwallAdvanced() {
     return `${mins}:${secs.padStart(6, '0')}`;
   };
 
-  // Mock tire data (would come from telemetry in production)
+  const strat = telemetry.strategy;
+
+  // Tire data from live strategy (inferred by server inference engine)
   const tireData = {
-    fl: { temp: 185, wear: 92 },
-    fr: { temp: 188, wear: 89 },
-    rl: { temp: 178, wear: 94 },
-    rr: { temp: 182, wear: 91 },
+    fl: { temp: strat.tireTemps?.fl ? Math.round(((strat.tireTemps.fl.l || 0) + (strat.tireTemps.fl.m || 0) + (strat.tireTemps.fl.r || 0)) / 3) : null, wear: Math.round(strat.tireWear.fl * 100) },
+    fr: { temp: strat.tireTemps?.fr ? Math.round(((strat.tireTemps.fr.l || 0) + (strat.tireTemps.fr.m || 0) + (strat.tireTemps.fr.r || 0)) / 3) : null, wear: Math.round(strat.tireWear.fr * 100) },
+    rl: { temp: strat.tireTemps?.rl ? Math.round(((strat.tireTemps.rl.l || 0) + (strat.tireTemps.rl.m || 0) + (strat.tireTemps.rl.r || 0)) / 3) : null, wear: Math.round(strat.tireWear.rl * 100) },
+    rr: { temp: strat.tireTemps?.rr ? Math.round(((strat.tireTemps.rr.l || 0) + (strat.tireTemps.rr.m || 0) + (strat.tireTemps.rr.r || 0)) / 3) : null, wear: Math.round(strat.tireWear.rr * 100) },
   };
 
-  // Mock weather data
-  const weatherData = {
-    trackTemp: 42,
-    airTemp: 24,
-    humidity: 65,
-    windSpeed: 12,
-    windDir: 'NE',
-  };
-
-  // Mock gap data
+  // Gap data from live strategy
   const gapData = {
-    ahead: 2.341,
-    behind: 1.892,
-    toLeader: 15.234,
+    ahead: strat.gapToCarAhead,
+    behind: strat.gapFromCarBehind,
+    toLeader: strat.gapToLeader,
   };
 
   if (status === 'disconnected' || status === 'connecting') {
@@ -154,15 +147,15 @@ export function DriverPitwallAdvanced() {
             <div className="pt-2 border-t border-white/10 grid grid-cols-3 gap-2 text-center">
               <div>
                 <div className="text-[9px] uppercase tracking-wider text-white/30">Gap Ahead</div>
-                <div className="text-sm font-mono text-yellow-400">+{gapData.ahead.toFixed(3)}</div>
+                <div className="text-sm font-mono text-yellow-400">{gapData.ahead > 0 ? `+${gapData.ahead.toFixed(3)}` : '--'}</div>
               </div>
               <div>
                 <div className="text-[9px] uppercase tracking-wider text-white/30">Gap Behind</div>
-                <div className="text-sm font-mono text-blue-400">-{gapData.behind.toFixed(3)}</div>
+                <div className="text-sm font-mono text-blue-400">{gapData.behind > 0 ? `-${gapData.behind.toFixed(3)}` : '--'}</div>
               </div>
               <div>
                 <div className="text-[9px] uppercase tracking-wider text-white/30">To Leader</div>
-                <div className="text-sm font-mono text-white/60">+{gapData.toLeader.toFixed(1)}</div>
+                <div className="text-sm font-mono text-white/60">{gapData.toLeader > 0 ? `+${gapData.toLeader.toFixed(1)}` : '--'}</div>
               </div>
             </div>
           </div>
@@ -193,9 +186,9 @@ export function DriverPitwallAdvanced() {
               <div>
                 <div className="text-[9px] uppercase tracking-wider text-white/30">Laps Left</div>
                 <div className={`text-lg font-mono font-bold ${
-                  telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : ''
+                  telemetry.strategy.fuelLapsRemaining !== null && telemetry.strategy.fuelLapsRemaining < 3 ? 'text-red-400' : ''
                 }`}>
-                  {telemetry.lapsRemaining ?? '--'}
+                  {telemetry.strategy.fuelLapsRemaining ?? '--'}
                 </div>
               </div>
             </div>
@@ -206,15 +199,15 @@ export function DriverPitwallAdvanced() {
                   className={`h-full transition-all ${
                     telemetry.fuel !== null && telemetry.fuel < 5 ? 'bg-red-500' : 'bg-green-500'
                   }`}
-                  style={{ width: `${telemetry.fuel !== null ? Math.min(100, (telemetry.fuel / 18) * 100) : 0}%` }}
+                  style={{ width: `${telemetry.fuel !== null ? Math.min(100, (telemetry.fuel / session.fuelTankCapacity) * 100) : 0}%` }}
                 />
               </div>
             </div>
             <div className="pt-2 border-t border-white/10">
               <div className="text-[9px] uppercase tracking-wider text-white/30 mb-1">Pit Window</div>
               <div className="text-sm text-white/60">
-                {telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 5 
-                  ? <span className="text-yellow-400">Consider pitting within {telemetry.lapsRemaining} laps</span>
+                {telemetry.strategy.fuelLapsRemaining !== null && telemetry.strategy.fuelLapsRemaining < 5 
+                  ? <span className="text-yellow-400">Consider pitting within {telemetry.strategy.fuelLapsRemaining} laps</span>
                   : 'No immediate pit required'}
               </div>
             </div>
@@ -249,11 +242,11 @@ export function DriverPitwallAdvanced() {
               <div className="h-4 bg-white/10 overflow-hidden flex">
                 <div 
                   className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 transition-all"
-                  style={{ width: `${telemetry.rpm !== null ? Math.min(100, (telemetry.rpm / 8000) * 100) : 0}%` }}
+                  style={{ width: `${telemetry.rpm !== null ? Math.min(100, (telemetry.rpm / session.rpmRedline) * 100) : 0}%` }}
                 />
               </div>
               <div className="text-right text-xs font-mono text-white/40 mt-1">
-                {telemetry.rpm !== null ? Math.round(telemetry.rpm) : '--'} / 8000
+                {telemetry.rpm !== null ? Math.round(telemetry.rpm) : '--'} / {session.rpmRedline}
               </div>
             </div>
             {/* Throttle/Brake */}
@@ -279,7 +272,7 @@ export function DriverPitwallAdvanced() {
           <div className="p-3 border-b border-white/10 flex items-center gap-2">
             <Activity className="w-4 h-4 text-white/40" />
             <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Tires</span>
-            <span className="text-[9px] text-white/30 ml-auto">Mock Data</span>
+            <span className="text-[9px] text-white/30 ml-auto">Stint L{strat.tireStintLaps}</span>
           </div>
           <div className="p-3">
             <div className="grid grid-cols-2 gap-4">
@@ -287,12 +280,12 @@ export function DriverPitwallAdvanced() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-white/5 border border-white/10 p-2 text-center">
                   <div className="text-[9px] uppercase tracking-wider text-white/30">FL</div>
-                  <div className="text-lg font-mono font-bold">{tireData.fl.temp}°</div>
+                  <div className="text-lg font-mono font-bold">{tireData.fl.temp !== null ? `${tireData.fl.temp}°` : '--'}</div>
                   <div className="text-xs text-white/40">{tireData.fl.wear}%</div>
                 </div>
                 <div className="bg-white/5 border border-white/10 p-2 text-center">
                   <div className="text-[9px] uppercase tracking-wider text-white/30">FR</div>
-                  <div className="text-lg font-mono font-bold">{tireData.fr.temp}°</div>
+                  <div className="text-lg font-mono font-bold">{tireData.fr.temp !== null ? `${tireData.fr.temp}°` : '--'}</div>
                   <div className="text-xs text-white/40">{tireData.fr.wear}%</div>
                 </div>
               </div>
@@ -300,12 +293,12 @@ export function DriverPitwallAdvanced() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-white/5 border border-white/10 p-2 text-center">
                   <div className="text-[9px] uppercase tracking-wider text-white/30">RL</div>
-                  <div className="text-lg font-mono font-bold">{tireData.rl.temp}°</div>
+                  <div className="text-lg font-mono font-bold">{tireData.rl.temp !== null ? `${tireData.rl.temp}°` : '--'}</div>
                   <div className="text-xs text-white/40">{tireData.rl.wear}%</div>
                 </div>
                 <div className="bg-white/5 border border-white/10 p-2 text-center">
                   <div className="text-[9px] uppercase tracking-wider text-white/30">RR</div>
-                  <div className="text-lg font-mono font-bold">{tireData.rr.temp}°</div>
+                  <div className="text-lg font-mono font-bold">{tireData.rr.temp !== null ? `${tireData.rr.temp}°` : '--'}</div>
                   <div className="text-xs text-white/40">{tireData.rr.wear}%</div>
                 </div>
               </div>
@@ -318,29 +311,30 @@ export function DriverPitwallAdvanced() {
           <div className="p-3 border-b border-white/10 flex items-center gap-2">
             <Thermometer className="w-4 h-4 text-white/40" />
             <span className="text-[10px] uppercase tracking-wider text-white/40 font-semibold">Conditions</span>
-            <span className="text-[9px] text-white/30 ml-auto">Mock Data</span>
           </div>
           <div className="p-3">
             <div className="grid grid-cols-5 gap-3 text-center">
               <div>
                 <div className="text-[9px] uppercase tracking-wider text-white/30">Track</div>
-                <div className="text-lg font-mono font-bold">{weatherData.trackTemp}°C</div>
+                <div className="text-lg font-mono font-bold">{telemetry.strategy.weather?.trackTemp ? `${telemetry.strategy.weather.trackTemp}°` : '--'}</div>
+                <div className="text-[8px] text-white/20">°F</div>
               </div>
               <div>
                 <div className="text-[9px] uppercase tracking-wider text-white/30">Air</div>
-                <div className="text-lg font-mono font-bold">{weatherData.airTemp}°C</div>
+                <div className="text-lg font-mono font-bold">{telemetry.strategy.weather?.airTemp ? `${telemetry.strategy.weather.airTemp}°` : '--'}</div>
               </div>
               <div>
                 <div className="text-[9px] uppercase tracking-wider text-white/30">Humidity</div>
-                <div className="text-lg font-mono font-bold">{weatherData.humidity}%</div>
+                <div className="text-lg font-mono font-bold">{telemetry.strategy.weather?.humidity ? `${telemetry.strategy.weather.humidity}%` : '--'}</div>
               </div>
               <div>
                 <div className="text-[9px] uppercase tracking-wider text-white/30">Wind</div>
-                <div className="text-lg font-mono font-bold">{weatherData.windSpeed}</div>
+                <div className="text-lg font-mono font-bold">{telemetry.strategy.weather?.windSpeed ? `${telemetry.strategy.weather.windSpeed}` : '--'}</div>
+                <div className="text-[8px] text-white/20">mph</div>
               </div>
               <div>
-                <div className="text-[9px] uppercase tracking-wider text-white/30">Dir</div>
-                <div className="text-lg font-mono font-bold">{weatherData.windDir}</div>
+                <div className="text-[9px] uppercase tracking-wider text-white/30">Sky</div>
+                <div className="text-sm font-mono font-bold">{telemetry.strategy.weather?.skyCondition || '--'}</div>
               </div>
             </div>
           </div>
@@ -362,7 +356,7 @@ export function DriverPitwallAdvanced() {
 
       {/* Footer Note */}
       <div className="text-center text-[10px] text-white/30 uppercase tracking-wider pt-4">
-        Advanced View • Some data is simulated • Full telemetry requires iRacing SDK integration
+        Advanced View • Live telemetry from iRacing via Relay → Server inference engine
       </div>
     </div>
   );

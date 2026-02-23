@@ -3,12 +3,19 @@ import { activeSessions } from './SessionHandler.js';
 import { RelayAdapter } from '../services/RelayAdapter.js';
 import { getSituationalAwarenessService } from '../services/ai/situational-awareness.js';
 import { updateTelemetryCache } from './telemetry-cache.js';
+import { getOrCreateEngine } from './inference-engine.js';
+import { getOrCreateAnalyzer } from '../services/ai/live-session-analyzer.js';
+import { generateSpotterCallouts } from '../services/ai/proactive-spotter.js';
 
 // Store current session info for late-joining clients
-let currentSessionInfo: { sessionId: string; trackName: string; sessionType: string } | null = null;
+let currentSessionInfo: { sessionId: string; trackName: string; sessionType: string; carName?: string; rpmRedline?: number; fuelTankCapacity?: number; trackLength?: string } | null = null;
 
 export class TelemetryHandler {
     private static firstPacketLogged = false;
+    private lastSessionInfoEmit = 0;
+    private lastCompetitorDataEmit = 0;
+    private static readonly SLOW_EMIT_INTERVAL = 1000; // 1Hz for slowly-changing data
+    private lastWeather: { trackTemp: number; airTemp: number; humidity: number; windSpeed: number; windDir: number; skyCondition: string } | null = null;
     
     constructor(private io: Server) { }
     
@@ -42,7 +49,11 @@ export class TelemetryHandler {
                 currentSessionInfo = {
                     sessionId: rawData.sessionId,
                     trackName: rawData.trackName,
-                    sessionType: rawData.sessionType
+                    sessionType: rawData.sessionType,
+                    carName: rawData.carName,
+                    rpmRedline: rawData.rpmRedline,
+                    fuelTankCapacity: rawData.fuelTankCapacity,
+                    trackLength: rawData.trackLength,
                 };
                 
                 // Broadcast session info to all dashboard clients
@@ -90,6 +101,13 @@ export class TelemetryHandler {
                 TelemetryHandler.firstPacketLogged = true;
                 console.log('📊 FIRST TELEMETRY:', JSON.stringify(rawData).substring(0, 500));
             }
+            
+            // Run server-side inference engine on raw telemetry (60Hz)
+            const telemetryCar = rawData?.cars?.[0] || rawData?.car || rawData;
+            const telemetrySessionId = rawData?.sessionId || 'live';
+            const inferenceEngine = getOrCreateEngine(telemetrySessionId);
+            inferenceEngine.processTelemetry(rawData);
+            const inferred = inferenceEngine.getInferredStrategy(telemetryCar);
             
             // Always try to cache telemetry for voice, even if validation fails
             if (rawData && typeof rawData === 'object') {
@@ -149,11 +167,9 @@ export class TelemetryHandler {
                     fuelPct: car?.fuelPct ? Math.round(car.fuelPct * 100) : undefined,
                     fuelUsePerHour: car?.fuelUsePerHour,
                     
-                    // Tires (convert to percentage worn)
-                    tireLFwear: car?.tireLFwear ? Math.round((1 - car.tireLFwear) * 100) : undefined,
-                    tireRFwear: car?.tireRFwear ? Math.round((1 - car.tireRFwear) * 100) : undefined,
-                    tireLRwear: car?.tireLRwear ? Math.round((1 - car.tireLRwear) * 100) : undefined,
-                    tireRRwear: car?.tireRRwear ? Math.round((1 - car.tireRRwear) * 100) : undefined,
+                    // Tires — inferred by server engine from raw temps/speed/steering
+                    tireWear: inferred.tireWear,
+                    tireStintLaps: inferred.tireStintLaps,
                     
                     // Temperatures (convert to Fahrenheit)
                     oilTemp: car?.oilTemp ? Math.round(car.oilTemp * 9/5 + 32) : undefined,
@@ -164,6 +180,13 @@ export class TelemetryHandler {
                     isOnTrack: car?.isOnTrack,
                     incidentCount: car?.incidentCount,
                     
+                    // Gaps (computed by server engine from CarIdxF2Time / CarIdxEstTime)
+                    gapToLeader: inferred.gaps.toLeader,
+                    gapToCarAhead: inferred.gaps.toCarAhead,
+                    
+                    // Pit tracking (server-side)
+                    pitStops: inferred.pit.stops,
+                    
                     // Standings (all cars on track)
                     standings: rawData.standings
                 };
@@ -171,6 +194,18 @@ export class TelemetryHandler {
                 updateTelemetryCache('live', cacheData);
                 if (rawData.sessionId) {
                     updateTelemetryCache(rawData.sessionId, cacheData);
+                }
+                
+                // Store latest weather for car:status emission (1Hz path)
+                if (rawData.trackTemp || rawData.airTemp) {
+                    this.lastWeather = {
+                        trackTemp: rawData.trackTemp ? Math.round(rawData.trackTemp * 9/5 + 32) : 0,
+                        airTemp: rawData.airTemp ? Math.round(rawData.airTemp * 9/5 + 32) : 0,
+                        humidity: rawData.humidity ? Math.round(rawData.humidity * 100) : 0,
+                        windSpeed: rawData.windSpeed ? Math.round(rawData.windSpeed * 2.237) : 0,
+                        windDir: rawData.windDir ? Math.round(rawData.windDir * 180 / Math.PI) : 0,
+                        skyCondition: rawData.skyCondition || 'Unknown',
+                    };
                 }
             }
 
@@ -186,8 +221,8 @@ export class TelemetryHandler {
             if (!session) {
                 session = {
                     sessionId: validData.sessionId,
-                    trackName: 'Unknown Track',
-                    sessionType: 'race',
+                    trackName: validData.trackName || currentSessionInfo?.trackName || 'Unknown Track',
+                    sessionType: validData.sessionType || currentSessionInfo?.sessionType || 'race',
                     drivers: new Map(),
                     lastUpdate: Date.now(),
                     broadcastDelayMs: 0
@@ -267,6 +302,7 @@ export class TelemetryHandler {
                     driverName: driverCar.driverName || 'Driver',
                     speed: driverSpeedMph,
                     rpm: driverCar.rpm || 0,
+                    rpmMax: currentSessionInfo?.rpmRedline || 8000,
                     gear: driverCar.gear || 0,
                     throttle: driverCar.throttle ? driverCar.throttle * 100 : 0,
                     brake: driverCar.brake ? driverCar.brake * 100 : 0,
@@ -277,10 +313,10 @@ export class TelemetryHandler {
                         usagePerHour: driverCar.fuelUsePerHour || 0
                     },
                     tires: {
-                        frontLeft: { temp: 0, wear: driverCar.tireLFwear || 1, pressure: 0 },
-                        frontRight: { temp: 0, wear: driverCar.tireRFwear || 1, pressure: 0 },
-                        rearLeft: { temp: 0, wear: driverCar.tireLRwear || 1, pressure: 0 },
-                        rearRight: { temp: 0, wear: driverCar.tireRRwear || 1, pressure: 0 }
+                        frontLeft: { temp: 0, wear: inferred.tireWear.fl, pressure: 0 },
+                        frontRight: { temp: 0, wear: inferred.tireWear.fr, pressure: 0 },
+                        rearLeft: { temp: 0, wear: inferred.tireWear.rl, pressure: 0 },
+                        rearRight: { temp: 0, wear: inferred.tireWear.rr, pressure: 0 }
                     },
                     position: { x: 0, y: 0, z: 0 },
                     lap: driverCar.lap || 0,
@@ -293,8 +329,8 @@ export class TelemetryHandler {
                     gForce: { lateral: 0, longitudinal: 0, vertical: 0 },
                     trackPosition: driverCar.lapDistPct || 0,
                     racePosition: driverCar.position || 0,
-                    gapAhead: 0,
-                    gapBehind: 0,
+                    gapAhead: inferred.gaps.toCarAhead,
+                    gapBehind: 0, // Gap behind only available in 1Hz car:status path
                     flags: 0,
                     drsStatus: 0,
                     carSettings: { brakeBias: 0, abs: 0, tractionControl: 0, tractionControl2: 0, fuelMixture: 0 },
@@ -310,10 +346,15 @@ export class TelemetryHandler {
                 this.io.volatile.emit('telemetry:driver', {
                     ...rawData,
                     trackName: rawData.trackName || session?.trackName,
-                    sessionType: rawData.sessionType || session?.sessionType
+                    sessionType: rawData.sessionType || session?.sessionType,
+                    rpmRedline: currentSessionInfo?.rpmRedline,
+                    fuelTankCapacity: currentSessionInfo?.fuelTankCapacity,
                 });
                 
-                // Also emit session_info for LROC
+                // Also emit session_info for LROC (throttled to 1Hz)
+                const now = Date.now();
+                if (now - this.lastSessionInfoEmit >= TelemetryHandler.SLOW_EMIT_INTERVAL) {
+                this.lastSessionInfoEmit = now;
                 this.io.volatile.emit('session_info', {
                     track: rawData.trackName || session?.trackName || 'Unknown Track',
                     session: rawData.sessionType || session?.sessionType || 'RACE',
@@ -331,10 +372,12 @@ export class TelemetryHandler {
                     sessionTime: validData.sessionTimeMs || 0,
                     remainingTime: rawData.sessionTimeRemain || 0
                 });
+                } // end session_info throttle
                 
-                // Emit competitor_data for standings (use drivers array from relay)
+                // Emit competitor_data for standings (throttled to 1Hz)
                 const standings = rawData.standings || rawData.drivers || validData.cars;
-                if (standings && standings.length > 0) {
+                if (standings && standings.length > 0 && now - this.lastCompetitorDataEmit >= TelemetryHandler.SLOW_EMIT_INTERVAL) {
+                    this.lastCompetitorDataEmit = now;
                     const competitorData = standings
                         .sort((a: any, b: any) => (a.position || 0) - (b.position || 0))
                         .map((s: any) => ({
@@ -386,8 +429,8 @@ export class TelemetryHandler {
                 if (!activeSession) {
                     activeSession = {
                         sessionId: data.sessionId,
-                        trackName: 'Unknown Track',
-                        sessionType: 'race',
+                        trackName: currentSessionInfo?.trackName || 'Unknown Track',
+                        sessionType: currentSessionInfo?.sessionType || 'race',
                         drivers: new Map(),
                         lastUpdate: Date.now(),
                         broadcastDelayMs: 0
@@ -445,34 +488,152 @@ export class TelemetryHandler {
             }
         });
 
-        // Strategy Update Handler (Phase 11 - 1Hz)
-        socket.on('strategy_update', (data: any) => {
-            console.log('[TelemetryHandler] strategy_update received:', data?.sessionId);
+        // Strategy Raw Handler (1Hz) — relay sends raw iRacing vars, server does all inference
+        socket.on('strategy_raw', (data: any) => {
             if (!data || !data.sessionId || !data.cars) return;
 
             const session = activeSessions.get(data.sessionId);
             if (!session) return;
 
-            // Merge Strategy Data
-            for (const car of data.cars) {
-                const driverId = String(car.carId);
-                const driver = session.drivers.get(driverId);
-                if (driver) {
-                    driver.strategy = {
-                        fuel: car.fuel,
-                        tires: car.tires,
-                        damage: car.damage,
-                        pit: car.pit
-                    };
+            const rawCar = data.cars[0];
+            if (!rawCar) return;
+
+            // Run inference engine on raw strategy data
+            const engine = getOrCreateEngine(data.sessionId);
+            engine.processStrategyRaw(data);
+            const inferred = engine.getInferredStrategy(rawCar);
+
+            // Merge inferred strategy into session driver state
+            const driverId = String(rawCar.carId);
+            const driver = session.drivers.get(driverId);
+            if (driver) {
+                driver.strategy = {
+                    fuel: { ...inferred.fuel, perLap: inferred.fuel.perLap ?? undefined },
+                    tires: inferred.tireWear,
+                    damage: inferred.damage,
+                    pit: inferred.pit,
+                };
+            }
+
+            // Cache inferred strategy for voice AI context
+            updateTelemetryCache(data.sessionId || 'live', {
+                tireWear: inferred.tireWear,
+                tireTemps: inferred.tireTemps as any,
+                tireStintLaps: inferred.tireStintLaps,
+                tireCompound: inferred.tireCompound ?? undefined,
+                brakePressure: inferred.brakePressure,
+                damageAero: inferred.damage.aero,
+                damageEngine: inferred.damage.engine,
+                oilTemp: inferred.engine.oilTemp ? Math.round(inferred.engine.oilTemp * 9/5 + 32) : undefined,
+                oilPressure: inferred.engine.oilPressure,
+                waterTemp: inferred.engine.waterTemp ? Math.round(inferred.engine.waterTemp * 9/5 + 32) : undefined,
+                voltage: inferred.engine.voltage,
+                engineWarnings: inferred.engine.warnings,
+                pitStops: inferred.pit.stops,
+                fuelPerLap: inferred.fuel.perLap ?? undefined,
+                fuelLevel: inferred.fuel.level,
+                fuelPct: inferred.fuel.pct ? Math.round(inferred.fuel.pct * 100) : undefined,
+                gapToLeader: inferred.gaps.toLeader,
+                gapToCarAhead: inferred.gaps.toCarAhead,
+            });
+
+            // Compute gap from car behind using standings
+            let gapFromCarBehind = 0;
+            const playerPos = rawCar.position || 1;
+            const standings = data.standings || data.drivers;
+            if (standings && standings.length > 0) {
+                const carBehind = standings.find((s: any) => s.position === playerPos + 1);
+                const playerStanding = standings.find((s: any) => s.isPlayer || s.carIdx === rawCar.carId);
+                if (carBehind && playerStanding) {
+                    const playerEst = playerStanding.estTime ?? 0;
+                    const behindEst = carBehind.estTime ?? 0;
+                    if (playerEst > 0 && behindEst > 0) {
+                        gapFromCarBehind = Math.round(Math.abs(behindEst - playerEst) * 1000) / 1000;
+                    }
                 }
             }
 
-            // Broadcast to Dashboard (1Hz)
+            // LIVE SESSION ANALYZER: Feed accumulated race intelligence
+            // Use both session-keyed and 'live' alias so crew-chat can find it
+            const analyzer = getOrCreateAnalyzer(data.sessionId);
+            const liveAnalyzer = data.sessionId !== 'live' ? getOrCreateAnalyzer('live') : analyzer;
+
+            const analyzerPayload = {
+                lap: rawCar.lap || 0,
+                lastLapTime: rawCar.lastLapTime || 0,
+                bestLapTime: rawCar.bestLapTime || 0,
+                position: rawCar.position || 1,
+                classPosition: rawCar.classPosition || rawCar.position || 1,
+                fuelLevel: inferred.fuel.level,
+                fuelPerLap: inferred.fuel.perLap,
+                tireWear: inferred.tireWear,
+                gapToLeader: inferred.gaps.toLeader,
+                gapToCarAhead: inferred.gaps.toCarAhead,
+                gapFromCarBehind,
+                incidentCount: rawCar.incidentCount || 0,
+                onPitRoad: inferred.pit.inLane,
+                damageAero: inferred.damage.aero,
+                damageEngine: inferred.damage.engine,
+            };
+            analyzer.ingestTelemetry(analyzerPayload);
+            if (liveAnalyzer !== analyzer) {
+                liveAnalyzer.ingestTelemetry(analyzerPayload);
+            }
+
+            // Emit intelligence summary to frontend every ~10 seconds (1Hz input, emit every 10th)
+            if (rawCar.lap && rawCar.lap % 1 === 0 && Math.random() < 0.1) {
+                const intel = analyzer.getIntelligence({
+                    fuelLevel: inferred.fuel.level,
+                    fuelPerLap: inferred.fuel.perLap,
+                    tireWear: inferred.tireWear,
+                    position: rawCar.position || 1,
+                    gapToCarAhead: inferred.gaps.toCarAhead,
+                    gapFromCarBehind,
+                    gapToLeader: inferred.gaps.toLeader,
+                });
+                this.io.to(`session:${data.sessionId}`).emit('race:intelligence', {
+                    sessionId: data.sessionId,
+                    intelligence: intel,
+                });
+            }
+
+            // PROACTIVE SPOTTER: Generate edge-triggered spotter callouts
+            const spotterCallouts = generateSpotterCallouts(data.sessionId, {
+                position: rawCar.position || 1,
+                gapToCarAhead: inferred.gaps.toCarAhead,
+                gapFromCarBehind,
+                fuelLevel: inferred.fuel.level,
+                fuelPerLap: inferred.fuel.perLap,
+                tireWear: inferred.tireWear,
+                gapToLeader: inferred.gaps.toLeader,
+                lap: rawCar.lap || 0,
+            });
+            if (spotterCallouts.length > 0) {
+                this.io.to(`session:${data.sessionId}`).emit('spotter:callout', {
+                    sessionId: data.sessionId,
+                    callouts: spotterCallouts,
+                });
+            }
+
+            // Build computed strategy payload (same shape clients expect)
+            const computedCar = {
+                carId: rawCar.carId,
+                fuel: inferred.fuel,
+                tires: inferred.tireWear,
+                tireTemps: inferred.tireTemps,
+                tireCompound: inferred.tireCompound,
+                brakePressure: inferred.brakePressure,
+                damage: inferred.damage,
+                engine: inferred.engine,
+                pit: inferred.pit,
+            };
+
+            // Broadcast computed strategy to Dashboard (1Hz)
             const emitStrategy = () => {
                 this.io.to(`session:${data.sessionId}`).emit('strategy:update', {
                     sessionId: data.sessionId,
                     timestamp: data.timestamp,
-                    strategy: data.cars
+                    strategy: [computedCar],
                 });
             };
 
@@ -483,98 +644,123 @@ export class TelemetryHandler {
                 emitStrategy();
             }
 
-            // TEAM DASHBOARD: Emit car:status for the first/primary car
-            if (data.cars && data.cars.length > 0) {
-                const primaryCar = data.cars[0];
-                const fuelPct = primaryCar.fuel?.pct || 0;
+            // TEAM DASHBOARD: Emit car:status with inferred values
+            const fuelPct = inferred.fuel.pct;
+            const tireWear = inferred.tireWear;
+            const minTireWear = Math.min(tireWear.fl, tireWear.fr, tireWear.rl, tireWear.rr);
+            const tireStatus = minTireWear > 0.6 ? 'green' : minTireWear > 0.3 ? 'yellow' : 'red';
+            const fuelLapsRemaining = (inferred.fuel.perLap && inferred.fuel.perLap > 0)
+                ? Math.floor(inferred.fuel.level / inferred.fuel.perLap)
+                : null;
+            const maxDamage = Math.max(inferred.damage.aero, inferred.damage.engine);
+            const damageStatus = maxDamage < 0.05 ? 'green' : maxDamage < 0.3 ? 'yellow' : 'red';
 
-                this.io.to(`session:${data.sessionId}`).emit('car:status', {
-                    fuel: {
-                        level: primaryCar.fuel?.level || 0,
-                        percentage: fuelPct,
-                        lapsRemaining: primaryCar.fuel?.lapsRemaining || null,
-                        status: fuelPct > 0.3 ? 'green' : fuelPct > 0.15 ? 'yellow' : fuelPct > 0 ? 'red' : 'gray'
-                    },
-                    tires: {
-                        wear: primaryCar.tires || { fl: 1, fr: 1, rl: 1, rr: 1 },
-                        temps: primaryCar.tireTemps ? {
-                            fl: (primaryCar.tireTemps.fl?.l + primaryCar.tireTemps.fl?.m + primaryCar.tireTemps.fl?.r) / 3 || 0,
-                            fr: (primaryCar.tireTemps.fr?.l + primaryCar.tireTemps.fr?.m + primaryCar.tireTemps.fr?.r) / 3 || 0,
-                            rl: (primaryCar.tireTemps.rl?.l + primaryCar.tireTemps.rl?.m + primaryCar.tireTemps.rl?.r) / 3 || 0,
-                            rr: (primaryCar.tireTemps.rr?.l + primaryCar.tireTemps.rr?.m + primaryCar.tireTemps.rr?.r) / 3 || 0,
-                        } : { fl: 0, fr: 0, rl: 0, rr: 0 },
-                        status: 'green' // Calculate from wear
-                    },
-                    damage: {
-                        aero: primaryCar.damage?.aero || 0,
-                        engine: primaryCar.damage?.engine || 0,
-                        status: (!primaryCar.damage || (primaryCar.damage.aero === 0 && primaryCar.damage.engine === 0)) ? 'green' : 'yellow'
-                    },
-                    stint: {
-                        currentLap: primaryCar.stintLap || 0,
-                        avgPace: primaryCar.avgPace || null,
-                        degradationSlope: primaryCar.degradation || null
-                    }
-                });
-            }
-
-            // TEAM DASHBOARD: Emit opponent:intel from all other cars
-            if (data.cars && data.cars.length > 1) {
-                const opponents = data.cars.slice(1).map((car: any, idx: number) => ({
-                    carId: car.carId,
-                    driverId: String(car.carId),
-                    driverName: session.drivers.get(String(car.carId))?.driverName || `Car ${car.carId}`,
-                    carNumber: String(car.carId),
-                    position: idx + 2, // Primary car is P1
-                    gap: car.gap || 0,
-                    gapTrend: 'stable',
-                    threatLevel: 'yellow',
-                    tirePhase: car.tires ? (Math.min(car.tires.fl, car.tires.fr, car.tires.rl, car.tires.rr) > 0.7 ? 'fresh' : 'optimal') : 'unknown'
-                }));
-
-                this.io.to(`session:${data.sessionId}`).emit('opponent:intel', { opponents });
-            }
+            this.io.to(`session:${data.sessionId}`).emit('car:status', {
+                fuel: {
+                    level: inferred.fuel.level,
+                    percentage: fuelPct,
+                    perLap: inferred.fuel.perLap,
+                    lapsRemaining: fuelLapsRemaining,
+                    status: fuelPct > 0.3 ? 'green' : fuelPct > 0.15 ? 'yellow' : fuelPct > 0 ? 'red' : 'gray',
+                },
+                tires: {
+                    wear: tireWear,
+                    temps: inferred.tireTemps ? {
+                        fl: ((inferred.tireTemps.fl?.l || 0) + (inferred.tireTemps.fl?.m || 0) + (inferred.tireTemps.fl?.r || 0)) / 3,
+                        fr: ((inferred.tireTemps.fr?.l || 0) + (inferred.tireTemps.fr?.m || 0) + (inferred.tireTemps.fr?.r || 0)) / 3,
+                        rl: ((inferred.tireTemps.rl?.l || 0) + (inferred.tireTemps.rl?.m || 0) + (inferred.tireTemps.rl?.r || 0)) / 3,
+                        rr: ((inferred.tireTemps.rr?.l || 0) + (inferred.tireTemps.rr?.m || 0) + (inferred.tireTemps.rr?.r || 0)) / 3,
+                    } : { fl: 0, fr: 0, rl: 0, rr: 0 },
+                    tempsDetailed: inferred.tireTemps,
+                    compound: inferred.tireCompound,
+                    status: tireStatus,
+                },
+                damage: {
+                    aero: inferred.damage.aero,
+                    engine: inferred.damage.engine,
+                    status: damageStatus,
+                },
+                engine: inferred.engine,
+                brakes: inferred.brakePressure,
+                pit: inferred.pit,
+                gaps: {
+                    toLeader: inferred.gaps.toLeader,
+                    toCarAhead: inferred.gaps.toCarAhead,
+                    fromCarBehind: gapFromCarBehind,
+                },
+                stint: {
+                    currentLap: inferred.tireStintLaps,
+                    avgPace: null,
+                    degradationSlope: null,
+                },
+                weather: this.lastWeather,
+            });
 
             // SITUATIONAL AWARENESS: Generate race engineer intel (async, non-blocking)
             const awarenessService = getSituationalAwarenessService();
-            if (awarenessService.isAvailable() && data.cars && data.cars.length > 0) {
-                const primaryCar = data.cars[0];
-
+            if (awarenessService.isAvailable()) {
                 const raceContext = {
                     sessionType: session.sessionType as 'practice' | 'qualifying' | 'race',
                     trackName: session.trackName,
-                    currentLap: primaryCar.lap || 0,
+                    currentLap: rawCar.lap || 0,
                     totalLaps: undefined,
-                    sessionTimeRemaining: undefined
+                    sessionTimeRemaining: undefined,
                 };
+
+                const saFuelLaps = (inferred.fuel.perLap && inferred.fuel.perLap > 0)
+                    ? inferred.fuel.level / inferred.fuel.perLap
+                    : 99;
 
                 const driverState = {
-                    position: primaryCar.position || 1,
+                    position: rawCar.position || 1,
                     totalCars: session.drivers.size || 1,
-                    gapAhead: primaryCar.gapAhead || null,
-                    gapBehind: primaryCar.gapBehind || null,
-                    fuelLaps: primaryCar.fuel?.lapsRemaining || (primaryCar.fuel?.level / (primaryCar.fuel?.perLap || 1)) || 99,
-                    fuelLevel: primaryCar.fuel?.level || 0,
-                    tireCondition: primaryCar.tires || { fl: 1, fr: 1, rl: 1, rr: 1 },
-                    lastLapTime: primaryCar.lastLapTime || null,
-                    bestLapTime: primaryCar.bestLapTime || null,
-                    onPitRoad: primaryCar.pit?.inLane || false,
-                    incidentCount: primaryCar.incidents || 0
+                    gapAhead: inferred.gaps.toCarAhead || null,
+                    gapBehind: gapFromCarBehind || null,
+                    fuelLaps: saFuelLaps,
+                    fuelLevel: inferred.fuel.level,
+                    tireCondition: inferred.tireWear,
+                    lastLapTime: rawCar.lastLapTime || null,
+                    bestLapTime: rawCar.bestLapTime || null,
+                    onPitRoad: inferred.pit.inLane,
+                    incidentCount: rawCar.incidentCount || 0,
+                    damageAero: inferred.damage.aero,
+                    damageEngine: inferred.damage.engine,
+                    pitStops: inferred.pit.stops,
                 };
 
-                const trafficInfo = {
-                    carAhead: undefined,
-                    carBehind: undefined,
+                // Build traffic info from standings
+                const saStandings = standings || [];
+                const carAheadStanding = saStandings.find((s: any) => s.position === playerPos - 1);
+                const carBehindStanding = saStandings.find((s: any) => s.position === playerPos + 1);
+
+                const trafficInfo: any = {
                     blueFlags: false,
-                    yellowFlags: false
+                    yellowFlags: false,
                 };
+
+                if (carAheadStanding && inferred.gaps.toCarAhead > 0) {
+                    trafficInfo.carAhead = {
+                        gap: inferred.gaps.toCarAhead,
+                        driverName: carAheadStanding.driverName || `P${playerPos - 1}`,
+                        pace: 'similar' as const,
+                        defending: false,
+                    };
+                }
+                if (carBehindStanding && gapFromCarBehind > 0) {
+                    trafficInfo.carBehind = {
+                        gap: gapFromCarBehind,
+                        driverName: carBehindStanding.driverName || `P${playerPos + 1}`,
+                        pace: gapFromCarBehind < 1.5 ? 'faster' as const : 'similar' as const,
+                        attacking: gapFromCarBehind < 1.0,
+                    };
+                }
 
                 awarenessService.analyzeRaceSituation(raceContext, driverState, trafficInfo)
                     .then(updates => {
                         if (updates.length > 0) {
                             this.io.to(`session:${data.sessionId}`).emit('engineer:update', {
                                 sessionId: data.sessionId,
-                                updates
+                                updates,
                             });
                         }
                     })

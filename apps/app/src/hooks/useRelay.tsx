@@ -14,6 +14,38 @@ export interface CarMapPosition {
   lastLap?: string;
 }
 
+export interface TireWear {
+  fl: number;
+  fr: number;
+  rl: number;
+  rr: number;
+}
+
+export interface EngineHealth {
+  oilTemp: number;
+  oilPressure: number;
+  waterTemp: number;
+  voltage: number;
+  warnings: number;
+}
+
+export interface StrategyData {
+  tireWear: TireWear;
+  tireTemps: { fl: { l: number; m: number; r: number }; fr: { l: number; m: number; r: number }; rl: { l: number; m: number; r: number }; rr: { l: number; m: number; r: number } } | null;
+  tireStintLaps: number;
+  damageAero: number;
+  damageEngine: number;
+  engine: EngineHealth | null;
+  brakePressure: TireWear | null;
+  pitStops: number;
+  fuelPerLap: number | null;
+  fuelLapsRemaining: number | null;
+  gapToLeader: number;
+  gapToCarAhead: number;
+  gapFromCarBehind: number;
+  weather: { trackTemp: number; airTemp: number; humidity: number; windSpeed: number; windDir: number; skyCondition: string } | null;
+}
+
 export interface TelemetryData {
   lapTime: number | null;
   lastLap: number | null;
@@ -33,6 +65,7 @@ export interface TelemetryData {
   sector: number | null;
   inPit: boolean;
   otherCars: CarMapPosition[];
+  strategy: StrategyData;
 }
 
 export interface SessionInfo {
@@ -40,6 +73,52 @@ export interface SessionInfo {
   sessionType: 'practice' | 'qualifying' | 'race' | null;
   timeRemaining: number | null;
   lapsRemaining: number | null;
+  rpmRedline: number;
+  fuelTankCapacity: number;
+  carName: string | null;
+}
+
+export interface EngineerUpdate {
+  type: 'gap' | 'fuel' | 'traffic' | 'strategy' | 'caution' | 'opportunity';
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  message: string;
+  spokenMessage?: string;
+  timestamp: number;
+}
+
+export interface RaceIntelligence {
+  overallAvgPace: number;
+  recentAvgPace: number;
+  bestLap: number;
+  paceTrend: 'improving' | 'stable' | 'degrading' | 'erratic';
+  paceStdDev: number;
+  consistencyRating: number;
+  actualFuelPerLap: number;
+  projectedFuelLaps: number;
+  fuelToFinish: boolean;
+  optimalPitLap: number | null;
+  currentTireLife: { fl: number; fr: number; rl: number; rr: number };
+  tireDegRate: number;
+  estimatedTireLapsLeft: number;
+  tireCliff: boolean;
+  currentPosition: number;
+  positionsGainedTotal: number;
+  gapAheadTrend: 'closing' | 'stable' | 'opening';
+  gapBehindTrend: 'closing' | 'stable' | 'opening';
+  gapAhead: number;
+  gapBehind: number;
+  overtakeOpportunity: boolean;
+  underThreat: boolean;
+  totalIncidents: number;
+  incidentRate: number;
+  incidentClustering: boolean;
+  mentalFatigue: 'fresh' | 'normal' | 'fatigued' | 'tilted';
+  currentStintNumber: number;
+  currentStintLaps: number;
+  pitStops: number;
+  recommendedAction: string;
+  lapCount: number;
+  sessionDurationMinutes: number;
 }
 
 export interface LiveIncident {
@@ -63,6 +142,23 @@ export interface LiveIncident {
   status: 'new' | 'reviewing' | 'cleared' | 'penalized';
 }
 
+const defaultStrategy: StrategyData = {
+  tireWear: { fl: 1, fr: 1, rl: 1, rr: 1 },
+  tireTemps: null,
+  tireStintLaps: 0,
+  damageAero: 0,
+  damageEngine: 0,
+  engine: null,
+  brakePressure: null,
+  pitStops: 0,
+  fuelPerLap: null,
+  fuelLapsRemaining: null,
+  gapToLeader: 0,
+  gapToCarAhead: 0,
+  gapFromCarBehind: 0,
+  weather: null,
+};
+
 const defaultTelemetry: TelemetryData = {
   lapTime: null,
   lastLap: null,
@@ -82,6 +178,7 @@ const defaultTelemetry: TelemetryData = {
   sector: null,
   inPit: false,
   otherCars: [],
+  strategy: defaultStrategy,
 };
 
 const defaultSession: SessionInfo = {
@@ -89,6 +186,9 @@ const defaultSession: SessionInfo = {
   sessionType: null,
   timeRemaining: null,
   lapsRemaining: null,
+  rpmRedline: 8000,
+  fuelTankCapacity: 20,
+  carName: null,
 };
 
 interface RelayContextValue {
@@ -96,6 +196,8 @@ interface RelayContextValue {
   telemetry: TelemetryData;
   session: SessionInfo;
   incidents: LiveIncident[];
+  engineerUpdates: EngineerUpdate[];
+  raceIntelligence: RaceIntelligence | null;
   connect: () => void;
   disconnect: () => void;
   getCarMapPosition: (trackPos: number) => { x: number; y: number };
@@ -117,6 +219,8 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   const [telemetry, setTelemetry] = useState<TelemetryData>(defaultTelemetry);
   const [session, setSession] = useState<SessionInfo>(defaultSession);
   const [incidents, setIncidents] = useState<LiveIncident[]>([]);
+  const [engineerUpdates, setEngineerUpdates] = useState<EngineerUpdate[]>([]);
+  const [raceIntelligence, setRaceIntelligence] = useState<RaceIntelligence | null>(null);
   const socketRef = useRef<Socket | null>(null);
 
   // Helper to convert track position to x,y coordinates for map
@@ -173,12 +277,13 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     socket.on('session_info', (data: any) => {
       console.log('[Relay] Session info:', data);
       setStatus('in_session');
-      setSession({
-        trackName: data.track || data.trackName || 'Unknown Track',
-        sessionType: (data.session || data.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
-        timeRemaining: data.remainingTime || null,
-        lapsRemaining: data.totalLaps || null,
-      });
+      setSession(prev => ({
+        ...prev,
+        trackName: data.track || data.trackName || prev.trackName || 'Unknown Track',
+        sessionType: (data.session || data.sessionType || prev.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
+        timeRemaining: data.remainingTime || prev.timeRemaining,
+        lapsRemaining: data.totalLaps || prev.lapsRemaining,
+      }));
     });
 
     socket.on('session:active', (data: any) => {
@@ -188,6 +293,9 @@ export function RelayProvider({ children }: { children: ReactNode }) {
         ...prev,
         trackName: data.trackName || prev.trackName || 'Unknown Track',
         sessionType: (data.sessionType || prev.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
+        rpmRedline: data.rpmRedline || prev.rpmRedline,
+        fuelTankCapacity: data.fuelTankCapacity || prev.fuelTankCapacity,
+        carName: data.carName || prev.carName,
       }));
     });
 
@@ -207,27 +315,42 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       const driver = data?.drivers?.[0];
       const driverData = car || driver || data;
       
+      // Guard: position can be {x,y,z} object from LROC telemetry_update — only accept numbers
+      const rawPos = driver?.position ?? car?.position ?? driverData.racePosition ?? driverData.position;
+      const safePosition = typeof rawPos === 'number' ? rawPos : null;
+
+      // Guard: fuel can be {level, usagePerHour} object from LROC — extract numeric value
+      const rawFuel = driverData.fuel;
+      const safeFuel = typeof rawFuel === 'object' && rawFuel !== null
+        ? rawFuel.level ?? null
+        : (typeof rawFuel === 'number' ? rawFuel : (driverData.fuelLevel ?? null));
+
       setStatus('in_session');
       setTelemetry(prev => ({
         ...prev,
         lapTime: driverData.lapTime ?? prev.lapTime,
-        lastLap: driver?.lastLapTime ?? driverData.lastLap ?? prev.lastLap,
-        bestLap: driver?.bestLapTime ?? driverData.bestLap ?? prev.bestLap,
-        delta: driverData.deltaToBestLap ?? driverData.delta ?? prev.delta,
-        fuel: driverData.fuel?.level ?? driverData.fuelLevel ?? driverData.fuel ?? prev.fuel,
-        fuelPerLap: driverData.fuel?.usagePerHour ? driverData.fuel.usagePerHour / 60 : prev.fuelPerLap,
+        lastLap: driver?.lastLapTime ?? driverData.lastLap ?? driverData.lapTime ?? prev.lastLap,
+        bestLap: driver?.bestLapTime ?? driverData.bestLap ?? driverData.bestLapTime ?? prev.bestLap,
+        delta: driverData.deltaToBestLap ?? driverData.deltaToSessionBest ?? driverData.delta ?? prev.delta,
+        fuel: safeFuel ?? prev.fuel,
+        fuelPerLap: prev.fuelPerLap,
         lapsRemaining: prev.lapsRemaining,
-        position: driver?.position ?? car?.position ?? driverData.position ?? prev.position,
+        position: safePosition ?? prev.position,
         lap: driver?.lapNumber ?? car?.lap ?? driverData.lap ?? prev.lap,
-        speed: car?.speed != null ? Math.round(car.speed * 2.237) : prev.speed,
+        speed: car?.speed != null ? Math.round(car.speed * 2.237) : (typeof driverData.speed === 'number' ? driverData.speed : prev.speed),
         gear: car?.gear ?? driverData.gear ?? prev.gear,
         rpm: car?.rpm ?? driverData.rpm ?? prev.rpm,
-        throttle: car?.throttle != null ? car.throttle * 100 : prev.throttle,
-        brake: car?.brake != null ? car.brake * 100 : prev.brake,
+        throttle: car?.throttle != null ? car.throttle * 100 : (typeof driverData.throttle === 'number' ? driverData.throttle : prev.throttle),
+        brake: car?.brake != null ? car.brake * 100 : (typeof driverData.brake === 'number' ? driverData.brake : prev.brake),
         trackPosition: driver?.lapDistPct ?? car?.pos?.s ?? driverData.trackPosition ?? prev.trackPosition,
-        sector: driverData.sector ?? prev.sector,
+        sector: driverData.sector ?? (() => {
+          const pct = driver?.lapDistPct ?? car?.pos?.s ?? driverData.trackPosition;
+          if (pct != null) return pct < 0.333 ? 1 : pct < 0.666 ? 2 : 3;
+          return prev.sector;
+        })(),
         inPit: car?.inPit ?? driverData.onPitRoad ?? prev.inPit,
         otherCars: prev.otherCars,
+        strategy: prev.strategy, // Strategy fields arrive via car:status (1Hz, server-computed)
       }));
     };
 
@@ -294,12 +417,74 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       }
     });
 
+    // car:status from strategy_update (1Hz) — tire wear, damage, engine, pits
+    socket.on('car:status', (data: any) => {
+      if (!data) return;
+      setTelemetry(prev => ({
+        ...prev,
+        strategy: {
+          ...prev.strategy,
+          tireWear: data.tires?.wear ?? prev.strategy.tireWear,
+          tireTemps: data.tires?.tempsDetailed ?? prev.strategy.tireTemps,
+          tireStintLaps: data.stint?.currentLap ?? prev.strategy.tireStintLaps,
+          damageAero: data.damage?.aero ?? prev.strategy.damageAero,
+          damageEngine: data.damage?.engine ?? prev.strategy.damageEngine,
+          engine: data.engine ?? prev.strategy.engine,
+          brakePressure: data.brakes ?? prev.strategy.brakePressure,
+          pitStops: data.pit?.stops ?? prev.strategy.pitStops,
+          fuelPerLap: data.fuel?.perLap ?? prev.strategy.fuelPerLap,
+          fuelLapsRemaining: data.fuel?.lapsRemaining ?? prev.strategy.fuelLapsRemaining,
+          gapToLeader: data.gaps?.toLeader ?? prev.strategy.gapToLeader,
+          gapToCarAhead: data.gaps?.toCarAhead ?? prev.strategy.gapToCarAhead,
+          gapFromCarBehind: data.gaps?.fromCarBehind ?? prev.strategy.gapFromCarBehind,
+          weather: data.weather ?? prev.strategy.weather,
+        },
+        fuel: data.fuel?.level ?? prev.fuel,
+        inPit: data.pit?.inLane ?? prev.inPit,
+      }));
+    });
+
+    // Server-side AI race engineer updates (from SituationalAwarenessService)
+    socket.on('engineer:update', (data: any) => {
+      if (!data?.updates) return;
+      const newUpdates: EngineerUpdate[] = data.updates.map((u: any) => ({
+        ...u,
+        timestamp: Date.now(),
+      }));
+      setEngineerUpdates(prev => [...prev, ...newUpdates].slice(-20));
+    });
+
+    // Live accumulated race intelligence (from LiveSessionAnalyzer)
+    socket.on('race:intelligence', (data: any) => {
+      if (!data?.intelligence) return;
+      setRaceIntelligence(data.intelligence);
+    });
+
+    // Proactive spotter callouts (from ProactiveSpotter)
+    socket.on('spotter:callout', (data: any) => {
+      if (!data?.callouts) return;
+      const newUpdates: EngineerUpdate[] = data.callouts.map((c: any) => ({
+        type: c.type === 'overtake_opportunity' || c.type === 'gap_closing' ? 'opportunity' as const
+          : c.type === 'under_attack' || c.type === 'gap_opening' ? 'traffic' as const
+          : c.type === 'tire_warning' || c.type === 'fuel_warning' ? 'fuel' as const
+          : c.type === 'position_change' ? 'gap' as const
+          : 'traffic' as const,
+        priority: c.priority,
+        message: c.message,
+        spokenMessage: c.spokenMessage,
+        timestamp: c.timestamp || Date.now(),
+      }));
+      setEngineerUpdates(prev => [...prev, ...newUpdates].slice(-20));
+    });
+
     socket.on('session:end', () => {
       console.log('[Relay] Session ended');
       setStatus('connected');
       setSession(defaultSession);
       setTelemetry(defaultTelemetry);
       setIncidents([]);
+      setEngineerUpdates([]);
+      setRaceIntelligence(null);
     });
 
     socket.on('incident:new', (data: any) => {
@@ -327,7 +512,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       socketRef.current = null;
     }
     setStatus('disconnected');
-    setTelemetry(defaultTelemetry);
+    setTelemetry({ ...defaultTelemetry, strategy: { ...defaultStrategy } });
     setSession(defaultSession);
   }, []);
 
@@ -341,7 +526,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   }, [initialized, connect]);
 
   return (
-    <RelayContext.Provider value={{ status, telemetry, session, incidents, connect, disconnect, getCarMapPosition }}>
+    <RelayContext.Provider value={{ status, telemetry, session, incidents, engineerUpdates, raceIntelligence, connect, disconnect, getCarMapPosition }}>
       {children}
     </RelayContext.Provider>
   );
@@ -355,6 +540,8 @@ export function useRelay() {
       telemetry: defaultTelemetry,
       session: defaultSession,
       incidents: [] as LiveIncident[],
+      engineerUpdates: [] as EngineerUpdate[],
+      raceIntelligence: null as RaceIntelligence | null,
       connect: () => {},
       disconnect: () => {},
       getCarMapPosition: (trackPos: number) => ({

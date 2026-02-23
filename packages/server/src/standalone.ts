@@ -185,7 +185,11 @@ io.on('connection', (socket: Socket) => {
             socket.broadcast.emit('session:active', {
                 sessionId: metadata.sessionId,
                 trackName: metadata.trackName || 'Unknown Track',
-                sessionType: metadata.sessionType || 'practice'
+                sessionType: metadata.sessionType || 'practice',
+                carName: metadata.carName,
+                rpmRedline: metadata.rpmRedline,
+                fuelTankCapacity: metadata.fuelTankCapacity,
+                trackLength: metadata.trackLength,
             });
             // Emit session_info for LROC/dashboard compatibility
             socket.broadcast.emit('session_info', currentSessionInfo);
