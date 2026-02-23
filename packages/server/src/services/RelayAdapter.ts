@@ -13,6 +13,8 @@ import { z } from 'zod';
 
 export class RelayAdapter {
     private static firstTelemetryLogged = false;
+    private static lastValidationWarn: Record<string, number> = {};
+    private static readonly VALIDATION_WARN_INTERVAL = 60_000; // Log validation warnings at most once per 60s per type
     
     constructor(
         _sessionManager: any,
@@ -97,6 +99,11 @@ export class RelayAdapter {
     }
 
     private logValidationError(type: string, error: z.ZodError) {
-        console.warn(`[Adapter] ⚠️ Protocol Validation Failed for ${type}:`, error.flatten());
+        const now = Date.now();
+        const lastWarn = RelayAdapter.lastValidationWarn[type] || 0;
+        if (now - lastWarn >= RelayAdapter.VALIDATION_WARN_INTERVAL) {
+            RelayAdapter.lastValidationWarn[type] = now;
+            console.warn(`[Adapter] ⚠️ Protocol Validation Failed for ${type} (throttled to 1/min):`, error.flatten());
+        }
     }
 }
