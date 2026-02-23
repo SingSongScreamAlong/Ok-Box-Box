@@ -22,6 +22,8 @@ interface CarPosition {
     driverName?: string;
     isPlayer?: boolean;
     color?: string;
+    position?: number;
+    inPit?: boolean;
 }
 
 interface TrackMapProProps {
@@ -115,9 +117,9 @@ export function TrackMapPro({
                     shape={shape}
                     carPosition={carPosition}
                     otherCars={otherCars}
+                    showSectors={true}
                 />
 
-                {/* Turn labels disabled - need accurate track data calibration
                 {trackMetadata && trackMetadata.corners && (
                     <TrackLabels
                         shape={shape}
@@ -125,7 +127,6 @@ export function TrackMapPro({
                         zoom={zoom}
                     />
                 )}
-                */}
 
             </motion.svg>
 
@@ -135,6 +136,22 @@ export function TrackMapPro({
                 onResetView={() => setZoom(1)}
                 currentZoom={zoom}
             />
+
+            {/* Car count legend */}
+            {otherCars && otherCars.length > 0 && (
+                <div className="absolute top-4 left-4 font-mono text-[10px] text-white/50 pointer-events-none bg-black/40 backdrop-blur-sm rounded px-2 py-1.5 border border-white/10 space-y-0.5">
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span>{otherCars.length} cars</span>
+                    </div>
+                    {otherCars.some(c => c.inPit) && (
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                            <span>{otherCars.filter(c => c.inPit).length} in pit</span>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="absolute bottom-4 left-4 font-mono text-[10px] text-white/30 pointer-events-none">
                 {shape.trackId}

@@ -1,5 +1,5 @@
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { TrackShape } from '../../hooks/useTrackData';
 
@@ -16,17 +16,29 @@ interface CarPosition {
     driverName?: string;
     isPlayer?: boolean;
     color?: string;
+    position?: number;
+    inPit?: boolean;
 }
 
 interface TrackVisualsProps {
     shape: TrackShape;
     carPosition?: CarPosition;
     otherCars?: CarPosition[];
+    showSectors?: boolean;
 }
 
-export function TrackVisuals({ shape, carPosition, otherCars }: TrackVisualsProps) {
+// Position-based colors for podium + nearby cars
+function getPositionColor(pos: number | undefined, fallback: string): string {
+    if (!pos) return fallback;
+    if (pos === 1) return '#fbbf24'; // Gold
+    if (pos === 2) return '#94a3b8'; // Silver
+    if (pos === 3) return '#d97706'; // Bronze
+    return fallback;
+}
 
-    const getCarCoords = (pos: CarPosition) => {
+export function TrackVisuals({ shape, carPosition, otherCars, showSectors = true }: TrackVisualsProps) {
+
+    const getCarCoords = useCallback((pos: CarPosition) => {
         if (!shape.centerline) return null;
         if (pos.x > 1 && pos.y > 1) return { x: pos.x, y: pos.y };
         if (pos.trackPercentage !== undefined) {
@@ -46,7 +58,7 @@ export function TrackVisuals({ shape, carPosition, otherCars }: TrackVisualsProp
             };
         }
         return null;
-    };
+    }, [shape.centerline]);
 
     const fullPathData = useMemo(() => {
         if (!shape.centerline) return '';
@@ -56,26 +68,34 @@ export function TrackVisuals({ shape, carPosition, otherCars }: TrackVisualsProp
     }, [shape]);
 
     const carCoords = useMemo(() => {
-        if (!shape.centerline || !carPosition) return null;
-        if (carPosition.x > 1 && carPosition.y > 1) return { x: carPosition.x, y: carPosition.y };
-        if (carPosition.trackPercentage !== undefined) {
-            const pct = carPosition.trackPercentage;
-            const cl = shape.centerline;
+        if (!carPosition) return null;
+        return getCarCoords(carPosition);
+    }, [carPosition, getCarCoords]);
+
+    // Sector boundary points at 33% and 66%
+    const sectorMarkers = useMemo(() => {
+        if (!shape.centerline || !showSectors) return [];
+        const markers: { x: number; y: number; nx: number; ny: number; label: string }[] = [];
+        const sectorPcts = [0.333, 0.666];
+        const labels = ['S2', 'S3'];
+        const cl = shape.centerline;
+        for (let s = 0; s < sectorPcts.length; s++) {
+            const pct = sectorPcts[s];
             let idx = cl.findIndex(p => p.distPct >= pct);
-            if (idx === -1) idx = 0;
-            const p2 = cl[idx];
-            const p1 = cl[idx === 0 ? cl.length - 1 : idx - 1];
-            let d1 = p1.distPct;
-            let d2 = p2.distPct;
-            if (d1 > d2) d1 = 0;
-            const ratio = (pct - d1) / (d2 - d1 || 1);
-            return {
-                x: p1.x + (p2.x - p1.x) * ratio,
-                y: p1.y + (p2.y - p1.y) * ratio
-            };
+            if (idx <= 0) continue;
+            const p = cl[idx];
+            const prev = cl[idx - 1];
+            const dx = p.x - prev.x;
+            const dy = p.y - prev.y;
+            const len = Math.sqrt(dx * dx + dy * dy) || 1;
+            markers.push({
+                x: p.x, y: p.y,
+                nx: -dy / len * 18, ny: dx / len * 18,
+                label: labels[s],
+            });
         }
-        return null;
-    }, [shape, carPosition]);
+        return markers;
+    }, [shape, showSectors]);
 
     return (
         <>
@@ -189,12 +209,36 @@ export function TrackVisuals({ shape, carPosition, otherCars }: TrackVisualsProp
                 />
             )}
 
+            {/* Sector Boundary Markers */}
+            {sectorMarkers.map((m, i) => (
+                <g key={`sector-${i}`}>
+                    <line
+                        x1={m.x - m.nx} y1={m.y - m.ny}
+                        x2={m.x + m.nx} y2={m.y + m.ny}
+                        stroke="#f97316" strokeWidth="2" opacity="0.4"
+                        strokeDasharray="3 3"
+                    />
+                    <text
+                        x={m.x + m.nx * 1.8} y={m.y + m.ny * 1.8}
+                        textAnchor="middle"
+                        fill="#f97316"
+                        fontSize="10"
+                        fontFamily="monospace"
+                        fontWeight="bold"
+                        opacity="0.5"
+                    >
+                        {m.label}
+                    </text>
+                </g>
+            ))}
+
             {/* Other Cars */}
             {otherCars && otherCars.map((car, idx) => {
                 const coords = getCarCoords(car);
                 if (!coords) return null;
                 if (car.isPlayer) return null;
-                const color = car.color || '#64748b';
+                const color = getPositionColor(car.position, car.color || '#64748b');
+                const isPodium = car.position != null && car.position <= 3;
                 return (
                     <motion.g
                         key={car.carNumber || idx}
@@ -202,20 +246,24 @@ export function TrackVisuals({ shape, carPosition, otherCars }: TrackVisualsProp
                         animate={{ x: coords.x, y: coords.y }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                     >
-                        {/* Outer ring */}
-                        <circle r="12" fill="none" stroke={color} strokeWidth="1.5" opacity="0.4" />
+                        {/* In-pit indicator */}
+                        {car.inPit && (
+                            <circle r="16" fill="none" stroke="#f97316" strokeWidth="2" opacity="0.6" strokeDasharray="4 3" />
+                        )}
+                        {/* Outer ring - larger for podium */}
+                        <circle r={isPodium ? 14 : 10} fill="none" stroke={color} strokeWidth={isPodium ? 2 : 1.5} opacity={isPodium ? 0.6 : 0.3} />
                         {/* Inner dot */}
-                        <circle r="6" fill={color} opacity="0.9" />
+                        <circle r={isPodium ? 7 : 5} fill={color} opacity="0.9" />
                         {/* Car number label */}
                         {car.carNumber && (
                             <text
                                 y="-16"
                                 textAnchor="middle"
-                                fill="white"
-                                fontSize="10"
+                                fill={isPodium ? color : 'white'}
+                                fontSize={isPodium ? '11' : '9'}
                                 fontFamily="monospace"
                                 fontWeight="bold"
-                                opacity="0.7"
+                                opacity={isPodium ? 0.9 : 0.6}
                                 style={{ filter: 'drop-shadow(0 1px 2px black)' }}
                             >
                                 {car.carNumber}

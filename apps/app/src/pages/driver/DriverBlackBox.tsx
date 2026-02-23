@@ -13,6 +13,7 @@ import {
   MessageSquare,
   ChevronRight
 } from 'lucide-react';
+import { TrackMinimap } from '../../components/TrackMinimap';
 
 // Urgency levels for AI outputs
 type Urgency = 'critical' | 'warning' | 'info';
@@ -187,13 +188,13 @@ export function DriverBlackBox() {
           
           <div className="flex items-center gap-4">
             {/* Fuel Risk */}
-            {telemetry.lapsRemaining !== null && (
+            {telemetry.strategy.fuelLapsRemaining !== null && (
               <div className={`flex items-center gap-1 text-xs ${
-                telemetry.lapsRemaining < 3 ? 'text-red-400' : 
-                telemetry.lapsRemaining < 6 ? 'text-yellow-400' : 'text-green-400'
+                telemetry.strategy.fuelLapsRemaining < 3 ? 'text-red-400' : 
+                telemetry.strategy.fuelLapsRemaining < 6 ? 'text-yellow-400' : 'text-green-400'
               }`}>
                 <Fuel className="w-3 h-3" />
-                <span>{telemetry.lapsRemaining}L</span>
+                <span>{telemetry.strategy.fuelLapsRemaining} laps</span>
               </div>
             )}
             {/* Relay Health */}
@@ -276,7 +277,7 @@ export function DriverBlackBox() {
                 <div className="h-2 bg-white/10 overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 transition-all duration-100"
-                    style={{ width: `${telemetry.rpm ? Math.min(100, (telemetry.rpm / 8000) * 100) : 0}%` }}
+                    style={{ width: `${telemetry.rpm ? Math.min(100, (telemetry.rpm / session.rpmRedline) * 100) : 0}%` }}
                   />
                 </div>
               </div>
@@ -325,9 +326,9 @@ export function DriverBlackBox() {
               <div className="flex items-center justify-between mb-2">
                 <div className="text-[10px] uppercase tracking-wider text-white/40">Fuel</div>
                 <div className={`text-xs ${
-                  telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-white/60'
+                  telemetry.strategy.fuelLapsRemaining !== null && telemetry.strategy.fuelLapsRemaining < 3 ? 'text-red-400' : 'text-white/60'
                 }`}>
-                  {telemetry.lapsRemaining ?? '--'} laps
+                  {telemetry.strategy.fuelLapsRemaining ?? '--'} laps
                 </div>
               </div>
               <div className="flex items-end gap-3">
@@ -343,9 +344,9 @@ export function DriverBlackBox() {
               <div className="mt-2 h-2 bg-white/10 overflow-hidden">
                 <div 
                   className={`h-full transition-all ${
-                    telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'bg-red-500' : 'bg-green-500'
+                    telemetry.strategy.fuelLapsRemaining !== null && telemetry.strategy.fuelLapsRemaining < 3 ? 'bg-red-500' : 'bg-green-500'
                   }`}
-                  style={{ width: `${telemetry.fuel ? Math.min(100, (telemetry.fuel / 20) * 100) : 0}%` }}
+                  style={{ width: `${telemetry.fuel ? Math.min(100, (telemetry.fuel / session.fuelTankCapacity) * 100) : 0}%` }}
                 />
               </div>
             </div>
@@ -380,17 +381,23 @@ export function DriverBlackBox() {
               </div>
             </div>
 
-            {/* Gap Info (placeholder) */}
+            {/* Track Map + Gaps */}
             <div className="bg-black/60 border border-white/10 p-3">
-              <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Gaps</div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
+              <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Track Map</div>
+              <TrackMinimap
+                trackName={session.trackName}
+                trackPosition={telemetry.trackPosition}
+                otherCars={telemetry.otherCars}
+                className="h-24 mb-2"
+              />
+              <div className="grid grid-cols-2 gap-2 text-sm border-t border-white/10 pt-2">
                 <div>
                   <span className="text-white/40">Ahead:</span>
-                  <span className="font-mono ml-1">+2.341</span>
+                  <span className="font-mono ml-1">{telemetry.strategy.gapToCarAhead > 0 ? `+${telemetry.strategy.gapToCarAhead.toFixed(1)}s` : '--'}</span>
                 </div>
                 <div>
-                  <span className="text-white/40">Behind:</span>
-                  <span className="font-mono ml-1">-1.892</span>
+                  <span className="text-white/40">Leader:</span>
+                  <span className="font-mono ml-1">{telemetry.strategy.gapToLeader > 0 ? `+${telemetry.strategy.gapToLeader.toFixed(1)}s` : '--'}</span>
                 </div>
               </div>
             </div>

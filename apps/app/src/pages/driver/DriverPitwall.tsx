@@ -17,6 +17,7 @@ import {
   Layers,
   BarChart3
 } from 'lucide-react';
+import { TrackMinimap } from '../../components/TrackMinimap';
 
 interface EngineerInsight {
   type: 'fuel' | 'pace' | 'strategy' | 'info';
@@ -51,18 +52,18 @@ export function DriverPitwall() {
   const getEngineerInsights = (): EngineerInsight[] => {
     const insights: EngineerInsight[] = [];
     
-    if (telemetry.fuel !== null && telemetry.fuelPerLap !== null && telemetry.lapsRemaining !== null) {
-      const fuelLaps = telemetry.fuel / telemetry.fuelPerLap;
-      if (fuelLaps < telemetry.lapsRemaining + 2) {
+    const fuelLaps = telemetry.strategy.fuelLapsRemaining;
+    if (fuelLaps !== null) {
+      if (fuelLaps < 3) {
         insights.push({
           type: 'fuel',
-          message: `Fuel critical. ${fuelLaps.toFixed(1)} laps of fuel remaining. Consider pitting.`,
+          message: `Fuel critical. ${fuelLaps} laps of fuel remaining. Consider pitting.`,
           priority: 'high',
         });
-      } else if (fuelLaps < telemetry.lapsRemaining + 5) {
+      } else if (fuelLaps < 6) {
         insights.push({
           type: 'fuel',
-          message: `Fuel window opening. ${fuelLaps.toFixed(1)} laps remaining on current fuel.`,
+          message: `Fuel window opening. ${fuelLaps} laps remaining on current fuel.`,
           priority: 'medium',
         });
       }
@@ -95,24 +96,33 @@ export function DriverPitwall() {
     return insights;
   };
 
-  // Generate spotter calls based on session state
+  // Generate spotter calls from live strategy data
   const getSpotterCalls = (): SpotterCall[] => {
     const calls: SpotterCall[] = [];
     
     if (status === 'in_session') {
-      if (telemetry.position !== null && telemetry.position <= 3) {
+      const gapAhead = telemetry.strategy.gapToCarAhead;
+      const gapBehind = telemetry.strategy.gapFromCarBehind;
+      
+      if (gapBehind > 0 && gapBehind < 1.0) {
         calls.push({
-          type: 'info',
-          message: `P${telemetry.position}. Running in the lead pack. Stay focused.`,
+          type: 'warning',
+          message: `Car behind closing. Gap ${gapBehind.toFixed(1)}s. Defend your line.`,
           timestamp: Date.now(),
         });
+      } else if (gapAhead > 0 && gapAhead < 1.5) {
+        calls.push({
+          type: 'traffic',
+          message: `Car ahead ${gapAhead.toFixed(1)}s. Look for an opportunity.`,
+          timestamp: Date.now(),
+        });
+      } else {
+        calls.push({
+          type: 'clear',
+          message: telemetry.position !== null ? `P${telemetry.position}. Clear air. Push when ready.` : 'Track clear ahead.',
+          timestamp: Date.now() - 5000,
+        });
       }
-      
-      calls.push({
-        type: 'clear',
-        message: 'Track clear ahead. Push when ready.',
-        timestamp: Date.now() - 5000,
-      });
     }
 
     return calls;
@@ -333,6 +343,37 @@ export function DriverPitwall() {
           </div>
         )}
 
+        {/* Track Map + Standings */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded shadow-lg shadow-black/20 p-4">
+            <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Track Map</div>
+            <TrackMinimap
+              trackName={session.trackName}
+              trackPosition={telemetry.trackPosition}
+              otherCars={telemetry.otherCars}
+              className="h-36"
+            />
+          </div>
+          <div className="lg:col-span-2 bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded shadow-lg shadow-black/20 p-4">
+            <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Standings</div>
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {telemetry.otherCars.length > 0 ? (
+                telemetry.otherCars.map((car, i) => (
+                  <div key={car.carNumber || i} className={`flex items-center gap-3 text-xs py-1 px-2 rounded ${car.isPlayer ? 'bg-cyan-500/10 text-cyan-400 font-bold' : 'text-white/60 hover:bg-white/[0.03]'}`}>
+                    <span className={`w-6 text-right font-mono ${i === 0 ? 'text-yellow-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-600' : 'text-white/40'}`}>P{car.position ?? i + 1}</span>
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: car.isPlayer ? '#06b6d4' : car.color || '#374151' }} />
+                    <span className="truncate flex-1">{car.driverName || `Car ${car.carNumber}`}</span>
+                    <span className="font-mono text-white/30 w-16 text-right">{car.lastLap || '--'}</span>
+                    <span className="font-mono text-white/40 w-14 text-right">{car.gap || '--'}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-white/20 italic py-4 text-center">Waiting for standings data...</div>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Two Column Layout: Engineer + Spotter */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Engineer Panel */}
@@ -369,8 +410,8 @@ export function DriverPitwall() {
               </div>
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Laps Left</div>
-                <div className="text-xl font-mono font-bold">
-                  {telemetry.lapsRemaining !== null ? telemetry.lapsRemaining : '--'}
+                <div className={`text-xl font-mono font-bold ${telemetry.strategy.fuelLapsRemaining !== null && telemetry.strategy.fuelLapsRemaining < 3 ? 'text-red-400' : ''}`}>
+                  {telemetry.strategy.fuelLapsRemaining ?? '--'}
                 </div>
               </div>
             </div>

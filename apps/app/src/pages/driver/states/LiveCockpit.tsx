@@ -10,8 +10,17 @@ import {
   Minus,
   Zap,
   MessageSquare,
-  ChevronRight
+  ChevronRight,
+  CircleDot,
+  Wrench,
+  Brain,
+  Target,
+  Timer,
+  ChevronDown,
+  ChevronUp,
+  Activity
 } from 'lucide-react';
+import { TrackMinimap } from '../../../components/TrackMinimap';
 
 type Urgency = 'critical' | 'warning' | 'info';
 
@@ -29,9 +38,10 @@ interface AIAlert {
  * Only shows what matters RIGHT NOW.
  */
 export function LiveCockpit() {
-  const { status, telemetry, session } = useRelay();
+  const { status, telemetry, session, raceIntelligence } = useRelay();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
+  const [showIntel, setShowIntel] = useState(true);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -43,23 +53,47 @@ export function LiveCockpit() {
   useEffect(() => {
     const newAlerts: AIAlert[] = [];
 
-    if (telemetry.fuel !== null && telemetry.fuelPerLap !== null) {
-      const lapsLeft = telemetry.fuel / telemetry.fuelPerLap;
-      if (lapsLeft < 2) {
-        newAlerts.push({
-          id: 'fuel-critical',
-          role: 'engineer',
-          message: 'BOX NOW — Fuel critical',
-          urgency: 'critical',
-        });
-      } else if (lapsLeft < 5) {
-        newAlerts.push({
-          id: 'fuel-warning',
-          role: 'engineer',
-          message: `Pit window open — ${Math.floor(lapsLeft)} laps fuel`,
-          urgency: 'warning',
-        });
-      }
+    const fuelLaps = telemetry.strategy.fuelLapsRemaining;
+    if (fuelLaps !== null && fuelLaps < 2) {
+      newAlerts.push({
+        id: 'fuel-critical',
+        role: 'engineer',
+        message: 'BOX NOW — Fuel critical',
+        urgency: 'critical',
+      });
+    } else if (fuelLaps !== null && fuelLaps < 5) {
+      newAlerts.push({
+        id: 'fuel-warning',
+        role: 'engineer',
+        message: `Pit window open — ${Math.floor(fuelLaps)} laps fuel`,
+        urgency: 'warning',
+      });
+    }
+
+    if (telemetry.strategy.damageAero > 0.3 || telemetry.strategy.damageEngine > 0.3) {
+      newAlerts.push({
+        id: 'damage-warning',
+        role: 'engineer',
+        message: `Damage detected — ${telemetry.strategy.damageAero > 0.3 ? 'Aero' : 'Engine'} ${Math.round(Math.max(telemetry.strategy.damageAero, telemetry.strategy.damageEngine) * 100)}%`,
+        urgency: telemetry.strategy.damageAero > 0.6 || telemetry.strategy.damageEngine > 0.6 ? 'critical' : 'warning',
+      });
+    }
+
+    const minTire = Math.min(telemetry.strategy.tireWear.fl, telemetry.strategy.tireWear.fr, telemetry.strategy.tireWear.rl, telemetry.strategy.tireWear.rr);
+    if (minTire < 0.15 && minTire > 0) {
+      newAlerts.push({
+        id: 'tire-critical',
+        role: 'engineer',
+        message: 'Tires critical — consider pitting',
+        urgency: 'critical',
+      });
+    } else if (minTire < 0.3 && minTire > 0) {
+      newAlerts.push({
+        id: 'tire-warning',
+        role: 'engineer',
+        message: `Tire wear ${Math.round(minTire * 100)}% — manage pace`,
+        urgency: 'warning',
+      });
     }
 
     if (telemetry.delta !== null && telemetry.delta < -0.5) {
@@ -72,7 +106,7 @@ export function LiveCockpit() {
     }
 
     setAlerts(newAlerts);
-  }, [telemetry.fuel, telemetry.fuelPerLap, telemetry.delta]);
+  }, [telemetry.strategy, telemetry.delta]);
 
   const formatTime = (seconds: number | null) => {
     if (seconds === null) return '--:--.---';
@@ -124,13 +158,13 @@ export function LiveCockpit() {
             <span className="text-xs text-white/40">{session.trackName || 'Unknown'}</span>
           </div>
           <div className="flex items-center gap-4">
-            {telemetry.lapsRemaining !== null && (
+            {telemetry.strategy.fuelLapsRemaining !== null && (
               <div className={`flex items-center gap-1 text-xs ${
-                telemetry.lapsRemaining < 3 ? 'text-red-400' : 
-                telemetry.lapsRemaining < 6 ? 'text-yellow-400' : 'text-green-400'
+                telemetry.strategy.fuelLapsRemaining < 3 ? 'text-red-400' : 
+                telemetry.strategy.fuelLapsRemaining < 6 ? 'text-yellow-400' : 'text-green-400'
               }`}>
                 <Fuel className="w-3 h-3" />
-                <span>{telemetry.lapsRemaining}L</span>
+                <span>{telemetry.strategy.fuelLapsRemaining} laps</span>
               </div>
             )}
             <div className="flex items-center gap-1">
@@ -203,7 +237,7 @@ export function LiveCockpit() {
               <div className="mt-2 h-2 bg-white/10 overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 transition-all duration-100"
-                  style={{ width: `${telemetry.rpm ? Math.min(100, (telemetry.rpm / 8000) * 100) : 0}%` }}
+                  style={{ width: `${telemetry.rpm ? Math.min(100, (telemetry.rpm / session.rpmRedline) * 100) : 0}%` }}
                 />
               </div>
             </div>
@@ -245,9 +279,9 @@ export function LiveCockpit() {
               <div className="flex items-center justify-between mb-2">
                 <div className="text-[10px] uppercase tracking-wider text-white/40">Fuel</div>
                 <div className={`text-xs ${
-                  telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'text-red-400' : 'text-white/60'
+                  telemetry.strategy.fuelLapsRemaining !== null && telemetry.strategy.fuelLapsRemaining < 3 ? 'text-red-400' : 'text-white/60'
                 }`}>
-                  {telemetry.lapsRemaining ?? '--'} laps
+                  {telemetry.strategy.fuelLapsRemaining ?? '--'} laps
                 </div>
               </div>
               <div className="flex items-end gap-3">
@@ -262,9 +296,9 @@ export function LiveCockpit() {
               <div className="mt-2 h-2 bg-white/10 overflow-hidden">
                 <div 
                   className={`h-full transition-all ${
-                    telemetry.lapsRemaining !== null && telemetry.lapsRemaining < 3 ? 'bg-red-500' : 'bg-green-500'
+                    telemetry.strategy.fuelLapsRemaining !== null && telemetry.strategy.fuelLapsRemaining < 3 ? 'bg-red-500' : 'bg-green-500'
                   }`}
-                  style={{ width: `${telemetry.fuel ? Math.min(100, (telemetry.fuel / 20) * 100) : 0}%` }}
+                  style={{ width: `${telemetry.fuel ? Math.min(100, (telemetry.fuel / session.fuelTankCapacity) * 100) : 0}%` }}
                 />
               </div>
             </div>
@@ -303,16 +337,294 @@ export function LiveCockpit() {
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <span className="text-white/40">Ahead:</span>
-                  <span className="font-mono ml-1">+2.341</span>
+                  <span className="font-mono ml-1">{telemetry.strategy.gapToCarAhead > 0 ? `+${telemetry.strategy.gapToCarAhead.toFixed(1)}s` : '--'}</span>
                 </div>
                 <div>
-                  <span className="text-white/40">Behind:</span>
-                  <span className="font-mono ml-1">-1.892</span>
+                  <span className="text-white/40">Leader:</span>
+                  <span className="font-mono ml-1">{telemetry.strategy.gapToLeader > 0 ? `+${telemetry.strategy.gapToLeader.toFixed(1)}s` : '--'}</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Tire Wear & Car Status */}
+        <div className="grid grid-cols-12 gap-2">
+          {/* Tire Wear */}
+          <div className="col-span-6 bg-black/60 border border-white/10 p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <CircleDot className="w-3 h-3 text-white/40" />
+                <span className="text-[10px] uppercase tracking-wider text-white/40">Tires</span>
+              </div>
+              <span className="text-[10px] text-white/30 font-mono">Stint L{telemetry.strategy.tireStintLaps}</span>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              {(['fl', 'fr', 'rl', 'rr'] as const).map((corner) => {
+                const wear = telemetry.strategy.tireWear[corner];
+                const pct = Math.round(wear * 100);
+                const color = wear > 0.6 ? 'bg-green-500' : wear > 0.3 ? 'bg-yellow-500' : 'bg-red-500';
+                const label = corner.toUpperCase();
+                return (
+                  <div key={corner} className="text-center">
+                    <div className="text-[10px] text-white/40 font-mono mb-1">{label}</div>
+                    <div className="h-12 bg-white/10 relative overflow-hidden">
+                      <div className={`absolute bottom-0 left-0 right-0 ${color} transition-all duration-500`} style={{ height: `${pct}%` }} />
+                      <div className="absolute inset-0 flex items-center justify-center text-[10px] font-mono font-bold">{pct}%</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Damage & Pit */}
+          <div className="col-span-3 bg-black/60 border border-white/10 p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Wrench className="w-3 h-3 text-white/40" />
+              <span className="text-[10px] uppercase tracking-wider text-white/40">Car</span>
+            </div>
+            {(telemetry.strategy.damageAero > 0.05 || telemetry.strategy.damageEngine > 0.05) ? (
+              <div className="space-y-2">
+                {telemetry.strategy.damageAero > 0.05 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/40">Aero</span>
+                    <span className={`font-mono ${telemetry.strategy.damageAero > 0.3 ? 'text-red-400' : 'text-yellow-400'}`}>
+                      {Math.round(telemetry.strategy.damageAero * 100)}%
+                    </span>
+                  </div>
+                )}
+                {telemetry.strategy.damageEngine > 0.05 && (
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-white/40">Engine</span>
+                    <span className={`font-mono ${telemetry.strategy.damageEngine > 0.3 ? 'text-red-400' : 'text-yellow-400'}`}>
+                      {Math.round(telemetry.strategy.damageEngine * 100)}%
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-xs text-green-400">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
+                No damage
+              </div>
+            )}
+            <div className="mt-3 pt-2 border-t border-white/10">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/40">Pit Stops</span>
+                <span className="font-mono text-white/70">{telemetry.strategy.pitStops}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Engine */}
+          <div className="col-span-3 bg-black/60 border border-white/10 p-3">
+            <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Engine</div>
+            {telemetry.strategy.engine ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-white/40">Oil</span>
+                  <span className={`font-mono ${telemetry.strategy.engine.oilTemp > 130 ? 'text-red-400' : telemetry.strategy.engine.oilTemp > 110 ? 'text-yellow-400' : 'text-white/70'}`}>
+                    {Math.round(telemetry.strategy.engine.oilTemp)}°C
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-white/40">Water</span>
+                  <span className={`font-mono ${telemetry.strategy.engine.waterTemp > 110 ? 'text-red-400' : telemetry.strategy.engine.waterTemp > 100 ? 'text-yellow-400' : 'text-white/70'}`}>
+                    {Math.round(telemetry.strategy.engine.waterTemp)}°C
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-white/40">Voltage</span>
+                  <span className="font-mono text-white/70">{telemetry.strategy.engine.voltage.toFixed(1)}V</span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-white/30 italic">No data</div>
+            )}
+          </div>
+        </div>
+
+        {/* Track Map */}
+        <div className="grid grid-cols-12 gap-2">
+          <div className="col-span-4 bg-black/60 border border-white/10 p-2">
+            <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1 px-1">Track Map</div>
+            <TrackMinimap
+              trackName={session.trackName}
+              trackPosition={telemetry.trackPosition}
+              otherCars={telemetry.otherCars}
+              className="h-32"
+            />
+          </div>
+          <div className="col-span-8 bg-black/60 border border-white/10 p-3">
+            <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Nearby Cars</div>
+            <div className="space-y-1 max-h-28 overflow-y-auto">
+              {telemetry.otherCars.length > 0 ? (
+                telemetry.otherCars.slice(0, 8).map((car, i) => (
+                  <div key={car.carNumber || i} className={`flex items-center gap-2 text-xs py-0.5 ${car.isPlayer ? 'text-cyan-400 font-bold' : 'text-white/60'}`}>
+                    <span className="w-5 text-right font-mono text-white/40">P{car.position ?? i + 1}</span>
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: car.isPlayer ? '#06b6d4' : car.color || '#374151' }} />
+                    <span className="truncate flex-1">{car.driverName || `Car ${car.carNumber}`}</span>
+                    <span className="font-mono text-white/30">{car.gap || '--'}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-white/20 italic">Waiting for standings...</div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Race Intelligence Panel */}
+        {raceIntelligence && (
+          <div className="bg-black/60 border border-white/10">
+            <button
+              onClick={() => setShowIntel(!showIntel)}
+              className="w-full flex items-center justify-between px-3 py-2 border-b border-white/10 hover:bg-white/5 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Brain className="w-4 h-4 text-purple-400" />
+                <span className="text-[10px] uppercase tracking-wider text-purple-400 font-semibold">Race Intelligence</span>
+                <span className="text-[10px] text-white/30">Lap {raceIntelligence.lapCount}</span>
+              </div>
+              {showIntel ? <ChevronUp className="w-3 h-3 text-white/30" /> : <ChevronDown className="w-3 h-3 text-white/30" />}
+            </button>
+
+            {showIntel && (
+              <div className="p-2 space-y-2">
+                {/* Strategy Recommendation */}
+                <div className="bg-purple-500/10 border border-purple-500/20 px-3 py-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Target className="w-3 h-3 text-purple-400" />
+                    <span className="text-[10px] uppercase tracking-wider text-purple-400">Strategy</span>
+                  </div>
+                  <div className="text-sm text-white/90">{raceIntelligence.recommendedAction}</div>
+                </div>
+
+                {/* Pace & Consistency */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-white/5 p-2 text-center">
+                    <div className="text-[10px] text-white/40 uppercase">Pace</div>
+                    <div className={`text-sm font-bold ${
+                      raceIntelligence.paceTrend === 'improving' ? 'text-green-400' :
+                      raceIntelligence.paceTrend === 'degrading' ? 'text-red-400' :
+                      raceIntelligence.paceTrend === 'erratic' ? 'text-yellow-400' : 'text-white/70'
+                    }`}>
+                      {raceIntelligence.paceTrend === 'improving' && <TrendingUp className="w-3 h-3 inline mr-1" />}
+                      {raceIntelligence.paceTrend === 'degrading' && <TrendingDown className="w-3 h-3 inline mr-1" />}
+                      {raceIntelligence.paceTrend.charAt(0).toUpperCase() + raceIntelligence.paceTrend.slice(1)}
+                    </div>
+                  </div>
+                  <div className="bg-white/5 p-2 text-center">
+                    <div className="text-[10px] text-white/40 uppercase">Consistency</div>
+                    <div className={`text-sm font-bold font-mono ${
+                      raceIntelligence.consistencyRating > 80 ? 'text-green-400' :
+                      raceIntelligence.consistencyRating > 60 ? 'text-yellow-400' : 'text-red-400'
+                    }`}>
+                      {raceIntelligence.consistencyRating}/100
+                    </div>
+                  </div>
+                  <div className="bg-white/5 p-2 text-center">
+                    <div className="text-[10px] text-white/40 uppercase">Positions</div>
+                    <div className={`text-sm font-bold font-mono ${
+                      raceIntelligence.positionsGainedTotal > 0 ? 'text-green-400' :
+                      raceIntelligence.positionsGainedTotal < 0 ? 'text-red-400' : 'text-white/70'
+                    }`}>
+                      {raceIntelligence.positionsGainedTotal > 0 ? '+' : ''}{raceIntelligence.positionsGainedTotal}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fuel & Tire Projections */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-white/5 p-2">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Fuel className="w-3 h-3 text-orange-400" />
+                      <span className="text-[10px] text-white/40 uppercase">Fuel</span>
+                    </div>
+                    <div className="text-sm font-mono">
+                      <span className={raceIntelligence.fuelToFinish ? 'text-green-400' : 'text-red-400'}>
+                        {raceIntelligence.projectedFuelLaps.toFixed(0)} laps
+                      </span>
+                      <span className="text-[10px] text-white/30 ml-1">
+                        {raceIntelligence.fuelToFinish ? '✓ finish' : '✗ pit needed'}
+                      </span>
+                    </div>
+                    {raceIntelligence.optimalPitLap && (
+                      <div className="text-[10px] text-orange-400 mt-1">
+                        <Timer className="w-2.5 h-2.5 inline mr-1" />
+                        Pit lap {raceIntelligence.optimalPitLap}
+                      </div>
+                    )}
+                  </div>
+                  <div className="bg-white/5 p-2">
+                    <div className="flex items-center gap-1 mb-1">
+                      <CircleDot className="w-3 h-3 text-blue-400" />
+                      <span className="text-[10px] text-white/40 uppercase">Tires</span>
+                    </div>
+                    <div className="text-sm font-mono">
+                      <span className={raceIntelligence.tireCliff ? 'text-red-400' : raceIntelligence.estimatedTireLapsLeft < 10 ? 'text-yellow-400' : 'text-green-400'}>
+                        ~{raceIntelligence.estimatedTireLapsLeft} laps
+                      </span>
+                      <span className="text-[10px] text-white/30 ml-1">
+                        {(raceIntelligence.tireDegRate * 100).toFixed(1)}%/lap
+                      </span>
+                    </div>
+                    {raceIntelligence.tireCliff && (
+                      <div className="text-[10px] text-red-400 mt-1">
+                        <AlertTriangle className="w-2.5 h-2.5 inline mr-1" />Cliff warning
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Gap Trends & Mental State */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-white/5 p-2 text-center">
+                    <div className="text-[10px] text-white/40 uppercase">Ahead</div>
+                    <div className={`text-xs font-mono ${
+                      raceIntelligence.gapAheadTrend === 'closing' ? 'text-green-400' :
+                      raceIntelligence.gapAheadTrend === 'opening' ? 'text-red-400' : 'text-white/50'
+                    }`}>
+                      {raceIntelligence.gapAhead > 0 ? `${raceIntelligence.gapAhead.toFixed(1)}s` : '--'}
+                      <div className="text-[9px]">{raceIntelligence.gapAheadTrend}</div>
+                    </div>
+                    {raceIntelligence.overtakeOpportunity && (
+                      <div className="text-[9px] text-green-400 mt-0.5">ATTACK</div>
+                    )}
+                  </div>
+                  <div className="bg-white/5 p-2 text-center">
+                    <div className="text-[10px] text-white/40 uppercase">Behind</div>
+                    <div className={`text-xs font-mono ${
+                      raceIntelligence.gapBehindTrend === 'closing' ? 'text-red-400' :
+                      raceIntelligence.gapBehindTrend === 'opening' ? 'text-green-400' : 'text-white/50'
+                    }`}>
+                      {raceIntelligence.gapBehind > 0 ? `${raceIntelligence.gapBehind.toFixed(1)}s` : '--'}
+                      <div className="text-[9px]">{raceIntelligence.gapBehindTrend}</div>
+                    </div>
+                    {raceIntelligence.underThreat && (
+                      <div className="text-[9px] text-red-400 mt-0.5">DEFEND</div>
+                    )}
+                  </div>
+                  <div className="bg-white/5 p-2 text-center">
+                    <div className="text-[10px] text-white/40 uppercase">Mental</div>
+                    <div className={`text-xs font-bold ${
+                      raceIntelligence.mentalFatigue === 'fresh' ? 'text-green-400' :
+                      raceIntelligence.mentalFatigue === 'normal' ? 'text-white/70' :
+                      raceIntelligence.mentalFatigue === 'fatigued' ? 'text-yellow-400' : 'text-red-400'
+                    }`}>
+                      <Activity className="w-3 h-3 inline mr-0.5" />
+                      {raceIntelligence.mentalFatigue.charAt(0).toUpperCase() + raceIntelligence.mentalFatigue.slice(1)}
+                    </div>
+                    {raceIntelligence.incidentClustering && (
+                      <div className="text-[9px] text-red-400 mt-0.5">⚠ Clustering</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* AI Crew Stream */}
         <div className="bg-black/60 border border-white/10">
