@@ -358,6 +358,38 @@ export function DriverIDP() {
                 Full Sync
               </button>
               <button
+                onClick={async () => {
+                  if (!session?.access_token) return;
+                  if (!confirm('This will reset your driver memory and recalculate from your race data. Continue?')) return;
+                  setSyncing(true);
+                  setSyncResult(null);
+                  try {
+                    const response = await fetch('/api/v1/drivers/me/reset-memory', {
+                      method: 'POST',
+                      headers: { 'Authorization': `Bearer ${session.access_token}` },
+                    });
+                    const json = await response.json();
+                    if (!response.ok) {
+                      setSyncResult({ success: false, message: json.error || 'Reset failed' });
+                    } else {
+                      setSyncResult({ success: true, message: json.message });
+                      await fetchIDPData();
+                      fetchReport();
+                    }
+                  } catch (err) {
+                    setSyncResult({ success: false, message: err instanceof Error ? err.message : 'Reset failed' });
+                  } finally {
+                    setSyncing(false);
+                  }
+                }}
+                disabled={syncing}
+                className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded text-xs text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+                title="Reset memory and recalculate from actual race data (fixes corrupted stats)"
+              >
+                {syncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                Reset
+              </button>
+              <button
                 onClick={fetchIDPData}
                 className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] rounded text-xs text-white/60 hover:text-white transition-colors"
               >

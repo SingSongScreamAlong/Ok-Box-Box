@@ -1217,6 +1217,96 @@ router.get('/me/idp', requireAuth, async (req: Request, res: Response): Promise<
 });
 
 /**
+ * POST /api/v1/drivers/me/reset-memory
+ * Reset driver memory to clean values calculated from actual race data
+ * Use this to fix corrupted/accumulated data
+ */
+router.post('/me/reset-memory', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const profile = await getDriverProfileByUserId(req.user!.id);
+        if (!profile) {
+            res.status(404).json({ error: 'Driver profile not found' });
+            return;
+        }
+
+        const userId = req.user!.id;
+        const driverProfileId = profile.id;
+
+        // 1. Delete all session behaviors (will be recreated on next sync)
+        const deleteBehaviors = await pool.query(
+            `DELETE FROM driver_session_behaviors WHERE driver_profile_id = $1`,
+            [driverProfileId]
+        );
+        console.log(`[IDP Reset] Deleted ${deleteBehaviors.rowCount} session behaviors`);
+
+        // 2. Delete all opinions (will be recreated on next sync)
+        const deleteOpinions = await pool.query(
+            `DELETE FROM engineer_opinions WHERE driver_profile_id = $1`,
+            [driverProfileId]
+        );
+        console.log(`[IDP Reset] Deleted ${deleteOpinions.rowCount} opinions`);
+
+        // 3. Get actual race count and lap count from iracing_race_results
+        const statsResult = await pool.query(
+            `SELECT 
+                COUNT(*) as race_count,
+                COALESCE(SUM(laps_complete), 0) as total_laps,
+                COALESCE(SUM(incidents), 0) as total_incidents,
+                COALESCE(AVG(incidents), 0) as avg_incidents
+             FROM iracing_race_results WHERE admin_user_id = $1`,
+            [userId]
+        );
+        const stats = statsResult.rows[0];
+        const raceCount = parseInt(stats.race_count || '0', 10);
+        const totalLaps = parseInt(stats.total_laps || '0', 10);
+        const avgIncidents = parseFloat(stats.avg_incidents || '0');
+
+        // 4. Reset driver_memory to clean defaults with correct stats
+        await pool.query(
+            `UPDATE driver_memory SET
+                sessions_analyzed = $2,
+                laps_analyzed = $3,
+                braking_style = 'unknown',
+                braking_consistency = NULL,
+                throttle_style = 'unknown',
+                traction_management = NULL,
+                corner_entry_style = NULL,
+                overtaking_style = NULL,
+                incident_proneness = $4,
+                current_confidence = 0.5,
+                confidence_trend = 'stable',
+                post_incident_tilt_risk = NULL,
+                fatigue_onset_lap = NULL,
+                late_race_degradation = NULL,
+                session_length_sweet_spot = NULL,
+                recovery_speed = NULL,
+                memory_confidence = LEAST(1.0, $2::float / 50.0),
+                last_learning_update = NOW(),
+                updated_at = NOW()
+             WHERE driver_profile_id = $1`,
+            [driverProfileId, raceCount, totalLaps, Math.min(1, avgIncidents / 4)]
+        );
+
+        // 5. Now trigger a fresh backfill
+        const { backfillFromIRacingResults } = await import('../services/idp/driver-memory.service.js');
+        const processed = await backfillFromIRacingResults(userId, driverProfileId);
+
+        res.json({
+            success: true,
+            message: `Memory reset complete. ${raceCount} races, ${totalLaps} laps. Reprocessed ${processed} sessions.`,
+            stats: {
+                races: raceCount,
+                laps: totalLaps,
+                sessionsProcessed: processed,
+            }
+        });
+    } catch (error) {
+        console.error('[IDP] Error resetting memory:', error);
+        res.status(500).json({ error: 'Failed to reset memory' });
+    }
+});
+
+/**
  * GET /api/v1/drivers/me/report
  * Get detailed driver improvement report with specific data and actionable insights
  */
