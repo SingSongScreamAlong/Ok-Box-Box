@@ -61,6 +61,47 @@ interface IDPData {
   identity: DriverIdentity | null;
 }
 
+interface DriverReport {
+  generatedAt: string;
+  summary: {
+    totalRaces: number;
+    totalLaps: number;
+    totalIncidents: number;
+    avgIncidentsPerRace: number;
+    avgFinishPosition: number;
+    avgPositionsGained: number;
+    cleanRacePercentage: number;
+  };
+  problemAreas: {
+    track: string;
+    incidents: number;
+    races: number;
+    avgIncidentsPerRace: number;
+    recommendation: string;
+  }[];
+  incidentPatterns: {
+    pattern: string;
+    frequency: number;
+    description: string;
+    fix: string;
+  }[];
+  strengths: {
+    area: string;
+    evidence: string;
+  }[];
+  improvementPlan: {
+    priority: number;
+    focus: string;
+    why: string;
+    how: string;
+    expectedImpact: string;
+  }[];
+  recentTrend: {
+    direction: 'improving' | 'declining' | 'stable';
+    description: string;
+  };
+}
+
 // Archetype display info
 const ARCHETYPE_INFO: Record<string, { label: string; description: string; icon: typeof Brain; color: string }> = {
   calculated_racer: {
@@ -148,13 +189,36 @@ export function DriverIDP() {
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
   const [expandedOpinion, setExpandedOpinion] = useState<string | null>(null);
+  const [report, setReport] = useState<DriverReport | null>(null);
+  const [loadingReport, setLoadingReport] = useState(false);
 
   // Fetch IDP data
   useEffect(() => {
     if (session?.access_token) {
       fetchIDPData();
+      fetchReport();
     }
   }, [session?.access_token]);
+
+  const fetchReport = async () => {
+    if (!session?.access_token) return;
+    setLoadingReport(true);
+    try {
+      const response = await fetch('/api/v1/drivers/me/report', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+      if (response.ok) {
+        const json = await response.json();
+        setReport(json);
+      }
+    } catch (err) {
+      console.error('Failed to fetch report:', err);
+    } finally {
+      setLoadingReport(false);
+    }
+  };
 
   const fetchIDPData = async () => {
     if (!session?.access_token) return;
@@ -663,6 +727,180 @@ export function DriverIDP() {
                 </div>
               )}
             </div>
+
+            {/* Driver Improvement Report */}
+            {report && (
+              <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg overflow-hidden">
+                <button
+                  onClick={() => setExpandedSection(expandedSection === 'report' ? null : 'report')}
+                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Target className="w-5 h-5 text-[#f97316]" />
+                    <div className="text-left">
+                      <h3 className="text-sm font-medium text-white">Improvement Report</h3>
+                      <p className="text-[10px] text-white/40">
+                        {report.summary.totalRaces} races analyzed • {report.improvementPlan.length} action items
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className={`text-xs px-2 py-1 rounded ${
+                      report.recentTrend.direction === 'improving' ? 'bg-emerald-500/20 text-emerald-400' :
+                      report.recentTrend.direction === 'declining' ? 'bg-red-500/20 text-red-400' :
+                      'bg-white/10 text-white/60'
+                    }`}>
+                      {report.recentTrend.direction === 'improving' ? '↑ Improving' :
+                       report.recentTrend.direction === 'declining' ? '↓ Declining' : '→ Stable'}
+                    </div>
+                    <ChevronRight className={`w-5 h-5 text-white/30 transition-transform ${expandedSection === 'report' ? 'rotate-90' : ''}`} />
+                  </div>
+                </button>
+
+                {expandedSection === 'report' && (
+                  <div className="px-6 pb-6 border-t border-white/[0.06] pt-4 space-y-6">
+                    {/* Summary Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="p-3 bg-white/[0.03] rounded-lg">
+                        <div className="text-2xl font-mono text-white">{report.summary.avgIncidentsPerRace}</div>
+                        <div className="text-[10px] text-white/40">Avg Incidents/Race</div>
+                      </div>
+                      <div className="p-3 bg-white/[0.03] rounded-lg">
+                        <div className="text-2xl font-mono text-white">{report.summary.cleanRacePercentage}%</div>
+                        <div className="text-[10px] text-white/40">Clean Races</div>
+                      </div>
+                      <div className="p-3 bg-white/[0.03] rounded-lg">
+                        <div className="text-2xl font-mono text-white">P{report.summary.avgFinishPosition.toFixed(1)}</div>
+                        <div className="text-[10px] text-white/40">Avg Finish</div>
+                      </div>
+                      <div className="p-3 bg-white/[0.03] rounded-lg">
+                        <div className={`text-2xl font-mono ${report.summary.avgPositionsGained >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {report.summary.avgPositionsGained >= 0 ? '+' : ''}{report.summary.avgPositionsGained}
+                        </div>
+                        <div className="text-[10px] text-white/40">Avg Positions Gained</div>
+                      </div>
+                    </div>
+
+                    {/* Recent Trend */}
+                    <div className={`p-4 rounded-lg border ${
+                      report.recentTrend.direction === 'improving' ? 'bg-emerald-500/10 border-emerald-500/30' :
+                      report.recentTrend.direction === 'declining' ? 'bg-red-500/10 border-red-500/30' :
+                      'bg-white/[0.03] border-white/[0.08]'
+                    }`}>
+                      <div className="text-xs font-medium text-white/80 mb-1">Recent Trend</div>
+                      <p className="text-sm text-white/70">{report.recentTrend.description}</p>
+                    </div>
+
+                    {/* Problem Tracks */}
+                    {report.problemAreas.length > 0 && (
+                      <div>
+                        <h4 className="text-xs uppercase tracking-wider text-white/40 mb-3 flex items-center gap-2">
+                          <AlertTriangle className="w-3 h-3 text-amber-400" />
+                          Problem Tracks (Higher Than Average Incidents)
+                        </h4>
+                        <div className="space-y-2">
+                          {report.problemAreas.map((area, i) => (
+                            <div key={i} className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium text-white">{area.track}</span>
+                                <span className="text-xs text-amber-400">{area.avgIncidentsPerRace} inc/race ({area.races} races)</span>
+                              </div>
+                              <p className="text-xs text-white/60">{area.recommendation}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Incident Patterns */}
+                    {report.incidentPatterns.length > 0 && (
+                      <div>
+                        <h4 className="text-xs uppercase tracking-wider text-white/40 mb-3 flex items-center gap-2">
+                          <AlertTriangle className="w-3 h-3 text-red-400" />
+                          Patterns Identified
+                        </h4>
+                        <div className="space-y-3">
+                          {report.incidentPatterns.map((pattern, i) => (
+                            <div key={i} className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-medium text-white">{pattern.pattern}</span>
+                                <span className="text-xs text-red-400">{pattern.frequency}% of races</span>
+                              </div>
+                              <p className="text-xs text-white/60 mb-3">{pattern.description}</p>
+                              <div className="p-2 bg-black/20 rounded">
+                                <div className="text-[10px] uppercase tracking-wider text-emerald-400 mb-1">How to Fix</div>
+                                <p className="text-xs text-white/80">{pattern.fix}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Strengths */}
+                    {report.strengths.length > 0 && (
+                      <div>
+                        <h4 className="text-xs uppercase tracking-wider text-white/40 mb-3 flex items-center gap-2">
+                          <CheckCircle className="w-3 h-3 text-emerald-400" />
+                          Your Strengths
+                        </h4>
+                        <div className="space-y-2">
+                          {report.strengths.map((strength, i) => (
+                            <div key={i} className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                              <div className="text-sm font-medium text-emerald-400 mb-1">{strength.area}</div>
+                              <p className="text-xs text-white/70">{strength.evidence}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Improvement Plan */}
+                    {report.improvementPlan.length > 0 && (
+                      <div>
+                        <h4 className="text-xs uppercase tracking-wider text-white/40 mb-3 flex items-center gap-2">
+                          <Target className="w-3 h-3 text-[#f97316]" />
+                          Your Improvement Plan
+                        </h4>
+                        <div className="space-y-4">
+                          {report.improvementPlan.map((item, i) => (
+                            <div key={i} className="p-4 bg-[#f97316]/10 border border-[#f97316]/30 rounded-lg">
+                              <div className="flex items-center gap-2 mb-2">
+                                <span className="w-6 h-6 rounded-full bg-[#f97316] text-black text-xs font-bold flex items-center justify-center">
+                                  {item.priority}
+                                </span>
+                                <span className="text-sm font-medium text-white">{item.focus}</span>
+                              </div>
+                              <div className="space-y-3 ml-8">
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Why This Matters</div>
+                                  <p className="text-xs text-white/70">{item.why}</p>
+                                </div>
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">How To Improve</div>
+                                  <p className="text-xs text-white/80 whitespace-pre-line">{item.how}</p>
+                                </div>
+                                <div className="p-2 bg-emerald-500/10 border border-emerald-500/20 rounded">
+                                  <div className="text-[10px] uppercase tracking-wider text-emerald-400 mb-1">Expected Impact</div>
+                                  <p className="text-xs text-white/80">{item.expectedImpact}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {loadingReport && !report && (
+              <div className="bg-white/[0.03] border border-white/[0.08] rounded-lg p-6 flex items-center justify-center">
+                <Loader2 className="w-5 h-5 animate-spin text-white/40 mr-2" />
+                <span className="text-sm text-white/40">Generating improvement report...</span>
+              </div>
+            )}
 
             {/* How It Works */}
             <div className="bg-white/[0.02] border border-white/[0.06] rounded-lg p-6">

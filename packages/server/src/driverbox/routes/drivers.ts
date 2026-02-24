@@ -1152,6 +1152,28 @@ router.get('/me/idp', requireAuth, async (req: Request, res: Response): Promise<
 });
 
 /**
+ * GET /api/v1/drivers/me/report
+ * Get detailed driver improvement report with specific data and actionable insights
+ */
+router.get('/me/report', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const profile = await getDriverProfileByUserId(req.user!.id);
+        if (!profile) {
+            res.status(404).json({ error: 'Driver profile not found' });
+            return;
+        }
+
+        const { generateDriverReport } = await import('../services/idp/driver-memory.service.js');
+        const report = await generateDriverReport(req.user!.id, profile.id);
+        
+        res.json(report);
+    } catch (error) {
+        console.error('[IDP] Error generating driver report:', error);
+        res.status(500).json({ error: 'Failed to generate driver report' });
+    }
+});
+
+/**
  * GET /api/v1/drivers/me/memories
  * Get driver memory insights (tendencies, strengths, weaknesses learned from sessions)
  */

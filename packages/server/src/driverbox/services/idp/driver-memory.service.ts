@@ -490,6 +490,268 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
 }
 
 // ========================
+// Driver Report Generation
+// ========================
+
+export interface DriverReport {
+    generatedAt: string;
+    summary: {
+        totalRaces: number;
+        totalLaps: number;
+        totalIncidents: number;
+        avgIncidentsPerRace: number;
+        avgFinishPosition: number;
+        avgPositionsGained: number;
+        cleanRacePercentage: number;
+    };
+    problemAreas: {
+        track: string;
+        incidents: number;
+        races: number;
+        avgIncidentsPerRace: number;
+        recommendation: string;
+    }[];
+    incidentPatterns: {
+        pattern: string;
+        frequency: number;
+        description: string;
+        fix: string;
+    }[];
+    strengths: {
+        area: string;
+        evidence: string;
+    }[];
+    improvementPlan: {
+        priority: number;
+        focus: string;
+        why: string;
+        how: string;
+        expectedImpact: string;
+    }[];
+    recentTrend: {
+        direction: 'improving' | 'declining' | 'stable';
+        description: string;
+    };
+}
+
+export async function generateDriverReport(userId: string, _driverProfileId: string): Promise<DriverReport> {
+    // Fetch all race results
+    const result = await pool.query(
+        `SELECT * FROM iracing_race_results 
+         WHERE admin_user_id = $1 
+         ORDER BY session_start_time DESC`,
+        [userId]
+    );
+    const races = result.rows;
+    
+    // Calculate summary stats
+    const totalRaces = races.length;
+    const totalLaps = races.reduce((sum, r) => sum + (r.laps_complete || 0), 0);
+    const totalIncidents = races.reduce((sum, r) => sum + (r.incidents || 0), 0);
+    const avgIncidentsPerRace = totalRaces > 0 ? totalIncidents / totalRaces : 0;
+    
+    const racesWithFinish = races.filter(r => r.finish_position != null);
+    const avgFinishPosition = racesWithFinish.length > 0 
+        ? racesWithFinish.reduce((sum, r) => sum + r.finish_position, 0) / racesWithFinish.length 
+        : 0;
+    
+    const racesWithPositions = races.filter(r => r.start_position != null && r.finish_position != null);
+    const avgPositionsGained = racesWithPositions.length > 0
+        ? racesWithPositions.reduce((sum, r) => sum + (r.start_position - r.finish_position), 0) / racesWithPositions.length
+        : 0;
+    
+    const cleanRaces = races.filter(r => (r.incidents || 0) === 0).length;
+    const cleanRacePercentage = totalRaces > 0 ? (cleanRaces / totalRaces) * 100 : 0;
+    
+    // Analyze incidents by track
+    const trackStats: Record<string, { incidents: number; races: number; laps: number }> = {};
+    for (const race of races) {
+        const track = race.track_name || 'Unknown';
+        if (!trackStats[track]) {
+            trackStats[track] = { incidents: 0, races: 0, laps: 0 };
+        }
+        trackStats[track].incidents += race.incidents || 0;
+        trackStats[track].races += 1;
+        trackStats[track].laps += race.laps_complete || 0;
+    }
+    
+    // Find problem tracks (high incident rate)
+    const problemAreas = Object.entries(trackStats)
+        .map(([track, stats]) => ({
+            track,
+            incidents: stats.incidents,
+            races: stats.races,
+            avgIncidentsPerRace: stats.races > 0 ? stats.incidents / stats.races : 0,
+            incidentsPerLap: stats.laps > 0 ? stats.incidents / stats.laps : 0,
+        }))
+        .filter(t => t.races >= 3 && t.avgIncidentsPerRace > avgIncidentsPerRace * 1.5) // Tracks worse than average
+        .sort((a, b) => b.avgIncidentsPerRace - a.avgIncidentsPerRace)
+        .slice(0, 5)
+        .map(t => ({
+            track: t.track,
+            incidents: t.incidents,
+            races: t.races,
+            avgIncidentsPerRace: Math.round(t.avgIncidentsPerRace * 10) / 10,
+            recommendation: t.avgIncidentsPerRace > 4 
+                ? `Run 5-10 practice laps at ${t.track} before each race. Focus on learning the track limits.`
+                : `Review your replays from ${t.track}. Look for the corners where incidents happen.`,
+        }));
+    
+    // Analyze incident patterns
+    const incidentPatterns: DriverReport['incidentPatterns'] = [];
+    
+    // Pattern: Lap 1 incidents (check if incidents happen early)
+    const recentRaces = races.slice(0, 50);
+    const highIncidentRaces = recentRaces.filter(r => (r.incidents || 0) >= 4);
+    const lap1Pattern = highIncidentRaces.length / Math.max(recentRaces.length, 1);
+    
+    if (lap1Pattern > 0.3) {
+        incidentPatterns.push({
+            pattern: 'First Lap Aggression',
+            frequency: Math.round(lap1Pattern * 100),
+            description: `${Math.round(lap1Pattern * 100)}% of your recent races have 4+ incidents. Many incidents happen in the opening laps when the field is bunched.`,
+            fix: 'Survive lap 1. Give extra space at turn 1. Positions gained in lap 1 are often lost to damage. Let the chaos unfold ahead of you.',
+        });
+    }
+    
+    // Pattern: Late race incidents (fatigue/pressure)
+    const dnfRaces = races.filter(r => r.reason_out && r.reason_out !== 'Running');
+    const dnfRate = dnfRaces.length / Math.max(totalRaces, 1);
+    if (dnfRate > 0.15) {
+        incidentPatterns.push({
+            pattern: 'Race Completion Issues',
+            frequency: Math.round(dnfRate * 100),
+            description: `${Math.round(dnfRate * 100)}% of your races end in DNF. This significantly impacts your iRating and SR.`,
+            fix: 'Focus on finishing. A P15 finish is worth more than a P5 DNF. Back off if you feel the car getting away from you.',
+        });
+    }
+    
+    // Pattern: Consistent high incidents
+    if (avgIncidentsPerRace > 6) {
+        incidentPatterns.push({
+            pattern: 'High Baseline Incidents',
+            frequency: 100,
+            description: `You average ${avgIncidentsPerRace.toFixed(1)} incidents per race. The target for clean racing is under 4.`,
+            fix: 'Slow down by 1-2 seconds per lap. Find a pace you can maintain without incidents. Speed comes after consistency.',
+        });
+    }
+    
+    // Pattern: Position loss
+    if (avgPositionsGained < -2) {
+        incidentPatterns.push({
+            pattern: 'Qualifying vs Race Pace Gap',
+            frequency: Math.round(Math.abs(avgPositionsGained)),
+            description: `You lose an average of ${Math.abs(avgPositionsGained).toFixed(1)} positions per race. You qualify well but struggle in race conditions.`,
+            fix: 'Practice in traffic. Join open practice sessions and run with other cars. Race pace is different from hotlap pace.',
+        });
+    }
+    
+    // Find strengths
+    const strengths: DriverReport['strengths'] = [];
+    
+    if (cleanRacePercentage > 30) {
+        strengths.push({
+            area: 'Clean Racing Capability',
+            evidence: `${Math.round(cleanRacePercentage)}% of your races are incident-free. You CAN race clean when focused.`,
+        });
+    }
+    
+    if (avgPositionsGained > 1) {
+        strengths.push({
+            area: 'Race Craft',
+            evidence: `You gain an average of ${avgPositionsGained.toFixed(1)} positions per race. You're effective at making passes stick.`,
+        });
+    }
+    
+    const bestTracks = Object.entries(trackStats)
+        .filter(([_, stats]) => stats.races >= 3)
+        .map(([track, stats]) => ({ track, avgInc: stats.incidents / stats.races }))
+        .sort((a, b) => a.avgInc - b.avgInc)
+        .slice(0, 3);
+    
+    if (bestTracks.length > 0 && bestTracks[0].avgInc < 2) {
+        strengths.push({
+            area: 'Track Mastery',
+            evidence: `You race cleanly at ${bestTracks.map(t => t.track).join(', ')}. Apply what works there to other tracks.`,
+        });
+    }
+    
+    // Generate improvement plan
+    const improvementPlan: DriverReport['improvementPlan'] = [];
+    
+    if (avgIncidentsPerRace > 4) {
+        improvementPlan.push({
+            priority: 1,
+            focus: 'Reduce Incidents',
+            why: `At ${avgIncidentsPerRace.toFixed(1)} incidents/race, you're losing SR and positions to damage. This is your #1 issue.`,
+            how: '1. Run 10 practice laps before each race\n2. Give extra space on lap 1\n3. If you get hit, don\'t retaliate - just survive\n4. Back off 0.5s when in traffic',
+            expectedImpact: 'Cutting incidents in half would improve your SR by ~0.5 and iRating by 50-100 points.',
+        });
+    }
+    
+    if (problemAreas.length > 0) {
+        improvementPlan.push({
+            priority: 2,
+            focus: `Master Your Problem Tracks`,
+            why: `You have ${problemAreas.length} tracks where your incident rate is significantly above average.`,
+            how: `Focus practice time on: ${problemAreas.slice(0, 3).map(t => t.track).join(', ')}. Run these in test sessions until you can do 10 clean laps.`,
+            expectedImpact: 'Fixing your worst tracks could reduce overall incidents by 20-30%.',
+        });
+    }
+    
+    if (avgPositionsGained < 0) {
+        improvementPlan.push({
+            priority: 3,
+            focus: 'Race Pace Development',
+            why: `You lose ${Math.abs(avgPositionsGained).toFixed(1)} positions on average. Your race pace doesn't match qualifying.`,
+            how: '1. Practice with fuel loads (not empty tank hotlaps)\n2. Join open practice and run in traffic\n3. Learn to manage tires over a stint',
+            expectedImpact: 'Matching race pace to quali pace could gain you 2-3 positions per race.',
+        });
+    }
+    
+    // Analyze recent trend (last 20 vs previous 20)
+    const recent20 = races.slice(0, 20);
+    const previous20 = races.slice(20, 40);
+    
+    let trendDirection: 'improving' | 'declining' | 'stable' = 'stable';
+    let trendDescription = 'Your performance has been consistent recently.';
+    
+    if (recent20.length >= 10 && previous20.length >= 10) {
+        const recentAvgInc = recent20.reduce((s, r) => s + (r.incidents || 0), 0) / recent20.length;
+        const prevAvgInc = previous20.reduce((s, r) => s + (r.incidents || 0), 0) / previous20.length;
+        
+        if (recentAvgInc < prevAvgInc * 0.8) {
+            trendDirection = 'improving';
+            trendDescription = `Your incident rate has dropped from ${prevAvgInc.toFixed(1)} to ${recentAvgInc.toFixed(1)} per race. Keep it up!`;
+        } else if (recentAvgInc > prevAvgInc * 1.2) {
+            trendDirection = 'declining';
+            trendDescription = `Your incident rate has increased from ${prevAvgInc.toFixed(1)} to ${recentAvgInc.toFixed(1)} per race. Something changed - review recent races.`;
+        }
+    }
+    
+    return {
+        generatedAt: new Date().toISOString(),
+        summary: {
+            totalRaces,
+            totalLaps,
+            totalIncidents,
+            avgIncidentsPerRace: Math.round(avgIncidentsPerRace * 10) / 10,
+            avgFinishPosition: Math.round(avgFinishPosition * 10) / 10,
+            avgPositionsGained: Math.round(avgPositionsGained * 10) / 10,
+            cleanRacePercentage: Math.round(cleanRacePercentage),
+        },
+        problemAreas,
+        incidentPatterns,
+        strengths,
+        improvementPlan,
+        recentTrend: {
+            direction: trendDirection,
+            description: trendDescription,
+        },
+    };
+}
+
+// ========================
 // Driver Identity Updates
 // ========================
 
