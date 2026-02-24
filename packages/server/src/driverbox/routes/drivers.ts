@@ -45,12 +45,58 @@ import {
 const router = Router();
 
 // ========================
+// Auto-Sync Background Task
+// ========================
+
+// Track last sync time per user to avoid excessive API calls (5 minute cooldown)
+const lastSyncTime = new Map<string, number>();
+const SYNC_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Trigger background sync if cooldown has passed
+ * Non-blocking - doesn't delay the response
+ */
+function triggerBackgroundSyncIfNeeded(userId: string, driverProfileId: string): void {
+    const lastSync = lastSyncTime.get(userId) || 0;
+    const now = Date.now();
+    
+    if (now - lastSync < SYNC_COOLDOWN_MS) {
+        return; // Still in cooldown
+    }
+    
+    lastSyncTime.set(userId, now);
+    
+    // Run sync in background (don't await)
+    (async () => {
+        try {
+            console.log(`[IDP] Auto-sync triggered for user ${userId}`);
+            const syncService = getIRacingProfileSyncService();
+            
+            // Sync profile and race results from iRacing
+            const profile = await syncService.syncProfile(userId);
+            if (!profile) {
+                console.log(`[IDP] Auto-sync: No iRacing link for user ${userId}`);
+                return;
+            }
+            
+            // Process new races into IDP memory
+            const { backfillFromIRacingResults } = await import('../services/idp/driver-memory.service.js');
+            const processed = await backfillFromIRacingResults(userId, driverProfileId);
+            console.log(`[IDP] Auto-sync complete for user ${userId}: processed ${processed} sessions`);
+        } catch (error) {
+            console.error(`[IDP] Auto-sync error for user ${userId}:`, error);
+        }
+    })();
+}
+
+// ========================
 // Profile CRUD
 // ========================
 
 /**
  * GET /api/v1/drivers/me
  * Get current user's driver profile (must be before /:id)
+ * Automatically triggers background sync if cooldown has passed
  */
 router.get('/me', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
@@ -64,6 +110,9 @@ router.get('/me', requireAuth, async (req: Request, res: Response): Promise<void
                 req.user!.id
             );
         }
+
+        // Trigger background sync (non-blocking) - uses function defined below
+        triggerBackgroundSyncIfNeeded(req.user!.id, profile.id);
 
         // Enrich with iRacing profile data if available
         const iracingResult = await pool.query(
@@ -1018,6 +1067,7 @@ router.get('/me/track-analysis', requireAuth, async (req: Request, res: Response
  * GET /api/v1/drivers/me/idp
  * Get full Intelligent Driver Profile data (memory, opinions, identity)
  * Used by the Driver Profile UI to show archetype, tendencies, and AI assessments
+ * Automatically triggers background sync if cooldown has passed
  */
 router.get('/me/idp', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
@@ -1026,6 +1076,9 @@ router.get('/me/idp', requireAuth, async (req: Request, res: Response): Promise<
             res.status(404).json({ error: 'No driver profile found' });
             return;
         }
+
+        // Trigger background sync (non-blocking)
+        triggerBackgroundSyncIfNeeded(req.user!.id, profile.id);
 
         // Fetch memory, opinions, and identity in parallel
         const [memoryResult, opinionsResult, identityResult] = await Promise.all([
