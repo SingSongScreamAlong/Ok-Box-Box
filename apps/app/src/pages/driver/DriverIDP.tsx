@@ -327,6 +327,37 @@ export function DriverIDP() {
                 {syncing ? 'Syncing...' : 'Sync Race History'}
               </button>
               <button
+                onClick={async () => {
+                  if (!session?.access_token) return;
+                  setSyncing(true);
+                  setSyncResult(null);
+                  try {
+                    const response = await fetch('/api/v1/drivers/me/sync-history-full', {
+                      method: 'POST',
+                      headers: { 'Authorization': `Bearer ${session.access_token}` },
+                    });
+                    const json = await response.json();
+                    if (!response.ok) {
+                      setSyncResult({ success: false, message: json.error || 'Full sync failed' });
+                    } else {
+                      setSyncResult({ success: true, message: json.message });
+                      await fetchIDPData();
+                      fetchReport();
+                    }
+                  } catch (err) {
+                    setSyncResult({ success: false, message: err instanceof Error ? err.message : 'Full sync failed' });
+                  } finally {
+                    setSyncing(false);
+                  }
+                }}
+                disabled={syncing}
+                className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 rounded text-xs text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50"
+                title="Re-fetch ALL races from your iRacing history (slower but complete)"
+              >
+                {syncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                Full Sync
+              </button>
+              <button
                 onClick={fetchIDPData}
                 className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] rounded text-xs text-white/60 hover:text-white transition-colors"
               >
