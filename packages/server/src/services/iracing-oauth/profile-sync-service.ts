@@ -211,8 +211,14 @@ export class IRacingProfileSyncService {
                 console.log(`[iRacing Sync] Fallback sync from 2 years ago`);
             }
             
-            const finishStart = startDate.toISOString();
-            const finishEnd = now.toISOString();
+            // iRacing API expects RFC3339 format without milliseconds
+            // Format: YYYY-MM-DDTHH:MM:SSZ (no .000Z)
+            const formatForIRacing = (date: Date): string => {
+                return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
+            };
+            const finishStart = formatForIRacing(startDate);
+            const finishEnd = formatForIRacing(now);
+            console.log(`[iRacing Sync] Date range: ${finishStart} to ${finishEnd}`);
 
             // Helper to extract results from iRacing API response (handles chunked responses)
             const extractResults = async (response: any): Promise<any[]> => {
