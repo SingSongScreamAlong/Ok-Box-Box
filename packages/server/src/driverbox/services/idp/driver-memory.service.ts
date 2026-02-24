@@ -59,7 +59,6 @@ export async function analyzeSessionBehavior(input: SessionAnalysisInput): Promi
         carName,
         laps,
         incidents,
-        startPosition,
         finishPosition,
         lapTimeVariance,
         positionsGained,
