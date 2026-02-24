@@ -585,8 +585,17 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
     
     // Generate opinions and update identity after processing
     if (processed > 0) {
-        await generateEngineerOpinions(driverProfileId);
-        await updateDriverIdentityFromData(driverProfileId);
+        try {
+            await generateEngineerOpinions(driverProfileId);
+        } catch (opinionError) {
+            console.error(`[DriverMemory] Error generating opinions:`, opinionError);
+        }
+        
+        try {
+            await updateDriverIdentityFromData(driverProfileId);
+        } catch (identityError) {
+            console.error(`[DriverMemory] Error updating identity:`, identityError);
+        }
     }
     
     console.log(`[DriverMemory] Processed ${processed}/${races.length} iRacing races into IDP memory`);

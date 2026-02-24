@@ -372,7 +372,7 @@ export async function getOpinionsByDomain(
 
 export async function supersededOpinion(
     opinionId: string,
-    newOpinionId: string
+    newOpinionId?: string | null
 ): Promise<void> {
     await pool.query(
         `UPDATE engineer_opinions SET 
@@ -380,7 +380,7 @@ export async function supersededOpinion(
             superseded_by = $2,
             updated_at = NOW()
          WHERE id = $1`,
-        [opinionId, newOpinionId]
+        [opinionId, newOpinionId || null]
     );
 }
 
