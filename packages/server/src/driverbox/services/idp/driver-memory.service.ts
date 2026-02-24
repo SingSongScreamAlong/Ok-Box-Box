@@ -167,17 +167,24 @@ export async function analyzeSessionBehavior(input: SessionAnalysisInput): Promi
 export async function aggregateMemoryFromBehaviors(driverProfileId: string): Promise<DriverMemory | null> {
     const behaviors = await getRecentBehaviorsForAggregation(driverProfileId, 20);
     
+    console.log(`[DriverMemory] Aggregating: found ${behaviors.length} behaviors for driver ${driverProfileId}`);
+    
     if (behaviors.length < 3) {
-        // Not enough data to aggregate
+        console.log(`[DriverMemory] Not enough behaviors to aggregate (need 3, have ${behaviors.length})`);
         return getDriverMemory(driverProfileId);
     }
 
     const memory = await getDriverMemory(driverProfileId);
-    if (!memory) return null;
+    if (!memory) {
+        console.log(`[DriverMemory] No memory record found for driver ${driverProfileId}`);
+        return null;
+    }
 
     // Calculate aggregated values
     const brakeScores = behaviors.filter(b => b.brake_consistency_score !== null).map(b => b.brake_consistency_score!);
     const throttleScores = behaviors.filter(b => b.throttle_application_score !== null).map(b => b.throttle_application_score!);
+    
+    console.log(`[DriverMemory] Found ${brakeScores.length} brake scores, ${throttleScores.length} throttle scores`);
     const confidenceScores = behaviors.filter(b => b.estimated_confidence !== null).map(b => b.estimated_confidence!);
 
     const avgBrakeConsistency = brakeScores.length > 0 
@@ -274,7 +281,20 @@ export async function aggregateMemoryFromBehaviors(driverProfileId: string): Pro
         });
     }
 
-    return updateDriverMemory(driverProfileId, updates);
+    console.log(`[DriverMemory] Updating memory with:`, {
+        braking_style: brakingStyle,
+        braking_consistency: avgBrakeConsistency,
+        throttle_style: throttleStyle,
+        traction_management: avgThrottleScore,
+        corner_entry_style: cornerEntryStyle,
+        overtaking_style: overtakingStyle,
+        incident_proneness: incidentProneness,
+        current_confidence: avgConfidence,
+    });
+    
+    const result = await updateDriverMemory(driverProfileId, updates);
+    console.log(`[DriverMemory] Memory updated successfully`);
+    return result;
 }
 
 // ========================
