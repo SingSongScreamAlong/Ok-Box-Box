@@ -1223,6 +1223,8 @@ router.get('/me/idp', requireAuth, async (req: Request, res: Response): Promise<
  */
 router.post('/me/reset-memory', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
+        console.log(`[IDP Reset] Starting reset for user ${req.user!.id}`);
+        
         const profile = await getDriverProfileByUserId(req.user!.id);
         if (!profile) {
             res.status(404).json({ error: 'Driver profile not found' });
@@ -1231,20 +1233,29 @@ router.post('/me/reset-memory', requireAuth, async (req: Request, res: Response)
 
         const userId = req.user!.id;
         const driverProfileId = profile.id;
+        console.log(`[IDP Reset] Found profile ${driverProfileId}`);
 
         // 1. Delete all session behaviors (will be recreated on next sync)
-        const deleteBehaviors = await pool.query(
-            `DELETE FROM driver_session_behaviors WHERE driver_profile_id = $1`,
-            [driverProfileId]
-        );
-        console.log(`[IDP Reset] Deleted ${deleteBehaviors.rowCount} session behaviors`);
+        try {
+            const deleteBehaviors = await pool.query(
+                `DELETE FROM driver_session_behaviors WHERE driver_profile_id = $1`,
+                [driverProfileId]
+            );
+            console.log(`[IDP Reset] Deleted ${deleteBehaviors.rowCount} session behaviors`);
+        } catch (err) {
+            console.warn(`[IDP Reset] Could not delete behaviors (table may not exist):`, err);
+        }
 
         // 2. Delete all opinions (will be recreated on next sync)
-        const deleteOpinions = await pool.query(
-            `DELETE FROM engineer_opinions WHERE driver_profile_id = $1`,
-            [driverProfileId]
-        );
-        console.log(`[IDP Reset] Deleted ${deleteOpinions.rowCount} opinions`);
+        try {
+            const deleteOpinions = await pool.query(
+                `DELETE FROM engineer_opinions WHERE driver_profile_id = $1`,
+                [driverProfileId]
+            );
+            console.log(`[IDP Reset] Deleted ${deleteOpinions.rowCount} opinions`);
+        } catch (err) {
+            console.warn(`[IDP Reset] Could not delete opinions (table may not exist):`, err);
+        }
 
         // 3. Get actual race count and lap count from iracing_race_results
         const statsResult = await pool.query(
@@ -1260,36 +1271,51 @@ router.post('/me/reset-memory', requireAuth, async (req: Request, res: Response)
         const raceCount = parseInt(stats.race_count || '0', 10);
         const totalLaps = parseInt(stats.total_laps || '0', 10);
         const avgIncidents = parseFloat(stats.avg_incidents || '0');
+        console.log(`[IDP Reset] Stats: ${raceCount} races, ${totalLaps} laps, ${avgIncidents.toFixed(2)} avg incidents`);
 
         // 4. Reset driver_memory to clean defaults with correct stats
-        await pool.query(
-            `UPDATE driver_memory SET
-                sessions_analyzed = $2,
-                laps_analyzed = $3,
-                braking_style = 'unknown',
-                braking_consistency = NULL,
-                throttle_style = 'unknown',
-                traction_management = NULL,
-                corner_entry_style = NULL,
-                overtaking_style = NULL,
-                incident_proneness = $4,
-                current_confidence = 0.5,
-                confidence_trend = 'stable',
-                post_incident_tilt_risk = NULL,
-                fatigue_onset_lap = NULL,
-                late_race_degradation = NULL,
-                session_length_sweet_spot = NULL,
-                recovery_speed = NULL,
-                memory_confidence = LEAST(1.0, $2::float / 50.0),
-                last_learning_update = NOW(),
-                updated_at = NOW()
-             WHERE driver_profile_id = $1`,
-            [driverProfileId, raceCount, totalLaps, Math.min(1, avgIncidents / 4)]
-        );
+        try {
+            await pool.query(
+                `UPDATE driver_memory SET
+                    sessions_analyzed = $2,
+                    laps_analyzed = $3,
+                    braking_style = 'unknown',
+                    braking_consistency = NULL,
+                    throttle_style = 'unknown',
+                    traction_management = NULL,
+                    corner_entry_style = NULL,
+                    overtaking_style = NULL,
+                    incident_proneness = $4,
+                    current_confidence = 0.5,
+                    confidence_trend = 'stable',
+                    post_incident_tilt_risk = NULL,
+                    fatigue_onset_lap = NULL,
+                    late_race_degradation = NULL,
+                    session_length_sweet_spot = NULL,
+                    recovery_speed = NULL,
+                    memory_confidence = LEAST(1.0, $2::float / 50.0),
+                    last_learning_update = NOW(),
+                    updated_at = NOW()
+                 WHERE driver_profile_id = $1`,
+                [driverProfileId, raceCount, totalLaps, Math.min(1, avgIncidents / 4)]
+            );
+            console.log(`[IDP Reset] Updated driver_memory`);
+        } catch (err) {
+            console.warn(`[IDP Reset] Could not update driver_memory:`, err);
+        }
 
-        // 5. Now trigger a fresh backfill
-        const { backfillFromIRacingResults } = await import('../services/idp/driver-memory.service.js');
-        const processed = await backfillFromIRacingResults(userId, driverProfileId);
+        // 5. Now trigger a fresh backfill (skip if no races)
+        let processed = 0;
+        if (raceCount > 0) {
+            try {
+                const { backfillFromIRacingResults } = await import('../services/idp/driver-memory.service.js');
+                processed = await backfillFromIRacingResults(userId, driverProfileId);
+                console.log(`[IDP Reset] Backfill processed ${processed} sessions`);
+            } catch (err) {
+                console.error(`[IDP Reset] Backfill error:`, err);
+                // Continue anyway - the reset itself succeeded
+            }
+        }
 
         res.json({
             success: true,
@@ -1302,7 +1328,7 @@ router.post('/me/reset-memory', requireAuth, async (req: Request, res: Response)
         });
     } catch (error) {
         console.error('[IDP] Error resetting memory:', error);
-        res.status(500).json({ error: 'Failed to reset memory' });
+        res.status(500).json({ error: `Failed to reset memory: ${error instanceof Error ? error.message : 'Unknown error'}` });
     }
 });
 
