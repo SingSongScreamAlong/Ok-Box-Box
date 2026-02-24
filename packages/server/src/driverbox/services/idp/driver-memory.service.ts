@@ -535,26 +535,41 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
     const races = result.rows;
     console.log(`[DriverMemory] Processing ${races.length} iRacing race results for driver ${driverProfileId}`);
     
+    // Debug: log first race to see actual field values
+    if (races.length > 0) {
+        const sample = races[0];
+        console.log(`[DriverMemory] Sample race data: subsession_id=${sample.subsession_id}, finish_position=${sample.finish_position}, laps_complete=${sample.laps_complete}, track=${sample.track_name}`);
+    }
+    
     let processed = 0;
+    let skipped = 0;
     for (const race of races) {
         try {
-            // Skip if missing critical data
-            if (!race.finish_position && !race.laps_complete) {
+            // Process all races - even if some fields are null, we can still learn from them
+            const sessionId = `iracing-${race.subsession_id}`;
+            const laps = race.laps_complete || race.laps_lead || 0;
+            const incidents = race.incidents ?? 0;
+            const startPos = race.start_position;
+            const finishPos = race.finish_position;
+            
+            // Only skip if we have literally no useful data
+            if (!race.subsession_id) {
+                skipped++;
                 continue;
             }
             
             await analyzeSessionBehavior({
-                sessionId: `iracing-${race.subsession_id}`,
+                sessionId,
                 driverProfileId,
                 sessionType: (race.event_type === 'practice' || race.event_type === 'qualifying') ? race.event_type : 'race',
                 trackName: race.track_name || 'Unknown',
                 carName: race.car_name || 'Unknown',
-                laps: race.laps_complete || 0,
-                incidents: race.incidents || 0,
-                startPosition: race.start_position ?? undefined,
-                finishPosition: race.finish_position ?? undefined,
-                positionsGained: race.start_position && race.finish_position 
-                    ? race.start_position - race.finish_position 
+                laps,
+                incidents,
+                startPosition: startPos ?? undefined,
+                finishPosition: finishPos ?? undefined,
+                positionsGained: startPos != null && finishPos != null 
+                    ? startPos - finishPos 
                     : undefined,
             });
             processed++;
@@ -562,6 +577,8 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
             console.error(`[DriverMemory] Error processing race ${race.subsession_id}:`, error);
         }
     }
+    
+    console.log(`[DriverMemory] Skipped ${skipped} races with no subsession_id`);
     
     // Generate opinions and update identity after processing
     if (processed > 0) {
