@@ -154,11 +154,8 @@ export async function analyzeSessionBehavior(input: SessionAnalysisInput): Promi
         confidence_trajectory: confidenceTrajectory,
     });
 
-    // Update memory stats
+    // Update memory stats (but don't aggregate here - do it in batch at the end)
     await incrementMemoryStats(driverProfileId, 1, laps);
-
-    // Trigger memory aggregation
-    await aggregateMemoryFromBehaviors(driverProfileId);
 
     return behavior;
 }
@@ -630,8 +627,15 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
     
     console.log(`[DriverMemory] Skipped ${skipped} races with no subsession_id`);
     
-    // Generate opinions and update identity after processing
+    // Aggregate memory, generate opinions, and update identity after ALL races are processed
     if (processed > 0) {
+        try {
+            console.log(`[DriverMemory] Aggregating memory from ${processed} sessions...`);
+            await aggregateMemoryFromBehaviors(driverProfileId);
+        } catch (aggregateError) {
+            console.error(`[DriverMemory] Error aggregating memory:`, aggregateError);
+        }
+        
         try {
             await generateEngineerOpinions(driverProfileId);
         } catch (opinionError) {
