@@ -263,9 +263,38 @@ export class IRacingProfileSyncService {
 
             let raceResults: any[] = [];
 
-            // 1. Fetch OFFICIAL series races
+            // 1. Fetch OFFICIAL series races for ALL categories (1=oval, 2=road, 3=dirt_oval, 4=dirt_road)
+            // The API may limit results per category, so we fetch each separately
+            const categories = [1, 2, 3, 4]; // oval, road, dirt_oval, dirt_road
+            
+            for (const categoryId of categories) {
+                try {
+                    console.log(`[iRacing Sync] Fetching official races category ${categoryId} from ${finishStart} to ${finishEnd}`);
+                    const searchResults = await this.iracingApiFetch<any>(accessToken,
+                        `/data/results/search_series?cust_id=${custId}&finish_range_begin=${finishStart}&finish_range_end=${finishEnd}&category_ids=${categoryId}`
+                    );
+                    
+                    // Debug: Log the raw response structure
+                    console.log(`[iRacing Sync] Category ${categoryId} API response:`, {
+                        type: typeof searchResults,
+                        isArray: Array.isArray(searchResults),
+                        keys: searchResults ? Object.keys(searchResults).slice(0, 10) : 'null',
+                        hasData: !!searchResults?.data,
+                        hasChunkInfo: !!searchResults?.data?.chunk_info || !!searchResults?.chunk_info,
+                        resultCount: searchResults?.data?.result_count || searchResults?.result_count,
+                    });
+                    
+                    const categoryRaces = await extractResults(searchResults);
+                    console.log(`[iRacing Sync] Found ${categoryRaces.length} official races in category ${categoryId}`);
+                    raceResults.push(...categoryRaces);
+                } catch (err) {
+                    console.warn(`[iRacing Sync] Failed to fetch official races category ${categoryId}:`, err);
+                }
+            }
+            
+            // Also try without category filter as fallback
             try {
-                console.log(`[iRacing Sync] Fetching official races from ${finishStart} to ${finishEnd}`);
+                console.log(`[iRacing Sync] Fetching official races (all categories) from ${finishStart} to ${finishEnd}`);
                 const searchResults = await this.iracingApiFetch<any>(accessToken,
                     `/data/results/search_series?cust_id=${custId}&finish_range_begin=${finishStart}&finish_range_end=${finishEnd}`
                 );
@@ -318,7 +347,18 @@ export class IRacingProfileSyncService {
                 console.warn(`[iRacing Sync] Failed to fetch hosted races:`, err instanceof Error ? err.message : err);
             }
 
-            console.log(`[iRacing Sync] Found ${raceResults.length} total race results for user ${userId}`);
+            // Deduplicate by subsession_id (we may have fetched same race from multiple category queries)
+            const seenSubsessions = new Set<string>();
+            const uniqueResults: any[] = [];
+            for (const result of raceResults) {
+                const subsessionId = String(result.subsession_id ?? result.subsessionid ?? '');
+                if (subsessionId && !seenSubsessions.has(subsessionId)) {
+                    seenSubsessions.add(subsessionId);
+                    uniqueResults.push(result);
+                }
+            }
+            console.log(`[iRacing Sync] Found ${raceResults.length} total results, ${uniqueResults.length} unique by subsession_id`);
+            raceResults = uniqueResults;
 
             if (raceResults.length === 0) {
                 // Try the member_recent_races endpoint as fallback
