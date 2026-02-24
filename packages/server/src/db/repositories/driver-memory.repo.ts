@@ -203,19 +203,61 @@ export async function updateDriverMemory(
 }
 
 export async function incrementMemoryStats(
-    driverProfileId: string,
-    sessions: number = 0,
-    laps: number = 0
+    _driverProfileId: string,
+    _sessions: number = 0,
+    _laps: number = 0
 ): Promise<void> {
+    // DEPRECATED: This function causes accumulation bugs
+    // Use recalculateMemoryStats instead
+    // Keeping for backwards compatibility but making it a no-op
+}
+
+/**
+ * Recalculate memory stats from actual stored data
+ * This prevents accumulation bugs from repeated syncs
+ */
+export async function recalculateMemoryStats(
+    driverProfileId: string,
+    userId: string
+): Promise<{ sessions: number; laps: number }> {
+    // Count actual unique sessions from driver_session_behaviors
+    const behaviorCount = await pool.query(
+        `SELECT COUNT(DISTINCT session_id) as sessions FROM driver_session_behaviors WHERE driver_profile_id = $1`,
+        [driverProfileId]
+    );
+    
+    // Sum actual laps from iracing_race_results
+    const lapCount = await pool.query(
+        `SELECT COALESCE(SUM(laps_complete), 0) as laps FROM iracing_race_results WHERE admin_user_id = $1`,
+        [userId]
+    );
+    
+    // Also count actual races
+    const raceCount = await pool.query(
+        `SELECT COUNT(*) as races FROM iracing_race_results WHERE admin_user_id = $1`,
+        [userId]
+    );
+    
+    const sessions = parseInt(behaviorCount.rows[0]?.sessions || '0', 10);
+    const laps = parseInt(lapCount.rows[0]?.laps || '0', 10);
+    const races = parseInt(raceCount.rows[0]?.races || '0', 10);
+    
+    // Use the higher of sessions or races (in case behaviors weren't created for all races)
+    const actualSessions = Math.max(sessions, races);
+    
     await pool.query(
         `UPDATE driver_memory SET
-            sessions_analyzed = sessions_analyzed + $2,
-            laps_analyzed = laps_analyzed + $3,
+            sessions_analyzed = $2,
+            laps_analyzed = $3,
             last_learning_update = NOW(),
             updated_at = NOW()
          WHERE driver_profile_id = $1`,
-        [driverProfileId, sessions, laps]
+        [driverProfileId, actualSessions, laps]
     );
+    
+    console.log(`[DriverMemory] Recalculated stats for ${driverProfileId}: ${actualSessions} sessions, ${laps} laps`);
+    
+    return { sessions: actualSessions, laps };
 }
 
 // ========================

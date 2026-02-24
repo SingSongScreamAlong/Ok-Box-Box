@@ -263,15 +263,17 @@ export class IRacingProfileSyncService {
             }
 
             // 2. Fetch HOSTED races (leagues, private sessions, etc.)
+            // Note: search_hosted uses participant_custid, not cust_id
             try {
                 const hostedResults = await this.iracingApiFetch<any>(accessToken,
-                    `/data/results/search_hosted?cust_id=${custId}&finish_range_begin=${finishStart}&finish_range_end=${finishEnd}`
+                    `/data/results/search_hosted?participant_custid=${custId}&finish_range_begin=${finishStart}&finish_range_end=${finishEnd}`
                 );
+                console.log(`[iRacing Sync] Hosted API response type:`, typeof hostedResults, hostedResults ? Object.keys(hostedResults).slice(0, 5) : 'null');
                 const hostedRaces = await extractResults(hostedResults);
                 console.log(`[iRacing Sync] Found ${hostedRaces.length} hosted/league races`);
                 raceResults.push(...hostedRaces);
             } catch (err) {
-                console.warn(`[iRacing Sync] Failed to fetch hosted races:`, err);
+                console.warn(`[iRacing Sync] Failed to fetch hosted races:`, err instanceof Error ? err.message : err);
             }
 
             console.log(`[iRacing Sync] Found ${raceResults.length} total race results for user ${userId}`);

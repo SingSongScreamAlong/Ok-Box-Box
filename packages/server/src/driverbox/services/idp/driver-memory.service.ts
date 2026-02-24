@@ -6,7 +6,7 @@
 import {
     getDriverMemory,
     updateDriverMemory,
-    incrementMemoryStats,
+    recalculateMemoryStats,
     createSessionBehavior,
     getRecentBehaviorsForAggregation,
     createEngineerOpinion,
@@ -152,8 +152,7 @@ export async function analyzeSessionBehavior(input: SessionAnalysisInput): Promi
         confidence_trajectory: confidenceTrajectory,
     });
 
-    // Update memory stats (but don't aggregate here - do it in batch at the end)
-    await incrementMemoryStats(driverProfileId, 1, laps);
+    // Stats are now recalculated at the end of backfill, not incremented per-session
 
     return behavior;
 }
@@ -1020,6 +1019,13 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
     }
     
     console.log(`[DriverMemory] Skipped ${skipped} races with no subsession_id`);
+    
+    // Recalculate stats from actual data (prevents accumulation bugs)
+    try {
+        await recalculateMemoryStats(driverProfileId, userId);
+    } catch (statsError) {
+        console.error(`[DriverMemory] Error recalculating stats:`, statsError);
+    }
     
     // Aggregate memory, generate opinions, and update identity after ALL races are processed
     if (processed > 0) {
