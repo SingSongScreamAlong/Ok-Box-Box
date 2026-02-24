@@ -389,6 +389,14 @@ export async function supersededOpinion(
     );
 }
 
+export async function deleteAllOpinionsForDriver(driverProfileId: string): Promise<number> {
+    const result = await pool.query(
+        `DELETE FROM engineer_opinions WHERE driver_profile_id = $1`,
+        [driverProfileId]
+    );
+    return result.rowCount || 0;
+}
+
 // ========================
 // Driver Identity Operations
 // ========================

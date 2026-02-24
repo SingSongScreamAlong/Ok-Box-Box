@@ -10,8 +10,7 @@ import {
     createSessionBehavior,
     getRecentBehaviorsForAggregation,
     createEngineerOpinion,
-    getActiveOpinions,
-    supersededOpinion,
+    deleteAllOpinionsForDriver,
     getDriverIdentity,
     updateDriverIdentity,
     logMemoryEvent,
@@ -335,16 +334,9 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
         return [];
     }
 
-    const existingOpinions = await getActiveOpinions(driverProfileId);
-    
-    // Supersede ALL existing opinions first to prevent duplicates
-    for (const opinion of existingOpinions) {
-        try {
-            await supersededOpinion(opinion.id, null);
-        } catch (e) {
-            console.error(`[DriverMemory] Failed to supersede opinion ${opinion.id}:`, e);
-        }
-    }
+    // Delete ALL existing opinions first to prevent duplicates
+    const deletedCount = await deleteAllOpinionsForDriver(driverProfileId);
+    console.log(`[DriverMemory] Deleted ${deletedCount} existing opinions for driver ${driverProfileId}`);
     
     const newOpinions: EngineerOpinion[] = [];
 
