@@ -229,6 +229,7 @@ export class IRacingProfileSyncService {
                 
                 if (chunkInfo) {
                     // Chunked response - download each chunk
+                    console.log(`[iRacing Sync] chunk_info contents:`, JSON.stringify(chunkInfo, null, 2));
                     const baseUrl = chunkInfo.base_download_url;
                     const chunkNames = chunkInfo.chunk_file_names || [];
                     
