@@ -218,20 +218,31 @@ export class IRacingProfileSyncService {
             const extractResults = async (response: any): Promise<any[]> => {
                 let results: any[] = [];
                 
-                if (response?.data?.chunk_info) {
+                // Check for chunk_info at multiple levels (iRacing API is inconsistent)
+                const chunkInfo = response?.data?.chunk_info || response?.chunk_info;
+                
+                if (chunkInfo) {
                     // Chunked response - download each chunk
-                    const chunkInfo = response.data.chunk_info;
                     const baseUrl = chunkInfo.base_download_url;
                     const chunkNames = chunkInfo.chunk_file_names || [];
+                    
+                    console.log(`[iRacing Sync] Processing ${chunkNames.length} chunks from ${baseUrl}`);
 
                     for (const chunkName of chunkNames) {
                         try {
-                            const chunkResponse = await fetch(`${baseUrl}${chunkName}`);
+                            const chunkUrl = `${baseUrl}${chunkName}`;
+                            console.log(`[iRacing Sync] Fetching chunk: ${chunkName}`);
+                            const chunkResponse = await fetch(chunkUrl);
                             if (chunkResponse.ok) {
                                 const chunkData = await chunkResponse.json();
                                 if (Array.isArray(chunkData)) {
+                                    console.log(`[iRacing Sync] Chunk ${chunkName} returned ${chunkData.length} results`);
                                     results.push(...chunkData);
+                                } else {
+                                    console.log(`[iRacing Sync] Chunk ${chunkName} not an array:`, typeof chunkData);
                                 }
+                            } else {
+                                console.warn(`[iRacing Sync] Chunk fetch failed: ${chunkResponse.status}`);
                             }
                         } catch (err) {
                             console.warn(`[iRacing Sync] Failed to fetch chunk ${chunkName}:`, err);
@@ -243,6 +254,8 @@ export class IRacingProfileSyncService {
                     results = response.results;
                 } else if (response?.data?.results) {
                     results = response.data.results;
+                } else {
+                    console.log(`[iRacing Sync] No results found in response structure`);
                 }
                 
                 return results;
@@ -252,9 +265,24 @@ export class IRacingProfileSyncService {
 
             // 1. Fetch OFFICIAL series races
             try {
+                console.log(`[iRacing Sync] Fetching official races from ${finishStart} to ${finishEnd}`);
                 const searchResults = await this.iracingApiFetch<any>(accessToken,
                     `/data/results/search_series?cust_id=${custId}&finish_range_begin=${finishStart}&finish_range_end=${finishEnd}`
                 );
+                
+                // Debug: Log the raw response structure
+                console.log(`[iRacing Sync] Official races API response:`, {
+                    type: typeof searchResults,
+                    isArray: Array.isArray(searchResults),
+                    keys: searchResults ? Object.keys(searchResults).slice(0, 10) : 'null',
+                    hasData: !!searchResults?.data,
+                    hasChunkInfo: !!searchResults?.data?.chunk_info,
+                    hasResults: !!searchResults?.results,
+                    dataKeys: searchResults?.data ? Object.keys(searchResults.data).slice(0, 10) : 'no data',
+                    resultCount: searchResults?.data?.result_count,
+                    chunkFileCount: searchResults?.data?.chunk_info?.chunk_file_names?.length,
+                });
+                
                 const officialRaces = await extractResults(searchResults);
                 console.log(`[iRacing Sync] Found ${officialRaces.length} official series races`);
                 raceResults.push(...officialRaces);
@@ -265,10 +293,24 @@ export class IRacingProfileSyncService {
             // 2. Fetch HOSTED races (leagues, private sessions, etc.)
             // Note: search_hosted uses participant_custid, not cust_id
             try {
+                console.log(`[iRacing Sync] Fetching hosted races from ${finishStart} to ${finishEnd}`);
                 const hostedResults = await this.iracingApiFetch<any>(accessToken,
                     `/data/results/search_hosted?participant_custid=${custId}&finish_range_begin=${finishStart}&finish_range_end=${finishEnd}`
                 );
-                console.log(`[iRacing Sync] Hosted API response type:`, typeof hostedResults, hostedResults ? Object.keys(hostedResults).slice(0, 5) : 'null');
+                
+                // Debug: Log the raw response structure
+                console.log(`[iRacing Sync] Hosted races API response:`, {
+                    type: typeof hostedResults,
+                    isArray: Array.isArray(hostedResults),
+                    keys: hostedResults ? Object.keys(hostedResults).slice(0, 10) : 'null',
+                    hasData: !!hostedResults?.data,
+                    hasChunkInfo: !!hostedResults?.data?.chunk_info || !!hostedResults?.chunk_info,
+                    hasResults: !!hostedResults?.results,
+                    dataKeys: hostedResults?.data ? Object.keys(hostedResults.data).slice(0, 10) : 'no data',
+                    resultCount: hostedResults?.data?.result_count || hostedResults?.result_count,
+                    chunkFileCount: hostedResults?.data?.chunk_info?.chunk_file_names?.length || hostedResults?.chunk_info?.chunk_file_names?.length,
+                });
+                
                 const hostedRaces = await extractResults(hostedResults);
                 console.log(`[iRacing Sync] Found ${hostedRaces.length} hosted/league races`);
                 raceResults.push(...hostedRaces);
