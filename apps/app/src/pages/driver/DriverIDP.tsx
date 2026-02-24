@@ -135,7 +135,7 @@ function ConfidenceMeter({ value, label }: { value: number | null; label: string
 }
 
 export function DriverIDP() {
-  useAuth(); // Ensure user is authenticated
+  const { session } = useAuth();
   const [data, setData] = useState<IDPData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -145,16 +145,19 @@ export function DriverIDP() {
 
   // Fetch IDP data
   useEffect(() => {
-    fetchIDPData();
-  }, []);
+    if (session?.access_token) {
+      fetchIDPData();
+    }
+  }, [session?.access_token]);
 
   const fetchIDPData = async () => {
+    if (!session?.access_token) return;
     setLoading(true);
     setError(null);
     try {
       const response = await fetch('/api/v1/drivers/me/idp', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
       });
       
@@ -177,13 +180,14 @@ export function DriverIDP() {
   };
 
   const syncHistory = async () => {
+    if (!session?.access_token) return;
     setSyncing(true);
     setSyncResult(null);
     try {
       const response = await fetch('/api/v1/drivers/me/sync-history', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
+          'Authorization': `Bearer ${session.access_token}`,
         },
       });
       
