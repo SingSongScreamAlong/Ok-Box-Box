@@ -325,11 +325,9 @@ export async function aggregateMemoryFromBehaviors(driverProfileId: string): Pro
 // Engineer Opinion Generation
 // ========================
 
-export async function generateEngineerOpinions(driverProfileId: string): Promise<EngineerOpinion[]> {
+export async function generateEngineerOpinions(driverProfileId: string, userId?: string): Promise<EngineerOpinion[]> {
     const memory = await getDriverMemory(driverProfileId);
-    const behaviors = await getRecentBehaviorsForAggregation(driverProfileId, 10);
 
-    // Allow opinion generation even without behaviors if memory exists
     if (!memory) {
         return [];
     }
@@ -338,82 +336,92 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
     const deletedCount = await deleteAllOpinionsForDriver(driverProfileId);
     console.log(`[DriverMemory] Deleted ${deletedCount} existing opinions for driver ${driverProfileId}`);
     
-    const newOpinions: EngineerOpinion[] = [];
-
-    // Generate opinions based on patterns
-
-    // 1. Consistency opinion
-    if (memory.braking_consistency !== null) {
-        let sentiment: 'positive' | 'neutral' | 'concern' | 'critical' = 'neutral';
-        let summary = '';
-        let detail = '';
-        let action = '';
-        const consistencyPct = Math.round(memory.braking_consistency * 100);
-        
-        if (memory.braking_consistency > 0.8) {
-            sentiment = 'positive';
-            summary = 'Your consistency is excellent. Lap times are predictable and reliable.';
-            detail = `Your braking and throttle inputs show ${consistencyPct}% consistency across sessions. This means you're hitting your marks lap after lap, which is the foundation of fast, safe racing. Consistent drivers are predictable to race around and can focus on racecraft instead of car control.`;
-            action = 'Maintain this consistency while gradually pushing for pace.';
-        } else if (memory.braking_consistency > 0.6) {
-            sentiment = 'neutral';
-            summary = 'Your consistency is good but has room for improvement.';
-            detail = `Your consistency score of ${consistencyPct}% shows you can string together good laps, but there's variation in your inputs. This often comes from braking at slightly different points or varying throttle application out of corners. The good news: you have the pace, you just need to lock it in.`;
-            action = 'Focus on hitting the same braking points every lap.';
-        } else {
-            sentiment = 'concern';
-            summary = 'Lap time consistency needs work. Large variations between laps.';
-            detail = `With a ${consistencyPct}% consistency score, your lap times vary significantly. This usually indicates you're still searching for the limit or reacting to the car rather than driving proactively. Inconsistency makes you unpredictable to other drivers and costs time through accumulated small errors.`;
-            action = 'Slow down slightly and focus on repeatable inputs before pushing.';
-        }
-
-        const opinion = await createEngineerOpinion({
-            driver_profile_id: driverProfileId,
-            opinion_domain: 'consistency',
-            opinion_context: null,
-            opinion_summary: summary,
-            opinion_detail: detail,
-            opinion_confidence: memory.memory_confidence,
-            opinion_sentiment: sentiment,
-            is_actionable: true,
-            suggested_action: action,
-            priority: sentiment === 'concern' ? 8 : sentiment === 'positive' ? 4 : 6,
-            valid_until: null,
-            superseded_by: null,
-            evidence_sessions: behaviors.slice(0, 5).map(b => b.session_id).filter(Boolean) as string[],
-            evidence_summary: `Analyzed ${memory.sessions_analyzed || 0} sessions and ${memory.laps_analyzed || 0} laps. Consistency calculated from braking point variance and throttle application patterns.`,
-        });
-        newOpinions.push(opinion);
+    // Fetch actual race data for evidence
+    let races: any[] = [];
+    if (userId) {
+        const raceResult = await pool.query(
+            `SELECT * FROM iracing_race_results 
+             WHERE admin_user_id = $1 
+             ORDER BY session_start_time DESC
+             LIMIT 100`,
+            [userId]
+        );
+        races = raceResult.rows;
     }
+    
+    const newOpinions: EngineerOpinion[] = [];
+    
+    // Calculate actual stats from race data
+    const totalRaces = races.length;
+    const totalIncidents = races.reduce((sum, r) => sum + (r.incidents || 0), 0);
+    const avgIncidents = totalRaces > 0 ? totalIncidents / totalRaces : 0;
+    const highIncidentRaces = races.filter(r => (r.incidents || 0) >= 4);
+    const cleanRaces = races.filter(r => (r.incidents || 0) === 0);
+    
+    // Find worst tracks
+    const trackStats: Record<string, { incidents: number; races: number; trackName: string }> = {};
+    for (const race of races) {
+        const track = race.track_name || 'Unknown';
+        if (!trackStats[track]) {
+            trackStats[track] = { incidents: 0, races: 0, trackName: track };
+        }
+        trackStats[track].incidents += race.incidents || 0;
+        trackStats[track].races += 1;
+    }
+    
+    const worstTracks = Object.values(trackStats)
+        .filter(t => t.races >= 2)
+        .map(t => ({ ...t, avgInc: t.incidents / t.races }))
+        .sort((a, b) => b.avgInc - a.avgInc)
+        .slice(0, 3);
+    
+    // Recent races for specific examples
+    const recentHighIncident = races.slice(0, 20).filter(r => (r.incidents || 0) >= 4);
+    const recentRaceExamples = recentHighIncident.slice(0, 3).map(r => ({
+        track: r.track_name,
+        incidents: r.incidents,
+        date: r.session_start_time ? new Date(r.session_start_time).toLocaleDateString() : 'Unknown',
+        position: r.finish_position,
+    }));
 
-    // 2. Incident/Safety opinion
-    if (memory.incident_proneness !== null) {
+    // 1. Racecraft/Incident opinion - with REAL data
+    if (totalRaces > 0) {
         let sentiment: 'positive' | 'neutral' | 'concern' | 'critical' = 'neutral';
         let summary = '';
         let detail = '';
         let action = '';
-        const safetyPct = Math.round(memory.incident_proneness * 100);
+        let evidenceSummary = '';
         
-        if (memory.incident_proneness > 0.9) {
+        if (avgIncidents <= 2) {
             sentiment = 'positive';
             summary = 'Excellent racecraft. You race clean and avoid incidents consistently.';
-            detail = `Your safety rating of ${safetyPct}% puts you among the cleanest drivers. You average very few incident points per race, which means you're racing smart, giving appropriate space, and avoiding unnecessary contact. This is a competitive advantage - you finish races and gain positions through attrition.`;
+            detail = `Across ${totalRaces} races, you average only ${avgIncidents.toFixed(1)} incidents per race. ${cleanRaces.length} of your races (${Math.round(cleanRaces.length/totalRaces*100)}%) were completely clean with 0 incidents. This puts you among the cleanest drivers.`;
             action = 'Keep racing smart. Your clean driving is a major strength.';
-        } else if (memory.incident_proneness > 0.7) {
+            evidenceSummary = `${totalRaces} races analyzed. ${cleanRaces.length} clean races (0 incidents). Average: ${avgIncidents.toFixed(1)} inc/race.`;
+        } else if (avgIncidents <= 4) {
             sentiment = 'neutral';
             summary = 'Generally clean racing with occasional incidents.';
-            detail = `With a ${safetyPct}% safety score, you're racing reasonably clean but picking up incidents here and there. These might be from aggressive moves, misjudging gaps, or getting caught up in others' mistakes. Each incident costs you time and often positions.`;
+            detail = `You average ${avgIncidents.toFixed(1)} incidents per race across ${totalRaces} races. ${highIncidentRaces.length} races had 4+ incidents. Your worst tracks: ${worstTracks.slice(0,2).map(t => `${t.trackName} (${t.avgInc.toFixed(1)} inc/race)`).join(', ')}.`;
             action = 'Stay aware of cars around you, especially in traffic.';
-        } else if (memory.incident_proneness > 0.5) {
-            sentiment = 'concern';
-            summary = 'Incident rate is higher than ideal. Pattern of contact in races.';
-            detail = `Your ${safetyPct}% safety score indicates a pattern of incidents. This could be from overdriving, poor spatial awareness, or taking unnecessary risks. High incident rates hurt your iRating, Safety Rating, and race results. The positions you gain aggressively are often lost to damage or penalties.`;
-            action = 'Give more space when racing side-by-side. Patience pays off.';
+            evidenceSummary = `${totalRaces} races, ${totalIncidents} total incidents. ${highIncidentRaces.length} high-incident races (4+). Worst: ${worstTracks[0]?.trackName || 'N/A'}.`;
         } else {
-            sentiment = 'critical';
-            summary = 'High incident rate is hurting your results and iRating.';
-            detail = `Your ${safetyPct}% safety score is significantly impacting your racing. With this many incidents, you're likely losing positions to damage, getting penalties, and seeing your iRating drop. Before focusing on pace or position, you need to address the root cause - whether that's overdriving, poor awareness, or risky moves that aren't paying off.`;
-            action = 'Focus on finishing races cleanly before worrying about position.';
+            sentiment = avgIncidents > 6 ? 'critical' : 'concern';
+            summary = avgIncidents > 6 
+                ? 'High incident rate is hurting your results and iRating.'
+                : 'Incident rate is higher than ideal. Pattern of contact in races.';
+            
+            // Build specific evidence
+            const exampleText = recentRaceExamples.length > 0
+                ? `Recent examples: ${recentRaceExamples.map(r => `${r.track} on ${r.date} (${r.incidents} inc, P${r.position})`).join('; ')}.`
+                : '';
+            
+            detail = `You average ${avgIncidents.toFixed(1)} incidents per race across ${totalRaces} races. ${highIncidentRaces.length} of your last 100 races (${Math.round(highIncidentRaces.length/totalRaces*100)}%) had 4+ incidents. ${exampleText} Your worst tracks are: ${worstTracks.map(t => `${t.trackName} (${t.avgInc.toFixed(1)} inc/race over ${t.races} races)`).join(', ')}.`;
+            
+            action = avgIncidents > 6
+                ? 'Focus on finishing races cleanly before worrying about position.'
+                : 'Give more space when racing side-by-side. Patience pays off.';
+            
+            evidenceSummary = `${totalRaces} races, ${totalIncidents} total incidents (${avgIncidents.toFixed(1)}/race). ${highIncidentRaces.length} races with 4+ incidents. Worst track: ${worstTracks[0]?.trackName} at ${worstTracks[0]?.avgInc.toFixed(1)} inc/race.`;
         }
 
         const opinion = await createEngineerOpinion({
@@ -422,68 +430,141 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
             opinion_context: null,
             opinion_summary: summary,
             opinion_detail: detail,
-            opinion_confidence: memory.memory_confidence,
+            opinion_confidence: Math.min(1, totalRaces / 50), // Confidence based on sample size
             opinion_sentiment: sentiment,
             is_actionable: true,
             suggested_action: action,
             priority: sentiment === 'critical' ? 10 : sentiment === 'concern' ? 8 : 5,
             valid_until: null,
             superseded_by: null,
-            evidence_sessions: behaviors.slice(0, 5).map(b => b.session_id).filter(Boolean) as string[],
-            evidence_summary: `Analyzed incident points across ${memory.sessions_analyzed || 0} sessions. Safety score derived from incidents per lap and race completion rate.`,
+            evidence_sessions: races.slice(0, 5).map(r => r.subsession_id?.toString()).filter(Boolean),
+            evidence_summary: evidenceSummary,
         });
         newOpinions.push(opinion);
     }
 
-    // 3. Mental/Confidence opinion
-    if (memory.current_confidence !== null) {
+    // 2. Position/Performance opinion - with REAL data
+    if (totalRaces > 0) {
+        const racesWithPositions = races.filter(r => r.start_position != null && r.finish_position != null);
+        const avgPositionsGained = racesWithPositions.length > 0
+            ? racesWithPositions.reduce((sum, r) => sum + (r.start_position - r.finish_position), 0) / racesWithPositions.length
+            : 0;
+        const avgFinish = racesWithPositions.length > 0
+            ? racesWithPositions.reduce((sum, r) => sum + r.finish_position, 0) / racesWithPositions.length
+            : 0;
+        
+        // Find races where they lost the most positions
+        const bigLosses = racesWithPositions
+            .filter(r => (r.start_position - r.finish_position) < -3)
+            .slice(0, 5);
+        
         let sentiment: 'positive' | 'neutral' | 'concern' | 'critical' = 'neutral';
         let summary = '';
         let detail = '';
         let action = '';
-        const confidencePct = Math.round(memory.current_confidence * 100);
+        let evidenceSummary = '';
         
-        if (memory.confidence_trend === 'rising') {
+        if (avgPositionsGained >= 2) {
             sentiment = 'positive';
-            summary = 'Your confidence is building. Recent sessions show improvement.';
-            detail = `Your recent results show an upward trend in performance. When confidence is rising, drivers tend to commit more fully to corners, make better overtaking decisions, and recover faster from mistakes. This positive momentum is valuable - capitalize on it.`;
-            action = 'Keep the momentum going. Trust your instincts.';
-        } else if (memory.confidence_trend === 'falling') {
+            summary = 'Strong race pace. You consistently gain positions during races.';
+            detail = `You gain an average of ${avgPositionsGained.toFixed(1)} positions per race across ${racesWithPositions.length} races. Your average finish is P${avgFinish.toFixed(1)}. This shows your race pace is stronger than your qualifying pace - you're effective at making passes stick.`;
+            action = 'Consider being more aggressive in qualifying to start higher.';
+            evidenceSummary = `${racesWithPositions.length} races with position data. Average gain: +${avgPositionsGained.toFixed(1)} positions. Avg finish: P${avgFinish.toFixed(1)}.`;
+        } else if (avgPositionsGained >= 0) {
+            sentiment = 'neutral';
+            summary = 'Consistent race performance. You hold your position well.';
+            detail = `You average ${avgPositionsGained >= 0 ? '+' : ''}${avgPositionsGained.toFixed(1)} positions per race. Your average finish is P${avgFinish.toFixed(1)}. You're racing at a consistent level - your qualifying reflects your race pace.`;
+            action = 'Focus on finding small gains in both qualifying and race pace.';
+            evidenceSummary = `${racesWithPositions.length} races analyzed. Position change: ${avgPositionsGained >= 0 ? '+' : ''}${avgPositionsGained.toFixed(1)}. Avg finish: P${avgFinish.toFixed(1)}.`;
+        } else {
             sentiment = 'concern';
-            summary = 'Confidence appears to be dropping based on recent results.';
-            detail = `Recent sessions show declining performance metrics. This often creates a negative feedback loop - lower confidence leads to hesitation, which leads to worse results, which further drops confidence. Breaking this cycle requires stepping back from competition temporarily.`;
-            action = 'Take a step back if needed. Run some practice sessions to rebuild.';
-        } else if (memory.current_confidence > 0.7) {
-            sentiment = 'positive';
-            summary = 'You are racing with confidence. Results reflect your preparation.';
-            detail = `With ${confidencePct}% confidence score, you're driving decisively. Confident drivers brake later, commit to overtakes, and don't second-guess themselves mid-corner. Your recent results support this - you're performing at or above your typical level.`;
-            action = 'Stay focused and trust your abilities.';
-        } else if (memory.current_confidence < 0.4) {
-            sentiment = 'concern';
-            summary = 'You may be second-guessing yourself out there.';
-            detail = `Your ${confidencePct}% confidence score suggests hesitation in your driving. This might show up as early braking, abandoned overtakes, or inconsistent corner entry. Low confidence often comes from a string of bad results or incidents - it's recoverable with focused practice.`;
-            action = 'Focus on process, not results. Small wins build confidence.';
+            summary = 'Race pace not matching qualifying. Losing positions during races.';
+            const lossExamples = bigLosses.length > 0
+                ? `Recent examples: ${bigLosses.slice(0,3).map(r => `${r.track_name} (P${r.start_position}→P${r.finish_position})`).join(', ')}.`
+                : '';
+            detail = `You lose an average of ${Math.abs(avgPositionsGained).toFixed(1)} positions per race. ${lossExamples} This suggests your race pace doesn't match your qualifying pace, or you're losing positions to incidents/mistakes.`;
+            action = 'Practice with fuel loads and in traffic. Race pace is different from hotlap pace.';
+            evidenceSummary = `${racesWithPositions.length} races. Average loss: ${avgPositionsGained.toFixed(1)} positions. ${bigLosses.length} races with 3+ positions lost.`;
         }
 
-        if (summary) {
-            const opinion = await createEngineerOpinion({
-                driver_profile_id: driverProfileId,
-                opinion_domain: 'mental',
-                opinion_context: null,
-                opinion_summary: summary,
-                opinion_detail: detail || null,
-                opinion_confidence: memory.memory_confidence,
-                opinion_sentiment: sentiment,
-                is_actionable: true,
-                suggested_action: action,
-                priority: sentiment === 'concern' ? 7 : 4,
-                valid_until: null,
-                superseded_by: null,
-                evidence_sessions: behaviors.slice(0, 5).map(b => b.session_id).filter(Boolean) as string[],
-                evidence_summary: `Confidence derived from finish positions, incident patterns, and performance trends across ${memory.sessions_analyzed || 0} sessions.`,
-            });
-            newOpinions.push(opinion);
+        const opinion = await createEngineerOpinion({
+            driver_profile_id: driverProfileId,
+            opinion_domain: 'consistency',
+            opinion_context: null,
+            opinion_summary: summary,
+            opinion_detail: detail,
+            opinion_confidence: Math.min(1, racesWithPositions.length / 30),
+            opinion_sentiment: sentiment,
+            is_actionable: true,
+            suggested_action: action,
+            priority: sentiment === 'concern' ? 7 : 4,
+            valid_until: null,
+            superseded_by: null,
+            evidence_sessions: racesWithPositions.slice(0, 5).map(r => r.subsession_id?.toString()).filter(Boolean),
+            evidence_summary: evidenceSummary,
+        });
+        newOpinions.push(opinion);
+    }
+
+    // 3. Trend opinion - compare recent vs older performance with REAL data
+    if (totalRaces >= 20) {
+        const recent10 = races.slice(0, 10);
+        const older10 = races.slice(10, 20);
+        
+        const recentAvgInc = recent10.reduce((s, r) => s + (r.incidents || 0), 0) / recent10.length;
+        const olderAvgInc = older10.reduce((s, r) => s + (r.incidents || 0), 0) / older10.length;
+        
+        const recentFinishes = recent10.filter(r => r.finish_position != null);
+        const olderFinishes = older10.filter(r => r.finish_position != null);
+        const recentAvgFinish = recentFinishes.length > 0 ? recentFinishes.reduce((s, r) => s + r.finish_position, 0) / recentFinishes.length : 0;
+        const olderAvgFinish = olderFinishes.length > 0 ? olderFinishes.reduce((s, r) => s + r.finish_position, 0) / olderFinishes.length : 0;
+        
+        let sentiment: 'positive' | 'neutral' | 'concern' | 'critical' = 'neutral';
+        let summary = '';
+        let detail = '';
+        let action = '';
+        let evidenceSummary = '';
+        
+        const incidentChange = recentAvgInc - olderAvgInc;
+        const finishChange = recentAvgFinish - olderAvgFinish; // Lower is better
+        
+        if (incidentChange < -1 && finishChange < 0) {
+            sentiment = 'positive';
+            summary = 'Strong improvement trend. Your recent races are cleaner and faster.';
+            detail = `Comparing your last 10 races to the previous 10: Incidents dropped from ${olderAvgInc.toFixed(1)} to ${recentAvgInc.toFixed(1)} per race. Average finish improved from P${olderAvgFinish.toFixed(1)} to P${recentAvgFinish.toFixed(1)}. Whatever you're doing differently is working.`;
+            action = 'Keep doing what you\'re doing. Document what changed so you can maintain it.';
+            evidenceSummary = `Last 10 races: ${recentAvgInc.toFixed(1)} inc/race, P${recentAvgFinish.toFixed(1)} avg. Previous 10: ${olderAvgInc.toFixed(1)} inc/race, P${olderAvgFinish.toFixed(1)} avg.`;
+        } else if (incidentChange > 1 || finishChange > 2) {
+            sentiment = 'concern';
+            summary = 'Recent performance declining. Incidents or finishes getting worse.';
+            detail = `Comparing your last 10 races to the previous 10: Incidents went from ${olderAvgInc.toFixed(1)} to ${recentAvgInc.toFixed(1)} per race. Average finish went from P${olderAvgFinish.toFixed(1)} to P${recentAvgFinish.toFixed(1)}. Something has changed - review what's different.`;
+            action = 'Take a break or run practice sessions. Identify what changed recently.';
+            evidenceSummary = `Last 10 races: ${recentAvgInc.toFixed(1)} inc/race, P${recentAvgFinish.toFixed(1)} avg. Previous 10: ${olderAvgInc.toFixed(1)} inc/race, P${olderAvgFinish.toFixed(1)} avg.`;
+        } else {
+            sentiment = 'neutral';
+            summary = 'Consistent recent performance. No major changes in trend.';
+            detail = `Your last 10 races vs previous 10 show stable performance: Incidents ${recentAvgInc.toFixed(1)} vs ${olderAvgInc.toFixed(1)}, finishes P${recentAvgFinish.toFixed(1)} vs P${olderAvgFinish.toFixed(1)}. You're racing at a consistent level.`;
+            action = 'Look for specific areas to improve - track knowledge, starts, or tire management.';
+            evidenceSummary = `Last 10: ${recentAvgInc.toFixed(1)} inc, P${recentAvgFinish.toFixed(1)}. Previous 10: ${olderAvgInc.toFixed(1)} inc, P${olderAvgFinish.toFixed(1)}. Stable trend.`;
         }
+
+        const opinion = await createEngineerOpinion({
+            driver_profile_id: driverProfileId,
+            opinion_domain: 'mental',
+            opinion_context: null,
+            opinion_summary: summary,
+            opinion_detail: detail,
+            opinion_confidence: Math.min(1, totalRaces / 30),
+            opinion_sentiment: sentiment,
+            is_actionable: true,
+            suggested_action: action,
+            priority: sentiment === 'concern' ? 6 : 3,
+            valid_until: null,
+            superseded_by: null,
+            evidence_sessions: recent10.slice(0, 5).map(r => r.subsession_id?.toString()).filter(Boolean),
+            evidence_summary: evidenceSummary,
+        });
+        newOpinions.push(opinion);
     }
 
     return newOpinions;
@@ -950,7 +1031,7 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
         }
         
         try {
-            await generateEngineerOpinions(driverProfileId);
+            await generateEngineerOpinions(driverProfileId, userId);
         } catch (opinionError) {
             console.error(`[DriverMemory] Error generating opinions:`, opinionError);
         }
