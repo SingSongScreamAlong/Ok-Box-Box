@@ -165,6 +165,13 @@ export async function analyzeSessionBehavior(input: SessionAnalysisInput): Promi
 // ========================
 
 export async function aggregateMemoryFromBehaviors(driverProfileId: string): Promise<DriverMemory | null> {
+    // Debug: direct count to see if behaviors exist at all
+    const countResult = await pool.query(
+        `SELECT COUNT(*) as total FROM driver_session_behaviors WHERE driver_profile_id = $1`,
+        [driverProfileId]
+    );
+    console.log(`[DriverMemory] Total behaviors in DB for ${driverProfileId}: ${countResult.rows[0]?.total}`);
+    
     const behaviors = await getRecentBehaviorsForAggregation(driverProfileId, 20);
     
     console.log(`[DriverMemory] Aggregating: found ${behaviors.length} behaviors for driver ${driverProfileId}`);
