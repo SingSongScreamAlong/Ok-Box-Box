@@ -213,6 +213,27 @@ export async function aggregateMemoryFromBehaviors(driverProfileId: string): Pro
     const incidentClusteringCount = behaviors.filter(b => b.incident_clustering).length;
     const incidentProneness = 1 - (incidentClusteringCount / behaviors.length);
 
+    // Corner entry style - derived from safety vs aggression balance
+    let cornerEntryStyle: 'aggressive' | 'conservative' | 'variable' | null = null;
+    if (avgBrakeConsistency !== null && avgThrottleScore !== null) {
+        const avgScore = (avgBrakeConsistency + avgThrottleScore) / 2;
+        if (avgScore > 0.75) cornerEntryStyle = 'conservative'; // Clean = conservative
+        else if (avgScore > 0.5) cornerEntryStyle = 'variable';
+        else cornerEntryStyle = 'aggressive'; // More incidents = aggressive entry
+    }
+
+    // Overtaking style - derived from positions gained patterns
+    const positionsLost = behaviors.filter(b => (b.positions_lost_to_mistakes || 0) > 0).length;
+    const positionsLostRatio = positionsLost / behaviors.length;
+    let overtakingStyle: 'aggressive' | 'patient' | 'opportunistic' | null = null;
+    if (incidentProneness > 0.8 && positionsLostRatio < 0.2) {
+        overtakingStyle = 'patient'; // Clean racing, few positions lost
+    } else if (incidentProneness < 0.5) {
+        overtakingStyle = 'aggressive'; // High incidents = aggressive moves
+    } else {
+        overtakingStyle = 'opportunistic'; // Middle ground
+    }
+
     // Confidence trend
     const recentConfidences = confidenceScores.slice(0, 5);
     const olderConfidences = confidenceScores.slice(5, 10);
@@ -233,6 +254,8 @@ export async function aggregateMemoryFromBehaviors(driverProfileId: string): Pro
         braking_consistency: avgBrakeConsistency,
         throttle_style: throttleStyle,
         traction_management: avgThrottleScore,
+        corner_entry_style: cornerEntryStyle,
+        overtaking_style: overtakingStyle,
         incident_proneness: incidentProneness,
         current_confidence: avgConfidence,
         confidence_trend: confidenceTrend,
