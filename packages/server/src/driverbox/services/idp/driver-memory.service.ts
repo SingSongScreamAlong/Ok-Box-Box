@@ -59,6 +59,7 @@ export async function analyzeSessionBehavior(input: SessionAnalysisInput): Promi
         carName,
         laps,
         incidents,
+        startPosition,
         finishPosition,
         lapTimeVariance,
         positionsGained,
@@ -66,46 +67,69 @@ export async function analyzeSessionBehavior(input: SessionAnalysisInput): Promi
         overtakesCompleted,
     } = input;
 
-    // Calculate behavioral scores
-    const brakeConsistencyScore = lapTimeVariance 
-        ? Math.max(0, 1 - (lapTimeVariance / 5)) // Lower variance = higher score
-        : null;
+    // Calculate incidents per lap (normalized safety score)
+    const incidentsPerLap = laps > 0 ? incidents / laps : 0;
+    
+    // Safety/consistency score: 1.0 = perfect, lower = more incidents
+    // 0 incidents = 1.0, 1 incident per 10 laps = 0.9, etc.
+    const safetyScore = Math.max(0, Math.min(1, 1 - (incidentsPerLap * 10)));
+    
+    // Use safety score as proxy for brake/throttle consistency (clean driving = good control)
+    const brakeConsistencyScore = safetyScore;
+    const throttleApplicationScore = safetyScore;
 
-    const throttleApplicationScore = incidents === 0 && laps > 5
-        ? 0.8 + Math.random() * 0.2 // Clean session = good throttle control
-        : incidents > 3
-            ? 0.3 + Math.random() * 0.3
-            : 0.5 + Math.random() * 0.3;
-
-    // Determine lap time variance trend
+    // Determine race performance trend based on positions gained/lost
     let lapTimeVarianceTrend: 'improving' | 'degrading' | 'stable' | 'erratic' | null = null;
-    if (lapTimeVariance !== undefined) {
+    if (positionsGained !== undefined) {
+        if (positionsGained > 3) lapTimeVarianceTrend = 'improving';
+        else if (positionsGained > 0) lapTimeVarianceTrend = 'stable';
+        else if (positionsGained > -3) lapTimeVarianceTrend = 'stable';
+        else lapTimeVarianceTrend = 'degrading';
+    } else if (lapTimeVariance !== undefined) {
         if (lapTimeVariance < 0.5) lapTimeVarianceTrend = 'stable';
         else if (lapTimeVariance < 1.5) lapTimeVarianceTrend = 'improving';
         else if (lapTimeVariance < 3) lapTimeVarianceTrend = 'degrading';
         else lapTimeVarianceTrend = 'erratic';
     }
 
-    // Incident clustering detection (simplified)
-    const incidentClustering = incidents >= 3;
+    // Incident clustering: multiple incidents in a single race suggests tilt/frustration
+    const incidentClustering = incidents >= 4;
 
-    // Positions lost to mistakes (simplified calculation)
+    // Positions lost to mistakes
     const positionsLostToMistakes = incidents > 0 && positionsGained !== undefined && positionsGained < 0
-        ? Math.abs(positionsGained)
+        ? Math.min(Math.abs(positionsGained), incidents * 2) // Cap at 2 positions per incident
         : 0;
 
-    // Confidence estimation
+    // Confidence estimation based on race performance
     let estimatedConfidence = 0.5;
-    if (incidents === 0) estimatedConfidence += 0.2;
-    if (positionsGained && positionsGained > 0) estimatedConfidence += 0.1;
-    if (finishPosition && finishPosition <= 5) estimatedConfidence += 0.1;
-    if (incidents > 2) estimatedConfidence -= 0.2;
-    estimatedConfidence = Math.max(0, Math.min(1, estimatedConfidence));
+    
+    // Clean racing boosts confidence
+    if (incidents === 0) estimatedConfidence += 0.25;
+    else if (incidents <= 2) estimatedConfidence += 0.1;
+    else if (incidents >= 4) estimatedConfidence -= 0.15;
+    
+    // Gaining positions boosts confidence
+    if (positionsGained !== undefined) {
+        if (positionsGained >= 5) estimatedConfidence += 0.2;
+        else if (positionsGained > 0) estimatedConfidence += 0.1;
+        else if (positionsGained < -5) estimatedConfidence -= 0.15;
+    }
+    
+    // Good finish position boosts confidence
+    if (finishPosition !== undefined) {
+        if (finishPosition === 1) estimatedConfidence += 0.2;
+        else if (finishPosition <= 3) estimatedConfidence += 0.15;
+        else if (finishPosition <= 5) estimatedConfidence += 0.1;
+        else if (finishPosition <= 10) estimatedConfidence += 0.05;
+    }
+    
+    estimatedConfidence = Math.max(0.1, Math.min(1, estimatedConfidence));
 
-    // Confidence trajectory
+    // Confidence trajectory based on overall session quality
     let confidenceTrajectory: 'rising' | 'falling' | 'stable' = 'stable';
-    if (incidents === 0 && positionsGained && positionsGained > 0) confidenceTrajectory = 'rising';
-    if (incidents > 2 || (positionsGained && positionsGained < -3)) confidenceTrajectory = 'falling';
+    const sessionQuality = (incidents === 0 ? 1 : 0) + (positionsGained && positionsGained > 0 ? 1 : 0) + (finishPosition && finishPosition <= 5 ? 1 : 0);
+    if (sessionQuality >= 2) confidenceTrajectory = 'rising';
+    else if (incidents >= 4 || (positionsGained && positionsGained < -5)) confidenceTrajectory = 'falling';
 
     const behavior = await createSessionBehavior({
         session_id: sessionId,
