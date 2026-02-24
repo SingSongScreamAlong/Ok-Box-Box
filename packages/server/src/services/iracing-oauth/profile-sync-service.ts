@@ -1,6 +1,7 @@
 // =====================================================================
 // iRacing Profile Sync Service
 // Fetches and stores profile data from iRacing Data API
+// Build: 2026-02-24-v3 - Filter by event_type_name='Race'
 // =====================================================================
 
 import { pool } from '../../db/client.js';
