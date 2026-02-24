@@ -364,41 +364,38 @@ export class IRacingProfileSyncService {
             if (uniqueResults.length > 0) {
                 const sample = uniqueResults[0];
                 console.log(`[iRacing Sync] Sample result keys:`, Object.keys(sample));
-                console.log(`[iRacing Sync] Sample result:`, {
-                    subsession_id: sample.subsession_id,
-                    event_type: sample.event_type,
-                    event_type_name: sample.event_type_name,
-                    series_name: sample.series_name || sample.series_short_name,
-                    official_session: sample.official_session,
-                    session_type: sample.session_type,
-                    track: sample.track?.track_name || sample.track_name,
-                });
                 
-                // Log a few more samples with different event types
-                const eventType5Sample = uniqueResults.find(r => r.event_type === 5);
-                if (eventType5Sample) {
-                    console.log(`[iRacing Sync] Event type 5 sample:`, {
-                        subsession_id: eventType5Sample.subsession_id,
-                        event_type: eventType5Sample.event_type,
-                        series_name: eventType5Sample.series_name || eventType5Sample.series_short_name,
-                        official_session: eventType5Sample.official_session,
-                        track: eventType5Sample.track?.track_name || eventType5Sample.track_name,
-                    });
+                // Log breakdown by event_type_name (the actual session type)
+                const eventTypeNameCounts: Record<string, number> = {};
+                for (const result of uniqueResults) {
+                    const name = result.event_type_name || 'unknown';
+                    eventTypeNameCounts[name] = (eventTypeNameCounts[name] || 0) + 1;
                 }
+                console.log(`[iRacing Sync] Event type NAME breakdown:`, eventTypeNameCounts);
+                
+                // Log samples of each type
+                const raceExample = uniqueResults.find(r => r.event_type_name === 'Race');
+                const practiceExample = uniqueResults.find(r => r.event_type_name === 'Practice');
+                const qualifyExample = uniqueResults.find(r => r.event_type_name === 'Qualifying');
+                const ttExample = uniqueResults.find(r => r.event_type_name === 'Time Trial');
+                
+                if (raceExample) console.log(`[iRacing Sync] Race example:`, { subsession_id: raceExample.subsession_id, event_type: raceExample.event_type, event_type_name: raceExample.event_type_name, series_name: raceExample.series_name });
+                if (practiceExample) console.log(`[iRacing Sync] Practice example:`, { subsession_id: practiceExample.subsession_id, event_type: practiceExample.event_type, event_type_name: practiceExample.event_type_name, series_name: practiceExample.series_name });
+                if (qualifyExample) console.log(`[iRacing Sync] Qualifying example:`, { subsession_id: qualifyExample.subsession_id, event_type: qualifyExample.event_type, event_type_name: qualifyExample.event_type_name, series_name: qualifyExample.series_name });
+                if (ttExample) console.log(`[iRacing Sync] Time Trial example:`, { subsession_id: ttExample.subsession_id, event_type: ttExample.event_type, event_type_name: ttExample.event_type_name, series_name: ttExample.series_name });
             }
             
-            // Filter to only actual races (event_type 2 = Race)
-            // event_type 5 = Time Trial (solo sessions, not actual races)
+            // Filter to only actual races by event_type_name (not event_type number!)
+            // event_type_name: 'Race' = actual races
+            // event_type_name: 'Practice', 'Qualifying', 'Time Trial' = not races
             const racesOnly = uniqueResults.filter(r => {
-                const eventType = r.event_type;
-                // event_type 2 = Race only
-                // If no event_type, assume it's a race (search_series should only return races)
-                return eventType === undefined || eventType === 2;
+                const eventTypeName = (r.event_type_name || '').toLowerCase();
+                return eventTypeName === 'race';
             });
             
-            const timeTrials = uniqueResults.filter(r => r.event_type === 5).length;
-            if (timeTrials > 0) {
-                console.log(`[iRacing Sync] Filtered out ${timeTrials} time trials, keeping ${racesOnly.length} actual races`);
+            const filtered = uniqueResults.length - racesOnly.length;
+            if (filtered > 0) {
+                console.log(`[iRacing Sync] Filtered out ${filtered} non-race sessions, keeping ${racesOnly.length} actual races`);
             }
             
             raceResults = racesOnly;
