@@ -330,19 +330,28 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
     const memory = await getDriverMemory(driverProfileId);
     const behaviors = await getRecentBehaviorsForAggregation(driverProfileId, 10);
 
-    if (!memory || behaviors.length < 3) {
+    // Allow opinion generation even without behaviors if memory exists
+    if (!memory) {
         return [];
     }
 
     const existingOpinions = await getActiveOpinions(driverProfileId);
+    
+    // Supersede ALL existing opinions first to prevent duplicates
+    for (const opinion of existingOpinions) {
+        try {
+            await supersededOpinion(opinion.id, null);
+        } catch (e) {
+            console.error(`[DriverMemory] Failed to supersede opinion ${opinion.id}:`, e);
+        }
+    }
+    
     const newOpinions: EngineerOpinion[] = [];
 
     // Generate opinions based on patterns
 
     // 1. Consistency opinion
     if (memory.braking_consistency !== null) {
-        const consistencyOpinion = existingOpinions.find(o => o.opinion_domain === 'consistency');
-        
         let sentiment: 'positive' | 'neutral' | 'concern' | 'critical' = 'neutral';
         let summary = '';
         let action = '';
@@ -359,10 +368,6 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
             sentiment = 'concern';
             summary = 'Lap time consistency needs work. Large variations between laps.';
             action = 'Slow down slightly and focus on repeatable inputs before pushing.';
-        }
-
-        if (consistencyOpinion) {
-            await supersededOpinion(consistencyOpinion.id, '');
         }
 
         const opinion = await createEngineerOpinion({
@@ -386,8 +391,6 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
 
     // 2. Incident/Safety opinion
     if (memory.incident_proneness !== null) {
-        const safetyOpinion = existingOpinions.find(o => o.opinion_domain === 'racecraft');
-        
         let sentiment: 'positive' | 'neutral' | 'concern' | 'critical' = 'neutral';
         let summary = '';
         let action = '';
@@ -408,10 +411,6 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
             sentiment = 'critical';
             summary = 'High incident rate is hurting your results and iRating.';
             action = 'Focus on finishing races cleanly before worrying about position.';
-        }
-
-        if (safetyOpinion) {
-            await supersededOpinion(safetyOpinion.id, '');
         }
 
         const opinion = await createEngineerOpinion({
@@ -435,8 +434,6 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
 
     // 3. Mental/Confidence opinion
     if (memory.current_confidence !== null) {
-        const mentalOpinion = existingOpinions.find(o => o.opinion_domain === 'mental');
-        
         let sentiment: 'positive' | 'neutral' | 'concern' | 'critical' = 'neutral';
         let summary = '';
         let action = '';
@@ -457,10 +454,6 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
             sentiment = 'concern';
             summary = 'You may be second-guessing yourself out there.';
             action = 'Focus on process, not results. Small wins build confidence.';
-        }
-
-        if (mentalOpinion) {
-            await supersededOpinion(mentalOpinion.id, '');
         }
 
         if (summary) {
