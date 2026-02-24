@@ -33,10 +33,13 @@ interface EngineerOpinion {
   id: string;
   domain: 'pace' | 'consistency' | 'racecraft' | 'mental' | 'technique' | 'development';
   summary: string;
+  detail: string | null;
   sentiment: 'positive' | 'neutral' | 'concern' | 'critical';
   suggestedAction: string | null;
   priority: number;
+  confidence: number | null;
   evidenceSummary: string | null;
+  createdAt: string | null;
 }
 
 interface DriverIdentity {
@@ -144,6 +147,7 @@ export function DriverIDP() {
   const [expandedSection, setExpandedSection] = useState<string | null>('identity');
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [expandedOpinion, setExpandedOpinion] = useState<string | null>(null);
 
   // Fetch IDP data
   useEffect(() => {
@@ -412,26 +416,98 @@ export function DriverIDP() {
                     {data.opinions.sort((a, b) => b.priority - a.priority).map(opinion => {
                       const style = SENTIMENT_STYLES[opinion.sentiment] || SENTIMENT_STYLES.neutral;
                       const OpinionIcon = style.icon;
+                      const isExpanded = expandedOpinion === opinion.id;
                       return (
-                        <div key={opinion.id} className={`p-4 ${style.bg} border ${style.border} rounded-lg`}>
-                          <div className="flex items-start gap-3">
-                            <OpinionIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-[10px] uppercase tracking-wider text-white/40">{opinion.domain}</span>
-                                {opinion.priority >= 8 && (
-                                  <span className="text-[9px] px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded">High Priority</span>
-                                )}
+                        <div key={opinion.id} className={`${style.bg} border ${style.border} rounded-lg overflow-hidden`}>
+                          <button
+                            onClick={() => setExpandedOpinion(isExpanded ? null : opinion.id)}
+                            className="w-full p-4 text-left hover:bg-white/[0.02] transition-colors"
+                          >
+                            <div className="flex items-start gap-3">
+                              <OpinionIcon className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-[10px] uppercase tracking-wider text-white/40">{opinion.domain}</span>
+                                  {opinion.priority >= 8 && (
+                                    <span className="text-[9px] px-1.5 py-0.5 bg-red-500/20 text-red-400 rounded">High Priority</span>
+                                  )}
+                                  <ChevronRight className={`w-3 h-3 text-white/30 transition-transform ml-auto ${isExpanded ? 'rotate-90' : ''}`} />
+                                </div>
+                                <p className="text-sm text-white/90">{opinion.summary}</p>
                               </div>
-                              <p className="text-sm text-white/90">{opinion.summary}</p>
+                            </div>
+                          </button>
+                          
+                          {isExpanded && (
+                            <div className="px-4 pb-4 border-t border-white/[0.06] pt-3 ml-7 space-y-3">
+                              {/* Why - The reasoning */}
+                              {opinion.detail && (
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1 flex items-center gap-1">
+                                    <Info className="w-3 h-3" />
+                                    Why
+                                  </div>
+                                  <p className="text-xs text-white/70">{opinion.detail}</p>
+                                </div>
+                              )}
+                              
+                              {/* How - Evidence summary */}
+                              {opinion.evidenceSummary && (
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1 flex items-center gap-1">
+                                    <Activity className="w-3 h-3" />
+                                    How We Know
+                                  </div>
+                                  <p className="text-xs text-white/70">{opinion.evidenceSummary}</p>
+                                </div>
+                              )}
+                              
+                              {/* When - Created date */}
+                              {opinion.createdAt && (
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1 flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    When
+                                  </div>
+                                  <p className="text-xs text-white/70">
+                                    Assessment from {new Date(opinion.createdAt).toLocaleDateString('en-US', { 
+                                      month: 'short', day: 'numeric', year: 'numeric' 
+                                    })}
+                                  </p>
+                                </div>
+                              )}
+                              
+                              {/* Confidence */}
+                              {opinion.confidence != null && (
+                                <div>
+                                  <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1 flex items-center gap-1">
+                                    <Star className="w-3 h-3" />
+                                    Confidence
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-1.5 flex-1 bg-white/[0.06] rounded-full overflow-hidden">
+                                      <div 
+                                        className="h-full bg-blue-500 rounded-full" 
+                                        style={{ width: `${(opinion.confidence || 0) * 100}%` }} 
+                                      />
+                                    </div>
+                                    <span className="text-xs text-white/50">{Math.round((opinion.confidence || 0) * 100)}%</span>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Action */}
                               {opinion.suggestedAction && (
-                                <p className="text-xs text-white/50 mt-2 flex items-start gap-1.5">
-                                  <Target className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                                  {opinion.suggestedAction}
-                                </p>
+                                <div className="p-3 bg-black/20 rounded-lg">
+                                  <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1 flex items-center gap-1">
+                                    <Target className="w-3 h-3" />
+                                    Suggested Action
+                                  </div>
+                                  <p className="text-xs text-white/80">{opinion.suggestedAction}</p>
+                                </div>
                               )}
                             </div>
-                          </div>
+                          )}
                         </div>
                       );
                     })}

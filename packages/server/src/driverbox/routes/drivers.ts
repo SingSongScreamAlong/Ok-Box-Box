@@ -1121,10 +1121,13 @@ router.get('/me/idp', requireAuth, async (req: Request, res: Response): Promise<
             id: o.id,
             domain: o.opinion_domain,
             summary: o.opinion_summary,
+            detail: o.opinion_detail,
             sentiment: o.opinion_sentiment,
             suggestedAction: o.suggested_action,
             priority: o.priority,
+            confidence: o.opinion_confidence,
             evidenceSummary: o.evidence_summary,
+            createdAt: o.created_at,
         }));
 
         // Transform identity to camelCase

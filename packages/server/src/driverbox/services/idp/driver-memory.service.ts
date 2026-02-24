@@ -346,19 +346,24 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
     if (memory.braking_consistency !== null) {
         let sentiment: 'positive' | 'neutral' | 'concern' | 'critical' = 'neutral';
         let summary = '';
+        let detail = '';
         let action = '';
+        const consistencyPct = Math.round(memory.braking_consistency * 100);
         
         if (memory.braking_consistency > 0.8) {
             sentiment = 'positive';
             summary = 'Your consistency is excellent. Lap times are predictable and reliable.';
+            detail = `Your braking and throttle inputs show ${consistencyPct}% consistency across sessions. This means you're hitting your marks lap after lap, which is the foundation of fast, safe racing. Consistent drivers are predictable to race around and can focus on racecraft instead of car control.`;
             action = 'Maintain this consistency while gradually pushing for pace.';
         } else if (memory.braking_consistency > 0.6) {
             sentiment = 'neutral';
             summary = 'Your consistency is good but has room for improvement.';
+            detail = `Your consistency score of ${consistencyPct}% shows you can string together good laps, but there's variation in your inputs. This often comes from braking at slightly different points or varying throttle application out of corners. The good news: you have the pace, you just need to lock it in.`;
             action = 'Focus on hitting the same braking points every lap.';
         } else {
             sentiment = 'concern';
             summary = 'Lap time consistency needs work. Large variations between laps.';
+            detail = `With a ${consistencyPct}% consistency score, your lap times vary significantly. This usually indicates you're still searching for the limit or reacting to the car rather than driving proactively. Inconsistency makes you unpredictable to other drivers and costs time through accumulated small errors.`;
             action = 'Slow down slightly and focus on repeatable inputs before pushing.';
         }
 
@@ -367,7 +372,7 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
             opinion_domain: 'consistency',
             opinion_context: null,
             opinion_summary: summary,
-            opinion_detail: null,
+            opinion_detail: detail,
             opinion_confidence: memory.memory_confidence,
             opinion_sentiment: sentiment,
             is_actionable: true,
@@ -376,7 +381,7 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
             valid_until: null,
             superseded_by: null,
             evidence_sessions: behaviors.slice(0, 5).map(b => b.session_id).filter(Boolean) as string[],
-            evidence_summary: `Based on ${behaviors.length} recent sessions`,
+            evidence_summary: `Analyzed ${memory.sessions_analyzed || 0} sessions and ${memory.laps_analyzed || 0} laps. Consistency calculated from braking point variance and throttle application patterns.`,
         });
         newOpinions.push(opinion);
     }
@@ -385,23 +390,29 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
     if (memory.incident_proneness !== null) {
         let sentiment: 'positive' | 'neutral' | 'concern' | 'critical' = 'neutral';
         let summary = '';
+        let detail = '';
         let action = '';
+        const safetyPct = Math.round(memory.incident_proneness * 100);
         
         if (memory.incident_proneness > 0.9) {
             sentiment = 'positive';
             summary = 'Excellent racecraft. You race clean and avoid incidents consistently.';
+            detail = `Your safety rating of ${safetyPct}% puts you among the cleanest drivers. You average very few incident points per race, which means you're racing smart, giving appropriate space, and avoiding unnecessary contact. This is a competitive advantage - you finish races and gain positions through attrition.`;
             action = 'Keep racing smart. Your clean driving is a major strength.';
         } else if (memory.incident_proneness > 0.7) {
             sentiment = 'neutral';
             summary = 'Generally clean racing with occasional incidents.';
+            detail = `With a ${safetyPct}% safety score, you're racing reasonably clean but picking up incidents here and there. These might be from aggressive moves, misjudging gaps, or getting caught up in others' mistakes. Each incident costs you time and often positions.`;
             action = 'Stay aware of cars around you, especially in traffic.';
         } else if (memory.incident_proneness > 0.5) {
             sentiment = 'concern';
             summary = 'Incident rate is higher than ideal. Pattern of contact in races.';
+            detail = `Your ${safetyPct}% safety score indicates a pattern of incidents. This could be from overdriving, poor spatial awareness, or taking unnecessary risks. High incident rates hurt your iRating, Safety Rating, and race results. The positions you gain aggressively are often lost to damage or penalties.`;
             action = 'Give more space when racing side-by-side. Patience pays off.';
         } else {
             sentiment = 'critical';
             summary = 'High incident rate is hurting your results and iRating.';
+            detail = `Your ${safetyPct}% safety score is significantly impacting your racing. With this many incidents, you're likely losing positions to damage, getting penalties, and seeing your iRating drop. Before focusing on pace or position, you need to address the root cause - whether that's overdriving, poor awareness, or risky moves that aren't paying off.`;
             action = 'Focus on finishing races cleanly before worrying about position.';
         }
 
@@ -410,7 +421,7 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
             opinion_domain: 'racecraft',
             opinion_context: null,
             opinion_summary: summary,
-            opinion_detail: null,
+            opinion_detail: detail,
             opinion_confidence: memory.memory_confidence,
             opinion_sentiment: sentiment,
             is_actionable: true,
@@ -419,7 +430,7 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
             valid_until: null,
             superseded_by: null,
             evidence_sessions: behaviors.slice(0, 5).map(b => b.session_id).filter(Boolean) as string[],
-            evidence_summary: `Based on ${behaviors.length} recent sessions`,
+            evidence_summary: `Analyzed incident points across ${memory.sessions_analyzed || 0} sessions. Safety score derived from incidents per lap and race completion rate.`,
         });
         newOpinions.push(opinion);
     }
@@ -428,23 +439,29 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
     if (memory.current_confidence !== null) {
         let sentiment: 'positive' | 'neutral' | 'concern' | 'critical' = 'neutral';
         let summary = '';
+        let detail = '';
         let action = '';
+        const confidencePct = Math.round(memory.current_confidence * 100);
         
         if (memory.confidence_trend === 'rising') {
             sentiment = 'positive';
             summary = 'Your confidence is building. Recent sessions show improvement.';
+            detail = `Your recent results show an upward trend in performance. When confidence is rising, drivers tend to commit more fully to corners, make better overtaking decisions, and recover faster from mistakes. This positive momentum is valuable - capitalize on it.`;
             action = 'Keep the momentum going. Trust your instincts.';
         } else if (memory.confidence_trend === 'falling') {
             sentiment = 'concern';
             summary = 'Confidence appears to be dropping based on recent results.';
+            detail = `Recent sessions show declining performance metrics. This often creates a negative feedback loop - lower confidence leads to hesitation, which leads to worse results, which further drops confidence. Breaking this cycle requires stepping back from competition temporarily.`;
             action = 'Take a step back if needed. Run some practice sessions to rebuild.';
         } else if (memory.current_confidence > 0.7) {
             sentiment = 'positive';
             summary = 'You are racing with confidence. Results reflect your preparation.';
+            detail = `With ${confidencePct}% confidence score, you're driving decisively. Confident drivers brake later, commit to overtakes, and don't second-guess themselves mid-corner. Your recent results support this - you're performing at or above your typical level.`;
             action = 'Stay focused and trust your abilities.';
         } else if (memory.current_confidence < 0.4) {
             sentiment = 'concern';
             summary = 'You may be second-guessing yourself out there.';
+            detail = `Your ${confidencePct}% confidence score suggests hesitation in your driving. This might show up as early braking, abandoned overtakes, or inconsistent corner entry. Low confidence often comes from a string of bad results or incidents - it's recoverable with focused practice.`;
             action = 'Focus on process, not results. Small wins build confidence.';
         }
 
@@ -454,7 +471,7 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
                 opinion_domain: 'mental',
                 opinion_context: null,
                 opinion_summary: summary,
-                opinion_detail: null,
+                opinion_detail: detail || null,
                 opinion_confidence: memory.memory_confidence,
                 opinion_sentiment: sentiment,
                 is_actionable: true,
@@ -463,7 +480,7 @@ export async function generateEngineerOpinions(driverProfileId: string): Promise
                 valid_until: null,
                 superseded_by: null,
                 evidence_sessions: behaviors.slice(0, 5).map(b => b.session_id).filter(Boolean) as string[],
-                evidence_summary: `Based on ${behaviors.length} recent sessions`,
+                evidence_summary: `Confidence derived from finish positions, incident patterns, and performance trends across ${memory.sessions_analyzed || 0} sessions.`,
             });
             newOpinions.push(opinion);
         }
