@@ -117,8 +117,9 @@ export class IRacingProfileSyncService {
 
             console.log(`[iRacing Sync] Synced profile for user ${userId}, iRacing ${memberInfo.cust_id}`);
 
-            // Also sync recent race results (non-blocking - don't fail profile sync if this fails)
-            this.syncRaceResults(userId, accessToken, profile.iracingCustomerId).catch(err => {
+            // Also sync race results (non-blocking - don't fail profile sync if this fails)
+            // Pass member_since for intelligent date range
+            this.syncRaceResults(userId, accessToken, profile.iracingCustomerId, profile.memberSince).catch(err => {
                 console.error(`[iRacing Sync] Race results sync failed for user ${userId}:`, err);
             });
 
@@ -177,17 +178,39 @@ export class IRacingProfileSyncService {
     // -----------------------------------------------------------------
 
     /**
-     * Fetch and store recent race results from iRacing
+     * Fetch and store race results from iRacing
+     * Uses incremental sync - only fetches races newer than the most recent stored race
+     * Falls back to member_since date for first sync
      */
-    async syncRaceResults(userId: string, accessToken: string, custId: string): Promise<number> {
+    async syncRaceResults(userId: string, accessToken: string, custId: string, memberSince?: string | null): Promise<number> {
         console.log(`[iRacing Sync] Fetching race results for user ${userId} (cust_id ${custId})`);
 
         try {
-            // Fetch race results - go back 5 years to get full history
-            // /data/results/search_series returns the user's results in the date range
             const now = new Date();
-            const fiveYearsAgo = new Date(now.getTime() - 5 * 365 * 24 * 60 * 60 * 1000);
-            const finishStart = fiveYearsAgo.toISOString();
+            let startDate: Date;
+            
+            // Check for most recent stored race (incremental sync)
+            const lastRaceResult = await pool.query(
+                `SELECT MAX(session_start_time) as last_race FROM iracing_race_results WHERE admin_user_id = $1`,
+                [userId]
+            );
+            const lastRaceTime = lastRaceResult.rows[0]?.last_race;
+            
+            if (lastRaceTime) {
+                // Incremental sync: start from last race + 1 second
+                startDate = new Date(new Date(lastRaceTime).getTime() + 1000);
+                console.log(`[iRacing Sync] Incremental sync from ${startDate.toISOString()}`);
+            } else if (memberSince) {
+                // First sync: use member_since date
+                startDate = new Date(memberSince);
+                console.log(`[iRacing Sync] Full sync from member_since: ${startDate.toISOString()}`);
+            } else {
+                // Fallback: 2 years back
+                startDate = new Date(now.getTime() - 2 * 365 * 24 * 60 * 60 * 1000);
+                console.log(`[iRacing Sync] Fallback sync from 2 years ago`);
+            }
+            
+            const finishStart = startDate.toISOString();
             const finishEnd = now.toISOString();
 
             const searchResults = await this.iracingApiFetch<any>(accessToken,

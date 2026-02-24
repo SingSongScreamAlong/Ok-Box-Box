@@ -523,12 +523,11 @@ export async function runMemoryPipeline(
 // ========================
 
 export async function backfillFromIRacingResults(userId: string, driverProfileId: string): Promise<number> {
-    // Fetch race results from iracing_race_results table
+    // Fetch ALL race results from iracing_race_results table (no limit)
     const result = await pool.query(
         `SELECT * FROM iracing_race_results 
          WHERE admin_user_id = $1 
-         ORDER BY session_start_time DESC NULLS LAST
-         LIMIT 100`,
+         ORDER BY session_start_time ASC NULLS LAST`,
         [userId]
     );
     
