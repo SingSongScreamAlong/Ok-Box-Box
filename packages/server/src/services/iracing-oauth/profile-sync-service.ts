@@ -350,7 +350,30 @@ export class IRacingProfileSyncService {
                 }
             }
             console.log(`[iRacing Sync] Found ${raceResults.length} total results, ${uniqueResults.length} unique by subsession_id`);
-            raceResults = uniqueResults;
+            
+            // Log event type breakdown for debugging
+            // iRacing event_type: 2=Race, 3=Practice, 4=Qualifying, 5=Time Trial, 6=Time Attack
+            const eventTypeCounts: Record<string, number> = {};
+            for (const result of uniqueResults) {
+                const eventType = result.event_type ?? result.event_type_name ?? 'unknown';
+                eventTypeCounts[eventType] = (eventTypeCounts[eventType] || 0) + 1;
+            }
+            console.log(`[iRacing Sync] Event type breakdown:`, eventTypeCounts);
+            
+            // Filter to only actual races (event_type 2 = Race, 5 = Time Trial counts for SR/iR)
+            // The search_series endpoint should only return races, but let's verify
+            const racesOnly = uniqueResults.filter(r => {
+                const eventType = r.event_type;
+                // event_type 2 = Race, 5 = Time Trial (both count for ratings)
+                // If no event_type, assume it's a race (search_series should only return races)
+                return eventType === undefined || eventType === 2 || eventType === 5;
+            });
+            
+            if (racesOnly.length !== uniqueResults.length) {
+                console.log(`[iRacing Sync] Filtered to ${racesOnly.length} actual races (removed ${uniqueResults.length - racesOnly.length} non-race sessions)`);
+            }
+            
+            raceResults = racesOnly;
 
             if (raceResults.length === 0) {
                 // Try the member_recent_races endpoint as fallback
