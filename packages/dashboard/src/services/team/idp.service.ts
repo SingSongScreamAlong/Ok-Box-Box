@@ -6,6 +6,7 @@
  */
 
 import { useAuthStore } from '../../stores/auth.store';
+import { API_BASE } from '../../config/api';
 
 // Types
 export interface DriverTarget {
@@ -64,9 +65,6 @@ export interface CreateTargetInput {
     notes?: string;
     visibility?: 'shared' | 'private';
 }
-
-// API base URL
-const API_BASE = import.meta.env.VITE_API_URL || '';
 
 // Demo/mock data for fallback
 const DEMO_PROFILE: DriverProfile = {

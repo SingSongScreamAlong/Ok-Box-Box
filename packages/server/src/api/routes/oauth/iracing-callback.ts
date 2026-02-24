@@ -7,6 +7,8 @@ import { Router, Request, Response } from 'express';
 import { getIRacingOAuthService, getIRacingProfileSyncService } from '../../../services/iracing-oauth/index.js';
 import { getGoalGeneratorService } from '../../../services/driver-development/goal-generator.js';
 import { pool } from '../../../db/client.js';
+import { backfillDriverHistory } from '../../../driverbox/services/idp/iracing-sync.service.js';
+import { backfillMemoryFromHistory } from '../../../driverbox/services/idp/driver-memory.service.js';
 
 const router = Router();
 
@@ -72,6 +74,29 @@ async function triggerPostLinkActions(userId: string, iracingCustomerId: string)
             const goalGenerator = getGoalGeneratorService();
             const goals = await goalGenerator.generateInitialGoals(driverProfileId, profile);
             console.log(`[OAuth iRacing] Generated ${goals.length} initial goals for driver ${driverProfileId}`);
+        }
+
+        // 5. Backfill historical race data from iRacing API (if credentials configured)
+        // This pulls past races and builds the driver's IDP memory from historical performance
+        if (driverProfileId && iracingCustomerId) {
+            console.log(`[OAuth iRacing] Starting historical race backfill for driver ${driverProfileId}`);
+            try {
+                const custId = parseInt(iracingCustomerId, 10);
+                if (!isNaN(custId)) {
+                    // Fetch historical races from iRacing Data API
+                    const { synced, errors } = await backfillDriverHistory(driverProfileId, custId, 50);
+                    console.log(`[OAuth iRacing] Race backfill complete: ${synced} races synced, ${errors} errors`);
+
+                    // Process the synced races through IDP memory system
+                    if (synced > 0) {
+                        const processed = await backfillMemoryFromHistory(driverProfileId);
+                        console.log(`[OAuth iRacing] IDP memory backfill complete: ${processed} sessions processed`);
+                    }
+                }
+            } catch (backfillError) {
+                console.error('[OAuth iRacing] Historical backfill error (non-blocking):', backfillError);
+                // Don't fail the whole flow - backfill is optional enhancement
+            }
         }
 
     } catch (error) {

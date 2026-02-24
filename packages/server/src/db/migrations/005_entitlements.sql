@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS entitlements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     
     -- Owner (user-level or org-level entitlement)
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    org_id UUID REFERENCES orgs(id) ON DELETE SET NULL,
+    user_id UUID REFERENCES admin_users(id) ON DELETE CASCADE,
+    org_id UUID,
     
     -- Product/bundle being entitled
     product VARCHAR(50) NOT NULL CHECK (product IN ('blackbox', 'controlbox', 'bundle')),
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS entitlement_audit_log (
     
     -- Who/what triggered
     triggered_by VARCHAR(50) NOT NULL, -- webhook, poll, admin, system
-    triggered_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    triggered_by_user_id UUID REFERENCES admin_users(id) ON DELETE SET NULL,
     
     -- Previous and new state
     previous_status VARCHAR(20),
@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS pending_entitlements (
         CHECK (status IN ('pending', 'linked', 'expired', 'manual')),
     
     -- Attempted user match
-    attempted_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    attempted_user_id UUID REFERENCES admin_users(id) ON DELETE SET NULL,
     resolution_notes TEXT,
     
     -- Timestamps

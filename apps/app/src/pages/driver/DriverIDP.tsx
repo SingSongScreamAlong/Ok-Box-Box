@@ -140,6 +140,8 @@ export function DriverIDP() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>('identity');
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Fetch IDP data
   useEffect(() => {
@@ -171,6 +173,33 @@ export function DriverIDP() {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const syncHistory = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const response = await fetch('/api/v1/drivers/me/sync-history', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token') || ''}`,
+        },
+      });
+      
+      const json = await response.json();
+      
+      if (!response.ok) {
+        setSyncResult({ success: false, message: json.error || 'Sync failed' });
+      } else {
+        setSyncResult({ success: true, message: json.message });
+        // Refresh IDP data after sync
+        await fetchIDPData();
+      }
+    } catch (err) {
+      setSyncResult({ success: false, message: err instanceof Error ? err.message : 'Sync failed' });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -214,15 +243,31 @@ export function DriverIDP() {
               </h1>
               <p className="text-xs text-white/40 mt-1">How the AI understands you as a driver</p>
             </div>
-            <button
-              onClick={fetchIDPData}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] rounded text-xs text-white/60 hover:text-white transition-colors"
-            >
-              <RefreshCw className="w-3 h-3" />
-              Refresh
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={syncHistory}
+                disabled={syncing}
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#f97316]/10 hover:bg-[#f97316]/20 border border-[#f97316]/30 rounded text-xs text-[#f97316] hover:text-[#fb923c] transition-colors disabled:opacity-50"
+              >
+                {syncing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Clock className="w-3 h-3" />}
+                {syncing ? 'Syncing...' : 'Sync Race History'}
+              </button>
+              <button
+                onClick={fetchIDPData}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] rounded text-xs text-white/60 hover:text-white transition-colors"
+              >
+                <RefreshCw className="w-3 h-3" />
+                Refresh
+              </button>
+            </div>
           </div>
         </div>
+
+        {syncResult && (
+          <div className={`mb-6 p-4 rounded-lg text-sm ${syncResult.success ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-400' : 'bg-red-500/10 border border-red-500/30 text-red-400'}`}>
+            {syncResult.message}
+          </div>
+        )}
 
         {error && (
           <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm">

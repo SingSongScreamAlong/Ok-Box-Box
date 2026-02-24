@@ -80,7 +80,7 @@ class RelayAgent:
         self.running = False
         self.session_id: Optional[str] = None
         self.last_flag_state: str = 'green'
-        self.last_strategy_update: float = 0 # Phase 11
+        self.last_strategy_raw: float = 0 # Phase 11 (now strategy_raw)
 
         # v2: Rate control for multi-stream telemetry
         self.last_baseline_time: float = 0
@@ -197,12 +197,12 @@ class RelayAgent:
 
                 # PHASE 11: Strategy Data (Slow Lane - 1Hz)
                 now = time.time()
-                if self.is_connected and (now - self.last_strategy_update) > 1.0:
+                if self.is_connected and (now - self.last_strategy_raw) > 1.0:
                     session = self.ir_reader.get_session_data()
                     cars = self.ir_reader.get_all_cars()
                     if session and cars:
-                        self._send_strategy_update(session, cars)
-                        self.last_strategy_update = now
+                        self._send_strategy_raw(session, cars)
+                        self.last_strategy_raw = now
                 
             finally:
                 self.ir_reader.unfreeze_frame()
@@ -210,16 +210,16 @@ class RelayAgent:
             # Wait for next poll interval
             self.cloud_client.wait(config.POLL_INTERVAL)
 
-    def _send_strategy_update(self, session, cars):
+    def _send_strategy_raw(self, session, cars):
         """
-        Send low-frequency strategy data (fuel, tires, damage)
+        Send raw strategy data (fuel, tires, damage) — server does all inference.
         Phase 16: Now includes tire temps, brake pressure, engine health
         """
         if not self.cloud_client.connected:
             return
 
         strategy_payload = {
-            'type': 'strategy_update',
+            'type': 'strategy_raw',
             'sessionId': session.session_id,
             'timestamp': time.time() * 1000,
             'cars': []
@@ -277,7 +277,7 @@ class RelayAgent:
             }
             strategy_payload['cars'].append(car_strategy)
         
-        self.cloud_client.emit('strategy_update', strategy_payload)
+        self.cloud_client.emit('strategy_raw', strategy_payload)
     
     def _get_pit_stop_count(self, car_id: int, in_pit: bool) -> int:
         """

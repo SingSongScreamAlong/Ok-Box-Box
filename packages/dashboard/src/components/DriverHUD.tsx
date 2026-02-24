@@ -184,12 +184,11 @@ export const DriverHUD: React.FC<DriverHUDProps> = ({ sessionId }) => {
     }, [isPTTActive, stopRecording]);
 
     // Format helpers
-    const formatLapTime = (ms: number | null): string => {
-        if (ms === null) return '--:--.---';
-        const minutes = Math.floor(ms / 60000);
-        const seconds = Math.floor((ms % 60000) / 1000);
-        const millis = ms % 1000;
-        return `${minutes}:${seconds.toString().padStart(2, '0')}.${millis.toString().padStart(3, '0')}`;
+    const formatLapTime = (seconds: number | null): string => {
+        if (seconds === null || seconds <= 0) return '--:--.---';
+        const minutes = Math.floor(seconds / 60);
+        const secs = (seconds % 60).toFixed(3);
+        return `${minutes}:${secs.padStart(6, '0')}`;
     };
 
     const formatGap = (gap: number | null): string => {
@@ -271,7 +270,7 @@ export const DriverHUD: React.FC<DriverHUDProps> = ({ sessionId }) => {
                         </div>
                         <div className="speed-display">
                             <span className="speed-value">{telemetry?.speed ?? 0}</span>
-                            <span className="speed-unit">KPH</span>
+                            <span className="speed-unit">MPH</span>
                         </div>
                         <div className={`delta-display ${deltaInfo.className}`}>
                             <span className="delta-value">{deltaInfo.text}</span>

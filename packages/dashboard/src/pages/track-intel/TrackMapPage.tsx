@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { InteractiveMap } from '../../components/track-intel/InteractiveMap';
 import { TurnDetailPanel } from '../../components/track-intel/TurnDetailPanel';
+import { API_BASE } from '../../config/api';
 
 interface TrackData {
     id: string;
@@ -23,7 +24,7 @@ export const TrackMapPage: React.FC = () => {
         const fetchTrack = async () => {
             try {
                 // TODO: Replace with env var
-                const response = await fetch(`http://localhost:3001/api/v1/tracks/${trackId}`);
+                const response = await fetch(`${API_BASE}/api/v1/tracks/${trackId}`);
                 if (response.ok) {
                     const data = await response.json();
                     setTrack(data);

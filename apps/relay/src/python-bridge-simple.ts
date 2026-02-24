@@ -283,6 +283,27 @@ export class PythonBridge extends EventEmitter {
                 this.devSocket.emit('session_info', data);
             }
         });
+
+        // Strategy raw data (1Hz) — forwarded to server for inference
+        this.localSocket.on('strategy_raw', (data: any) => {
+            if (this.cloudSocket?.connected) {
+                this.cloudSocket.emit('strategy_raw', data);
+            }
+            if (this.devSocket?.connected) {
+                this.devSocket.emit('strategy_raw', data);
+            }
+        });
+
+        // Incident events — forwarded to server
+        this.localSocket.on('incident', (data: any) => {
+            console.log('Incident detected:', data?.type);
+            if (this.cloudSocket?.connected) {
+                this.cloudSocket.emit('incident', data);
+            }
+            if (this.devSocket?.connected) {
+                this.devSocket.emit('incident', data);
+            }
+        });
     }
 
     /**

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useDriverMemory } from './useDriverMemory';
 import { useRelay } from './useRelay';
 import { 
@@ -32,17 +32,56 @@ export function useEngineer() {
     getEngineerKnowledge
   } = useDriverMemory();
   
-  const { status, telemetry, session } = useRelay();
+  const { status, telemetry, session, engineerUpdates, raceIntelligence } = useRelay();
   
   const [messages, setMessages] = useState<EngineerMessage[]>([]);
   const [lastBriefing, setLastBriefing] = useState<SessionBriefing | null>(null);
   const [lastVerdict, setLastVerdict] = useState<EngineerVerdict | null>(null);
+  const prevStatusRef = useRef(status);
+  const lastServerUpdateCount = useRef(0);
 
   // Create the engineer core instance
   const engineer = useMemo(() => {
     const personality = getEngineerPersonality();
     return createEngineerCore(memory, identity, opinions, personality);
   }, [memory, identity, opinions, getEngineerPersonality]);
+
+  // Auto-briefing on session start, auto-verdict on session end
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = status;
+
+    // Session just started
+    if (status === 'in_session' && prev !== 'in_session') {
+      if (session.trackName) {
+        const briefing = engineer.generateBriefing(
+          session.trackName,
+          session.sessionType || 'practice'
+        );
+        setLastBriefing(briefing);
+
+        // Add briefing as an engineer message
+        const msg = engineer.generateMessage(
+          briefing.primaryFocus,
+          'normal',
+          'general'
+        );
+        setMessages(prev => [...prev, msg].slice(-20));
+      }
+    }
+
+    // Session just ended
+    if (prev === 'in_session' && status !== 'in_session') {
+      const verdict = engineer.generateVerdict({
+        bestLap: telemetry.bestLap,
+        avgLap: null,
+        incidents: 0,
+        position: telemetry.position,
+        laps: telemetry.lap || 0,
+      });
+      setLastVerdict(verdict);
+    }
+  }, [status, session.trackName, session.sessionType, engineer, telemetry.bestLap, telemetry.position, telemetry.lap]);
 
   // Process live telemetry for callouts
   useEffect(() => {
@@ -64,6 +103,46 @@ export function useEngineer() {
       });
     }
   }, [engineer, status, telemetry, session]);
+
+  // Process accumulated race intelligence for smarter voice callouts
+  useEffect(() => {
+    if (!raceIntelligence || (status !== 'in_session' && status !== 'connected')) return;
+
+    const message = engineer.processRaceIntelligence(raceIntelligence);
+    if (message) {
+      setMessages(prev => {
+        const isDuplicate = prev.some(m =>
+          m.content === message.content &&
+          Date.now() - m.timestamp < 30000
+        );
+        if (isDuplicate) return prev;
+        return [...prev, message].slice(-20);
+      });
+    }
+  }, [engineer, status, raceIntelligence]);
+
+  // Merge server-side AI engineer updates into the message stream
+  useEffect(() => {
+    if (engineerUpdates.length <= lastServerUpdateCount.current) return;
+    const newUpdates = engineerUpdates.slice(lastServerUpdateCount.current);
+    lastServerUpdateCount.current = engineerUpdates.length;
+
+    const newMessages: EngineerMessage[] = newUpdates.map(u => ({
+      id: crypto.randomUUID(),
+      content: u.message,
+      urgency: u.priority === 'critical' ? 'critical' as const
+        : u.priority === 'high' ? 'important' as const
+        : u.priority === 'medium' ? 'normal' as const
+        : 'low' as const,
+      tone: 'advisory' as const,
+      domain: u.type === 'traffic' ? 'racecraft' as const : 'general' as const,
+      speakable: u.priority === 'critical' || u.priority === 'high',
+      timestamp: u.timestamp,
+      expiresAt: u.priority === 'critical' ? u.timestamp + 10000 : u.timestamp + 30000,
+    }));
+
+    setMessages(prev => [...prev, ...newMessages].slice(-20));
+  }, [engineerUpdates]);
 
   // Generate briefing when session starts
   const generateBriefing = useCallback(() => {

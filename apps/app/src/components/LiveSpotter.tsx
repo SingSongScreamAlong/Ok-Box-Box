@@ -149,12 +149,14 @@ export function LiveSpotter({ compact = false, showHistory = true, audioEnabled 
       
       // Check if car is alongside (within danger threshold)
       if (absDistance < DANGER_THRESHOLD) {
-        // Determine left/right based on position number (simplified)
-        // In reality, this would use lateral position data
-        if ((car.position || 0) < (telemetry.position || 0)) {
-          carLeft = true;
-        } else {
+        // Determine left/right based on track distance sign
+        // Positive distance = car is ahead on track (approaching from our right on straights)
+        // Negative distance = car is behind on track (approaching from our left on straights)
+        // This is an approximation — iRacing doesn't provide lateral offset
+        if (distance > 0) {
           carRight = true;
+        } else {
+          carLeft = true;
         }
       }
       
@@ -252,8 +254,8 @@ export function LiveSpotter({ compact = false, showHistory = true, audioEnabled 
 
   // Format gap time
   const formatGap = (distance: number): string => {
-    // Rough conversion: 1% track = ~1 second at racing speed
-    const seconds = distance * 100;
+    // Rough conversion: 1% track ≈ 0.6s at typical racing speed (~60s lap / 100%)
+    const seconds = distance * 60;
     if (seconds < 1) return `${(seconds * 10).toFixed(0)} tenths`;
     return `${seconds.toFixed(1)}s`;
   };

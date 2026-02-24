@@ -234,6 +234,32 @@ function computeConfidence(session: SessionSummary): number {
 
 ---
 
+## Data Sources
+
+The IDP system learns from **two sources**:
+
+### 1. Live Relay Sessions
+Sessions where the driver runs with the OkBoxBox relay connected. These provide:
+- Real-time telemetry (throttle, brake, steering inputs)
+- Lap-by-lap performance data
+- Incident detection and clustering
+- Mental state indicators
+
+### 2. Historical iRacing Races
+When a driver links their iRacing account, the system can backfill up to 50 historical races:
+- Fetched via iRacing Data API (requires `IRACING_CLIENT_ID` and `IRACING_CLIENT_SECRET`)
+- Includes lap times, positions, incidents, iRating changes
+- Processed through the same IDP pipeline as live sessions
+- Automatically triggered on OAuth link, or manually via "Sync Race History" button
+
+**Note:** Historical races provide less granular data than live relay sessions (no telemetry), but still contribute to:
+- Consistency metrics (lap time variance)
+- Racecraft (positions gained/lost, incidents)
+- Confidence scoring
+- Driver archetype detection
+
+---
+
 ## The Learning Pipeline
 
 ### 1. During Session (Real-time)

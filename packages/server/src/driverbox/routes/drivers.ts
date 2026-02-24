@@ -425,6 +425,63 @@ router.post('/me/sync-iracing', requireAuth, async (req: Request, res: Response)
         res.status(500).json({ error: 'Failed to sync iRacing data' });
     }
 });
+/**
+ * POST /api/v1/drivers/me/sync-history
+ * Comprehensive historical race sync + IDP memory processing
+ * Pulls up to 50 historical races and processes them through the IDP system
+ */
+router.post('/me/sync-history', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const profile = await getDriverProfileByUserId(req.user!.id);
+        if (!profile) {
+            res.status(404).json({ error: 'Driver profile not found' });
+            return;
+        }
+
+        // Check for linked iRacing identity
+        const identities = await getLinkedIdentities(profile.id);
+        const iracingIdentity = identities.find(i => i.platform === 'iracing');
+
+        if (!iracingIdentity) {
+            res.status(400).json({ error: 'No iRacing account linked. Connect your iRacing account first.' });
+            return;
+        }
+
+        const custId = parseInt(iracingIdentity.platform_user_id, 10);
+        if (isNaN(custId)) {
+            res.status(400).json({ error: 'Invalid iRacing customer ID' });
+            return;
+        }
+
+        // Import backfill functions dynamically to avoid circular deps
+        const { backfillDriverHistory } = await import('../services/idp/iracing-sync.service.js');
+        const { backfillMemoryFromHistory } = await import('../services/idp/driver-memory.service.js');
+
+        // Step 1: Fetch historical races from iRacing API
+        console.log(`[IDP] Starting comprehensive history sync for driver ${profile.id}`);
+        const { synced, errors } = await backfillDriverHistory(profile.id, custId, 50);
+
+        // Step 2: Process through IDP memory system
+        let sessionsProcessed = 0;
+        if (synced > 0) {
+            sessionsProcessed = await backfillMemoryFromHistory(profile.id);
+        }
+
+        res.json({
+            success: true,
+            races_synced: synced,
+            races_errors: errors,
+            sessions_processed: sessionsProcessed,
+            message: synced > 0 
+                ? `Synced ${synced} races and processed ${sessionsProcessed} sessions into your driver profile.`
+                : 'No new races found to sync. Your history may already be up to date.',
+        });
+    } catch (error) {
+        console.error('[IDP] Error in comprehensive history sync:', error);
+        res.status(500).json({ error: 'Failed to sync race history' });
+    }
+});
+
 router.get('/:id/summary', allowPublic, async (req: Request, res: Response): Promise<void> => {
     try {
         const profile = await getDriverProfileById(req.params.id);

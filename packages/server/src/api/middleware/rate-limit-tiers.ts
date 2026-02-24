@@ -3,7 +3,7 @@
 // Product-based rate limits using entitlements
 // =====================================================================
 
-import { rateLimit, type RateLimitRequestHandler } from 'express-rate-limit';
+import { rateLimit, ipKeyGenerator, type RateLimitRequestHandler } from 'express-rate-limit';
 import type { Request, Response, NextFunction } from 'express';
 
 // =====================================================================
@@ -103,9 +103,7 @@ function createLimiterForTier(tier: RateLimitTier): RateLimitRequestHandler {
             // Use user ID if authenticated, fallback to IP
             const user = (req as any).user;
             if (user?.id) return user.id;
-            // Normalize IPv6-mapped IPv4 (::ffff:1.2.3.4 → 1.2.3.4)
-            const ip = req.ip || 'unknown';
-            return ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+            return ipKeyGenerator(req.ip || 'unknown');
         },
         handler: (_req: Request, res: Response) => {
             res.status(429).json({

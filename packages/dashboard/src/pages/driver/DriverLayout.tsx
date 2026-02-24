@@ -5,6 +5,7 @@ const navItems = [
     { to: 'sessions', label: 'Sessions' },
     { to: 'stats', label: 'Stats' },
     { to: 'ratings', label: 'Ratings' },
+    { to: 'crew/engineer', label: 'Engineer' },
 ];
 
 export function DriverLayout() {

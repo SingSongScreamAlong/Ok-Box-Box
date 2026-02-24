@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
-  ArrowLeft, ChevronDown, TrendingUp, TrendingDown, Minus, RefreshCw
+  ArrowLeft, ChevronDown, TrendingUp, TrendingDown, Minus, RefreshCw, Users
 } from 'lucide-react';
 // Service imports for future API integration
 // import { fetchDriverComparison, type DriverComparisonData } from '../../lib/telemetryService';
@@ -57,7 +57,7 @@ interface ComparisonMetric {
 }
 
 // Mock data generators
-function generateLaps(driverSeed: number, lapCount: number): LapData[] {
+function _generateLaps(driverSeed: number, lapCount: number): LapData[] {
   const baseLapTime = 87000 + (driverSeed * 500); // ~1:27.000 base
   const laps: LapData[] = [];
   
@@ -88,7 +88,7 @@ function generateLaps(driverSeed: number, lapCount: number): LapData[] {
   return laps;
 }
 
-function generateTelemetryTrace(driverSeed: number): TelemetryTrace[] {
+function _generateTelemetryTrace(driverSeed: number): TelemetryTrace[] {
   const trace: TelemetryTrace[] = [];
   const brakePoints = [15, 35, 55, 75, 92]; // Track percentage where braking occurs
   
@@ -210,9 +210,127 @@ export function DriverComparison() {
   const [driver1, setDriver1] = useState<DriverData | null>(null); // Demo disabled
   const [driver2, setDriver2] = useState<DriverData | null>(null); // Demo disabled
   const [viewMode, setViewMode] = useState<'laps' | 'telemetry' | 'sectors'>('laps');
-  const [selectedLap, setSelectedLap] = useState<number | 'best'>('best');
   const [showDropdown1, setShowDropdown1] = useState(false);
   const [showDropdown2, setShowDropdown2] = useState(false);
+
+  // --- Empty state: render driver selectors + prompt when either driver is not selected ---
+  if (!driver1 || !driver2) {
+    return (
+      <div className="min-h-screen relative">
+        <div className="fixed inset-0 z-0">
+          <video autoPlay loop muted playsInline className="w-full h-full object-cover opacity-60">
+            <source src="/videos/team-bg.mp4" type="video/mp4" />
+          </video>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/90 via-[#0e0e0e]/70 to-[#0e0e0e]/50" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/90" />
+        </div>
+        <div className="relative z-10">
+          {/* Header */}
+          <div className="border-b border-white/[0.06] bg-[#0e0e0e]/80 backdrop-blur-xl">
+            <div className="max-w-7xl mx-auto px-6 py-4">
+              <div className="flex items-center gap-4">
+                <Link
+                  to={`/team/${teamId}/pitwall`}
+                  className="flex items-center gap-2 text-white/50 hover:text-white text-xs transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Back to Pit Wall
+                </Link>
+                <div className="h-4 w-px bg-white/[0.10]" />
+                <div>
+                  <h1 className="text-lg font-semibold text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>
+                    Driver Comparison
+                  </h1>
+                  <p className="text-[10px] text-white/40">Side-by-side telemetry analysis</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Driver Selection (still interactive in empty state) */}
+          <div className="max-w-7xl mx-auto px-6 py-4">
+            <div className="grid grid-cols-2 gap-6">
+              {/* Driver 1 Selector */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowDropdown1(!showDropdown1)}
+                  className="w-full flex items-center justify-between p-4 bg-white/[0.03] border border-white/[0.10] rounded-lg hover:border-white/[0.20] transition-colors"
+                >
+                  {driver1 ? (
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: driver1.color }}>#{driver1.number}</div>
+                      <div className="text-left">
+                        <p className="text-white font-medium">{driver1.name}</p>
+                        <p className="text-[10px] text-white/40">{driver1.car} • {driver1.iRating} iR</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-white/40 text-sm">Select Driver 1</span>
+                  )}
+                  <ChevronDown className="w-4 h-4 text-white/40" />
+                </button>
+                {showDropdown1 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#141414] border border-white/[0.10] rounded-lg shadow-xl z-10 overflow-hidden">
+                    {drivers.filter(d => d.id !== driver2?.id).map(d => (
+                      <button key={d.id} onClick={() => { setDriver1(d); setShowDropdown1(false); }} className={`w-full flex items-center gap-3 p-3 hover:bg-white/[0.05] transition-colors ${d.id === driver1?.id ? 'bg-white/[0.05]' : ''}`}>
+                        <div className="w-8 h-8 rounded flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: d.color }}>#{d.number}</div>
+                        <div className="text-left"><p className="text-sm text-white">{d.name}</p><p className="text-[10px] text-white/40">{d.iRating} iR</p></div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* Driver 2 Selector */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowDropdown2(!showDropdown2)}
+                  className="w-full flex items-center justify-between p-4 bg-white/[0.03] border border-white/[0.10] rounded-lg hover:border-white/[0.20] transition-colors"
+                >
+                  {driver2 ? (
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold" style={{ backgroundColor: driver2.color }}>#{driver2.number}</div>
+                      <div className="text-left">
+                        <p className="text-white font-medium">{driver2.name}</p>
+                        <p className="text-[10px] text-white/40">{driver2.car} • {driver2.iRating} iR</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-white/40 text-sm">Select Driver 2</span>
+                  )}
+                  <ChevronDown className="w-4 h-4 text-white/40" />
+                </button>
+                {showDropdown2 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-[#141414] border border-white/[0.10] rounded-lg shadow-xl z-10 overflow-hidden">
+                    {drivers.filter(d => d.id !== driver1?.id).map(d => (
+                      <button key={d.id} onClick={() => { setDriver2(d); setShowDropdown2(false); }} className={`w-full flex items-center gap-3 p-3 hover:bg-white/[0.05] transition-colors ${d.id === driver2?.id ? 'bg-white/[0.05]' : ''}`}>
+                        <div className="w-8 h-8 rounded flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: d.color }}>#{d.number}</div>
+                        <div className="text-left"><p className="text-sm text-white">{d.name}</p><p className="text-[10px] text-white/40">{d.iRating} iR</p></div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Empty state prompt */}
+          <div className="max-w-7xl mx-auto px-6 py-16 flex flex-col items-center justify-center text-center">
+            <Users className="w-12 h-12 text-white/20 mb-4" />
+            <h2 className="text-lg text-white/60 font-medium mb-2">Select Two Drivers to Compare</h2>
+            <p className="text-sm text-white/30 max-w-md">
+              {!driver1 && !driver2
+                ? 'Choose both drivers from the selectors above to see a side-by-side telemetry comparison.'
+                : !driver1
+                  ? 'Select the first driver to begin the comparison.'
+                  : 'Select the second driver to begin the comparison.'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Both drivers selected: full comparison view ---
 
   // Calculate comparison metrics
   const getComparisonMetrics = (): ComparisonMetric[] => {
@@ -348,12 +466,12 @@ export function DriverComparison() {
             
             {showDropdown1 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-[#141414] border border-white/[0.10] rounded-lg shadow-xl z-10 overflow-hidden">
-                {drivers.filter(d => d.id !== driver2.id).map(d => (
+                {drivers.filter(d => d.id !== driver2?.id).map(d => (
                   <button
                     key={d.id}
                     onClick={() => { setDriver1(d); setShowDropdown1(false); }}
                     className={`w-full flex items-center gap-3 p-3 hover:bg-white/[0.05] transition-colors ${
-                      d.id === driver1.id ? 'bg-white/[0.05]' : ''
+                      d.id === driver1?.id ? 'bg-white/[0.05]' : ''
                     }`}
                   >
                     <div 
@@ -395,12 +513,12 @@ export function DriverComparison() {
             
             {showDropdown2 && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-[#141414] border border-white/[0.10] rounded-lg shadow-xl z-10 overflow-hidden">
-                {drivers.filter(d => d.id !== driver1.id).map(d => (
+                {drivers.filter(d => d.id !== driver1?.id).map(d => (
                   <button
                     key={d.id}
                     onClick={() => { setDriver2(d); setShowDropdown2(false); }}
                     className={`w-full flex items-center gap-3 p-3 hover:bg-white/[0.05] transition-colors ${
-                      d.id === driver2.id ? 'bg-white/[0.05]' : ''
+                      d.id === driver2?.id ? 'bg-white/[0.05]' : ''
                     }`}
                   >
                     <div 
@@ -626,7 +744,7 @@ export function DriverComparison() {
                       fill="none"
                       stroke={driver1.color}
                       strokeWidth="2"
-                      points={driver1.telemetryTrace.map((t, i) => 
+                      points={driver1.telemetryTrace.map((t, _i) => 
                         `${(t.distance / 100) * 100}%,${100 - (t.speed / 200) * 100}%`
                       ).join(' ')}
                     />
@@ -638,7 +756,7 @@ export function DriverComparison() {
                       stroke={driver2.color}
                       strokeWidth="2"
                       strokeDasharray="4,2"
-                      points={driver2.telemetryTrace.map((t, i) => 
+                      points={driver2.telemetryTrace.map((t, _i) => 
                         `${(t.distance / 100) * 100}%,${100 - (t.speed / 200) * 100}%`
                       ).join(' ')}
                     />

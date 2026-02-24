@@ -42,7 +42,7 @@ CREATE INDEX IF NOT EXISTS idx_team_invites_team ON team_invites(team_id);
 CREATE INDEX IF NOT EXISTS idx_team_invites_email ON team_invites(email);
 CREATE INDEX IF NOT EXISTS idx_team_invites_token ON team_invites(token);
 CREATE INDEX IF NOT EXISTS idx_team_invites_pending ON team_invites(team_id, email) 
-    WHERE accepted_at IS NULL AND revoked_at IS NULL AND expires_at > NOW();
+    WHERE accepted_at IS NULL AND revoked_at IS NULL;
 
 -- ========================
 -- 3. TEAM EVENT PARTICIPANTS (Snapshot Anchor)

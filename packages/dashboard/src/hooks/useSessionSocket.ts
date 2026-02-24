@@ -13,8 +13,8 @@ const getSocketUrl = () => {
     if (import.meta.env.PROD) {
         return window.location.origin;
     }
-    // In development, use env var or localhost
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+    // In development, use env var or production API
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
     try {
         const url = new URL(apiUrl);
         return url.origin;

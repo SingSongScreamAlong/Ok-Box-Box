@@ -7,9 +7,13 @@ export default defineConfig({
     port: 5175,
     proxy: {
       '/api': {
-        target: 'https://octopus-app-qsi3i.ondigitalocean.app',
+        target: 'http://localhost:3001',
         changeOrigin: true,
-        secure: true,
+      },
+      '/socket.io': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        ws: true,
       },
     },
   },

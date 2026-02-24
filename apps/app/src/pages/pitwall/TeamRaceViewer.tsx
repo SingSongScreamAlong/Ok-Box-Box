@@ -82,7 +82,7 @@ interface RaceSession {
 type ViewMode = 'endurance' | 'multidriver';
 
 // Mock team drivers - DISABLED
-// const mockDrivers: Driver[] = [
+// const localDrivers: Driver[] = [
 //   { id: 'd1', name: 'Alex Rivera', shortName: 'RIV', color: '#ef4444', iRating: 4500, safetyRating: 'A 3.2' },
 //   { id: 'd2', name: 'Jordan Chen', shortName: 'CHE', color: '#22c55e', iRating: 4200, safetyRating: 'A 2.8' },
 //   { id: 'd3', name: 'Sam Williams', shortName: 'WIL', color: '#3b82f6', iRating: 3800, safetyRating: 'B 4.1' },
@@ -101,7 +101,7 @@ type ViewMode = 'endurance' | 'multidriver';
 // const mockTeamCar: TeamCar = {
 //   carNumber: '77',
 //   carClass: 'GT3',
-//   currentDriver: mockDrivers[3],
+//   currentDriver: localDrivers[3],
 //   position: 5,
 //   classPosition: 3,
 //   lap: 124,
@@ -184,17 +184,23 @@ export function TeamRaceViewer() {
   // Simulate live updates
   useEffect(() => {
     const interval = setInterval(() => {
-      setTeamCar(prev => ({
-        ...prev,
-        trackPosition: (prev.trackPosition + 0.01) % 1,
-        fuel: Math.max(0, prev.fuel - 0.05),
-        lastLapTime: 114 + Math.random() * 3,
-      }));
-      setSession(prev => ({
-        ...prev,
-        timeRemaining: prev.timeRemaining ? prev.timeRemaining - 1 : null,
-        timeElapsed: prev.timeElapsed + 1,
-      }));
+      setTeamCar(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          trackPosition: (prev.trackPosition + 0.01) % 1,
+          fuel: Math.max(0, prev.fuel - 0.05),
+          lastLapTime: 114 + Math.random() * 3,
+        };
+      });
+      setSession(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          timeRemaining: prev.timeRemaining ? prev.timeRemaining - 1 : null,
+          timeElapsed: prev.timeElapsed + 1,
+        };
+      });
     }, 1000);
     return () => clearInterval(interval);
   }, []);
@@ -233,6 +239,18 @@ export function TeamRaceViewer() {
       default: return <Sun size={16} className="text-yellow-400" />;
     }
   };
+
+  // Guard against null data — show loading state
+  if (!teamCar || !session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+        <div className="text-center">
+          <div className="text-white/40 text-sm uppercase tracking-wider mb-2">Team Race Viewer</div>
+          <div className="text-white/20 text-xs">Waiting for session data...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#0a0a0a]">
@@ -470,9 +488,9 @@ export function TeamRaceViewer() {
                     <div className="flex items-center gap-3 mb-3">
                       <div 
                         className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                        style={{ backgroundColor: mockDrivers.find(d => d.id === teamCar.currentStint?.driverId)?.color + '30', color: mockDrivers.find(d => d.id === teamCar.currentStint?.driverId)?.color }}
+                        style={{ backgroundColor: localDrivers.find(d => d.id === teamCar.currentStint?.driverId)?.color + '30', color: localDrivers.find(d => d.id === teamCar.currentStint?.driverId)?.color }}
                       >
-                        {mockDrivers.find(d => d.id === teamCar.currentStint?.driverId)?.shortName}
+                        {localDrivers.find(d => d.id === teamCar.currentStint?.driverId)?.shortName}
                       </div>
                       <div>
                         <div className="text-white font-semibold">{teamCar.currentStint.driverName}</div>
@@ -513,9 +531,9 @@ export function TeamRaceViewer() {
                           <div className="flex items-center gap-3">
                             <div 
                               className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
-                              style={{ backgroundColor: mockDrivers.find(d => d.id === stint.driverId)?.color + '30', color: mockDrivers.find(d => d.id === stint.driverId)?.color }}
+                              style={{ backgroundColor: localDrivers.find(d => d.id === stint.driverId)?.color + '30', color: localDrivers.find(d => d.id === stint.driverId)?.color }}
                             >
-                              {mockDrivers.find(d => d.id === stint.driverId)?.shortName}
+                              {localDrivers.find(d => d.id === stint.driverId)?.shortName}
                             </div>
                             <div>
                               <div className="text-sm text-white">{stint.driverName}</div>
@@ -563,7 +581,7 @@ export function TeamRaceViewer() {
                   Driver Roster
                 </div>
                 <div className="space-y-3">
-                  {mockDrivers.map((driver) => {
+                  {localDrivers.map((driver) => {
                     const isActive = driver.id === teamCar.currentDriver.id;
                     const driverStints = teamCar.stints.filter(s => s.driverId === driver.id);
                     const totalLaps = driverStints.reduce((sum, s) => sum + s.laps, 0);
@@ -619,7 +637,7 @@ export function TeamRaceViewer() {
                           </div>
                           <div>
                             <div className="text-lg font-bold text-white">
-                              {((totalLaps / session.currentLap) * 100).toFixed(0)}%
+                              {session.currentLap > 0 ? ((totalLaps / session.currentLap) * 100).toFixed(0) : 0}%
                             </div>
                             <div className="text-[10px] text-white/40 uppercase">Drive %</div>
                           </div>
@@ -659,9 +677,9 @@ export function TeamRaceViewer() {
                   Driver Queue
                 </div>
                 <div className="space-y-2">
-                  {mockDrivers.map((driver, index) => {
+                  {localDrivers.map((driver, index) => {
                     const isActive = driver.id === teamCar.currentDriver.id;
-                    const isNext = index === (mockDrivers.findIndex(d => d.id === teamCar.currentDriver.id) + 1) % mockDrivers.length;
+                    const isNext = index === (localDrivers.findIndex(d => d.id === teamCar.currentDriver.id) + 1) % localDrivers.length;
                     
                     return (
                       <div 

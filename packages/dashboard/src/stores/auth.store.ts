@@ -5,8 +5,8 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { API_BASE } from '../config/api';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 interface User {
     id: string;

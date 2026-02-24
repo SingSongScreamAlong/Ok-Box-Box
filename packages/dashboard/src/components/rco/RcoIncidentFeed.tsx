@@ -38,7 +38,7 @@ function getStatusBadge(status: RcoIncident['status']): { label: string; classNa
         case 'acknowledged': return { label: 'ACK', className: 'status-ack' };
         case 'under_review': return { label: 'REVIEW', className: 'status-review' };
         case 'closed': return { label: 'CLOSED', className: 'status-closed' };
-        default: return { label: status.toUpperCase(), className: '' };
+        default: return { label: String(status).toUpperCase(), className: '' };
     }
 }
 

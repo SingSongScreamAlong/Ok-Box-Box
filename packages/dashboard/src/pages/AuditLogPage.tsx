@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/auth.store';
+import { API_BASE } from '../config/api';
 
 interface AuditEntry {
     id: string;
@@ -17,8 +18,6 @@ interface AuditEntry {
     description?: string;
     createdAt: string;
 }
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export default function AuditLogPage() {
     const { accessToken } = useAuthStore();

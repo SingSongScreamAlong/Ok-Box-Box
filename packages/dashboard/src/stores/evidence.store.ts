@@ -4,6 +4,7 @@
 // =====================================================================
 
 import { create } from 'zustand';
+import { API_BASE } from '../config/api';
 import type {
     EvidenceAsset,
     EvidenceSource,
@@ -97,9 +98,6 @@ interface ReplayRefOptions {
     offsetSecondsAfter?: number;
     cameraHint?: string;
 }
-
-// API base URL
-const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export const useEvidenceStore = create<EvidenceState>((set, get) => ({
     evidence: [],

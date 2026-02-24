@@ -161,8 +161,12 @@ CREATE TABLE IF NOT EXISTS teams (
     UNIQUE(league_id, name)
 );
 
--- Add team reference to drivers/entries
-ALTER TABLE drivers_entries ADD COLUMN IF NOT EXISTS team_id UUID REFERENCES teams(id) ON DELETE SET NULL;
+-- Add team reference to drivers/entries (only if table exists)
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'drivers_entries') THEN
+        ALTER TABLE drivers_entries ADD COLUMN IF NOT EXISTS team_id UUID REFERENCES teams(id) ON DELETE SET NULL;
+    END IF;
+END $$;
 
 -- ========================
 -- Audit Log

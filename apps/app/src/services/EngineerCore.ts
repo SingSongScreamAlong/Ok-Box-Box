@@ -16,10 +16,9 @@ import type {
   DriverIdentity, 
   EngineerOpinion,
   EngineerPersonality,
-  OpinionDomain,
-  OpinionSentiment
+  OpinionDomain
 } from '../types/driver-memory';
-import type { TelemetryData, SessionInfo } from '../hooks/useRelay';
+import type { TelemetryData, SessionInfo, RaceIntelligence } from '../hooks/useRelay';
 
 // ========================
 // ENGINEER MESSAGE TYPES
@@ -86,11 +85,24 @@ export interface MentalStateAlert {
 export class EngineerCore {
   private memory: DriverMemory | null;
   private identity: DriverIdentity | null;
-  private opinions: EngineerOpinion[];
+  private _opinions: EngineerOpinion[];
   private personality: EngineerPersonality;
-  private lastMessage: EngineerMessage | null = null;
+  private _lastMessage: EngineerMessage | null = null;
   private silenceUntil: number = 0;
   private messageHistory: EngineerMessage[] = [];
+  
+  // Callout cooldowns — prevent spamming the same type of message
+  private calloutCooldowns: Map<string, number> = new Map();
+  
+  // State tracking for edge-triggered callouts (fire once on transition)
+  private _lastIncidentCount: number = 0;
+  private lastPitStops: number = 0;
+  private fuelWarningFired: boolean = false;
+  private fuelCriticalFired: boolean = false;
+  private tireWarningFired: boolean = false;
+  private tireCriticalFired: boolean = false;
+  private damageAlerted: boolean = false;
+  private engineWarningFired: boolean = false;
   
   // Mental state tracking
   private mentalState: MentalState = {
@@ -116,7 +128,7 @@ export class EngineerCore {
   ) {
     this.memory = memory;
     this.identity = identity;
-    this.opinions = opinions;
+    this._opinions = opinions;
     this.personality = personality;
   }
 
@@ -184,7 +196,7 @@ export class EngineerCore {
 
     // Check driver's callout preference
     if (this.memory?.preferredCalloutFrequency === 'minimal') {
-      return urgency === 'important' || urgency === 'critical';
+      return urgency === 'important';
     }
 
     if (this.memory?.preferredCalloutFrequency === 'frequent') {
@@ -192,7 +204,7 @@ export class EngineerCore {
     }
 
     // Default: speak for important and above
-    return urgency === 'important' || urgency === 'critical';
+    return urgency === 'important';
   }
 
   /**
@@ -228,7 +240,7 @@ export class EngineerCore {
       expiresAt: urgency === 'critical' ? Date.now() + 10000 : Date.now() + 30000,
     };
 
-    this.lastMessage = message;
+    this._lastMessage = message;
     this.messageHistory.push(message);
 
     return message;
@@ -237,7 +249,7 @@ export class EngineerCore {
   /**
    * Determine the appropriate tone based on context
    */
-  private determineTone(urgency: MessageUrgency, domain: OpinionDomain | 'general'): MessageTone {
+  private determineTone(urgency: MessageUrgency, _domain: OpinionDomain | 'general'): MessageTone {
     if (urgency === 'critical') return 'commanding';
     
     if (this.personality.toneStyle === 'direct') {
@@ -379,7 +391,7 @@ export class EngineerCore {
     return 'data_collection';
   }
 
-  private getTrackReminder(trackName: string): string | null {
+  private getTrackReminder(_trackName: string): string | null {
     // This would pull from track-specific memory
     // For now, return null
     return null;
@@ -458,43 +470,286 @@ export class EngineerCore {
   // ========================
 
   /**
-   * Process telemetry and generate appropriate callouts
+   * Check if a callout type is on cooldown
+   */
+  private isOnCooldown(key: string): boolean {
+    const until = this.calloutCooldowns.get(key);
+    return until !== undefined && Date.now() < until;
+  }
+
+  /**
+   * Set a cooldown for a callout type
+   */
+  private setCooldown(key: string, durationMs: number): void {
+    this.calloutCooldowns.set(key, Date.now() + durationMs);
+  }
+
+  /**
+   * Process telemetry and generate appropriate callouts.
+   * Edge-triggered with cooldowns — fires once per state transition, not every frame.
    */
   processLiveTelemetry(
     telemetry: TelemetryData,
-    session: SessionInfo
+    _session: SessionInfo
   ): EngineerMessage | null {
-    // Fuel critical
-    if (telemetry.fuel !== null && telemetry.fuelPerLap !== null) {
-      const lapsLeft = telemetry.fuel / telemetry.fuelPerLap;
-      if (lapsLeft < 2) {
+    const strat = telemetry.strategy;
+    const now = Date.now();
+
+    // Initialize session start time
+    if (this.sessionStartTime === 0) this.sessionStartTime = now;
+
+    // ── FUEL ──────────────────────────────────────────────────
+    const fuelLaps = strat.fuelLapsRemaining;
+    if (fuelLaps !== null) {
+      if (fuelLaps < 2 && !this.fuelCriticalFired) {
+        this.fuelCriticalFired = true;
+        return this.generateMessage('Box this lap. Fuel critical.', 'critical', 'general');
+      }
+      if (fuelLaps < 5 && fuelLaps >= 2 && !this.fuelWarningFired) {
+        this.fuelWarningFired = true;
         return this.generateMessage(
-          'Box this lap. Fuel critical.',
-          'critical',
-          'general'
+          `Pit window open. ${Math.floor(fuelLaps)} laps of fuel remaining.`,
+          'important', 'general'
         );
       }
-      if (lapsLeft < 4 && lapsLeft > 3.5) {
+      // Reset flags if fuel was added (pit stop)
+      if (fuelLaps > 10) {
+        this.fuelWarningFired = false;
+        this.fuelCriticalFired = false;
+      }
+    }
+
+    // ── TIRE WEAR ─────────────────────────────────────────────
+    const minTire = Math.min(strat.tireWear.fl, strat.tireWear.fr, strat.tireWear.rl, strat.tireWear.rr);
+    if (minTire > 0) {
+      if (minTire < 0.15 && !this.tireCriticalFired) {
+        this.tireCriticalFired = true;
+        const worst = this.getWorstTireCorner(strat.tireWear);
         return this.generateMessage(
-          `Pit window open. ${Math.floor(lapsLeft)} laps of fuel.`,
-          'important',
-          'general'
+          `Tires critical. ${worst} is gone. Box or manage.`,
+          'critical', 'general'
+        );
+      }
+      if (minTire < 0.30 && minTire >= 0.15 && !this.tireWarningFired) {
+        this.tireWarningFired = true;
+        return this.generateMessage(
+          `Tire wear ${Math.round(minTire * 100)}%. Start managing your inputs.`,
+          'important', 'general'
+        );
+      }
+      // Reset on fresh tires
+      if (minTire > 0.9) {
+        this.tireWarningFired = false;
+        this.tireCriticalFired = false;
+      }
+    }
+
+    // ── DAMAGE ────────────────────────────────────────────────
+    const maxDamage = Math.max(strat.damageAero, strat.damageEngine);
+    if (maxDamage > 0.05 && !this.damageAlerted) {
+      this.damageAlerted = true;
+      const type = strat.damageAero > strat.damageEngine ? 'aero' : 'engine';
+      const pct = Math.round(maxDamage * 100);
+      if (maxDamage > 0.3) {
+        return this.generateMessage(
+          `Significant ${type} damage — ${pct}%. Consider pitting.`,
+          'critical', 'general'
+        );
+      }
+      return this.generateMessage(
+        `Minor ${type} damage detected — ${pct}%. Monitor.`,
+        'important', 'general'
+      );
+    }
+    if (maxDamage < 0.01) this.damageAlerted = false;
+
+    // ── ENGINE HEALTH ─────────────────────────────────────────
+    if (strat.engine && !this.engineWarningFired) {
+      const oilHot = strat.engine.oilTemp > 130;
+      const waterHot = strat.engine.waterTemp > 110;
+      if (oilHot || waterHot) {
+        this.engineWarningFired = true;
+        const which = oilHot ? `Oil temp ${Math.round(strat.engine.oilTemp)}°C` : `Water temp ${Math.round(strat.engine.waterTemp)}°C`;
+        return this.generateMessage(
+          `${which} — running hot. Manage your pace.`,
+          'important', 'general'
+        );
+      }
+    }
+    if (strat.engine && strat.engine.oilTemp < 120 && strat.engine.waterTemp < 100) {
+      this.engineWarningFired = false;
+    }
+
+    // ── GAP CLOSING (car ahead) ───────────────────────────────
+    if (strat.gapToCarAhead > 0 && strat.gapToCarAhead < 1.0 && !this.isOnCooldown('gap_close')) {
+      this.setCooldown('gap_close', 30000);
+      return this.generateMessage(
+        `Gap under a second. ${strat.gapToCarAhead.toFixed(1)}s to car ahead.`,
+        'important', 'racecraft'
+      );
+    }
+
+    // ── INCIDENTS (mental state) ──────────────────────────────
+    if (telemetry.strategy.pitStops !== this.lastPitStops && this.lastPitStops > 0) {
+      // Pit stop happened
+      this.lastPitStops = strat.pitStops;
+      if (!this.isOnCooldown('pit_exit')) {
+        this.setCooldown('pit_exit', 60000);
+        return this.generateMessage(
+          'Out of the pits. Tires are cold — easy for two laps.',
+          'important', 'general'
+        );
+      }
+    }
+    this.lastPitStops = strat.pitStops;
+
+    // Track incidents for mental state (reserved for future incident count from session)
+
+    // ── PACE FEEDBACK ─────────────────────────────────────────
+    if (telemetry.delta !== null && this.shouldSpeak('low') && !this.isOnCooldown('pace')) {
+      if (telemetry.delta < -0.5) {
+        this.setCooldown('pace', 45000);
+        return this.generateMessage('Good pace. Keep it clean.', 'low', 'pace');
+      }
+      if (telemetry.delta > 1.5) {
+        this.setCooldown('pace', 45000);
+        return this.generateMessage(
+          `Plus ${telemetry.delta.toFixed(1)}. Reset and focus on the next one.`,
+          'low', 'pace'
         );
       }
     }
 
-    // Pace feedback (only if driver wants it)
-    if (telemetry.delta !== null && this.shouldSpeak('normal')) {
-      if (telemetry.delta < -0.5) {
+    // ── MENTAL STATE: Fatigue (long sessions) ─────────────────
+    const sessionMinutes = (now - this.sessionStartTime) / 60000;
+    if (sessionMinutes > 45 && !this.isOnCooldown('fatigue')) {
+      const fatigueOnset = this.memory?.fatigueOnsetLap;
+      if (telemetry.lap !== null && fatigueOnset && telemetry.lap >= fatigueOnset) {
+        this.setCooldown('fatigue', 120000);
         return this.generateMessage(
-          'Good pace. Keep it clean.',
-          'low',
-          'pace'
+          'You tend to lose focus around this point. Stay disciplined.',
+          'normal', 'mental'
         );
+      }
+    }
+
+    // ── LAP TIME TRACKING (for consistency monitoring) ────────
+    if (telemetry.lastLap !== null && telemetry.lastLap > 0 && telemetry.lastLap !== this.lastLapTime) {
+      this.lastLapTime = telemetry.lastLap;
+      this.recentLapTimes.push(telemetry.lastLap);
+      if (this.recentLapTimes.length > 10) this.recentLapTimes.shift();
+
+      // Detect overdriving: if last 3 laps are getting progressively slower
+      if (this.recentLapTimes.length >= 3 && !this.isOnCooldown('overdriving')) {
+        const last3 = this.recentLapTimes.slice(-3);
+        if (last3[2] > last3[1] && last3[1] > last3[0] && (last3[2] - last3[0]) > 0.5) {
+          this.setCooldown('overdriving', 60000);
+          this.mentalState.overdriving = true;
+          return this.generateMessage(
+            'Lap times are climbing. Smooth it out — you\'re overdriving.',
+            'normal', 'pace'
+          );
+        }
       }
     }
 
     return null;
+  }
+
+  /**
+   * Process accumulated race intelligence from the server-side LiveSessionAnalyzer.
+   * Generates smarter, data-driven voice callouts that the basic telemetry processing can't produce.
+   * Edge-triggered with cooldowns — fires once per state transition.
+   */
+  processRaceIntelligence(intel: RaceIntelligence): EngineerMessage | null {
+    // Tire cliff warning — high priority, once
+    if (intel.tireCliff && !this.isOnCooldown('intel-tire-cliff')) {
+      this.setCooldown('intel-tire-cliff', 120000);
+      return this.generateMessage(
+        `Tires are falling off. Estimated ${intel.estimatedTireLapsLeft} laps left on this set. Consider your pit window.`,
+        'important', 'general'
+      );
+    }
+
+    // Overtake opportunity — closing on car ahead
+    if (intel.overtakeOpportunity && intel.gapAhead > 0 && intel.gapAhead < 2.0 && !this.isOnCooldown('intel-overtake')) {
+      this.setCooldown('intel-overtake', 45000);
+      return this.generateMessage(
+        `You're reeling in P${intel.currentPosition - 1}. Gap is ${intel.gapAhead.toFixed(1)} and closing. Push when you're ready.`,
+        'important', 'racecraft'
+      );
+    }
+
+    // Under threat — car behind closing
+    if (intel.underThreat && intel.gapBehind > 0 && intel.gapBehind < 2.0 && !this.isOnCooldown('intel-defend')) {
+      this.setCooldown('intel-defend', 45000);
+      return this.generateMessage(
+        `Car behind is ${intel.gapBehind.toFixed(1)} seconds and gaining. Cover the inside.`,
+        'important', 'racecraft'
+      );
+    }
+
+    // Pit window approaching
+    if (intel.optimalPitLap && intel.optimalPitLap <= (intel.lapCount + 3) && intel.optimalPitLap > intel.lapCount && !this.isOnCooldown('intel-pit-window')) {
+      this.setCooldown('intel-pit-window', 90000);
+      return this.generateMessage(
+        `Pit window opening. Optimal stop lap ${intel.optimalPitLap}. Confirm when ready.`,
+        'important', 'general'
+      );
+    }
+
+    // Fuel won't make it — needs pit
+    if (!intel.fuelToFinish && intel.projectedFuelLaps < 8 && !this.isOnCooldown('intel-fuel-short')) {
+      this.setCooldown('intel-fuel-short', 60000);
+      return this.generateMessage(
+        `Fuel won't make it. ${intel.projectedFuelLaps.toFixed(0)} laps projected. Plan your stop.`,
+        'important', 'general'
+      );
+    }
+
+    // Mental fatigue warning
+    if ((intel.mentalFatigue === 'fatigued' || intel.mentalFatigue === 'tilted') && !this.isOnCooldown('intel-mental')) {
+      this.setCooldown('intel-mental', 180000);
+      if (intel.mentalFatigue === 'tilted') {
+        return this.generateMessage(
+          'You\'re pushing too hard. Incidents are clustering. Take a breath and reset.',
+          'important', 'mental'
+        );
+      }
+      return this.generateMessage(
+        'Long stint. Focus may be dropping. Simplify your inputs.',
+        'normal', 'mental'
+      );
+    }
+
+    // Pace degradation warning
+    if (intel.paceTrend === 'degrading' && intel.currentStintLaps > 5 && !this.isOnCooldown('intel-pace-deg')) {
+      this.setCooldown('intel-pace-deg', 90000);
+      return this.generateMessage(
+        'Pace is dropping off. Could be tires, could be fatigue. Manage the gap.',
+        'normal', 'pace'
+      );
+    }
+
+    // Positive reinforcement — gaining positions with good consistency
+    if (intel.positionsGainedTotal >= 3 && intel.consistencyRating > 80 && !this.isOnCooldown('intel-positive')) {
+      this.setCooldown('intel-positive', 120000);
+      return this.generateMessage(
+        `Good drive. Up ${intel.positionsGainedTotal} positions with ${intel.consistencyRating}% consistency. Keep it clean.`,
+        'low', 'pace'
+      );
+    }
+
+    return null;
+  }
+
+  /**
+   * Get the worst tire corner label
+   */
+  private getWorstTireCorner(wear: { fl: number; fr: number; rl: number; rr: number }): string {
+    const entries: [string, number][] = [['FL', wear.fl], ['FR', wear.fr], ['RL', wear.rl], ['RR', wear.rr]];
+    entries.sort((a, b) => a[1] - b[1]);
+    return entries[0][0];
   }
 
   // ========================

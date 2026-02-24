@@ -4,46 +4,66 @@
 -- =====================================================================
 
 -- ========================
--- 1. TEAM EVENTS (Races the team is participating in)
+-- 1. TEAM EVENTS (Extend existing table from 012 with richer event fields)
 -- ========================
-CREATE TABLE IF NOT EXISTS team_events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
-    
-    -- Event details
-    name VARCHAR(255) NOT NULL,
-    series_name VARCHAR(255),
-    track_name VARCHAR(255) NOT NULL,
-    track_config VARCHAR(100),
-    
-    -- Timing
-    event_date TIMESTAMPTZ NOT NULL,
-    duration_minutes INTEGER, -- For timed races
-    total_laps INTEGER, -- For lap races
-    
-    -- Status
-    status VARCHAR(20) DEFAULT 'upcoming', -- 'upcoming', 'in_progress', 'completed', 'cancelled'
-    
-    -- iRacing integration
-    iracing_subsession_id BIGINT,
-    iracing_series_id INTEGER,
-    
-    -- Settings
-    car_class VARCHAR(100),
-    weather_type VARCHAR(50),
-    time_of_day VARCHAR(50),
-    
-    -- Results (filled after race)
-    finish_position INTEGER,
-    class_position INTEGER,
-    laps_completed INTEGER,
-    total_incidents INTEGER,
-    
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+-- team_events was created in 012_team_system.sql with basic fields.
+-- This migration adds the full event management columns.
+DO $$
+BEGIN
+    -- Add event detail columns
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='name') THEN
+        ALTER TABLE team_events ADD COLUMN name VARCHAR(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='series_name') THEN
+        ALTER TABLE team_events ADD COLUMN series_name VARCHAR(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='track_name') THEN
+        ALTER TABLE team_events ADD COLUMN track_name VARCHAR(255);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='track_config') THEN
+        ALTER TABLE team_events ADD COLUMN track_config VARCHAR(100);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='event_date') THEN
+        ALTER TABLE team_events ADD COLUMN event_date TIMESTAMPTZ;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='duration_minutes') THEN
+        ALTER TABLE team_events ADD COLUMN duration_minutes INTEGER;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='total_laps') THEN
+        ALTER TABLE team_events ADD COLUMN total_laps INTEGER;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='status') THEN
+        ALTER TABLE team_events ADD COLUMN status VARCHAR(20) DEFAULT 'upcoming';
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='iracing_subsession_id') THEN
+        ALTER TABLE team_events ADD COLUMN iracing_subsession_id BIGINT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='iracing_series_id') THEN
+        ALTER TABLE team_events ADD COLUMN iracing_series_id INTEGER;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='car_class') THEN
+        ALTER TABLE team_events ADD COLUMN car_class VARCHAR(100);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='weather_type') THEN
+        ALTER TABLE team_events ADD COLUMN weather_type VARCHAR(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='time_of_day') THEN
+        ALTER TABLE team_events ADD COLUMN time_of_day VARCHAR(50);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='finish_position') THEN
+        ALTER TABLE team_events ADD COLUMN finish_position INTEGER;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='class_position') THEN
+        ALTER TABLE team_events ADD COLUMN class_position INTEGER;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='laps_completed') THEN
+        ALTER TABLE team_events ADD COLUMN laps_completed INTEGER;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='team_events' AND column_name='total_incidents') THEN
+        ALTER TABLE team_events ADD COLUMN total_incidents INTEGER;
+    END IF;
+END $$;
 
-CREATE INDEX IF NOT EXISTS idx_team_events_team ON team_events(team_id);
 CREATE INDEX IF NOT EXISTS idx_team_events_date ON team_events(event_date);
 CREATE INDEX IF NOT EXISTS idx_team_events_status ON team_events(status);
 

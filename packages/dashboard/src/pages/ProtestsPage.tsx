@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/auth.store';
 import { EvidenceViewer, EvidenceUploader } from '../components/evidence';
+import { API_BASE } from '../config/api';
 
 interface Protest {
     id: string;
@@ -18,8 +19,6 @@ interface Protest {
     createdAt: string;
     resolvedAt?: string;
 }
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export default function ProtestsPage() {
     const { accessToken } = useAuthStore();

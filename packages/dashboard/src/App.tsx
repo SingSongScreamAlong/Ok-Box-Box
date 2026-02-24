@@ -15,6 +15,7 @@ import { ReportsPage } from './pages/ReportsPage';
 import { LoginPage } from './pages/LoginPage';
 import { Pricing } from './pages/Pricing';
 import { BillingReturn } from './pages/BillingReturn';
+import { SubscriptionManagement } from './pages/SubscriptionManagement';
 import AboutBuild from './pages/AboutBuild';
 import { DownloadRelay } from './pages/DownloadRelay';
 import { Broadcast } from './pages/Broadcast';
@@ -52,6 +53,7 @@ import { DriverIDPOverviewPage } from './pages/driver/DriverIDPOverviewPage';
 import { DriverSessionsPage } from './pages/driver/DriverSessionsPage';
 import { DriverStatsPage } from './pages/driver/DriverStatsPage';
 import { DriverRatingsPage } from './pages/driver/DriverRatingsPage';
+import { CrewEngineerPage } from './pages/driver/CrewEngineerPage';
 
 export function App() {
     return (
@@ -122,12 +124,20 @@ export function App() {
                                     <Route path="sessions" element={<DriverSessionsPage />} />
                                     <Route path="stats" element={<DriverStatsPage />} />
                                     <Route path="ratings" element={<DriverRatingsPage />} />
+                                    <Route path="crew/engineer" element={<CrewEngineerPage />} />
                                 </Route>
 
                                 {/* Billing return (after checkout) */}
                                 <Route path="/billing/return" element={
                                     <ProtectedRoute>
                                         <BillingReturn />
+                                    </ProtectedRoute>
+                                } />
+
+                                {/* Subscription Management */}
+                                <Route path="/billing/manage" element={
+                                    <ProtectedRoute>
+                                        <SubscriptionManagement />
                                     </ProtectedRoute>
                                 } />
 
