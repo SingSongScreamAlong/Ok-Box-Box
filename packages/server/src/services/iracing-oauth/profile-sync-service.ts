@@ -360,6 +360,33 @@ export class IRacingProfileSyncService {
             }
             console.log(`[iRacing Sync] Event type breakdown:`, eventTypeCounts);
             
+            // Log sample results to understand the data structure
+            if (uniqueResults.length > 0) {
+                const sample = uniqueResults[0];
+                console.log(`[iRacing Sync] Sample result keys:`, Object.keys(sample));
+                console.log(`[iRacing Sync] Sample result:`, {
+                    subsession_id: sample.subsession_id,
+                    event_type: sample.event_type,
+                    event_type_name: sample.event_type_name,
+                    series_name: sample.series_name || sample.series_short_name,
+                    official_session: sample.official_session,
+                    session_type: sample.session_type,
+                    track: sample.track?.track_name || sample.track_name,
+                });
+                
+                // Log a few more samples with different event types
+                const eventType5Sample = uniqueResults.find(r => r.event_type === 5);
+                if (eventType5Sample) {
+                    console.log(`[iRacing Sync] Event type 5 sample:`, {
+                        subsession_id: eventType5Sample.subsession_id,
+                        event_type: eventType5Sample.event_type,
+                        series_name: eventType5Sample.series_name || eventType5Sample.series_short_name,
+                        official_session: eventType5Sample.official_session,
+                        track: eventType5Sample.track?.track_name || eventType5Sample.track_name,
+                    });
+                }
+            }
+            
             // Filter to only actual races (event_type 2 = Race)
             // event_type 5 = Time Trial (solo sessions, not actual races)
             const racesOnly = uniqueResults.filter(r => {
