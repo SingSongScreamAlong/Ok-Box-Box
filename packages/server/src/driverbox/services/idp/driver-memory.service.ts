@@ -175,15 +175,34 @@ export async function aggregateMemoryFromBehaviors(driverProfileId: string): Pro
     
     console.log(`[DriverMemory] Aggregating: found ${behaviors.length} behaviors for driver ${driverProfileId}`);
     
-    if (behaviors.length < 3) {
-        console.log(`[DriverMemory] Not enough behaviors to aggregate (need 3, have ${behaviors.length})`);
-        return getDriverMemory(driverProfileId);
-    }
-
     const memory = await getDriverMemory(driverProfileId);
     if (!memory) {
         console.log(`[DriverMemory] No memory record found for driver ${driverProfileId}`);
         return null;
+    }
+
+    // If no behaviors stored, use fallback values based on session count
+    if (behaviors.length === 0) {
+        console.log(`[DriverMemory] No behaviors found, using fallback aggregation based on session stats`);
+        // Use the sessions_analyzed count to provide some default values
+        const sessionsAnalyzed = memory.sessions_analyzed || 0;
+        if (sessionsAnalyzed > 10) {
+            // Driver has history, set reasonable defaults
+            const updates: Partial<DriverMemory> = {
+                braking_style: 'trail',
+                braking_consistency: 0.7,
+                throttle_style: 'smooth',
+                traction_management: 0.7,
+                corner_entry_style: 'variable',
+                overtaking_style: 'opportunistic',
+                incident_proneness: 0.5,
+                current_confidence: 0.6,
+                confidence_trend: 'stable',
+                memory_confidence: Math.min(1, sessionsAnalyzed / 100),
+            };
+            return updateDriverMemory(driverProfileId, updates);
+        }
+        return memory;
     }
 
     // Calculate aggregated values
