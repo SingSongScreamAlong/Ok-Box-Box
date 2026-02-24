@@ -22,6 +22,7 @@ import {
 } from '../../../db/repositories/driver-memory.repo.js';
 import { getMetricsForDriver } from '../../../db/repositories/session-metrics.repo.js';
 import { getGlobalAggregate } from '../../../db/repositories/driver-aggregates.repo.js';
+import { pool } from '../../../db/client.js';
 
 // ========================
 // Types
@@ -515,6 +516,61 @@ export async function runMemoryPipeline(
     const identity = await updateDriverIdentityFromData(driverProfileId);
 
     return { behavior, memory, opinions, identity };
+}
+
+// ========================
+// Backfill from iRacing Race Results
+// ========================
+
+export async function backfillFromIRacingResults(userId: string, driverProfileId: string): Promise<number> {
+    // Fetch race results from iracing_race_results table
+    const result = await pool.query(
+        `SELECT * FROM iracing_race_results 
+         WHERE admin_user_id = $1 
+         ORDER BY session_start_time DESC NULLS LAST
+         LIMIT 100`,
+        [userId]
+    );
+    
+    const races = result.rows;
+    console.log(`[DriverMemory] Processing ${races.length} iRacing race results for driver ${driverProfileId}`);
+    
+    let processed = 0;
+    for (const race of races) {
+        try {
+            // Skip if missing critical data
+            if (!race.finish_position && !race.laps_complete) {
+                continue;
+            }
+            
+            await analyzeSessionBehavior({
+                sessionId: `iracing-${race.subsession_id}`,
+                driverProfileId,
+                sessionType: (race.event_type === 'practice' || race.event_type === 'qualifying') ? race.event_type : 'race',
+                trackName: race.track_name || 'Unknown',
+                carName: race.car_name || 'Unknown',
+                laps: race.laps_complete || 0,
+                incidents: race.incidents || 0,
+                startPosition: race.start_position ?? undefined,
+                finishPosition: race.finish_position ?? undefined,
+                positionsGained: race.start_position && race.finish_position 
+                    ? race.start_position - race.finish_position 
+                    : undefined,
+            });
+            processed++;
+        } catch (error) {
+            console.error(`[DriverMemory] Error processing race ${race.subsession_id}:`, error);
+        }
+    }
+    
+    // Generate opinions and update identity after processing
+    if (processed > 0) {
+        await generateEngineerOpinions(driverProfileId);
+        await updateDriverIdentityFromData(driverProfileId);
+    }
+    
+    console.log(`[DriverMemory] Processed ${processed}/${races.length} iRacing races into IDP memory`);
+    return processed;
 }
 
 // ========================

@@ -457,8 +457,8 @@ router.post('/me/sync-history', requireAuth, async (req: Request, res: Response)
         // Process through IDP memory system if we have race data
         let sessionsProcessed = 0;
         if (raceCount > 0) {
-            const { backfillMemoryFromHistory } = await import('../services/idp/driver-memory.service.js');
-            sessionsProcessed = await backfillMemoryFromHistory(profile.id);
+            const { backfillFromIRacingResults } = await import('../services/idp/driver-memory.service.js');
+            sessionsProcessed = await backfillFromIRacingResults(req.user!.id, profile.id);
         }
 
         res.json({
