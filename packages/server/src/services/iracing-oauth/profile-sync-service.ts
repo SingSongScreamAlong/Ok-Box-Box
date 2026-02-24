@@ -216,9 +216,22 @@ export class IRacingProfileSyncService {
             const formatForIRacing = (date: Date): string => {
                 return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
             };
-            const finishStart = formatForIRacing(startDate);
-            const finishEnd = formatForIRacing(now);
-            console.log(`[iRacing Sync] Date range: ${finishStart} to ${finishEnd}`);
+            
+            // iRacing API has a maximum date range limit (~90 days)
+            // We need to chunk the sync into smaller windows
+            const CHUNK_DAYS = 90;
+            const MS_PER_DAY = 24 * 60 * 60 * 1000;
+            const dateChunks: Array<{ start: Date; end: Date }> = [];
+            
+            let chunkStart = new Date(startDate);
+            while (chunkStart < now) {
+                const chunkEnd = new Date(Math.min(chunkStart.getTime() + CHUNK_DAYS * MS_PER_DAY, now.getTime()));
+                dateChunks.push({ start: new Date(chunkStart), end: chunkEnd });
+                chunkStart = new Date(chunkEnd.getTime() + 1000); // +1 second to avoid overlap
+            }
+            
+            console.log(`[iRacing Sync] Will fetch in ${dateChunks.length} chunks of ${CHUNK_DAYS} days each`);
+            console.log(`[iRacing Sync] Full date range: ${formatForIRacing(startDate)} to ${formatForIRacing(now)}`);
 
             // Helper to extract results from iRacing API response (handles chunked responses)
             const extractResults = async (response: any): Promise<any[]> => {
@@ -270,89 +283,61 @@ export class IRacingProfileSyncService {
 
             let raceResults: any[] = [];
 
-            // 1. Fetch OFFICIAL series races for ALL categories (1=oval, 2=road, 3=dirt_oval, 4=dirt_road)
-            // The API may limit results per category, so we fetch each separately
-            const categories = [1, 2, 3, 4]; // oval, road, dirt_oval, dirt_road
-            
-            for (const categoryId of categories) {
+            // Fetch races for each date chunk (iRacing API has ~90 day limit)
+            for (let chunkIdx = 0; chunkIdx < dateChunks.length; chunkIdx++) {
+                const chunk = dateChunks[chunkIdx];
+                const chunkStart = formatForIRacing(chunk.start);
+                const chunkEnd = formatForIRacing(chunk.end);
+                console.log(`[iRacing Sync] Processing chunk ${chunkIdx + 1}/${dateChunks.length}: ${chunkStart} to ${chunkEnd}`);
+                
+                // 1. Fetch OFFICIAL series races (all categories at once, simpler)
                 try {
-                    console.log(`[iRacing Sync] Fetching official races category ${categoryId} from ${finishStart} to ${finishEnd}`);
                     const searchResults = await this.iracingApiFetch<any>(accessToken,
-                        `/data/results/search_series?cust_id=${custId}&finish_range_begin=${finishStart}&finish_range_end=${finishEnd}&category_ids=${categoryId}`
+                        `/data/results/search_series?cust_id=${custId}&finish_range_begin=${chunkStart}&finish_range_end=${chunkEnd}`
                     );
                     
-                    // Debug: Log the raw response structure
-                    console.log(`[iRacing Sync] Category ${categoryId} API response:`, {
-                        type: typeof searchResults,
-                        isArray: Array.isArray(searchResults),
-                        keys: searchResults ? Object.keys(searchResults).slice(0, 10) : 'null',
-                        hasData: !!searchResults?.data,
-                        hasChunkInfo: !!searchResults?.data?.chunk_info || !!searchResults?.chunk_info,
-                        resultCount: searchResults?.data?.result_count || searchResults?.result_count,
-                    });
+                    const chunkInfo = searchResults?.data?.chunk_info || searchResults?.chunk_info;
+                    if (chunkInfo?.rows > 0) {
+                        console.log(`[iRacing Sync] Chunk ${chunkIdx + 1} official: ${chunkInfo.rows} rows in ${chunkInfo.num_chunks} chunks`);
+                    }
                     
-                    const categoryRaces = await extractResults(searchResults);
-                    console.log(`[iRacing Sync] Found ${categoryRaces.length} official races in category ${categoryId}`);
-                    raceResults.push(...categoryRaces);
+                    const officialRaces = await extractResults(searchResults);
+                    if (officialRaces.length > 0) {
+                        console.log(`[iRacing Sync] Chunk ${chunkIdx + 1}: Found ${officialRaces.length} official races`);
+                        raceResults.push(...officialRaces);
+                    }
                 } catch (err) {
-                    console.warn(`[iRacing Sync] Failed to fetch official races category ${categoryId}:`, err);
+                    console.warn(`[iRacing Sync] Chunk ${chunkIdx + 1} official races failed:`, err instanceof Error ? err.message : err);
+                }
+
+                // 2. Fetch HOSTED races (leagues, private sessions, etc.)
+                try {
+                    const hostedResults = await this.iracingApiFetch<any>(accessToken,
+                        `/data/results/search_hosted?participant_custid=${custId}&finish_range_begin=${chunkStart}&finish_range_end=${chunkEnd}`
+                    );
+                    
+                    const chunkInfo = hostedResults?.data?.chunk_info || hostedResults?.chunk_info;
+                    if (chunkInfo?.rows > 0) {
+                        console.log(`[iRacing Sync] Chunk ${chunkIdx + 1} hosted: ${chunkInfo.rows} rows`);
+                    }
+                    
+                    const hostedRaces = await extractResults(hostedResults);
+                    if (hostedRaces.length > 0) {
+                        console.log(`[iRacing Sync] Chunk ${chunkIdx + 1}: Found ${hostedRaces.length} hosted races`);
+                        raceResults.push(...hostedRaces);
+                    }
+                } catch (err) {
+                    // Hosted endpoint may not be available for all accounts
+                    console.warn(`[iRacing Sync] Chunk ${chunkIdx + 1} hosted races failed:`, err instanceof Error ? err.message : err);
+                }
+                
+                // Small delay between chunks to avoid rate limiting
+                if (chunkIdx < dateChunks.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
                 }
             }
             
-            // Also try without category filter as fallback
-            try {
-                console.log(`[iRacing Sync] Fetching official races (all categories) from ${finishStart} to ${finishEnd}`);
-                const searchResults = await this.iracingApiFetch<any>(accessToken,
-                    `/data/results/search_series?cust_id=${custId}&finish_range_begin=${finishStart}&finish_range_end=${finishEnd}`
-                );
-                
-                // Debug: Log the raw response structure
-                console.log(`[iRacing Sync] Official races API response:`, {
-                    type: typeof searchResults,
-                    isArray: Array.isArray(searchResults),
-                    keys: searchResults ? Object.keys(searchResults).slice(0, 10) : 'null',
-                    hasData: !!searchResults?.data,
-                    hasChunkInfo: !!searchResults?.data?.chunk_info,
-                    hasResults: !!searchResults?.results,
-                    dataKeys: searchResults?.data ? Object.keys(searchResults.data).slice(0, 10) : 'no data',
-                    resultCount: searchResults?.data?.result_count,
-                    chunkFileCount: searchResults?.data?.chunk_info?.chunk_file_names?.length,
-                });
-                
-                const officialRaces = await extractResults(searchResults);
-                console.log(`[iRacing Sync] Found ${officialRaces.length} official series races`);
-                raceResults.push(...officialRaces);
-            } catch (err) {
-                console.warn(`[iRacing Sync] Failed to fetch official races:`, err);
-            }
-
-            // 2. Fetch HOSTED races (leagues, private sessions, etc.)
-            // Note: search_hosted uses participant_custid, not cust_id
-            try {
-                console.log(`[iRacing Sync] Fetching hosted races from ${finishStart} to ${finishEnd}`);
-                const hostedResults = await this.iracingApiFetch<any>(accessToken,
-                    `/data/results/search_hosted?participant_custid=${custId}&finish_range_begin=${finishStart}&finish_range_end=${finishEnd}`
-                );
-                
-                // Debug: Log the raw response structure
-                console.log(`[iRacing Sync] Hosted races API response:`, {
-                    type: typeof hostedResults,
-                    isArray: Array.isArray(hostedResults),
-                    keys: hostedResults ? Object.keys(hostedResults).slice(0, 10) : 'null',
-                    hasData: !!hostedResults?.data,
-                    hasChunkInfo: !!hostedResults?.data?.chunk_info || !!hostedResults?.chunk_info,
-                    hasResults: !!hostedResults?.results,
-                    dataKeys: hostedResults?.data ? Object.keys(hostedResults.data).slice(0, 10) : 'no data',
-                    resultCount: hostedResults?.data?.result_count || hostedResults?.result_count,
-                    chunkFileCount: hostedResults?.data?.chunk_info?.chunk_file_names?.length || hostedResults?.chunk_info?.chunk_file_names?.length,
-                });
-                
-                const hostedRaces = await extractResults(hostedResults);
-                console.log(`[iRacing Sync] Found ${hostedRaces.length} hosted/league races`);
-                raceResults.push(...hostedRaces);
-            } catch (err) {
-                console.warn(`[iRacing Sync] Failed to fetch hosted races:`, err instanceof Error ? err.message : err);
-            }
+            console.log(`[iRacing Sync] Total races fetched across all chunks: ${raceResults.length}`);
 
             // Deduplicate by subsession_id (we may have fetched same race from multiple category queries)
             const seenSubsessions = new Set<string>();
