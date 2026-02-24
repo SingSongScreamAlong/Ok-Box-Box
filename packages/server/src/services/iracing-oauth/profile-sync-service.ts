@@ -360,17 +360,18 @@ export class IRacingProfileSyncService {
             }
             console.log(`[iRacing Sync] Event type breakdown:`, eventTypeCounts);
             
-            // Filter to only actual races (event_type 2 = Race, 5 = Time Trial counts for SR/iR)
-            // The search_series endpoint should only return races, but let's verify
+            // Filter to only actual races (event_type 2 = Race)
+            // event_type 5 = Time Trial (solo sessions, not actual races)
             const racesOnly = uniqueResults.filter(r => {
                 const eventType = r.event_type;
-                // event_type 2 = Race, 5 = Time Trial (both count for ratings)
+                // event_type 2 = Race only
                 // If no event_type, assume it's a race (search_series should only return races)
-                return eventType === undefined || eventType === 2 || eventType === 5;
+                return eventType === undefined || eventType === 2;
             });
             
-            if (racesOnly.length !== uniqueResults.length) {
-                console.log(`[iRacing Sync] Filtered to ${racesOnly.length} actual races (removed ${uniqueResults.length - racesOnly.length} non-race sessions)`);
+            const timeTrials = uniqueResults.filter(r => r.event_type === 5).length;
+            if (timeTrials > 0) {
+                console.log(`[iRacing Sync] Filtered out ${timeTrials} time trials, keeping ${racesOnly.length} actual races`);
             }
             
             raceResults = racesOnly;
