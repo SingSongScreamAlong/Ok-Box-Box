@@ -183,11 +183,11 @@ export class IRacingProfileSyncService {
         console.log(`[iRacing Sync] Fetching race results for user ${userId} (cust_id ${custId})`);
 
         try {
-            // Fetch recent official race results
-            // /data/results/search_series returns the user's recent results
+            // Fetch race results - go back 5 years to get full history
+            // /data/results/search_series returns the user's results in the date range
             const now = new Date();
-            const threeMonthsAgo = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-            const finishStart = threeMonthsAgo.toISOString();
+            const fiveYearsAgo = new Date(now.getTime() - 5 * 365 * 24 * 60 * 60 * 1000);
+            const finishStart = fiveYearsAgo.toISOString();
             const finishEnd = now.toISOString();
 
             const searchResults = await this.iracingApiFetch<any>(accessToken,
