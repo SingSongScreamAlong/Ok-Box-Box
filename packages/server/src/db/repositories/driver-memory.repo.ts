@@ -225,7 +225,8 @@ export async function incrementMemoryStats(
 export async function createSessionBehavior(
     behavior: Omit<DriverSessionBehavior, 'id' | 'computed_at'>
 ): Promise<DriverSessionBehavior> {
-    const result = await pool.query<DriverSessionBehavior>(
+    try {
+        const result = await pool.query<DriverSessionBehavior>(
         `INSERT INTO driver_session_behaviors (
             session_id, driver_profile_id, session_type, track_name, car_name,
             avg_brake_point_delta_m, brake_consistency_score, throttle_application_score,
@@ -277,8 +278,12 @@ export async function createSessionBehavior(
             behavior.estimated_confidence,
             behavior.confidence_trajectory,
         ]
-    );
-    return result.rows[0];
+        );
+        return result.rows[0];
+    } catch (error) {
+        console.error(`[DriverMemory] Failed to create session behavior:`, error instanceof Error ? error.message : error);
+        throw error;
+    }
 }
 
 export async function getSessionBehaviors(
