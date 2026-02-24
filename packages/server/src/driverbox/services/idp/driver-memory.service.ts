@@ -546,7 +546,6 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
     for (const race of races) {
         try {
             // Process all races - even if some fields are null, we can still learn from them
-            const sessionId = `iracing-${race.subsession_id}`;
             const laps = race.laps_complete || race.laps_lead || 0;
             const incidents = race.incidents ?? 0;
             const startPos = race.start_position;
@@ -558,8 +557,13 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
                 continue;
             }
             
+            // Generate a deterministic UUID from subsession_id for deduplication
+            // Using a simple hash-based approach: pad subsession_id to create valid UUID format
+            const subsessionStr = String(race.subsession_id).padStart(12, '0');
+            const sessionUuid = `00000000-0000-4000-8000-${subsessionStr}`;
+            
             await analyzeSessionBehavior({
-                sessionId,
+                sessionId: sessionUuid,
                 driverProfileId,
                 sessionType: (race.event_type === 'practice' || race.event_type === 'qualifying') ? race.event_type : 'race',
                 trackName: race.track_name || 'Unknown',
