@@ -20,7 +20,7 @@ export interface LiveTelemetry {
 }
 
 export interface SessionState {
-  status: 'offline' | 'connecting' | 'connected' | 'in_session';
+  status: 'offline' | 'connecting' | 'connected' | 'in_session' | 'reconnecting';
   trackId: string;
   trackName: string;
   sessionType: 'practice' | 'qualifying' | 'race';
@@ -72,8 +72,8 @@ export function useLiveTelemetry(): UseLiveTelemetryReturn {
       interval: '--',
       speed: relayTelemetry.speed || 0,
       fuel: relayTelemetry.fuel || 0,
-      lapsRemaining: relayTelemetry.lapsRemaining || 0,
-      tireWear: { fl: 1, fr: 1, rl: 1, rr: 1 },
+      lapsRemaining: relayTelemetry.strategy.fuelLapsRemaining || relayTelemetry.lapsRemaining || 0,
+      tireWear: relayTelemetry.strategy.tireWear,
       trackPosition: relayTelemetry.trackPosition || 0,
       sector: relayTelemetry.sector || 1,
       delta: relayTelemetry.delta ? `${relayTelemetry.delta > 0 ? '+' : ''}${relayTelemetry.delta.toFixed(3)}` : '--',

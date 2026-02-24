@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-export type RelayStatus = 'disconnected' | 'connecting' | 'connected' | 'in_session';
+export type RelayStatus = 'disconnected' | 'connecting' | 'connected' | 'in_session' | 'reconnecting';
 
 export interface CarMapPosition {
   trackPercentage: number;
@@ -193,6 +193,7 @@ const defaultSession: SessionInfo = {
 
 interface RelayContextValue {
   status: RelayStatus;
+  reconnectAttempts: number;
   telemetry: TelemetryData;
   session: SessionInfo;
   incidents: LiveIncident[];
@@ -221,6 +222,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   const [incidents, setIncidents] = useState<LiveIncident[]>([]);
   const [engineerUpdates, setEngineerUpdates] = useState<EngineerUpdate[]>([]);
   const [raceIntelligence, setRaceIntelligence] = useState<RaceIntelligence | null>(null);
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const socketRef = useRef<Socket | null>(null);
 
   // Helper to convert track position to x,y coordinates for map
@@ -251,8 +253,10 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     const socket = io(wsUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
+      reconnectionAttempts: Infinity, // Keep trying during races
+      reconnectionDelay: 1000,        // Start at 1 second
+      reconnectionDelayMax: 30000,    // Cap at 30 seconds
+      randomizationFactor: 0.5,       // Add jitter (±50%) to prevent thundering herd
     });
 
     socketRef.current = socket;
@@ -263,13 +267,42 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       socket.emit('dashboard:join', { type: 'driver' });
     });
 
-    socket.on('disconnect', () => {
-      console.log('[Relay] Disconnected from server');
-      setStatus('disconnected');
+    socket.on('disconnect', (reason) => {
+      console.log('[Relay] Disconnected from server, reason:', reason);
+      // If server closed connection or transport error, Socket.IO will auto-reconnect
+      // Only set 'disconnected' for intentional disconnects
+      if (reason === 'io client disconnect' || reason === 'io server disconnect') {
+        setStatus('disconnected');
+      } else {
+        setStatus('reconnecting');
+      }
     });
 
     socket.on('connect_error', (error) => {
       console.error('[Relay] Connection error:', error);
+      // Don't set to disconnected here - let reconnection logic handle it
+    });
+
+    // Reconnection event handlers for exponential backoff feedback
+    socket.io.on('reconnect_attempt', (attempt) => {
+      console.log(`[Relay] Reconnection attempt ${attempt}`);
+      setReconnectAttempts(attempt);
+      setStatus('reconnecting');
+    });
+
+    socket.io.on('reconnect', (attempt) => {
+      console.log(`[Relay] Reconnected after ${attempt} attempts`);
+      setReconnectAttempts(0);
+      setStatus('connected');
+      socket.emit('dashboard:join', { type: 'driver' });
+    });
+
+    socket.io.on('reconnect_error', (error) => {
+      console.error('[Relay] Reconnection error:', error);
+    });
+
+    socket.io.on('reconnect_failed', () => {
+      console.error('[Relay] Reconnection failed after all attempts');
       setStatus('disconnected');
     });
 
@@ -525,7 +558,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   }, [initialized, connect]);
 
   return (
-    <RelayContext.Provider value={{ status, telemetry, session, incidents, engineerUpdates, raceIntelligence, connect, disconnect, getCarMapPosition }}>
+    <RelayContext.Provider value={{ status, reconnectAttempts, telemetry, session, incidents, engineerUpdates, raceIntelligence, connect, disconnect, getCarMapPosition }}>
       {children}
     </RelayContext.Provider>
   );
@@ -536,6 +569,7 @@ export function useRelay() {
   if (!context) {
     return {
       status: 'disconnected' as RelayStatus,
+      reconnectAttempts: 0,
       telemetry: defaultTelemetry,
       session: defaultSession,
       incidents: [] as LiveIncident[],
