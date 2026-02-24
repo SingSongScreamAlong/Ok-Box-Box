@@ -625,7 +625,7 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
             const subsessionStr = String(race.subsession_id).padStart(12, '0');
             const sessionUuid = `00000000-0000-4000-8000-${subsessionStr}`;
             
-            await analyzeSessionBehavior({
+            const behavior = await analyzeSessionBehavior({
                 sessionId: sessionUuid,
                 driverProfileId,
                 sessionType: (race.event_type === 'practice' || race.event_type === 'qualifying') ? race.event_type : 'race',
@@ -639,9 +639,13 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
                     ? startPos - finishPos 
                     : undefined,
             });
-            processed++;
+            if (behavior) {
+                processed++;
+            } else {
+                console.warn(`[DriverMemory] No behavior returned for race ${race.subsession_id}`);
+            }
         } catch (error) {
-            console.error(`[DriverMemory] Error processing race ${race.subsession_id}:`, error);
+            console.error(`[DriverMemory] Error processing race ${race.subsession_id}:`, error instanceof Error ? error.message : error);
         }
     }
     
