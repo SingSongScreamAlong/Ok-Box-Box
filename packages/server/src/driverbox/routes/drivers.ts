@@ -965,6 +965,87 @@ router.get('/me/track-analysis', requireAuth, async (req: Request, res: Response
 // ========================
 
 /**
+ * GET /api/v1/drivers/me/idp
+ * Get full Intelligent Driver Profile data (memory, opinions, identity)
+ * Used by the Driver Profile UI to show archetype, tendencies, and AI assessments
+ */
+router.get('/me/idp', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const profile = await getDriverProfileByUserId(req.user!.id);
+        if (!profile) {
+            res.status(404).json({ error: 'No driver profile found' });
+            return;
+        }
+
+        // Fetch memory, opinions, and identity in parallel
+        const [memoryResult, opinionsResult, identityResult] = await Promise.all([
+            pool.query(`SELECT * FROM driver_memory WHERE driver_profile_id = $1`, [profile.id]),
+            pool.query(
+                `SELECT * FROM engineer_opinions 
+                 WHERE driver_profile_id = $1 AND superseded_by IS NULL 
+                 ORDER BY priority DESC`,
+                [profile.id]
+            ),
+            pool.query(`SELECT * FROM driver_identity WHERE driver_profile_id = $1`, [profile.id]),
+        ]);
+
+        const memoryRow = memoryResult.rows[0];
+        const identityRow = identityResult.rows[0];
+
+        // Transform memory to camelCase for frontend
+        const memory = memoryRow ? {
+            brakingStyle: memoryRow.braking_style,
+            brakingConsistency: memoryRow.braking_consistency,
+            throttleStyle: memoryRow.throttle_style,
+            tractionManagement: memoryRow.traction_management,
+            cornerEntryStyle: memoryRow.corner_entry_style,
+            overtakingStyle: memoryRow.overtaking_style,
+            currentConfidence: memoryRow.current_confidence,
+            confidenceTrend: memoryRow.confidence_trend,
+            postIncidentTiltRisk: memoryRow.post_incident_tilt_risk,
+            fatigueOnsetLap: memoryRow.fatigue_onset_lap,
+            lateRaceDegradation: memoryRow.late_race_degradation,
+            sessionLengthSweetSpot: memoryRow.session_length_sweet_spot,
+            incidentProneness: memoryRow.incident_proneness,
+            recoverySpeed: memoryRow.recovery_speed,
+            sessionsAnalyzed: memoryRow.sessions_analyzed || 0,
+            lapsAnalyzed: memoryRow.laps_analyzed || 0,
+            memoryConfidence: memoryRow.memory_confidence || 0,
+        } : null;
+
+        // Transform opinions to camelCase
+        const opinions = opinionsResult.rows.map((o: any) => ({
+            id: o.id,
+            domain: o.opinion_domain,
+            summary: o.opinion_summary,
+            sentiment: o.opinion_sentiment,
+            suggestedAction: o.suggested_action,
+            priority: o.priority,
+            evidenceSummary: o.evidence_summary,
+        }));
+
+        // Transform identity to camelCase
+        const identity = identityRow ? {
+            archetype: identityRow.driver_archetype,
+            archetypeConfidence: identityRow.archetype_confidence,
+            archetypeEvidence: identityRow.archetype_evidence,
+            skillTrajectory: identityRow.skill_trajectory,
+            trajectoryEvidence: identityRow.trajectory_evidence,
+            readyForLongerRaces: identityRow.ready_for_longer_races,
+            readyForHigherSplits: identityRow.ready_for_higher_splits,
+            readyForNewDiscipline: identityRow.ready_for_new_discipline,
+            currentChapter: identityRow.current_chapter,
+            nextMilestone: identityRow.next_milestone,
+        } : null;
+
+        res.json({ memory, opinions, identity });
+    } catch (error) {
+        console.error('[IDP] Error fetching IDP data:', error);
+        res.status(500).json({ error: 'Failed to fetch IDP data' });
+    }
+});
+
+/**
  * GET /api/v1/drivers/me/memories
  * Get driver memory insights (tendencies, strengths, weaknesses learned from sessions)
  */

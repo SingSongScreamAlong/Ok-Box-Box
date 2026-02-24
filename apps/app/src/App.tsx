@@ -50,6 +50,7 @@ import { LeagueProtests } from './pages/LeagueProtests';
 import { StewardConsole } from './pages/league/StewardConsole';
 import { PublicTiming } from './pages/league/PublicTiming';
 import { DriverProgress } from './pages/driver/DriverProgress';
+import { DriverIDP } from './pages/driver/DriverIDP';
 import { ReplayViewer } from './pages/driver/ReplayViewer';
 import { DriverHUD } from './pages/driver/DriverHUD';
 import { DriverVoice } from './pages/driver/DriverVoice';
@@ -126,6 +127,7 @@ function App() {
           <Route path="crew/spotter" element={<SpotterChat />} />
           <Route path="crew/analyst" element={<AnalystChat />} />
           <Route path="progress" element={<DriverProgress />} />
+          <Route path="idp" element={<DriverIDP />} />
           <Route path="replay/:sessionId" element={<ReplayViewer />} />
           <Route path="settings/hud" element={<DriverHUD />} />
           <Route path="settings/voice" element={<DriverVoice />} />
