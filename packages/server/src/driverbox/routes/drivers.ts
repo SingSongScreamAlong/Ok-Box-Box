@@ -524,6 +524,71 @@ router.post('/me/sync-history', requireAuth, async (req: Request, res: Response)
     }
 });
 
+/**
+ * POST /api/v1/drivers/me/sync-history-full
+ * Force a FULL re-sync of all race history (ignores incremental sync)
+ * This fetches ALL races from member_since date, not just new ones
+ */
+router.post('/me/sync-history-full', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const profile = await getDriverProfileByUserId(req.user!.id);
+        if (!profile) {
+            res.status(404).json({ error: 'Driver profile not found' });
+            return;
+        }
+
+        const syncService = getIRacingProfileSyncService();
+        const oauthService = (await import('../../services/iracing-oauth/iracing-oauth-service.js')).getIRacingOAuthService();
+        
+        // Get valid access token
+        const accessToken = await oauthService.getValidAccessToken(req.user!.id);
+        if (!accessToken) {
+            res.status(400).json({ 
+                error: 'No iRacing account linked or OAuth token expired. Please reconnect your iRacing account in Settings.' 
+            });
+            return;
+        }
+
+        // Get iRacing profile for custId and memberSince
+        const iracingProfile = await syncService.getStoredProfile(req.user!.id);
+        if (!iracingProfile) {
+            res.status(400).json({ error: 'No iRacing profile found. Try regular sync first.' });
+            return;
+        }
+
+        // Force full sync - pass true for forceFullSync
+        console.log(`[IDP] Force full sync requested for user ${req.user!.id}`);
+        const racesSynced = await syncService.syncRaceResults(
+            req.user!.id, 
+            accessToken, 
+            iracingProfile.iracingCustomerId,
+            iracingProfile.memberSince,
+            true // forceFullSync
+        );
+
+        // Get total count after sync
+        const raceCount = await syncService.getRaceResultsCount(req.user!.id);
+
+        // Process through IDP memory system
+        let sessionsProcessed = 0;
+        if (raceCount > 0) {
+            const { backfillFromIRacingResults } = await import('../services/idp/driver-memory.service.js');
+            sessionsProcessed = await backfillFromIRacingResults(req.user!.id, profile.id);
+        }
+
+        res.json({
+            success: true,
+            new_races_synced: racesSynced,
+            total_races: raceCount,
+            sessions_processed: sessionsProcessed,
+            message: `Full sync complete. Found ${racesSynced} new races. Total: ${raceCount} races. Processed ${sessionsProcessed} sessions.`,
+        });
+    } catch (error) {
+        console.error('[IDP] Error in full history sync:', error);
+        res.status(500).json({ error: 'Failed to sync race history' });
+    }
+});
+
 router.get('/:id/summary', allowPublic, async (req: Request, res: Response): Promise<void> => {
     try {
         const profile = await getDriverProfileById(req.params.id);

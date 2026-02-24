@@ -181,27 +181,28 @@ export class IRacingProfileSyncService {
      * Fetch and store race results from iRacing
      * Uses incremental sync - only fetches races newer than the most recent stored race
      * Falls back to member_since date for first sync
+     * Set forceFullSync=true to re-fetch all races from member_since
      */
-    async syncRaceResults(userId: string, accessToken: string, custId: string, memberSince?: string | null): Promise<number> {
-        console.log(`[iRacing Sync] Fetching race results for user ${userId} (cust_id ${custId})`);
+    async syncRaceResults(userId: string, accessToken: string, custId: string, memberSince?: string | null, forceFullSync: boolean = false): Promise<number> {
+        console.log(`[iRacing Sync] Fetching race results for user ${userId} (cust_id ${custId}) forceFullSync=${forceFullSync}`);
 
         try {
             const now = new Date();
             let startDate: Date;
             
-            // Check for most recent stored race (incremental sync)
+            // Check for most recent stored race (incremental sync) - skip if forcing full sync
             const lastRaceResult = await pool.query(
                 `SELECT MAX(session_start_time) as last_race FROM iracing_race_results WHERE admin_user_id = $1`,
                 [userId]
             );
             const lastRaceTime = lastRaceResult.rows[0]?.last_race;
             
-            if (lastRaceTime) {
+            if (lastRaceTime && !forceFullSync) {
                 // Incremental sync: start from last race + 1 second
                 startDate = new Date(new Date(lastRaceTime).getTime() + 1000);
                 console.log(`[iRacing Sync] Incremental sync from ${startDate.toISOString()}`);
             } else if (memberSince) {
-                // First sync: use member_since date
+                // First sync or forced full sync: use member_since date
                 startDate = new Date(memberSince);
                 console.log(`[iRacing Sync] Full sync from member_since: ${startDate.toISOString()}`);
             } else {
@@ -441,6 +442,45 @@ export class IRacingProfileSyncService {
             [userId]
         );
         return parseInt(result.rows[0]?.count || '0', 10);
+    }
+
+    /**
+     * Get stored iRacing profile for a user
+     */
+    async getStoredProfile(userId: string): Promise<IRacingProfile | null> {
+        const result = await pool.query(
+            `SELECT * FROM iracing_profiles WHERE admin_user_id = $1`,
+            [userId]
+        );
+        if (result.rows.length === 0) return null;
+        
+        const row = result.rows[0];
+        return {
+            iracingCustomerId: row.iracing_customer_id,
+            displayName: row.display_name,
+            firstName: row.first_name,
+            lastName: row.last_name,
+            iratingOval: row.irating_oval,
+            iratingRoad: row.irating_road,
+            iratingDirtOval: row.irating_dirt_oval,
+            iratingDirtRoad: row.irating_dirt_road,
+            srOval: row.sr_oval,
+            srRoad: row.sr_road,
+            srDirtOval: row.sr_dirt_oval,
+            srDirtRoad: row.sr_dirt_road,
+            licenseOval: row.license_oval,
+            licenseRoad: row.license_road,
+            licenseDirtOval: row.license_dirt_oval,
+            licenseDirtRoad: row.license_dirt_road,
+            memberSince: row.member_since,
+            clubId: row.club_id,
+            clubName: row.club_name,
+            helmetPattern: row.helmet_pattern,
+            helmetColor1: row.helmet_color1,
+            helmetColor2: row.helmet_color2,
+            helmetColor3: row.helmet_color3,
+            lastSyncedAt: row.last_synced_at,
+        };
     }
 
     // -----------------------------------------------------------------
