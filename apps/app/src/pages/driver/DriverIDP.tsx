@@ -107,28 +107,30 @@ const SENTIMENT_STYLES: Record<string, { bg: string; border: string; icon: typeo
   critical: { bg: 'bg-red-500/10', border: 'border-red-500/30', icon: AlertTriangle },
 };
 
-function formatPercent(value: number | null): string {
-  if (value === null) return '—';
+function formatPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) return '—';
   return `${Math.round(value * 100)}%`;
 }
 
-function formatStyle(value: string | null): string {
+function formatStyle(value: string | null | undefined): string {
   if (!value || value === 'unknown') return '—';
   return value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ');
 }
 
-function ConfidenceMeter({ value, label }: { value: number | null; label: string }) {
-  const pct = value !== null ? Math.round(value * 100) : 0;
+function ConfidenceMeter({ value, label }: { value: number | null | undefined; label: string }) {
+  // Handle null, undefined, and NaN
+  const isValid = value !== null && value !== undefined && !isNaN(value);
+  const pct = isValid ? Math.round(value * 100) : 0;
   const color = pct >= 70 ? 'bg-emerald-500' : pct >= 40 ? 'bg-amber-500' : 'bg-red-500';
   
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <span className="text-[10px] text-white/50 uppercase tracking-wider">{label}</span>
-        <span className="text-xs font-mono text-white/70">{value !== null ? `${pct}%` : '—'}</span>
+        <span className="text-xs font-mono text-white/70">{isValid ? `${pct}%` : '—'}</span>
       </div>
       <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
-        <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
+        <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${isValid ? pct : 0}%` }} />
       </div>
     </div>
   );
