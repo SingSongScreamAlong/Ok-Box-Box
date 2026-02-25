@@ -980,11 +980,41 @@ router.get('/me/development', requireAuth, async (req: Request, res: Response): 
         }
 
         // Get performance data to build development insights
-        const [globalAggregate, traits, metrics] = await Promise.all([
+        const [globalAggregate, traits, sessionMetrics] = await Promise.all([
             getGlobalAggregate(profile.id, 'all_time'),
             getCurrentTraits(profile.id),
             getMetricsForDriver(profile.id, 30, 0), // Last 30 sessions for gamification
         ]);
+
+        // Fallback to iRacing race results if no session_metrics
+        let metrics: any[] = sessionMetrics;
+        if (metrics.length === 0) {
+            const iracingResult = await pool.query(
+                `SELECT * FROM iracing_race_results 
+                 WHERE admin_user_id = $1 
+                   AND (session_type = 'official_race' OR session_type = 'unofficial_race' OR (session_type IS NULL AND LOWER(event_type) = 'race'))
+                 ORDER BY session_start_time DESC
+                 LIMIT 30`,
+                [req.user!.id]
+            );
+            
+            if (iracingResult.rows.length > 0) {
+                // Convert iRacing data to metrics-like format for the helper functions
+                metrics = iracingResult.rows.map((r: any) => ({
+                    finish_position: r.finish_position,
+                    start_position: r.start_position,
+                    incident_count: r.incidents,
+                    pace_percentile: 50, // Not available from iRacing
+                    lap_time_std_dev_ms: 0, // Not available
+                    irating_change: r.irating_change,
+                    positions_gained: (r.start_position || 0) - (r.finish_position || 0),
+                    total_laps: r.laps_complete,
+                    computed_at: r.session_start_time,
+                    track_name: r.track_name,
+                    series_name: r.series_name,
+                }));
+            }
+        }
 
         // Build development data from real performance metrics
         const developmentData = {
@@ -2626,10 +2656,13 @@ function buildNextSessionPlan(traits: any[], metrics: any[]): any {
         };
     }
 
-    const recentInc = metrics.slice(0, 3).reduce((s: number, m: any) => s + (parseFloat(m.incident_count) || 0), 0) / Math.min(metrics.length, 3);
-    const recentStdDev = metrics.slice(0, 3).reduce((s: number, m: any) => s + (parseFloat(m.lap_time_std_dev_ms) || 0), 0) / Math.min(metrics.length, 3);
-    const recentPace = metrics.slice(0, 3).reduce((s: number, m: any) => s + (parseFloat(m.pace_percentile) || 0), 0) / Math.min(metrics.length, 3);
-    const recentPosGained = metrics.slice(0, 3).reduce((s: number, m: any) => s + (parseFloat(m.positions_gained) || 0), 0) / Math.min(metrics.length, 3);
+    const count = Math.min(metrics.length, 3);
+    const recentInc = metrics.slice(0, count).reduce((s: number, m: any) => s + (parseFloat(m.incident_count) || 0), 0) / count;
+    const recentStdDev = metrics.slice(0, count).reduce((s: number, m: any) => s + (parseFloat(m.lap_time_std_dev_ms) || 0), 0) / count;
+    const recentPace = metrics.slice(0, count).reduce((s: number, m: any) => s + (parseFloat(m.pace_percentile) || 50), 0) / count;
+    const recentPosGained = metrics.slice(0, count).reduce((s: number, m: any) => s + (parseFloat(m.positions_gained) || 0), 0) / count;
+    const recentIRatingChange = metrics.slice(0, count).reduce((s: number, m: any) => s + (parseFloat(m.irating_change) || 0), 0);
+    const cleanRaces = metrics.slice(0, 5).filter((m: any) => (parseFloat(m.incident_count) || 0) === 0).length;
 
     // Priority: incidents → consistency → pace → racecraft
     if (recentInc > 4) {
@@ -2680,6 +2713,19 @@ function buildNextSessionPlan(traits: any[], metrics: any[]): any {
         };
     }
 
+    // Check if on a winning streak
+    if (recentIRatingChange > 50 && cleanRaces >= 2) {
+        return {
+            focus: 'Maintain Your Momentum',
+            drills: [
+                'Stick with what\'s working — same warm-up routine, same focus',
+                'Don\'t change your approach when you\'re winning',
+                'Stay disciplined — overconfidence leads to mistakes',
+            ],
+            reminder: `You're on fire! +${Math.round(recentIRatingChange)} iRating in your last ${count} races. Keep it clean.`,
+        };
+    }
+
     // Default: balanced improvement
     const weaknesses = traits.filter((t: any) => t.trait_category === 'weakness');
     const focusArea = weaknesses.length > 0 ? weaknesses[0].trait_label : 'overall performance';
@@ -2691,7 +2737,7 @@ function buildNextSessionPlan(traits: any[], metrics: any[]): any {
             `Focus on ${focusArea.toLowerCase()} during practice`,
             'Set a mini-goal for the race: one specific thing to improve',
         ],
-        reminder: 'You\'re making progress. Trust the process and stay patient.',
+        reminder: cleanRaces >= 3 ? 'Your clean racing is paying off. Keep building that SR!' : 'You\'re making progress. Trust the process and stay patient.',
     };
 }
 
