@@ -160,23 +160,27 @@ export async function analyzeSessionBehavior(input: SessionAnalysisInput): Promi
 // Memory Aggregation
 // ========================
 
-export async function aggregateMemoryFromBehaviors(driverProfileId: string): Promise<DriverMemory | null> {
+export async function aggregateMemoryFromBehaviors(driverProfileId: string, userId?: string): Promise<DriverMemory | null> {
     const memory = await getDriverMemory(driverProfileId);
     if (!memory) {
         console.log(`[DriverMemory] No memory record found for driver ${driverProfileId}`);
         return null;
     }
 
-    // Get the user ID to query race results directly
-    const profileResult = await pool.query(
-        `SELECT admin_user_id FROM driver_profiles WHERE id = $1`,
-        [driverProfileId]
-    );
-    const userId = profileResult.rows[0]?.admin_user_id;
-    if (!userId) {
+    // Get the user ID to query race results directly (use passed userId or look it up)
+    let resolvedUserId = userId;
+    if (!resolvedUserId) {
+        const profileResult = await pool.query(
+            `SELECT admin_user_id FROM driver_profiles WHERE id = $1`,
+            [driverProfileId]
+        );
+        resolvedUserId = profileResult.rows[0]?.admin_user_id;
+    }
+    if (!resolvedUserId) {
         console.log(`[DriverMemory] No user ID found for profile ${driverProfileId}`);
         return memory;
     }
+    console.log(`[DriverMemory] Aggregating for profile ${driverProfileId}, userId ${resolvedUserId}`);
 
     // Query actual race data for comprehensive analysis
     // Include fallback for races where session_type might not be set but event_type is 'race'
@@ -190,7 +194,7 @@ export async function aggregateMemoryFromBehaviors(driverProfileId: string): Pro
            )
          ORDER BY session_start_time DESC
          LIMIT 100`,
-        [userId]
+        [resolvedUserId]
     );
     const races = racesResult.rows;
     console.log(`[DriverMemory] Aggregating from ${races.length} races for driver ${driverProfileId}`);
@@ -1162,7 +1166,7 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
     if (processed > 0) {
         try {
             console.log(`[DriverMemory] Aggregating memory from ${processed} sessions...`);
-            await aggregateMemoryFromBehaviors(driverProfileId);
+            await aggregateMemoryFromBehaviors(driverProfileId, userId);
         } catch (aggregateError) {
             console.error(`[DriverMemory] Error aggregating memory:`, aggregateError);
         }
