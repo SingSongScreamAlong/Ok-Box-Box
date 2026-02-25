@@ -292,9 +292,11 @@ export class IRacingProfileSyncService {
                 console.log(`[iRacing Sync] Processing chunk ${chunkIdx + 1}/${dateChunks.length}: ${chunkStart} to ${chunkEnd}`);
                 
                 // 1. Fetch OFFICIAL series races (all categories at once, simpler)
+                // event_types: 2=Practice, 3=Qualify, 4=Time Trial, 5=Race
+                // We only want actual races (event_types=5)
                 try {
                     const searchResults = await this.iracingApiFetch<any>(accessToken,
-                        `/data/results/search_series?cust_id=${custId}&finish_range_begin=${chunkStart}&finish_range_end=${chunkEnd}`
+                        `/data/results/search_series?cust_id=${custId}&finish_range_begin=${chunkStart}&finish_range_end=${chunkEnd}&event_types=5`
                     );
                     
                     const chunkInfo = searchResults?.data?.chunk_info || searchResults?.chunk_info;
@@ -312,9 +314,10 @@ export class IRacingProfileSyncService {
                 }
 
                 // 2. Fetch HOSTED races (leagues, private sessions, etc.)
+                // Also filter to only races (event_types=5)
                 try {
                     const hostedResults = await this.iracingApiFetch<any>(accessToken,
-                        `/data/results/search_hosted?participant_custid=${custId}&finish_range_begin=${chunkStart}&finish_range_end=${chunkEnd}`
+                        `/data/results/search_hosted?participant_custid=${custId}&finish_range_begin=${chunkStart}&finish_range_end=${chunkEnd}&event_types=5`
                     );
                     
                     const chunkInfo = hostedResults?.data?.chunk_info || hostedResults?.chunk_info;
