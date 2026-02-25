@@ -70,6 +70,7 @@ export interface TelemetryData {
 
 export interface SessionInfo {
   trackName: string | null;
+  trackId: number | null;  // iRacing track ID for shape file loading
   sessionType: 'practice' | 'qualifying' | 'race' | null;
   timeRemaining: number | null;
   lapsRemaining: number | null;
@@ -183,6 +184,7 @@ const defaultTelemetry: TelemetryData = {
 
 const defaultSession: SessionInfo = {
   trackName: null,
+  trackId: null,
   sessionType: null,
   timeRemaining: null,
   lapsRemaining: null,
@@ -325,6 +327,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       setSession(prev => ({
         ...prev,
         trackName: data.trackName || prev.trackName || 'Unknown Track',
+        trackId: data.trackId || prev.trackId,  // iRacing track ID for shape file loading
         sessionType: (data.sessionType || prev.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
         rpmRedline: data.rpmRedline || prev.rpmRedline,
         fuelTankCapacity: data.fuelTankCapacity || prev.fuelTankCapacity,

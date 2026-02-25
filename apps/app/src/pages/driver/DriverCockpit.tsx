@@ -56,8 +56,13 @@ export function DriverCockpit() {
     }
   }, [voiceEnabled, criticalMessages, speak]);
 
-  // Use track from session — getTrackId handles year stripping and slug resolution
-  const trackId = session?.trackName ? getTrackId(session.trackName) : 'daytona';
+  // Use trackId directly from session when available (iRacing numeric ID)
+  // Fall back to name-based lookup if trackId not provided
+  const trackId = session?.trackId 
+    ? String(session.trackId) 
+    : session?.trackName 
+      ? getTrackId(session.trackName) 
+      : 'daytona';
 
   // Heatmap data will come from live telemetry when available
   const [heatmapData] = useState<{ speed: number }[]>([]);

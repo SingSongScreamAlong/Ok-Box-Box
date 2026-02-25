@@ -107,6 +107,7 @@ class SessionData:
     track_name: str
     track_config: str
     track_length: float
+    track_id: int  # iRacing track ID for shape file loading
     session_type: str
     session_name: str
     weather_temp: float
@@ -200,6 +201,7 @@ class IRacingReader:
                 track_name=weekend_info.get('TrackDisplayName', 'Unknown Track'),
                 track_config=weekend_info.get('TrackConfigName', ''),
                 track_length=float(weekend_info.get('TrackLength', '0 km').split()[0]),
+                track_id=int(weekend_info.get('TrackID', 0)),
                 session_type=current_session.get('SessionType', 'Practice'),
                 session_name=current_session.get('SessionName', 'Session'),
                 weather_temp=float(weekend_info.get('TrackAirTemp', '20 C').split()[0]),

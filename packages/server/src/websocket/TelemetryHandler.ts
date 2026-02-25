@@ -8,7 +8,7 @@ import { getOrCreateAnalyzer } from '../services/ai/live-session-analyzer.js';
 import { generateSpotterCallouts } from '../services/ai/proactive-spotter.js';
 
 // Store current session info for late-joining clients
-let currentSessionInfo: { sessionId: string; trackName: string; sessionType: string; carName?: string; rpmRedline?: number; fuelTankCapacity?: number; trackLength?: string } | null = null;
+let currentSessionInfo: { sessionId: string; trackName: string; trackId?: number; sessionType: string; carName?: string; rpmRedline?: number; fuelTankCapacity?: number; trackLength?: string } | null = null;
 
 export class TelemetryHandler {
     private static firstPacketLogged = false;
@@ -49,6 +49,7 @@ export class TelemetryHandler {
                 currentSessionInfo = {
                     sessionId: rawData.sessionId,
                     trackName: rawData.trackName,
+                    trackId: rawData.trackId,  // iRacing track ID for shape file loading
                     sessionType: rawData.sessionType,
                     carName: rawData.carName,
                     rpmRedline: rawData.rpmRedline,
