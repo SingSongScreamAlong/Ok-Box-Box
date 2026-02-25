@@ -1162,26 +1162,25 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
         console.error(`[DriverMemory] Error recalculating stats:`, statsError);
     }
     
-    // Aggregate memory, generate opinions, and update identity after ALL races are processed
-    if (processed > 0) {
-        try {
-            console.log(`[DriverMemory] Aggregating memory from ${processed} sessions...`);
-            await aggregateMemoryFromBehaviors(driverProfileId, userId);
-        } catch (aggregateError) {
-            console.error(`[DriverMemory] Error aggregating memory:`, aggregateError);
-        }
-        
-        try {
-            await generateEngineerOpinions(driverProfileId, userId);
-        } catch (opinionError) {
-            console.error(`[DriverMemory] Error generating opinions:`, opinionError);
-        }
-        
-        try {
-            await updateDriverIdentityFromData(driverProfileId);
-        } catch (identityError) {
-            console.error(`[DriverMemory] Error updating identity:`, identityError);
-        }
+    // ALWAYS aggregate memory, generate opinions, and update identity
+    // Even if no new behaviors were created (e.g., all already existed), we still need to recalculate
+    try {
+        console.log(`[DriverMemory] Aggregating memory (processed ${processed} new sessions)...`);
+        await aggregateMemoryFromBehaviors(driverProfileId, userId);
+    } catch (aggregateError) {
+        console.error(`[DriverMemory] Error aggregating memory:`, aggregateError);
+    }
+    
+    try {
+        await generateEngineerOpinions(driverProfileId, userId);
+    } catch (opinionError) {
+        console.error(`[DriverMemory] Error generating opinions:`, opinionError);
+    }
+    
+    try {
+        await updateDriverIdentityFromData(driverProfileId);
+    } catch (identityError) {
+        console.error(`[DriverMemory] Error updating identity:`, identityError);
     }
     
     console.log(`[DriverMemory] Processed ${processed}/${allSessions.length} iRacing races into IDP memory`);
