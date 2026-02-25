@@ -13,7 +13,6 @@ import {
     deleteAllOpinionsForDriver,
     getDriverIdentity,
     updateDriverIdentity,
-    logMemoryEvent,
     DriverMemory,
     DriverSessionBehavior,
     EngineerOpinion,
@@ -162,157 +161,246 @@ export async function analyzeSessionBehavior(input: SessionAnalysisInput): Promi
 // ========================
 
 export async function aggregateMemoryFromBehaviors(driverProfileId: string): Promise<DriverMemory | null> {
-    // Debug: direct count to see if behaviors exist at all
-    const countResult = await pool.query(
-        `SELECT COUNT(*) as total FROM driver_session_behaviors WHERE driver_profile_id = $1`,
-        [driverProfileId]
-    );
-    console.log(`[DriverMemory] Total behaviors in DB for ${driverProfileId}: ${countResult.rows[0]?.total}`);
-    
-    const behaviors = await getRecentBehaviorsForAggregation(driverProfileId, 20);
-    
-    console.log(`[DriverMemory] Aggregating: found ${behaviors.length} behaviors for driver ${driverProfileId}`);
-    
     const memory = await getDriverMemory(driverProfileId);
     if (!memory) {
         console.log(`[DriverMemory] No memory record found for driver ${driverProfileId}`);
         return null;
     }
 
-    // If no behaviors stored, use fallback values based on session count
-    if (behaviors.length === 0) {
-        console.log(`[DriverMemory] No behaviors found, using fallback aggregation based on session stats`);
-        // Use the sessions_analyzed count to provide some default values
-        const sessionsAnalyzed = memory.sessions_analyzed || 0;
-        if (sessionsAnalyzed > 10) {
-            // Driver has history, set reasonable defaults
-            const updates: Partial<DriverMemory> = {
-                braking_style: 'trail',
-                braking_consistency: 0.7,
-                throttle_style: 'smooth',
-                traction_management: 0.7,
-                corner_entry_style: 'variable',
-                overtaking_style: 'opportunistic',
-                incident_proneness: 0.5,
-                current_confidence: 0.6,
-                confidence_trend: 'stable',
-                memory_confidence: Math.min(1, sessionsAnalyzed / 100),
-            };
-            return updateDriverMemory(driverProfileId, updates);
-        }
+    // Get the user ID to query race results directly
+    const profileResult = await pool.query(
+        `SELECT admin_user_id FROM driver_profiles WHERE id = $1`,
+        [driverProfileId]
+    );
+    const userId = profileResult.rows[0]?.admin_user_id;
+    if (!userId) {
+        console.log(`[DriverMemory] No user ID found for profile ${driverProfileId}`);
         return memory;
     }
 
-    // Calculate aggregated values
-    const brakeScores = behaviors.filter(b => b.brake_consistency_score !== null).map(b => b.brake_consistency_score!);
-    const throttleScores = behaviors.filter(b => b.throttle_application_score !== null).map(b => b.throttle_application_score!);
+    // Query actual race data for comprehensive analysis
+    const racesResult = await pool.query(
+        `SELECT * FROM iracing_race_results 
+         WHERE admin_user_id = $1 
+           AND (session_type = 'official_race' OR session_type = 'unofficial_race')
+         ORDER BY session_start_time DESC
+         LIMIT 100`,
+        [userId]
+    );
+    const races = racesResult.rows;
+    console.log(`[DriverMemory] Aggregating from ${races.length} races for driver ${driverProfileId}`);
+
+    if (races.length === 0) {
+        console.log(`[DriverMemory] No races found, keeping existing memory`);
+        return memory;
+    }
+
+    // ========== INCIDENT ANALYSIS ==========
+    const totalIncidents = races.reduce((sum, r) => sum + (r.incidents || 0), 0);
+    const totalLaps = races.reduce((sum, r) => sum + (r.laps_complete || 0), 0);
+    const avgIncidentsPerRace = totalIncidents / races.length;
+    const incidentsPerLap = totalLaps > 0 ? totalIncidents / totalLaps : 0;
     
-    console.log(`[DriverMemory] Found ${brakeScores.length} brake scores, ${throttleScores.length} throttle scores`);
-    const confidenceScores = behaviors.filter(b => b.estimated_confidence !== null).map(b => b.estimated_confidence!);
+    // Clean racing score: 0 = always incidents, 1 = always clean
+    const cleanRaces = races.filter(r => (r.incidents || 0) === 0).length;
+    const cleanRaceRatio = cleanRaces / races.length;
+    
+    // Incident proneness: lower = more prone to incidents (inverted for UI)
+    // Scale: 0.25 = very incident prone, 0.75 = very clean
+    const incidentProneness = Math.max(0.1, Math.min(0.9, 0.5 + (cleanRaceRatio - 0.3) * 1.5));
 
-    const avgBrakeConsistency = brakeScores.length > 0 
-        ? brakeScores.reduce((a, b) => a + b, 0) / brakeScores.length 
-        : null;
-    const avgThrottleScore = throttleScores.length > 0 
-        ? throttleScores.reduce((a, b) => a + b, 0) / throttleScores.length 
-        : null;
-    const avgConfidence = confidenceScores.length > 0 
-        ? confidenceScores.reduce((a, b) => a + b, 0) / confidenceScores.length 
-        : 0.5;
+    // ========== POSITION ANALYSIS ==========
+    const positionChanges = races
+        .filter(r => r.start_position != null && r.finish_position != null)
+        .map(r => r.start_position - r.finish_position); // positive = gained positions
+    
+    const avgPositionsGained = positionChanges.length > 0
+        ? positionChanges.reduce((a, b) => a + b, 0) / positionChanges.length
+        : 0;
 
-    // Determine braking style from consistency
-    let brakingStyle: 'early' | 'late' | 'trail' | 'threshold' | 'unknown' = 'unknown';
-    if (avgBrakeConsistency !== null) {
-        if (avgBrakeConsistency > 0.8) brakingStyle = 'threshold';
-        else if (avgBrakeConsistency > 0.6) brakingStyle = 'trail';
-        else brakingStyle = 'unknown';
-    }
-
-    // Determine throttle style
-    let throttleStyle: 'aggressive' | 'smooth' | 'hesitant' | 'unknown' = 'unknown';
-    if (avgThrottleScore !== null) {
-        if (avgThrottleScore > 0.8) throttleStyle = 'smooth';
-        else if (avgThrottleScore > 0.6) throttleStyle = 'aggressive';
-        else if (avgThrottleScore > 0.4) throttleStyle = 'hesitant';
-    }
-
-    // Incident proneness
-    const incidentClusteringCount = behaviors.filter(b => b.incident_clustering).length;
-    const incidentProneness = 1 - (incidentClusteringCount / behaviors.length);
-
-    // Corner entry style - derived from safety vs aggression balance
-    let cornerEntryStyle: 'aggressive' | 'conservative' | 'variable' | null = null;
-    if (avgBrakeConsistency !== null && avgThrottleScore !== null) {
-        const avgScore = (avgBrakeConsistency + avgThrottleScore) / 2;
-        if (avgScore > 0.75) cornerEntryStyle = 'conservative'; // Clean = conservative
-        else if (avgScore > 0.5) cornerEntryStyle = 'variable';
-        else cornerEntryStyle = 'aggressive'; // More incidents = aggressive entry
-    }
-
-    // Overtaking style - derived from positions gained patterns
-    const positionsLost = behaviors.filter(b => (b.positions_lost_to_mistakes || 0) > 0).length;
-    const positionsLostRatio = positionsLost / behaviors.length;
-    let overtakingStyle: 'aggressive' | 'patient' | 'opportunistic' | null = null;
-    if (incidentProneness > 0.8 && positionsLostRatio < 0.2) {
-        overtakingStyle = 'patient'; // Clean racing, few positions lost
-    } else if (incidentProneness < 0.5) {
-        overtakingStyle = 'aggressive'; // High incidents = aggressive moves
+    // ========== DRIVING STYLE DERIVATION ==========
+    // Since we don't have telemetry, derive style from race patterns
+    
+    // Braking style: derived from incident patterns and position changes
+    // High incidents + losing positions = late/aggressive braking
+    // Clean + gaining positions = controlled braking
+    let brakingStyle: 'early' | 'late' | 'trail' | 'threshold' | 'unknown' = 'trail';
+    if (cleanRaceRatio > 0.6 && avgPositionsGained > 1) {
+        brakingStyle = 'threshold'; // Clean and fast = good brake control
+    } else if (cleanRaceRatio > 0.4) {
+        brakingStyle = 'trail'; // Moderate = trail braking
+    } else if (avgIncidentsPerRace > 3) {
+        brakingStyle = 'late'; // High incidents = braking too late
     } else {
-        overtakingStyle = 'opportunistic'; // Middle ground
+        brakingStyle = 'early'; // Cautious approach
     }
+
+    // Braking consistency: based on clean race ratio
+    const brakingConsistency = Math.max(0.3, Math.min(0.95, cleanRaceRatio + 0.2));
+
+    // Throttle style: derived from position gains and incidents
+    let throttleStyle: 'aggressive' | 'smooth' | 'hesitant' | 'unknown' = 'smooth';
+    if (avgPositionsGained > 2 && cleanRaceRatio > 0.4) {
+        throttleStyle = 'aggressive'; // Gaining positions cleanly = aggressive but controlled
+    } else if (cleanRaceRatio > 0.5) {
+        throttleStyle = 'smooth'; // Clean racing = smooth inputs
+    } else if (avgPositionsGained < -1) {
+        throttleStyle = 'hesitant'; // Losing positions = hesitant
+    }
+
+    // Traction management: proxy from incidents per lap
+    const tractionManagement = Math.max(0.3, Math.min(0.95, 1 - (incidentsPerLap * 5)));
+
+    // Corner entry style
+    let cornerEntryStyle: 'aggressive' | 'conservative' | 'variable' = 'variable';
+    if (avgPositionsGained > 1.5 && avgIncidentsPerRace < 2) {
+        cornerEntryStyle = 'aggressive'; // Gaining positions with few incidents
+    } else if (cleanRaceRatio > 0.6) {
+        cornerEntryStyle = 'conservative'; // Very clean = conservative
+    }
+
+    // Overtaking style
+    let overtakingStyle: 'aggressive' | 'patient' | 'opportunistic' = 'opportunistic';
+    if (avgPositionsGained > 3) {
+        overtakingStyle = 'aggressive'; // Big position gains
+    } else if (cleanRaceRatio > 0.7 && avgPositionsGained >= 0) {
+        overtakingStyle = 'patient'; // Clean and holding/gaining
+    }
+
+    // ========== CONFIDENCE ANALYSIS ==========
+    // Recent performance trend
+    const recent10 = races.slice(0, 10);
+    const older10 = races.slice(10, 20);
+    
+    const recentCleanRatio = recent10.length > 0 
+        ? recent10.filter(r => (r.incidents || 0) === 0).length / recent10.length 
+        : 0.5;
+    const olderCleanRatio = older10.length > 0 
+        ? older10.filter(r => (r.incidents || 0) === 0).length / older10.length 
+        : 0.5;
+    
+    // Confidence based on recent clean racing and position gains
+    const currentConfidence = Math.max(0.2, Math.min(0.95, 
+        0.5 + (recentCleanRatio - 0.3) * 0.5 + (avgPositionsGained > 0 ? 0.1 : -0.05)
+    ));
 
     // Confidence trend
-    const recentConfidences = confidenceScores.slice(0, 5);
-    const olderConfidences = confidenceScores.slice(5, 10);
     let confidenceTrend: 'rising' | 'falling' | 'stable' | 'volatile' = 'stable';
-    if (recentConfidences.length > 0 && olderConfidences.length > 0) {
-        const recentAvg = recentConfidences.reduce((a, b) => a + b, 0) / recentConfidences.length;
-        const olderAvg = olderConfidences.reduce((a, b) => a + b, 0) / olderConfidences.length;
-        const diff = recentAvg - olderAvg;
-        if (diff > 0.1) confidenceTrend = 'rising';
-        else if (diff < -0.1) confidenceTrend = 'falling';
+    if (recent10.length >= 5 && older10.length >= 5) {
+        const diff = recentCleanRatio - olderCleanRatio;
+        if (diff > 0.15) confidenceTrend = 'rising';
+        else if (diff < -0.15) confidenceTrend = 'falling';
+    }
+
+    // ========== TILT RISK ANALYSIS ==========
+    // Look for patterns of multiple high-incident races in a row
+    let consecutiveHighIncident = 0;
+    let maxConsecutive = 0;
+    for (const race of races.slice(0, 20)) {
+        if ((race.incidents || 0) >= 4) {
+            consecutiveHighIncident++;
+            maxConsecutive = Math.max(maxConsecutive, consecutiveHighIncident);
+        } else {
+            consecutiveHighIncident = 0;
+        }
+    }
+    // Tilt risk: 0 = low risk, 1 = high risk
+    const postIncidentTiltRisk = Math.min(0.9, maxConsecutive * 0.2);
+
+    // ========== ENDURANCE ANALYSIS ==========
+    // Analyze longer races vs shorter races
+    const longRaces = races.filter(r => (r.laps_complete || 0) >= 30);
+    const shortRaces = races.filter(r => (r.laps_complete || 0) < 30 && (r.laps_complete || 0) > 0);
+    
+    // Late race degradation: compare incident rate in long vs short races
+    let lateRaceDegradation: number | null = null;
+    if (longRaces.length >= 5 && shortRaces.length >= 5) {
+        const longIncidentRate = longRaces.reduce((s, r) => s + (r.incidents || 0), 0) / longRaces.length;
+        const shortIncidentRate = shortRaces.reduce((s, r) => s + (r.incidents || 0), 0) / shortRaces.length;
+        // If long races have more incidents per race, there's degradation
+        lateRaceDegradation = Math.max(0, Math.min(1, (longIncidentRate - shortIncidentRate) / 3));
+    }
+
+    // Session length sweet spot: find the lap count range with best performance
+    const lapBuckets: Record<string, { clean: number; total: number }> = {
+        'short': { clean: 0, total: 0 },   // < 15 laps
+        'medium': { clean: 0, total: 0 },  // 15-30 laps
+        'long': { clean: 0, total: 0 },    // > 30 laps
+    };
+    for (const race of races) {
+        const laps = race.laps_complete || 0;
+        const bucket = laps < 15 ? 'short' : laps < 30 ? 'medium' : 'long';
+        lapBuckets[bucket].total++;
+        if ((race.incidents || 0) === 0) lapBuckets[bucket].clean++;
+    }
+    
+    let sessionLengthSweetSpot: number | null = null;
+    let bestCleanRatio = 0;
+    for (const [bucket, data] of Object.entries(lapBuckets)) {
+        if (data.total >= 5) {
+            const ratio = data.clean / data.total;
+            if (ratio > bestCleanRatio) {
+                bestCleanRatio = ratio;
+                sessionLengthSweetSpot = bucket === 'short' ? 10 : bucket === 'medium' ? 22 : 40;
+            }
+        }
+    }
+
+    // Fatigue onset: estimate based on when incidents tend to happen in longer races
+    // This is a rough estimate - would need lap-by-lap data for accuracy
+    const fatigueOnsetLap = longRaces.length >= 3 ? Math.round(25 + cleanRaceRatio * 15) : null;
+
+    // Recovery speed: how quickly do they bounce back after a bad race?
+    let recoverySpeed: 'fast' | 'moderate' | 'slow' | null = null;
+    let postBadRaceClean = 0;
+    let postBadRaceTotal = 0;
+    for (let i = 1; i < races.length; i++) {
+        if ((races[i].incidents || 0) >= 4) { // Previous race was bad
+            postBadRaceTotal++;
+            if ((races[i - 1].incidents || 0) <= 2) { // Next race was clean
+                postBadRaceClean++;
+            }
+        }
+    }
+    if (postBadRaceTotal >= 3) {
+        const recoveryRatio = postBadRaceClean / postBadRaceTotal;
+        recoverySpeed = recoveryRatio > 0.6 ? 'fast' : recoveryRatio > 0.3 ? 'moderate' : 'slow';
     }
 
     // Memory confidence based on data volume
-    const memoryConfidence = Math.min(1, behaviors.length / 20);
+    const memoryConfidence = Math.min(1, races.length / 50);
 
     const updates: Partial<DriverMemory> = {
         braking_style: brakingStyle,
-        braking_consistency: avgBrakeConsistency,
+        braking_consistency: brakingConsistency,
         throttle_style: throttleStyle,
-        traction_management: avgThrottleScore,
+        traction_management: tractionManagement,
         corner_entry_style: cornerEntryStyle,
         overtaking_style: overtakingStyle,
         incident_proneness: incidentProneness,
-        current_confidence: avgConfidence,
+        current_confidence: currentConfidence,
         confidence_trend: confidenceTrend,
+        post_incident_tilt_risk: postIncidentTiltRisk,
+        fatigue_onset_lap: fatigueOnsetLap,
+        late_race_degradation: lateRaceDegradation,
+        session_length_sweet_spot: sessionLengthSweetSpot,
+        recovery_speed: recoverySpeed,
         memory_confidence: memoryConfidence,
     };
 
-    // Log memory events for significant changes
-    if (memory.braking_style !== brakingStyle && brakingStyle !== 'unknown') {
-        await logMemoryEvent({
-            driver_profile_id: driverProfileId,
-            event_type: 'tendency_update',
-            memory_field: 'braking_style',
-            previous_value: memory.braking_style,
-            new_value: brakingStyle,
-            evidence_type: 'session_analysis',
-            evidence_session_id: null,
-            evidence_summary: `Braking style updated based on ${behaviors.length} recent sessions`,
-            learning_confidence: memoryConfidence,
-        });
-    }
-
     console.log(`[DriverMemory] Updating memory with:`, {
+        races: races.length,
+        cleanRaceRatio: cleanRaceRatio.toFixed(2),
+        avgPositionsGained: avgPositionsGained.toFixed(1),
         braking_style: brakingStyle,
-        braking_consistency: avgBrakeConsistency,
         throttle_style: throttleStyle,
-        traction_management: avgThrottleScore,
         corner_entry_style: cornerEntryStyle,
         overtaking_style: overtakingStyle,
-        incident_proneness: incidentProneness,
-        current_confidence: avgConfidence,
+        incident_proneness: incidentProneness.toFixed(2),
+        current_confidence: currentConfidence.toFixed(2),
+        confidence_trend: confidenceTrend,
+        tilt_risk: postIncidentTiltRisk.toFixed(2),
+        recovery_speed: recoverySpeed,
     });
     
     const result = await updateDriverMemory(driverProfileId, updates);
