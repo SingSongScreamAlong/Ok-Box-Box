@@ -367,7 +367,10 @@ export class IRacingProfileSyncService {
             // Log sample results to understand the data structure
             if (uniqueResults.length > 0) {
                 const sample = uniqueResults[0];
-                console.log(`[iRacing Sync] Sample result keys:`, Object.keys(sample));
+                console.log(`[iRacing Sync] Sample result ALL keys:`, Object.keys(sample));
+                
+                // Log a full sample to see all available fields
+                console.log(`[iRacing Sync] FULL sample result:`, JSON.stringify(sample, null, 2));
                 
                 // Log breakdown by event_type_name (the actual session type)
                 const eventTypeNameCounts: Record<string, number> = {};
@@ -377,16 +380,39 @@ export class IRacingProfileSyncService {
                 }
                 console.log(`[iRacing Sync] Event type NAME breakdown:`, eventTypeNameCounts);
                 
-                // Log samples of each type
-                const raceExample = uniqueResults.find(r => r.event_type_name === 'Race');
-                const practiceExample = uniqueResults.find(r => r.event_type_name === 'Practice');
-                const qualifyExample = uniqueResults.find(r => r.event_type_name === 'Qualifying');
-                const ttExample = uniqueResults.find(r => r.event_type_name === 'Time Trial');
+                // Log breakdown by official_session flag
+                const officialCounts = { official: 0, unofficial: 0, unknown: 0 };
+                for (const result of uniqueResults) {
+                    if (result.official_session === true) officialCounts.official++;
+                    else if (result.official_session === false) officialCounts.unofficial++;
+                    else officialCounts.unknown++;
+                }
+                console.log(`[iRacing Sync] Official session breakdown:`, officialCounts);
                 
-                if (raceExample) console.log(`[iRacing Sync] Race example:`, { subsession_id: raceExample.subsession_id, event_type: raceExample.event_type, event_type_name: raceExample.event_type_name, series_name: raceExample.series_name });
-                if (practiceExample) console.log(`[iRacing Sync] Practice example:`, { subsession_id: practiceExample.subsession_id, event_type: practiceExample.event_type, event_type_name: practiceExample.event_type_name, series_name: practiceExample.series_name });
-                if (qualifyExample) console.log(`[iRacing Sync] Qualifying example:`, { subsession_id: qualifyExample.subsession_id, event_type: qualifyExample.event_type, event_type_name: qualifyExample.event_type_name, series_name: qualifyExample.series_name });
-                if (ttExample) console.log(`[iRacing Sync] Time Trial example:`, { subsession_id: ttExample.subsession_id, event_type: ttExample.event_type, event_type_name: ttExample.event_type_name, series_name: ttExample.series_name });
+                // Log breakdown by series_id presence (official races have series_id)
+                const seriesCounts = { withSeries: 0, noSeries: 0 };
+                for (const result of uniqueResults) {
+                    if (result.series_id) seriesCounts.withSeries++;
+                    else seriesCounts.noSeries++;
+                }
+                console.log(`[iRacing Sync] Series ID breakdown:`, seriesCounts);
+                
+                // Log samples with key distinguishing fields
+                const samples = uniqueResults.slice(0, 5);
+                for (const s of samples) {
+                    console.log(`[iRacing Sync] Sample:`, {
+                        subsession_id: s.subsession_id,
+                        event_type: s.event_type,
+                        event_type_name: s.event_type_name,
+                        official_session: s.official_session,
+                        series_id: s.series_id,
+                        series_name: s.series_name,
+                        session_name: s.session_name,
+                        host_id: s.host_id,
+                        league_id: s.league_id,
+                        private_session_id: s.private_session_id
+                    });
+                }
             }
             
             // Filter to only actual races by event_type_name (not event_type number!)
