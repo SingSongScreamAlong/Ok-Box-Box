@@ -291,12 +291,11 @@ export class IRacingProfileSyncService {
                 const chunkEnd = formatForIRacing(chunk.end);
                 console.log(`[iRacing Sync] Processing chunk ${chunkIdx + 1}/${dateChunks.length}: ${chunkStart} to ${chunkEnd}`);
                 
-                // 1. Fetch OFFICIAL series races (all categories at once, simpler)
-                // event_types: 2=Practice, 3=Qualify, 4=Time Trial, 5=Race
-                // We only want actual races (event_types=5)
+                // 1. Fetch OFFICIAL series sessions (all types: practice, qualifying, races)
+                // We store ALL session types but categorize them properly
                 try {
                     const searchResults = await this.iracingApiFetch<any>(accessToken,
-                        `/data/results/search_series?cust_id=${custId}&finish_range_begin=${chunkStart}&finish_range_end=${chunkEnd}&event_types=5`
+                        `/data/results/search_series?cust_id=${custId}&finish_range_begin=${chunkStart}&finish_range_end=${chunkEnd}`
                     );
                     
                     const chunkInfo = searchResults?.data?.chunk_info || searchResults?.chunk_info;
@@ -313,11 +312,11 @@ export class IRacingProfileSyncService {
                     console.warn(`[iRacing Sync] Chunk ${chunkIdx + 1} official races failed:`, err instanceof Error ? err.message : err);
                 }
 
-                // 2. Fetch HOSTED races (leagues, private sessions, etc.)
-                // Also filter to only races (event_types=5)
+                // 2. Fetch HOSTED sessions (leagues, private sessions, etc.)
+                // Store all types but categorize them properly
                 try {
                     const hostedResults = await this.iracingApiFetch<any>(accessToken,
-                        `/data/results/search_hosted?participant_custid=${custId}&finish_range_begin=${chunkStart}&finish_range_end=${chunkEnd}&event_types=5`
+                        `/data/results/search_hosted?participant_custid=${custId}&finish_range_begin=${chunkStart}&finish_range_end=${chunkEnd}`
                     );
                     
                     const chunkInfo = hostedResults?.data?.chunk_info || hostedResults?.chunk_info;
@@ -415,27 +414,41 @@ export class IRacingProfileSyncService {
                 }
             }
             
-            // Filter to only OFFICIAL races (official_session: true)
-            // This excludes:
-            // - Hosted sessions (unofficial races)
-            // - Practice, Qualifying, Time Trial sessions
-            // Only official races count toward iRating and career stats
-            const officialRacesOnly = uniqueResults.filter(r => {
+            // Store ALL sessions but categorize them properly
+            // Session types: official_race, unofficial_race, practice, qualifying, time_trial
+            // Analysis will weight these differently
+            const sessionBreakdown = {
+                official_race: 0,
+                unofficial_race: 0,
+                practice: 0,
+                qualifying: 0,
+                time_trial: 0,
+                other: 0
+            };
+            
+            for (const r of uniqueResults) {
                 const eventTypeName = (r.event_type_name || '').toLowerCase();
-                const isRace = eventTypeName === 'race';
                 const isOfficial = r.official_session === true;
-                return isRace && isOfficial;
-            });
-            
-            const filteredNonRace = uniqueResults.filter(r => (r.event_type_name || '').toLowerCase() !== 'race').length;
-            const filteredUnofficial = uniqueResults.filter(r => (r.event_type_name || '').toLowerCase() === 'race' && r.official_session !== true).length;
-            
-            if (filteredNonRace > 0 || filteredUnofficial > 0) {
-                console.log(`[iRacing Sync] Filtered out ${filteredNonRace} non-race sessions and ${filteredUnofficial} unofficial races`);
-                console.log(`[iRacing Sync] Keeping ${officialRacesOnly.length} official races (matches career stats)`);
+                
+                if (eventTypeName === 'race') {
+                    if (isOfficial) sessionBreakdown.official_race++;
+                    else sessionBreakdown.unofficial_race++;
+                } else if (eventTypeName === 'practice') {
+                    sessionBreakdown.practice++;
+                } else if (eventTypeName === 'qualifying') {
+                    sessionBreakdown.qualifying++;
+                } else if (eventTypeName === 'time trial') {
+                    sessionBreakdown.time_trial++;
+                } else {
+                    sessionBreakdown.other++;
+                }
             }
             
-            raceResults = officialRacesOnly;
+            console.log(`[iRacing Sync] Session breakdown:`, sessionBreakdown);
+            console.log(`[iRacing Sync] Storing ALL ${uniqueResults.length} sessions with proper categorization`);
+            
+            // Store all sessions - categorization happens in storeRaceResult
+            raceResults = uniqueResults;
 
             if (raceResults.length === 0) {
                 // Try the member_recent_races endpoint as fallback
@@ -534,10 +547,26 @@ export class IRacingProfileSyncService {
         const iRatingChange = newiRating && oldiRating ? newiRating - oldiRating : (result.irating_change ?? null);
         const oldSubLevel = result.old_sub_level ?? null;
         const newSubLevel = result.new_sub_level ?? null;
-        const sof = result.strength_of_field ?? result.sof ?? null;
-        const fieldSize = result.field_size ?? result.size ?? null;
+        const sof = result.strength_of_field ?? result.sof ?? result.event_strength_of_field ?? null;
+        const fieldSize = result.field_size ?? result.size ?? result.num_drivers ?? null;
         const sessionStartTime = result.session_start_time ?? result.start_time ?? result.race_week_start_time ?? null;
         const eventType = result.event_type_name?.toLowerCase() || result.event_type || 'race';
+        
+        // Session categorization
+        const officialSession = result.official_session ?? null;
+        const eventTypeName = (result.event_type_name || '').toLowerCase();
+        let sessionType: string;
+        if (eventTypeName === 'race') {
+            sessionType = officialSession === true ? 'official_race' : 'unofficial_race';
+        } else if (eventTypeName === 'practice') {
+            sessionType = 'practice';
+        } else if (eventTypeName === 'qualifying') {
+            sessionType = 'qualifying';
+        } else if (eventTypeName === 'time trial') {
+            sessionType = 'time_trial';
+        } else {
+            sessionType = 'other';
+        }
 
         await pool.query(
             `INSERT INTO iracing_race_results (
@@ -551,10 +580,11 @@ export class IRacingProfileSyncService {
                 oldi_rating, newi_rating, irating_change,
                 old_sub_level, new_sub_level,
                 strength_of_field, field_size,
+                official_session, session_type,
                 raw_result
             ) VALUES (
                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
-                $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29
+                $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
             )
             ON CONFLICT (admin_user_id, subsession_id) DO UPDATE SET
                 finish_position = EXCLUDED.finish_position,
@@ -562,6 +592,8 @@ export class IRacingProfileSyncService {
                 newi_rating = EXCLUDED.newi_rating,
                 irating_change = EXCLUDED.irating_change,
                 new_sub_level = EXCLUDED.new_sub_level,
+                official_session = EXCLUDED.official_session,
+                session_type = EXCLUDED.session_type,
                 raw_result = EXCLUDED.raw_result,
                 updated_at = NOW()`,
             [
@@ -575,6 +607,7 @@ export class IRacingProfileSyncService {
                 oldiRating, newiRating, iRatingChange,
                 oldSubLevel, newSubLevel,
                 sof, fieldSize,
+                officialSession, sessionType,
                 JSON.stringify(result)
             ]
         );
