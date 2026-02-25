@@ -415,20 +415,27 @@ export class IRacingProfileSyncService {
                 }
             }
             
-            // Filter to only actual races by event_type_name (not event_type number!)
-            // event_type_name: 'Race' = actual races
-            // event_type_name: 'Practice', 'Qualifying', 'Time Trial' = not races
-            const racesOnly = uniqueResults.filter(r => {
+            // Filter to only OFFICIAL races (official_session: true)
+            // This excludes:
+            // - Hosted sessions (unofficial races)
+            // - Practice, Qualifying, Time Trial sessions
+            // Only official races count toward iRating and career stats
+            const officialRacesOnly = uniqueResults.filter(r => {
                 const eventTypeName = (r.event_type_name || '').toLowerCase();
-                return eventTypeName === 'race';
+                const isRace = eventTypeName === 'race';
+                const isOfficial = r.official_session === true;
+                return isRace && isOfficial;
             });
             
-            const filtered = uniqueResults.length - racesOnly.length;
-            if (filtered > 0) {
-                console.log(`[iRacing Sync] Filtered out ${filtered} non-race sessions, keeping ${racesOnly.length} actual races`);
+            const filteredNonRace = uniqueResults.filter(r => (r.event_type_name || '').toLowerCase() !== 'race').length;
+            const filteredUnofficial = uniqueResults.filter(r => (r.event_type_name || '').toLowerCase() === 'race' && r.official_session !== true).length;
+            
+            if (filteredNonRace > 0 || filteredUnofficial > 0) {
+                console.log(`[iRacing Sync] Filtered out ${filteredNonRace} non-race sessions and ${filteredUnofficial} unofficial races`);
+                console.log(`[iRacing Sync] Keeping ${officialRacesOnly.length} official races (matches career stats)`);
             }
             
-            raceResults = racesOnly;
+            raceResults = officialRacesOnly;
 
             if (raceResults.length === 0) {
                 // Try the member_recent_races endpoint as fallback
