@@ -956,7 +956,7 @@ export async function runMemoryPipeline(
 // ========================
 
 export async function backfillFromIRacingResults(userId: string, driverProfileId: string): Promise<number> {
-    // Fetch ALL race results from iracing_race_results table (no limit)
+    // Fetch ALL sessions from iracing_race_results table
     const result = await pool.query(
         `SELECT * FROM iracing_race_results 
          WHERE admin_user_id = $1 
@@ -964,40 +964,77 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
         [userId]
     );
     
-    const races = result.rows;
-    console.log(`[DriverMemory] Processing ${races.length} iRacing race results for driver ${driverProfileId}`);
+    const allSessions = result.rows;
     
-    // Debug: log first race to see actual field values
-    if (races.length > 0) {
-        const sample = races[0];
-        console.log(`[DriverMemory] Sample race data: subsession_id=${sample.subsession_id}, finish_position=${sample.finish_position}, laps_complete=${sample.laps_complete}, track=${sample.track_name}`);
+    // Categorize sessions for proper analysis weighting
+    const sessionBreakdown = {
+        official_race: 0,
+        unofficial_race: 0,
+        practice: 0,
+        qualifying: 0,
+        other: 0
+    };
+    
+    for (const s of allSessions) {
+        const sessionType = s.session_type || 'other';
+        if (sessionType === 'official_race') sessionBreakdown.official_race++;
+        else if (sessionType === 'unofficial_race') sessionBreakdown.unofficial_race++;
+        else if (sessionType === 'practice') sessionBreakdown.practice++;
+        else if (sessionType === 'qualifying') sessionBreakdown.qualifying++;
+        else sessionBreakdown.other++;
     }
+    
+    console.log(`[DriverMemory] Session breakdown for analysis:`, sessionBreakdown);
+    console.log(`[DriverMemory] Processing ${allSessions.length} total sessions for driver ${driverProfileId}`);
+    
+    // For RACECRAFT analysis (incident_proneness, overtaking_style, etc.):
+    // - Official races: FULL weight (these count for iRating, driver takes them seriously)
+    // - Unofficial races: PARTIAL weight (still competitive but lower stakes)
+    // - Practice/Qualifying: EXCLUDED from racecraft (different driving style, testing limits)
+    
+    // For CONSISTENCY analysis (lap time variance, brake consistency):
+    // - All session types are useful
     
     let processed = 0;
     let skipped = 0;
-    for (const race of races) {
+    let practiceSkipped = 0;
+    
+    for (const race of allSessions) {
         try {
-            // Process all races - even if some fields are null, we can still learn from them
-            const laps = race.laps_complete || race.laps_lead || 0;
-            const incidents = race.incidents ?? 0;
-            const startPos = race.start_position;
-            const finishPos = race.finish_position;
-            
-            // Only skip if we have literally no useful data
             if (!race.subsession_id) {
                 skipped++;
                 continue;
             }
             
+            const sessionType = race.session_type || 'other';
+            const eventType = race.event_type || 'race';
+            
+            // Skip practice sessions for racecraft behavior analysis
+            // They're still stored in the DB for track learning/consistency analysis
+            if (sessionType === 'practice' || eventType === 'practice') {
+                practiceSkipped++;
+                continue;
+            }
+            
+            const laps = race.laps_complete || race.laps_lead || 0;
+            const incidents = race.incidents ?? 0;
+            const startPos = race.start_position;
+            const finishPos = race.finish_position;
+            
             // Generate a deterministic UUID from subsession_id for deduplication
-            // Using a simple hash-based approach: pad subsession_id to create valid UUID format
             const subsessionStr = String(race.subsession_id).padStart(12, '0');
             const sessionUuid = `00000000-0000-4000-8000-${subsessionStr}`;
+            
+            // Map session_type to behavior sessionType
+            let behaviorSessionType: 'practice' | 'qualifying' | 'race' = 'race';
+            if (sessionType === 'qualifying' || eventType === 'qualifying') {
+                behaviorSessionType = 'qualifying';
+            }
             
             const behavior = await analyzeSessionBehavior({
                 sessionId: sessionUuid,
                 driverProfileId,
-                sessionType: (race.event_type === 'practice' || race.event_type === 'qualifying') ? race.event_type : 'race',
+                sessionType: behaviorSessionType,
                 trackName: race.track_name || 'Unknown',
                 carName: race.car_name || 'Unknown',
                 laps,
@@ -1018,7 +1055,8 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
         }
     }
     
-    console.log(`[DriverMemory] Skipped ${skipped} races with no subsession_id`);
+    console.log(`[DriverMemory] Skipped ${skipped} sessions with no subsession_id`);
+    console.log(`[DriverMemory] Excluded ${practiceSkipped} practice sessions from racecraft analysis`);
     
     // Recalculate stats from actual data (prevents accumulation bugs)
     try {
@@ -1049,7 +1087,7 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
         }
     }
     
-    console.log(`[DriverMemory] Processed ${processed}/${races.length} iRacing races into IDP memory`);
+    console.log(`[DriverMemory] Processed ${processed}/${allSessions.length} iRacing races into IDP memory`);
     return processed;
 }
 
