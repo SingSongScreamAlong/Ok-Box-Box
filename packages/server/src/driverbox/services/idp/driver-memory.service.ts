@@ -179,10 +179,15 @@ export async function aggregateMemoryFromBehaviors(driverProfileId: string): Pro
     }
 
     // Query actual race data for comprehensive analysis
+    // Include fallback for races where session_type might not be set but event_type is 'race'
     const racesResult = await pool.query(
         `SELECT * FROM iracing_race_results 
          WHERE admin_user_id = $1 
-           AND (session_type = 'official_race' OR session_type = 'unofficial_race')
+           AND (
+               session_type = 'official_race' 
+               OR session_type = 'unofficial_race'
+               OR (session_type IS NULL AND LOWER(event_type) = 'race')
+           )
          ORDER BY session_start_time DESC
          LIMIT 100`,
         [userId]
