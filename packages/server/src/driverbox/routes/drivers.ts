@@ -556,6 +556,31 @@ router.post('/me/sync-history-full', requireAuth, async (req: Request, res: Resp
             return;
         }
 
+        // First, show what's currently in the database
+        const dbBreakdown = await pool.query(
+            `SELECT event_type, COUNT(*) as count 
+             FROM iracing_race_results 
+             WHERE admin_user_id = $1 
+             GROUP BY event_type 
+             ORDER BY count DESC`,
+            [req.user!.id]
+        );
+        console.log(`[IDP] Current DB event_type breakdown:`, dbBreakdown.rows);
+
+        // Clean up old non-race records (practice, qualifying, time trial)
+        // Keep only event_type = 'race' or NULL (legacy records we'll re-fetch)
+        const deleteResult = await pool.query(
+            `DELETE FROM iracing_race_results 
+             WHERE admin_user_id = $1 
+             AND event_type IS NOT NULL 
+             AND LOWER(event_type) != 'race'
+             RETURNING subsession_id`,
+            [req.user!.id]
+        );
+        if (deleteResult.rowCount && deleteResult.rowCount > 0) {
+            console.log(`[IDP] Cleaned up ${deleteResult.rowCount} non-race records from database`);
+        }
+
         // Force full sync - pass true for forceFullSync
         console.log(`[IDP] Force full sync requested for user ${req.user!.id}`);
         const racesSynced = await syncService.syncRaceResults(
@@ -568,6 +593,17 @@ router.post('/me/sync-history-full', requireAuth, async (req: Request, res: Resp
 
         // Get total count after sync
         const raceCount = await syncService.getRaceResultsCount(req.user!.id);
+        
+        // Show final breakdown
+        const finalBreakdown = await pool.query(
+            `SELECT event_type, COUNT(*) as count 
+             FROM iracing_race_results 
+             WHERE admin_user_id = $1 
+             GROUP BY event_type 
+             ORDER BY count DESC`,
+            [req.user!.id]
+        );
+        console.log(`[IDP] Final DB event_type breakdown:`, finalBreakdown.rows);
 
         // Process through IDP memory system
         let sessionsProcessed = 0;
