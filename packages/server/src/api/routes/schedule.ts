@@ -24,16 +24,16 @@ router.get('/upcoming', requireAuth, async (req: Request, res: Response): Promis
             return;
         }
 
-        // Get the driver's recently raced series from iracing_race_results
+        // Get the driver's recently raced series with track info from iracing_race_results
         const recentSeries = await pool.query(
-            `SELECT DISTINCT series_name, license_category, 
-                    MAX(session_start_time) as last_raced
+            `SELECT DISTINCT ON (series_name) 
+                    series_name, license_category, track_name, laps_complete,
+                    session_start_time as last_raced
              FROM iracing_race_results 
              WHERE admin_user_id = $1 
                AND series_name IS NOT NULL
                AND session_start_time > NOW() - INTERVAL '30 days'
-             GROUP BY series_name, license_category
-             ORDER BY last_raced DESC
+             ORDER BY series_name, session_start_time DESC
              LIMIT 5`,
             [req.user!.id]
         );
@@ -64,10 +64,10 @@ router.get('/upcoming', requireAuth, async (req: Request, res: Response): Promis
                 races.push({
                     id: `upcoming-${index}-${slot}`,
                     series: series.series_name,
-                    track: 'Current Week Track', // Would need iRacing schedule API for actual track
+                    track: series.track_name || 'TBD', // Use most recent track from this series
                     date: raceTime.toISOString().split('T')[0],
                     time: raceTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
-                    laps: 0, // Unknown without schedule data
+                    laps: series.laps_complete || 0,
                     expectedField: undefined,
                     registered: false,
                 });

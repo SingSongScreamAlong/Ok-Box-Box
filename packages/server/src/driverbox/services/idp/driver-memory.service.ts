@@ -1183,8 +1183,154 @@ export async function backfillFromIRacingResults(userId: string, driverProfileId
         console.error(`[DriverMemory] Error updating identity:`, identityError);
     }
     
+    // Derive traits from iRacing data for focus areas
+    try {
+        await deriveTraitsFromIRacingData(driverProfileId, userId);
+    } catch (traitError) {
+        console.error(`[DriverMemory] Error deriving traits:`, traitError);
+    }
+    
     console.log(`[DriverMemory] Processed ${processed}/${allSessions.length} iRacing races into IDP memory`);
     return processed;
+}
+
+// ========================
+// Trait Derivation from iRacing Data
+// ========================
+
+export async function deriveTraitsFromIRacingData(driverProfileId: string, userId: string): Promise<void> {
+    console.log(`[DriverMemory] Deriving traits from iRacing data for ${driverProfileId}`);
+    
+    // Import trait repo
+    const { upsertDriverTrait, expireAllTraits } = await import('../../../db/repositories/driver-traits.repo.js');
+    
+    // Query race data
+    const racesResult = await pool.query(
+        `SELECT * FROM iracing_race_results 
+         WHERE admin_user_id = $1 
+           AND (session_type = 'official_race' OR session_type = 'unofficial_race' OR (session_type IS NULL AND LOWER(event_type) = 'race'))
+         ORDER BY session_start_time DESC
+         LIMIT 100`,
+        [userId]
+    );
+    const races = racesResult.rows;
+    
+    if (races.length < 5) {
+        console.log(`[DriverMemory] Insufficient races (${races.length}) for trait derivation`);
+        return;
+    }
+    
+    // Expire existing traits
+    await expireAllTraits(driverProfileId);
+    
+    // Calculate metrics from race data
+    const totalIncidents = races.reduce((sum, r) => sum + (r.incidents || 0), 0);
+    const avgIncidentsPerRace = totalIncidents / races.length;
+    const cleanRaces = races.filter(r => (r.incidents || 0) === 0).length;
+    const cleanRaceRatio = cleanRaces / races.length;
+    
+    // Position analysis
+    const positionChanges = races
+        .filter(r => r.start_position != null && r.finish_position != null)
+        .map(r => r.start_position - r.finish_position);
+    const avgPositionsGained = positionChanges.length > 0
+        ? positionChanges.reduce((a, b) => a + b, 0) / positionChanges.length
+        : 0;
+    
+    // Long race analysis
+    const longRaces = races.filter(r => (r.laps_complete || 0) >= 30);
+    const shortRaces = races.filter(r => (r.laps_complete || 0) < 30 && (r.laps_complete || 0) > 0);
+    
+    // Derive traits based on data
+    const traits: Array<{ key: string; label: string; category: string; confidence: number; evidence: string }> = [];
+    
+    // Incident-based traits
+    if (cleanRaceRatio > 0.6) {
+        traits.push({
+            key: 'low_incident_rate',
+            label: 'Low Incident Rate',
+            category: 'strength',
+            confidence: Math.min(0.95, 0.5 + cleanRaceRatio * 0.5),
+            evidence: `${Math.round(cleanRaceRatio * 100)}% clean races (${cleanRaces}/${races.length}). ${avgIncidentsPerRace.toFixed(1)} avg incidents per race.`
+        });
+    } else if (avgIncidentsPerRace > 3) {
+        traits.push({
+            key: 'elevated_incident_rate',
+            label: 'Elevated Incident Rate',
+            category: 'weakness',
+            confidence: Math.min(0.9, 0.5 + (avgIncidentsPerRace - 3) * 0.1),
+            evidence: `${avgIncidentsPerRace.toFixed(1)} avg incidents per race. ${Math.round(cleanRaceRatio * 100)}% clean races.`
+        });
+    }
+    
+    // Racecraft traits
+    if (avgPositionsGained > 2) {
+        traits.push({
+            key: 'strong_race_pace',
+            label: 'Strong Race Pace',
+            category: 'strength',
+            confidence: Math.min(0.9, 0.5 + avgPositionsGained * 0.1),
+            evidence: `Average +${avgPositionsGained.toFixed(1)} positions gained per race across ${positionChanges.length} races.`
+        });
+    } else if (avgPositionsGained < -1) {
+        traits.push({
+            key: 'race_pace_deficit',
+            label: 'Race Pace Deficit',
+            category: 'weakness',
+            confidence: Math.min(0.85, 0.5 + Math.abs(avgPositionsGained) * 0.1),
+            evidence: `Average ${avgPositionsGained.toFixed(1)} positions per race. Focus on race craft and tire management.`
+        });
+    }
+    
+    // Endurance traits
+    if (longRaces.length >= 5 && shortRaces.length >= 5) {
+        const longIncidentRate = longRaces.reduce((s, r) => s + (r.incidents || 0), 0) / longRaces.length;
+        const shortIncidentRate = shortRaces.reduce((s, r) => s + (r.incidents || 0), 0) / shortRaces.length;
+        
+        if (longIncidentRate <= shortIncidentRate) {
+            traits.push({
+                key: 'strong_endurance',
+                label: 'Strong Endurance',
+                category: 'strength',
+                confidence: 0.75,
+                evidence: `Maintains or improves incident rate in longer races (${longIncidentRate.toFixed(1)} vs ${shortIncidentRate.toFixed(1)} in short races).`
+            });
+        } else if (longIncidentRate > shortIncidentRate * 1.5) {
+            traits.push({
+                key: 'endurance_degradation',
+                label: 'Late Race Degradation',
+                category: 'weakness',
+                confidence: Math.min(0.85, 0.5 + (longIncidentRate - shortIncidentRate) * 0.1),
+                evidence: `Higher incident rate in longer races (${longIncidentRate.toFixed(1)} vs ${shortIncidentRate.toFixed(1)} in short races).`
+            });
+        }
+    }
+    
+    // Consistency trait based on clean race ratio variance
+    if (cleanRaceRatio > 0.4 && cleanRaceRatio < 0.7) {
+        traits.push({
+            key: 'variable_consistency',
+            label: 'Variable Consistency',
+            category: 'neutral',
+            confidence: 0.7,
+            evidence: `${Math.round(cleanRaceRatio * 100)}% clean races shows room for improvement in consistency.`
+        });
+    }
+    
+    // Persist traits
+    for (const trait of traits) {
+        await upsertDriverTrait({
+            driver_profile_id: driverProfileId,
+            trait_key: trait.key,
+            trait_label: trait.label,
+            trait_category: trait.category,
+            confidence: trait.confidence,
+            evidence_summary: trait.evidence,
+        });
+        console.log(`[DriverMemory] Derived trait: ${trait.label} (${Math.round(trait.confidence * 100)}%)`);
+    }
+    
+    console.log(`[DriverMemory] Derived ${traits.length} traits from iRacing data`);
 }
 
 // ========================

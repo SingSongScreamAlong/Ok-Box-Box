@@ -1023,7 +1023,35 @@ router.get('/me/track-analysis', requireAuth, async (req: Request, res: Response
         if (!trackName) { res.status(400).json({ error: 'track query parameter required' }); return; }
 
         const { getMetricsForContext } = await import('../../db/repositories/session-metrics.repo.js');
-        const metrics = await getMetricsForContext(profile.id, undefined, trackName, 20);
+        let metrics: any[] = await getMetricsForContext(profile.id, undefined, trackName, 20);
+
+        // Fallback to iRacing race results if no session_metrics
+        if (metrics.length === 0) {
+            const iracingResult = await pool.query(
+                `SELECT * FROM iracing_race_results 
+                 WHERE admin_user_id = $1 
+                   AND (track_name ILIKE $2 OR track_name ILIKE $3)
+                   AND (session_type = 'official_race' OR session_type = 'unofficial_race' OR (session_type IS NULL AND LOWER(event_type) = 'race'))
+                 ORDER BY session_start_time DESC
+                 LIMIT 20`,
+                [req.user!.id, `%${trackName}%`, trackName]
+            );
+            
+            if (iracingResult.rows.length > 0) {
+                // Convert iRacing data to metrics-like format
+                metrics = iracingResult.rows.map((r: any) => ({
+                    finish_position: r.finish_position,
+                    start_position: r.start_position,
+                    incident_count: r.incidents,
+                    pace_percentile: 50, // Not available from iRacing, use neutral
+                    lap_time_std_dev_ms: 0, // Not available
+                    irating_change: r.irating_change,
+                    positions_gained: (r.start_position || 0) - (r.finish_position || 0),
+                    total_laps: r.laps_complete,
+                    computed_at: r.session_start_time,
+                }));
+            }
+        }
 
         if (metrics.length === 0) {
             res.json({ trackName, sessions: 0, analysis: null, message: 'No sessions found for this track' });
