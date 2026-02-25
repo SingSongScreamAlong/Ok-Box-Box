@@ -1311,6 +1311,7 @@ router.post('/me/reset-memory', requireAuth, async (req: Request, res: Response)
 
         // 4. Reset driver_memory to clean defaults with correct stats
         try {
+            const memoryConfidence = Math.min(1.0, raceCount / 50.0);
             await pool.query(
                 `UPDATE driver_memory SET
                     sessions_analyzed = $2,
@@ -1329,11 +1330,11 @@ router.post('/me/reset-memory', requireAuth, async (req: Request, res: Response)
                     late_race_degradation = NULL,
                     session_length_sweet_spot = NULL,
                     recovery_speed = NULL,
-                    memory_confidence = LEAST(1.0, $2::float / 50.0),
+                    memory_confidence = $5,
                     last_learning_update = NOW(),
                     updated_at = NOW()
                  WHERE driver_profile_id = $1`,
-                [driverProfileId, raceCount, totalLaps, Math.min(1, avgIncidents / 4)]
+                [driverProfileId, raceCount, totalLaps, Math.min(1, avgIncidents / 4), memoryConfidence]
             );
             console.log(`[IDP Reset] Updated driver_memory`);
         } catch (err) {
