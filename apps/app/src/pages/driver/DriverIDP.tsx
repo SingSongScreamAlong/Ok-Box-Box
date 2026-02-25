@@ -55,10 +55,23 @@ interface DriverIdentity {
   nextMilestone: string | null;
 }
 
+interface DataBreakdown {
+  totalSessions: number;
+  officialRaces: number;
+  unofficialRaces: number;
+  practice: number;
+  qualifying: number;
+  timeTrial: number;
+  other: number;
+  racesAnalyzed: number;
+  practiceExcluded: number;
+}
+
 interface IDPData {
   memory: DriverMemory | null;
   opinions: EngineerOpinion[];
   identity: DriverIdentity | null;
+  dataBreakdown?: DataBreakdown;
 }
 
 interface DriverReport {
@@ -438,6 +451,54 @@ export function DriverIDP() {
           </div>
         ) : (
           <div className="space-y-6">
+            {/* Data Breakdown - Show what was synced vs analyzed */}
+            {data.dataBreakdown && (
+              <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Activity className="w-4 h-4 text-blue-400" />
+                  <h3 className="text-xs font-medium text-white/80 uppercase tracking-wider">Data Breakdown</h3>
+                  <div className="ml-auto text-[10px] text-white/40">
+                    What the AI is learning from
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                  {/* Total Sessions */}
+                  <div className="bg-white/[0.03] rounded-lg p-3 text-center">
+                    <div className="text-lg font-mono text-white/90">{data.dataBreakdown.totalSessions}</div>
+                    <div className="text-[10px] text-white/40 uppercase">Total Sessions</div>
+                  </div>
+                  
+                  {/* Official Races */}
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 text-center">
+                    <div className="text-lg font-mono text-emerald-400">{data.dataBreakdown.officialRaces}</div>
+                    <div className="text-[10px] text-emerald-400/60 uppercase">Official Races</div>
+                  </div>
+                  
+                  {/* Unofficial Races */}
+                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-center">
+                    <div className="text-lg font-mono text-blue-400">{data.dataBreakdown.unofficialRaces}</div>
+                    <div className="text-[10px] text-blue-400/60 uppercase">Unofficial Races</div>
+                  </div>
+                  
+                  {/* Practice (Excluded) */}
+                  <div className="bg-white/[0.03] rounded-lg p-3 text-center opacity-60">
+                    <div className="text-lg font-mono text-white/50">{data.dataBreakdown.practice}</div>
+                    <div className="text-[10px] text-white/30 uppercase">Practice (Stored)</div>
+                  </div>
+                </div>
+                
+                {/* Analysis explanation */}
+                <div className="flex items-center gap-2 p-2 bg-blue-500/5 border border-blue-500/10 rounded text-[10px] text-blue-300/70">
+                  <Info className="w-3 h-3 flex-shrink-0" />
+                  <span>
+                    <strong className="text-blue-300">{data.dataBreakdown.racesAnalyzed} races</strong> analyzed for racecraft metrics. 
+                    Practice sessions are stored for track learning but excluded from incident/racecraft analysis.
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Identity Card */}
             <div className={`${archetypeInfo.color} backdrop-blur-xl border rounded-lg overflow-hidden`}>
               <button

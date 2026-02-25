@@ -1181,8 +1181,8 @@ router.get('/me/idp', requireAuth, async (req: Request, res: Response): Promise<
         // Trigger background sync (non-blocking)
         triggerBackgroundSyncIfNeeded(req.user!.id, profile.id);
 
-        // Fetch memory, opinions, and identity in parallel
-        const [memoryResult, opinionsResult, identityResult] = await Promise.all([
+        // Fetch memory, opinions, identity, and session breakdown in parallel
+        const [memoryResult, opinionsResult, identityResult, sessionBreakdownResult, behaviorsCountResult] = await Promise.all([
             pool.query(`SELECT * FROM driver_memory WHERE driver_profile_id = $1`, [profile.id]),
             pool.query(
                 `SELECT * FROM engineer_opinions 
@@ -1191,6 +1191,21 @@ router.get('/me/idp', requireAuth, async (req: Request, res: Response): Promise<
                 [profile.id]
             ),
             pool.query(`SELECT * FROM driver_identity WHERE driver_profile_id = $1`, [profile.id]),
+            // Session breakdown from iracing_race_results
+            pool.query(
+                `SELECT 
+                    session_type,
+                    COUNT(*) as count
+                 FROM iracing_race_results 
+                 WHERE admin_user_id = $1 
+                 GROUP BY session_type`,
+                [req.user!.id]
+            ),
+            // Count of behaviors (races analyzed for racecraft)
+            pool.query(
+                `SELECT COUNT(*) as count FROM driver_session_behaviors WHERE driver_profile_id = $1`,
+                [profile.id]
+            ),
         ]);
 
         const memoryRow = memoryResult.rows[0];
@@ -1245,7 +1260,36 @@ router.get('/me/idp', requireAuth, async (req: Request, res: Response): Promise<
             nextMilestone: identityRow.next_milestone,
         } : null;
 
-        res.json({ memory, opinions, identity });
+        // Build session breakdown for UI transparency
+        const sessionBreakdown: Record<string, number> = {
+            officialRaces: 0,
+            unofficialRaces: 0,
+            practice: 0,
+            qualifying: 0,
+            timeTrial: 0,
+            other: 0,
+        };
+        for (const row of sessionBreakdownResult.rows) {
+            const type = row.session_type || 'other';
+            const count = parseInt(row.count, 10);
+            if (type === 'official_race') sessionBreakdown.officialRaces = count;
+            else if (type === 'unofficial_race') sessionBreakdown.unofficialRaces = count;
+            else if (type === 'practice') sessionBreakdown.practice = count;
+            else if (type === 'qualifying') sessionBreakdown.qualifying = count;
+            else if (type === 'time_trial') sessionBreakdown.timeTrial = count;
+            else sessionBreakdown.other += count;
+        }
+        const totalSessions = Object.values(sessionBreakdown).reduce((a, b) => a + b, 0);
+        const racesAnalyzed = parseInt(behaviorsCountResult.rows[0]?.count || '0', 10);
+
+        const dataBreakdown = {
+            totalSessions,
+            ...sessionBreakdown,
+            racesAnalyzed,
+            practiceExcluded: sessionBreakdown.practice,
+        };
+
+        res.json({ memory, opinions, identity, dataBreakdown });
     } catch (error) {
         console.error('[IDP] Error fetching IDP data:', error);
         res.status(500).json({ error: 'Failed to fetch IDP data' });
