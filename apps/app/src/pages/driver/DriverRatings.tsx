@@ -50,135 +50,136 @@ export function DriverRatings() {
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/80" />
       </div>
 
-      <div className="relative z-10 max-w-6xl mx-auto space-y-6 py-6">
+      <div className="relative z-10 max-w-6xl mx-auto space-y-4 py-4 px-4">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-4">
           <h1 
-            className="text-3xl font-bold uppercase tracking-wider"
+            className="text-2xl font-bold uppercase tracking-wider"
             style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 4px 20px rgba(0,0,0,0.5)' }}
           >
             Ratings & Licensing
           </h1>
-          <p className="text-sm text-white/60 mt-2" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.5)' }}>Your iRacing license progression</p>
         </div>
 
         {/* Overall Ratings */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-white/[0.03] backdrop-blur-xl border border-green-500/30 rounded p-6 shadow-lg shadow-green-500/10 hover:bg-white/[0.05] transition-all duration-200">
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-5 h-5 text-green-400" />
-              <span className="text-[10px] uppercase tracking-[0.15em] text-green-400">Overall Safety Rating</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className={`bg-white/[0.03] backdrop-blur-xl border rounded p-4 transition-all duration-200 ${
+            (profile.safetyRatingOverall ?? 0) >= 2.5 
+              ? 'border-green-500/30 hover:border-green-500/50' 
+              : 'border-amber-500/30 hover:border-amber-500/50'
+          }`}>
+            <div className="flex items-center gap-2 mb-2">
+              <Shield className={`w-4 h-4 ${(profile.safetyRatingOverall ?? 0) >= 2.5 ? 'text-green-400' : 'text-amber-400'}`} />
+              <span className={`text-[10px] uppercase tracking-[0.15em] ${(profile.safetyRatingOverall ?? 0) >= 2.5 ? 'text-green-400' : 'text-amber-400'}`}>Safety Rating</span>
             </div>
-            <div className="text-4xl font-mono font-bold text-green-400" style={{ textShadow: '0 2px 15px rgba(34,197,94,0.3)' }}>
+            <div className={`text-3xl font-mono font-bold ${(profile.safetyRatingOverall ?? 0) >= 2.5 ? 'text-green-400' : 'text-amber-400'}`}>
               {profile.safetyRatingOverall?.toFixed(2) ?? '—'}
             </div>
-            <div className="mt-2 text-xs text-white/50">
-              Across all disciplines
+            <div className="mt-1 text-[10px] text-white/40">
+              Across all active disciplines
             </div>
           </div>
-          <div className="bg-white/[0.03] backdrop-blur-xl border border-blue-500/30 rounded p-6 shadow-lg shadow-blue-500/10 hover:bg-white/[0.05] transition-all duration-200">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-5 h-5 text-blue-400" />
-              <span className="text-[10px] uppercase tracking-[0.15em] text-blue-400">Overall iRating</span>
+          <div className="bg-white/[0.02] backdrop-blur-xl border border-white/10 rounded p-4 hover:border-white/20 transition-all duration-200">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-4 h-4 text-blue-400/70" />
+              <span className="text-[10px] uppercase tracking-[0.15em] text-blue-400/70">iRating</span>
             </div>
-            <div className="text-4xl font-mono font-bold text-blue-400" style={{ textShadow: '0 2px 15px rgba(59,130,246,0.3)' }}>
+            <div className="text-3xl font-mono font-bold text-blue-400/80">
               {profile.iRatingOverall ?? '—'}
             </div>
-            <div className="mt-2 text-xs text-white/50">
-              Primary discipline rating
+            <div className="mt-1 text-[10px] text-white/40">
+              Highest active discipline
             </div>
           </div>
         </div>
 
         {/* License Cards */}
-        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-6 shadow-lg shadow-black/20">
-          <div className="flex items-center gap-2 mb-6">
-            <Award className="w-5 h-5 text-white/60" />
-            <span 
-              className="text-xs uppercase tracking-[0.15em] text-white/60"
-              style={{ fontFamily: 'Orbitron, sans-serif' }}
-            >
-              License Breakdown
-            </span>
+        <div className="bg-white/[0.02] backdrop-blur-xl border border-white/[0.08] rounded p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Award className="w-4 h-4 text-white/50" />
+            <span className="text-[10px] uppercase tracking-[0.15em] text-white/50">License Breakdown</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {profile.licenses.map((license) => (
-              <div 
-                key={license.discipline}
-                className="relative bg-white/[0.02] border border-white/[0.08] rounded p-5 overflow-hidden hover:bg-white/[0.04] hover:border-white/20 transition-all duration-200"
-              >
-                {/* License Class Badge */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {profile.licenses.map((license) => {
+              const sr = license.safetyRating;
+              const srColor = sr >= 3.0 ? 'bg-green-500' : sr >= 2.0 ? 'bg-amber-500' : 'bg-red-500';
+              const srTextColor = sr >= 3.0 ? 'text-green-400' : sr >= 2.0 ? 'text-amber-400' : 'text-red-400';
+              const licenseLabel = license.licenseClass === 'R' ? 'Rookie' : `Class ${license.licenseClass}`;
+              
+              return (
                 <div 
-                  className="absolute top-0 right-0 w-16 h-16 flex items-center justify-center shadow-lg"
-                  style={{ 
-                    backgroundColor: getLicenseColor(license.licenseClass),
-                    clipPath: 'polygon(100% 0, 0 0, 100% 100%)'
-                  }}
+                  key={license.discipline}
+                  className="relative bg-white/[0.02] border border-white/[0.06] rounded p-4 overflow-hidden hover:bg-white/[0.03] hover:border-white/15 transition-all duration-200"
                 >
-                  <span className="absolute top-2 right-2 text-lg font-bold text-white" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}>
-                    {license.licenseClass}
-                  </span>
-                </div>
+                  {/* License Class Badge */}
+                  <div 
+                    className="absolute top-0 right-0 w-12 h-12 flex items-center justify-center"
+                    style={{ 
+                      backgroundColor: getLicenseColor(license.licenseClass),
+                      clipPath: 'polygon(100% 0, 0 0, 100% 100%)'
+                    }}
+                  >
+                    <span className="absolute top-1.5 right-1.5 text-sm font-bold text-white">
+                      {license.licenseClass}
+                    </span>
+                  </div>
 
-                <div className="pr-12">
-                  <div className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-1">
-                    {getDisciplineLabel(license.discipline)}
+                  {/* Header: Discipline + License */}
+                  <div className="pr-10 mb-3">
+                    <div className="text-sm font-medium text-white/90">
+                      {getDisciplineLabel(license.discipline)}
+                    </div>
+                    <div className="text-[10px] uppercase tracking-wider text-white/40">
+                      {licenseLabel} License
+                    </div>
                   </div>
-                  <div className="text-lg font-semibold mb-4" style={{ fontFamily: 'Orbitron, sans-serif', textShadow: '0 2px 8px rgba(0,0,0,0.3)' }}>
-                    Class {license.licenseClass} License
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wider text-white/50 mb-1">
-                      Safety Rating
+                  {/* SR | iRating row */}
+                  <div className="flex items-baseline gap-4 mb-3">
+                    <div>
+                      <span className={`text-lg font-mono font-bold ${srTextColor}`}>{sr.toFixed(2)}</span>
+                      <span className="text-[9px] text-white/40 ml-1">SR</span>
                     </div>
-                    <div className="text-xl font-mono font-bold text-green-400">
-                      {license.safetyRating.toFixed(2)}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] uppercase tracking-wider text-white/50 mb-1">
-                      iRating
-                    </div>
-                    <div className="text-xl font-mono font-bold text-blue-400">
-                      {license.iRating ?? '—'}
+                    <div>
+                      <span className="text-lg font-mono font-bold text-blue-400/80">{license.iRating ?? '—'}</span>
+                      <span className="text-[9px] text-white/40 ml-1">iR</span>
                     </div>
                   </div>
-                </div>
 
-                {/* SR Progress Bar */}
-                <div className="mt-4">
-                  <div className="flex justify-between text-[10px] uppercase tracking-wider text-white/50 mb-1">
-                    <span>SR Progress</span>
-                    <span>{license.safetyRating.toFixed(2)} / 4.00</span>
-                  </div>
-                  <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full"
-                      style={{ width: `${(license.safetyRating / 4) * 100}%` }}
-                    />
+                  {/* SR Progress Bar */}
+                  <div className="relative">
+                    <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full ${srColor} rounded-full transition-all duration-300`}
+                        style={{ width: `${(sr / 4) * 100}%` }}
+                      />
+                    </div>
+                    {/* Promotion threshold marker at 4.0 */}
+                    <div className="absolute right-0 top-0 w-px h-1.5 bg-white/30" title="Promotion: 4.00" />
+                    <div className="flex justify-between text-[9px] text-white/30 mt-0.5">
+                      <span>{sr.toFixed(2)}</span>
+                      <span>4.00</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        {/* License Legend */}
-        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-4 shadow-lg shadow-black/20">
-          <div className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-3">License Classes</div>
-          <div className="flex flex-wrap gap-4">
+        {/* License Legend - Compact */}
+        <div className="flex items-center gap-3 px-1">
+          <span className="text-[9px] uppercase tracking-wider text-white/30">Classes:</span>
+          <div className="flex items-center gap-2">
             {['R', 'D', 'C', 'B', 'A', 'Pro'].map((cls) => (
-              <div key={cls} className="flex items-center gap-2">
+              <div key={cls} className="flex items-center gap-1">
                 <div 
-                  className="w-5 h-5 rounded-sm shadow-md"
+                  className="w-3 h-3 rounded-sm"
                   style={{ backgroundColor: getLicenseColor(cls) }}
                 />
-                <span className="text-xs text-white/60">
-                  {cls === 'R' ? 'Rookie' : cls === 'Pro' ? 'Pro' : `Class ${cls}`}
+                <span className="text-[9px] text-white/40">
+                  {cls === 'R' ? 'R' : cls}
                 </span>
               </div>
             ))}
