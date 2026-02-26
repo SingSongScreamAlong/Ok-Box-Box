@@ -7,6 +7,7 @@ import { join } from 'path';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import * as Sentry from '@sentry/node';
 import { config } from './config/index.js';
 import { apiRouter } from './api/routes/index.js';
 import { errorHandler } from './api/middleware/error-handler.js';
@@ -89,6 +90,11 @@ app.use('/blackbox', express.static(blackboxPath));
 app.get('/blackbox/*', (_req: Request, res: Response) => {
     res.sendFile(join(blackboxPath, 'index.html'));
 });
+
+// Sentry error handler (must be before other error handlers)
+if (process.env.SENTRY_DSN) {
+    Sentry.setupExpressErrorHandler(app);
+}
 
 // Error handling
 app.use(errorHandler);

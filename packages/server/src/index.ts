@@ -3,6 +3,7 @@
 // =====================================================================
 
 import 'dotenv/config';
+import * as Sentry from '@sentry/node';
 import { createServer } from 'http';
 import { app } from './app.js';
 import { initializeWebSocket } from './websocket/index.js';
@@ -10,6 +11,20 @@ import { initializeDatabase } from './db/client.js';
 import { runMigrations, seedAdminUser } from './db/migrations.js';
 import { config } from './config/index.js';
 import { startSyncScheduler, stopSyncScheduler } from './services/iracing-oauth/index.js';
+
+// Initialize Sentry for error tracking (production only)
+if (process.env.SENTRY_DSN) {
+    Sentry.init({
+        dsn: process.env.SENTRY_DSN,
+        environment: config.nodeEnv,
+        tracesSampleRate: config.nodeEnv === 'production' ? 0.1 : 1.0,
+        integrations: [
+            Sentry.httpIntegration(),
+            Sentry.expressIntegration(),
+        ],
+    });
+    console.log('✅ Sentry error tracking initialized');
+}
 
 async function main() {
     console.log('🏎️  ControlBox Server Starting...');
