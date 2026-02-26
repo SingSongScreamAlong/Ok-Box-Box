@@ -1,4 +1,4 @@
-name: E2E Tests
+name: Tests
 
 on:
   push:
@@ -7,7 +7,28 @@ on:
     branches: [main, develop]
 
 jobs:
-  test:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run unit tests
+        run: npm run test
+        working-directory: apps/app
+
+  e2e-tests:
+    name: E2E Tests
     timeout-minutes: 15
     runs-on: ubuntu-latest
     
@@ -32,6 +53,8 @@ jobs:
         working-directory: apps/app
         env:
           CI: true
+          E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
       
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -40,3 +63,27 @@ jobs:
           name: playwright-report
           path: apps/app/playwright-report/
           retention-days: 7
+
+  build:
+    name: Build Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Build app
+        run: npm run build
+        working-directory: apps/app
+        env:
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder
+          VITE_API_URL: https://api.okboxbox.com
