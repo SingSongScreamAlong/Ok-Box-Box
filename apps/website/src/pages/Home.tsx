@@ -57,7 +57,7 @@ function SystemSection() {
                 <div className="border-t border-white/10 pt-8 text-center">
                     <p className="text-base text-white/70 mb-6" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.7)' }}>Start with the Relay. Scale when you're ready.</p>
                     <div className="flex gap-4 justify-center">
-                        <a href="/download-relay" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors duration-150">Download Relay</a>
+                        <a href="/download" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors duration-150">Download Relay</a>
                         <span className="text-white/20">|</span>
                         <a href="/pricing" className="text-xs uppercase tracking-wider text-white/60 hover:text-white transition-colors duration-150">View Pricing</a>
                     </div>
@@ -159,7 +159,7 @@ export function Home() {
                         </p>
 
                         <div className="flex gap-4">
-                            <a href="/download-relay" className="btn btn-primary">
+                            <a href="/download" className="btn btn-primary">
                                 Download Relay
                             </a>
                             <a href="/pricing" className="btn btn-outline">

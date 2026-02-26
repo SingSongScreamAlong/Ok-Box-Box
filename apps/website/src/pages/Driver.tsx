@@ -202,7 +202,7 @@ export function Driver() {
                 <div className="mt-12 border-t border-white/10 pt-10">
                     <div className="flex justify-center">
                         <Link 
-                            to="/download-relay" 
+                            to="/download" 
                             className="btn btn-primary"
                         >
                             Download Relay

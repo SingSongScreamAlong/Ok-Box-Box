@@ -35,10 +35,13 @@ export function Download() {
                         It's the bridge between the simulator and the system.
                     </p>
 
-                    <button className="btn btn-primary px-8 py-4 text-sm uppercase tracking-wider font-semibold mb-3">
+                    <a 
+                        href="https://github.com/SingSongScreamAlong/Ok-Box-Box/releases/latest/download/Ok-Box-Box-Relay-1.0.0-alpha.exe" 
+                        className="btn btn-primary px-8 py-4 text-sm uppercase tracking-wider font-semibold mb-3 inline-block"
+                    >
                         Download for Windows
-                    </button>
-                    <p className="text-[10px] text-white/60 uppercase tracking-wider">v0.1.0 · Windows 10+</p>
+                    </a>
+                    <p className="text-[10px] text-white/60 uppercase tracking-wider">v1.0.0-alpha · Windows 10+</p>
                 </div>
             </div>
 

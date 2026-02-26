@@ -38,7 +38,7 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/track-ready" element={<TrackReady />} />
                 <Route path="/pricing" element={<Pricing />} />
-                <Route path="/download-relay" element={<Download />} />
+                <Route path="/download" element={<Download />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/docs" element={<Docs />} />
                 <Route path="/docs/relay" element={<DocsRelay />} />

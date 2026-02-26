@@ -235,7 +235,7 @@ export function Docs() {
                                 </ul>
                             </div>
                             <p className="text-white/50">The Relay exists solely to enable everything that follows.</p>
-                            <Link to="/download-relay" className="text-xs text-[#f97316]/70 hover:text-[#f97316] transition-colors duration-150 inline-block">
+                            <Link to="/download" className="text-xs text-[#f97316]/70 hover:text-[#f97316] transition-colors duration-150 inline-block">
                                 Download Relay →
                             </Link>
                         </div>

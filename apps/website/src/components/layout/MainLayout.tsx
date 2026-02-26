@@ -30,7 +30,7 @@ export function MainLayout() {
                         <Link to="/" className="text-xs font-medium uppercase tracking-wider text-white/80 hover:text-white transition-colors duration-150">Home</Link>
                         <Link to="/track-ready" className="text-xs font-medium uppercase tracking-wider text-white/80 hover:text-white transition-colors duration-150">Getting Track Ready</Link>
                         <Link to="/pricing" className="text-xs font-medium uppercase tracking-wider text-white/80 hover:text-white transition-colors duration-150">Pricing</Link>
-                        <Link to="/download-relay" className="text-xs font-medium uppercase tracking-wider text-white/80 hover:text-white transition-colors duration-150">Download</Link>
+                        <Link to="/download" className="text-xs font-medium uppercase tracking-wider text-white/80 hover:text-white transition-colors duration-150">Download</Link>
                         <Link to="/docs" className="text-xs font-medium uppercase tracking-wider text-white/80 hover:text-white transition-colors duration-150">Docs</Link>
                     </nav>
 
@@ -69,7 +69,7 @@ export function MainLayout() {
                             <Link to="/" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium uppercase tracking-wider text-white/80 hover:text-white transition-colors">Home</Link>
                             <Link to="/track-ready" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium uppercase tracking-wider text-white/80 hover:text-white transition-colors">Getting Track Ready</Link>
                             <Link to="/pricing" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium uppercase tracking-wider text-white/80 hover:text-white transition-colors">Pricing</Link>
-                            <Link to="/download-relay" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium uppercase tracking-wider text-white/80 hover:text-white transition-colors">Download</Link>
+                            <Link to="/download" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium uppercase tracking-wider text-white/80 hover:text-white transition-colors">Download</Link>
                             <Link to="/docs" onClick={() => setMobileMenuOpen(false)} className="text-sm font-medium uppercase tracking-wider text-white/80 hover:text-white transition-colors">Docs</Link>
                             <div className="border-t border-white/10 pt-4 space-y-3">
                                 <Link to="/driver" onClick={() => setMobileMenuOpen(false)} className="block text-sm font-medium uppercase tracking-wider text-[#3b82f6]/70 hover:text-[#3b82f6] transition-colors">Drivers</Link>
@@ -105,7 +105,7 @@ export function MainLayout() {
                         <div>
                             <h4 className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-3">Product</h4>
                             <div className="flex flex-col gap-1 text-xs text-white/40">
-                                <Link to="/download-relay" className="hover:text-white/70 transition-colors duration-150">Relay</Link>
+                                <Link to="/download" className="hover:text-white/70 transition-colors duration-150">Relay</Link>
                                 <Link to="/pricing" className="hover:text-white/70 transition-colors duration-150">Pricing</Link>
                                 <Link to="/docs" className="hover:text-white/70 transition-colors duration-150">Docs</Link>
                             </div>
