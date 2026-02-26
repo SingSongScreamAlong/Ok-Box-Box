@@ -4,6 +4,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { apiLogger } from '../../observability/logger.js';
 import {
     createDriverProfile,
     getDriverProfileById,
@@ -69,22 +70,22 @@ function triggerBackgroundSyncIfNeeded(userId: string, driverProfileId: string):
     // Run sync in background (don't await)
     (async () => {
         try {
-            console.log(`[IDP] Auto-sync triggered for user ${userId}`);
+            apiLogger.debug({ userId }, 'IDP auto-sync triggered');
             const syncService = getIRacingProfileSyncService();
             
             // Sync profile and race results from iRacing
             const profile = await syncService.syncProfile(userId);
             if (!profile) {
-                console.log(`[IDP] Auto-sync: No iRacing link for user ${userId}`);
+                apiLogger.debug({ userId }, 'IDP auto-sync: no iRacing link');
                 return;
             }
             
             // Process new races into IDP memory
             const { backfillFromIRacingResults } = await import('../services/idp/driver-memory.service.js');
             const processed = await backfillFromIRacingResults(userId, driverProfileId);
-            console.log(`[IDP] Auto-sync complete for user ${userId}: processed ${processed} sessions`);
+            apiLogger.info({ userId, processed }, 'IDP auto-sync complete');
         } catch (error) {
-            console.error(`[IDP] Auto-sync error for user ${userId}:`, error);
+            apiLogger.error({ userId, err: error }, 'IDP auto-sync error');
         }
     })();
 }
@@ -104,7 +105,7 @@ router.get('/me', requireAuth, async (req: Request, res: Response): Promise<void
         if (!profile) {
             // Auto-create driver profile for authenticated users
             const displayName = req.user!.displayName || req.user!.email?.split('@')[0] || 'Driver';
-            console.log(`[IDP] Auto-creating driver profile for user ${req.user!.id} (${displayName})`);
+            apiLogger.info({ userId: req.user!.id, displayName }, 'IDP auto-creating driver profile');
             profile = await createDriverProfile(
                 { display_name: displayName, primary_discipline: 'road' },
                 req.user!.id
@@ -167,7 +168,7 @@ router.get('/me', requireAuth, async (req: Request, res: Response): Promise<void
 
         res.json(enriched);
     } catch (error) {
-        console.error('[IDP] Error fetching own profile:', error);
+        apiLogger.error({ err: error }, 'IDP error fetching own profile');
         res.status(500).json({ error: 'Failed to fetch driver profile' });
     }
 });
@@ -194,7 +195,7 @@ router.get('/:id', allowPublic, async (req: Request, res: Response): Promise<voi
         const filtered = filterByScope(profile as object, req.idpContext?.scope || 'public', fieldRules);
         res.json(filtered);
     } catch (error) {
-        console.error('[IDP] Error fetching profile:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching profile:', error);
         res.status(500).json({ error: 'Failed to fetch driver profile' });
     }
 });
@@ -248,7 +249,7 @@ router.get('/me/sessions', requireAuth, async (req: Request, res: Response): Pro
             sessions,
         });
     } catch (error) {
-        console.error('[IDP] Error fetching iRacing sessions:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching iRacing sessions:', error);
         res.status(500).json({ error: 'Failed to fetch session history' });
     }
 });
@@ -310,7 +311,7 @@ router.get('/me/stats', requireAuth, async (req: Request, res: Response): Promis
 
         res.json({ disciplines });
     } catch (error) {
-        console.error('[IDP] Error fetching iRacing stats:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching iRacing stats:', error);
         res.status(500).json({ error: 'Failed to fetch stats' });
     }
 });
@@ -368,7 +369,7 @@ router.get('/me/performance-snapshot', requireAuth, async (req: Request, res: Re
             })),
         });
     } catch (error) {
-        console.error('[IDP] Error fetching performance snapshot:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching performance snapshot:', error);
         res.status(500).json({ error: 'Failed to fetch performance snapshot' });
     }
 });
@@ -409,7 +410,7 @@ router.get('/me/crew-brief', requireAuth, async (req: Request, res: Response): P
             })),
         });
     } catch (error) {
-        console.error('[IDP] Error fetching crew brief:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching crew brief:', error);
         res.status(500).json({ error: 'Failed to fetch crew brief' });
     }
 });
@@ -434,7 +435,7 @@ router.post('/me/resync-profile', requireAuth, async (req: Request, res: Respons
             message: 'Profile and career stats synced from iRacing',
         });
     } catch (error) {
-        console.error('[IDP] Error re-syncing profile:', error);
+        apiLogger.error({ err: error }, '[IDP] Error re-syncing profile:', error);
         res.status(500).json({ error: 'Failed to re-sync profile' });
     }
 });
@@ -470,7 +471,7 @@ router.post('/me/sync-iracing', requireAuth, async (req: Request, res: Response)
             message: `Synced ${result.synced} recent races`
         });
     } catch (error) {
-        console.error('[IDP] Error syncing iRacing data:', error);
+        apiLogger.error({ err: error }, '[IDP] Error syncing iRacing data:', error);
         res.status(500).json({ error: 'Failed to sync iRacing data' });
     }
 });
@@ -519,7 +520,7 @@ router.post('/me/sync-history', requireAuth, async (req: Request, res: Response)
                 : 'No race history found. Complete some iRacing races and try again.',
         });
     } catch (error) {
-        console.error('[IDP] Error in comprehensive history sync:', error);
+        apiLogger.error({ err: error }, '[IDP] Error in comprehensive history sync:', error);
         res.status(500).json({ error: 'Failed to sync race history' });
     }
 });
@@ -565,7 +566,7 @@ router.post('/me/sync-history-full', requireAuth, async (req: Request, res: Resp
              ORDER BY count DESC`,
             [req.user!.id]
         );
-        console.log(`[IDP] Current DB event_type breakdown:`, dbBreakdown.rows);
+        apiLogger.debug({ breakdown: dbBreakdown.rows }, 'IDP current DB event_type breakdown');
 
         // Clean up old non-race records (practice, qualifying, time trial)
         // Keep only event_type = 'race' or NULL (legacy records we'll re-fetch)
@@ -578,11 +579,11 @@ router.post('/me/sync-history-full', requireAuth, async (req: Request, res: Resp
             [req.user!.id]
         );
         if (deleteResult.rowCount && deleteResult.rowCount > 0) {
-            console.log(`[IDP] Cleaned up ${deleteResult.rowCount} non-race records from database`);
+            apiLogger.info({ count: deleteResult.rowCount }, 'IDP cleaned up non-race records from database');
         }
 
         // Force full sync - pass true for forceFullSync
-        console.log(`[IDP] Force full sync requested for user ${req.user!.id}`);
+        apiLogger.info({ userId: req.user!.id }, 'IDP force full sync requested');
         const racesSynced = await syncService.syncRaceResults(
             req.user!.id, 
             accessToken, 
@@ -603,7 +604,7 @@ router.post('/me/sync-history-full', requireAuth, async (req: Request, res: Resp
              ORDER BY count DESC`,
             [req.user!.id]
         );
-        console.log(`[IDP] Final DB event_type breakdown:`, finalBreakdown.rows);
+        apiLogger.debug({ breakdown: finalBreakdown.rows }, 'IDP final DB event_type breakdown');
 
         // Process through IDP memory system
         let sessionsProcessed = 0;
@@ -620,7 +621,7 @@ router.post('/me/sync-history-full', requireAuth, async (req: Request, res: Resp
             message: `Full sync complete. Found ${racesSynced} new races. Total: ${raceCount} races. Processed ${sessionsProcessed} sessions.`,
         });
     } catch (error) {
-        console.error('[IDP] Error in full history sync:', error);
+        apiLogger.error({ err: error }, '[IDP] Error in full history sync:', error);
         res.status(500).json({ error: 'Failed to sync race history' });
     }
 });
@@ -650,7 +651,7 @@ router.get('/:id/summary', allowPublic, async (req: Request, res: Response): Pro
 
         res.json(summary);
     } catch (error) {
-        console.error('[IDP] Error fetching summary:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching summary:', error);
         res.status(500).json({ error: 'Failed to fetch driver summary' });
     }
 });
@@ -681,7 +682,7 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
         const profile = await createDriverProfile(dto, req.user!.id);
         res.status(201).json(profile);
     } catch (error) {
-        console.error('[IDP] Error creating profile:', error);
+        apiLogger.error({ err: error }, '[IDP] Error creating profile:', error);
         res.status(500).json({ error: 'Failed to create driver profile' });
     }
 });
@@ -702,7 +703,7 @@ router.patch('/:id', requireOwner, async (req: Request, res: Response): Promise<
 
         res.json(profile);
     } catch (error) {
-        console.error('[IDP] Error updating profile:', error);
+        apiLogger.error({ err: error }, '[IDP] Error updating profile:', error);
         res.status(500).json({ error: 'Failed to update driver profile' });
     }
 });
@@ -720,7 +721,7 @@ router.get('/:id/identities', requireOwner, async (req: Request, res: Response):
         const identities = await getLinkedIdentities(req.params.id);
         res.json(identities);
     } catch (error) {
-        console.error('[IDP] Error fetching identities:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching identities:', error);
         res.status(500).json({ error: 'Failed to fetch linked identities' });
     }
 });
@@ -743,7 +744,7 @@ router.post('/:id/identities/link', requireOwner, async (req: Request, res: Resp
         const identity = await linkRacingIdentity(req.params.id, dto);
         res.status(201).json(identity);
     } catch (error) {
-        console.error('[IDP] Error linking identity:', error);
+        apiLogger.error({ err: error }, '[IDP] Error linking identity:', error);
         res.status(500).json({ error: 'Failed to link racing identity' });
     }
 });
@@ -761,7 +762,7 @@ router.post('/:id/identities/:identityId/verify', requireOwner, async (req: Requ
         }
         res.json(identity);
     } catch (error) {
-        console.error('[IDP] Error verifying identity:', error);
+        apiLogger.error({ err: error }, '[IDP] Error verifying identity:', error);
         res.status(500).json({ error: 'Failed to verify identity' });
     }
 });
@@ -779,7 +780,7 @@ router.delete('/:id/identities/:identityId', requireOwner, async (req: Request, 
         }
         res.status(204).send();
     } catch (error) {
-        console.error('[IDP] Error unlinking identity:', error);
+        apiLogger.error({ err: error }, '[IDP] Error unlinking identity:', error);
         res.status(500).json({ error: 'Failed to unlink identity' });
     }
 });
@@ -797,7 +798,7 @@ router.get('/:id/access-grants', requireOwner, async (req: Request, res: Respons
         const grants = await getActiveGrants(req.params.id);
         res.json(grants);
     } catch (error) {
-        console.error('[IDP] Error fetching grants:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching grants:', error);
         res.status(500).json({ error: 'Failed to fetch access grants' });
     }
 });
@@ -820,7 +821,7 @@ router.post('/:id/access-grants', requireOwner, async (req: Request, res: Respon
         const grant = await createAccessGrant(req.params.id, dto, req.idpContext?.driverProfileId);
         res.status(201).json(grant);
     } catch (error) {
-        console.error('[IDP] Error creating grant:', error);
+        apiLogger.error({ err: error }, '[IDP] Error creating grant:', error);
         res.status(500).json({ error: 'Failed to create access grant' });
     }
 });
@@ -838,7 +839,7 @@ router.delete('/:id/access-grants/:grantId', requireOwner, async (req: Request, 
         }
         res.status(204).send();
     } catch (error) {
-        console.error('[IDP] Error revoking grant:', error);
+        apiLogger.error({ err: error }, '[IDP] Error revoking grant:', error);
         res.status(500).json({ error: 'Failed to revoke access grant' });
     }
 });
@@ -865,7 +866,7 @@ router.get('/:id/sessions', requireTeamStandard, async (req: Request, res: Respo
             sessions: metrics,
         });
     } catch (error) {
-        console.error('[IDP] Error fetching sessions:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching sessions:', error);
         res.status(500).json({ error: 'Failed to fetch session metrics' });
     }
 });
@@ -900,7 +901,7 @@ router.get('/:id/performance', allowPublic, async (req: Request, res: Response):
             computed_at: globalAggregate.computed_at,
         });
     } catch (error) {
-        console.error('[IDP] Error fetching performance:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching performance:', error);
         res.status(500).json({ error: 'Failed to fetch performance data' });
     }
 });
@@ -925,7 +926,7 @@ router.get('/:id/traits', allowPublic, async (req: Request, res: Response): Prom
             })),
         });
     } catch (error) {
-        console.error('[IDP] Error fetching traits:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching traits:', error);
         res.status(500).json({ error: 'Failed to fetch driver traits' });
     }
 });
@@ -958,7 +959,7 @@ router.get('/:id/reports', requireTeamStandard, async (req: Request, res: Respon
             })),
         });
     } catch (error) {
-        console.error('[IDP] Error fetching reports:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching reports:', error);
         res.status(500).json({ error: 'Failed to fetch driver reports' });
     }
 });
@@ -1035,7 +1036,7 @@ router.get('/me/development', requireAuth, async (req: Request, res: Response): 
 
         res.json(developmentData);
     } catch (error) {
-        console.error('[IDP] Error fetching development data:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching development data:', error);
         res.status(500).json({ error: 'Failed to fetch development data' });
     }
 });
@@ -1213,7 +1214,7 @@ router.get('/me/track-analysis', requireAuth, async (req: Request, res: Response
             history,
         });
     } catch (error) {
-        console.error('[IDP] Error in track analysis:', error);
+        apiLogger.error({ err: error }, '[IDP] Error in track analysis:', error);
         res.status(500).json({ error: 'Failed to analyze track performance' });
     }
 });
@@ -1349,7 +1350,7 @@ router.get('/me/idp', requireAuth, async (req: Request, res: Response): Promise<
 
         res.json({ memory, opinions, identity, dataBreakdown });
     } catch (error) {
-        console.error('[IDP] Error fetching IDP data:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching IDP data:', error);
         res.status(500).json({ error: 'Failed to fetch IDP data' });
     }
 });
@@ -1466,7 +1467,7 @@ router.post('/me/reset-memory', requireAuth, async (req: Request, res: Response)
             }
         });
     } catch (error) {
-        console.error('[IDP] Error resetting memory:', error);
+        apiLogger.error({ err: error }, '[IDP] Error resetting memory:', error);
         res.status(500).json({ error: `Failed to reset memory: ${error instanceof Error ? error.message : 'Unknown error'}` });
     }
 });
@@ -1488,7 +1489,7 @@ router.get('/me/report', requireAuth, async (req: Request, res: Response): Promi
         
         res.json(report);
     } catch (error) {
-        console.error('[IDP] Error generating driver report:', error);
+        apiLogger.error({ err: error }, '[IDP] Error generating driver report:', error);
         res.status(500).json({ error: 'Failed to generate driver report' });
     }
 });
@@ -1625,7 +1626,7 @@ router.get('/me/memories', requireAuth, async (req: Request, res: Response): Pro
 
         res.json({ memories });
     } catch (error) {
-        console.error('[IDP] Error fetching memories:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching memories:', error);
         res.status(500).json({ error: 'Failed to fetch memories' });
     }
 });
@@ -1654,7 +1655,7 @@ router.get('/me/targets', requireAuth, async (req: Request, res: Response): Prom
 
         res.json({ targets: result.rows });
     } catch (error) {
-        console.error('[IDP] Error fetching targets:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching targets:', error);
         res.status(500).json({ error: 'Failed to fetch targets' });
     }
 });
@@ -1685,7 +1686,7 @@ router.post('/me/targets', requireAuth, async (req: Request, res: Response): Pro
 
         res.json(result.rows[0]);
     } catch (error) {
-        console.error('[IDP] Error creating target:', error);
+        apiLogger.error({ err: error }, '[IDP] Error creating target:', error);
         res.status(500).json({ error: 'Failed to create target' });
     }
 });
@@ -1717,7 +1718,7 @@ router.patch('/me/development/drills', requireAuth, async (req: Request, res: Re
 
         res.json({ success: true });
     } catch (error) {
-        console.error('[IDP] Error updating drill:', error);
+        apiLogger.error({ err: error }, '[IDP] Error updating drill:', error);
         res.status(500).json({ error: 'Failed to update drill' });
     }
 });
@@ -1774,7 +1775,7 @@ Never use generic platitudes — reference their actual data.`
             res.json({ insight: fallbackInsight });
         }
     } catch (error) {
-        console.error('[IDP] Error generating coaching insight:', error);
+        apiLogger.error({ err: error }, '[IDP] Error generating coaching insight:', error);
         res.status(500).json({ error: 'Failed to generate coaching insight' });
     }
 });
@@ -1878,7 +1879,7 @@ Each should be one sentence. Return as a JSON array of strings.`
 
         res.json({ recommendations: recommendations.slice(0, 5) });
     } catch (error) {
-        console.error('[IDP] Error fetching recommendations:', error);
+        apiLogger.error({ err: error }, '[IDP] Error fetching recommendations:', error);
         res.status(500).json({ error: 'Failed to fetch recommendations' });
     }
 });
@@ -2030,7 +2031,7 @@ IMPORTANT: Never make up data. Only reference numbers from the data below. If yo
             res.json({ response: `I'm having trouble processing that right now. ${result.error || 'Try again in a moment.'}` });
         }
     } catch (error) {
-        console.error('[IDP] Error in crew chat:', error);
+        apiLogger.error({ err: error }, '[IDP] Error in crew chat:', error);
         res.status(500).json({ error: 'Failed to process crew chat' });
     }
 });
