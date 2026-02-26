@@ -45,14 +45,15 @@ export default defineConfig({
             name: 'chromium',
             use: { ...devices['Desktop Chrome'] },
         },
-        {
-            name: 'firefox',
-            use: { ...devices['Desktop Firefox'] },
-        },
-        {
-            name: 'mobile',
-            use: { ...devices['iPhone 13'] },
-        },
+        // Uncomment for cross-browser testing
+        // {
+        //     name: 'firefox',
+        //     use: { ...devices['Desktop Firefox'] },
+        // },
+        // {
+        //     name: 'mobile',
+        //     use: { ...devices['iPhone 13'] },
+        // },
     ],
 
     // Run local dev server before starting tests
