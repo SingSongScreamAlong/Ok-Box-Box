@@ -17,8 +17,7 @@ async function login(page: any) {
     await expect(page).not.toHaveURL(/\/login/, { timeout: 10000 });
 }
 
-test.describe.skip('Engineer Chat', () => {
-    // Skip: Requires valid test user in database
+test.describe('Engineer Chat', () => {
     test.beforeEach(async ({ page }) => {
         await login(page);
     });
@@ -45,8 +44,7 @@ test.describe.skip('Engineer Chat', () => {
     });
 });
 
-test.describe.skip('Spotter Chat', () => {
-    // Skip: Requires valid test user in database
+test.describe('Spotter Chat', () => {
     test.beforeEach(async ({ page }) => {
         await login(page);
     });
@@ -62,8 +60,7 @@ test.describe.skip('Spotter Chat', () => {
     });
 });
 
-test.describe.skip('Analyst Chat', () => {
-    // Skip: Requires valid test user in database
+test.describe('Analyst Chat', () => {
     test.beforeEach(async ({ page }) => {
         await login(page);
     });

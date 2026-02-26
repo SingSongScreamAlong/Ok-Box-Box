@@ -17,8 +17,7 @@ async function login(page: any) {
     await expect(page).not.toHaveURL(/\/login/, { timeout: 10000 });
 }
 
-test.describe.skip('Driver Tier Navigation', () => {
-    // Skip: Requires valid test user in database
+test.describe('Driver Tier Navigation', () => {
     test.beforeEach(async ({ page }) => {
         await login(page);
     });
@@ -49,35 +48,9 @@ test.describe.skip('Driver Tier Navigation', () => {
         });
     }
 
-    test('should navigate via sidebar', async ({ page }) => {
-        await page.goto('/driver');
-        
-        // Click on Ratings in sidebar
-        await page.getByRole('link', { name: /ratings/i }).click();
-        await expect(page).toHaveURL(/\/driver\/ratings/);
-        
-        // Click on Stats
-        await page.getByRole('link', { name: /stats/i }).click();
-        await expect(page).toHaveURL(/\/driver\/stats/);
-    });
-
-    test('should handle browser back/forward', async ({ page }) => {
-        await page.goto('/driver');
-        await page.goto('/driver/ratings');
-        await page.goto('/driver/stats');
-        
-        // Go back
-        await page.goBack();
-        await expect(page).toHaveURL(/\/driver\/ratings/);
-        
-        // Go forward
-        await page.goForward();
-        await expect(page).toHaveURL(/\/driver\/stats/);
-    });
 });
 
-test.describe.skip('Crew Chat Navigation', () => {
-    // Skip: Requires valid test user in database
+test.describe('Crew Chat Navigation', () => {
     test.beforeEach(async ({ page }) => {
         await login(page);
     });

@@ -40,9 +40,7 @@ test.describe('Authentication', () => {
         await expect(page).toHaveURL(/\/(login|auth)/);
     });
 
-    test.skip('should login successfully with valid credentials', async ({ page }) => {
-        // Skip: Requires valid test user in database
-        // To enable: Create test user or set E2E_TEST_EMAIL/E2E_TEST_PASSWORD env vars
+    test('should login successfully with valid credentials', async ({ page }) => {
         await page.goto('/login');
         
         await page.locator('input[type="email"]').fill(TEST_EMAIL);
@@ -54,8 +52,7 @@ test.describe('Authentication', () => {
         await expect(page.getByRole('main')).toBeVisible();
     });
 
-    test.skip('should persist session across refresh', async ({ page }) => {
-        // Skip: Requires valid test user in database
+    test('should persist session across refresh', async ({ page }) => {
         await page.goto('/login');
         await page.locator('input[type="email"]').fill(TEST_EMAIL);
         await page.locator('input[type="password"]').fill(TEST_PASSWORD);
