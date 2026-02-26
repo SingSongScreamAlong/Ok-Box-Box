@@ -181,4 +181,7 @@ export function safeContext(context: Record<string, unknown>): Record<string, un
     };
 }
 
+// Re-export throttle utilities for convenience
+export { logOncePerInterval, createThrottledLogger } from './log-throttle.js';
+
 export default logger;

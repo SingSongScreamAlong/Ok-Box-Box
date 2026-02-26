@@ -13,6 +13,8 @@
         "test:watch": "vitest",
         "test:coverage": "vitest run --coverage",
         "typecheck": "tsc --noEmit",
+        "lint": "eslint src --ext .ts",
+        "lint:fix": "eslint src --ext .ts --fix",
         "migrate": "psql $DATABASE_URL -f src/db/migrations/001_initial.sql"
     },
     "dependencies": {
@@ -43,6 +45,9 @@
         "zod": "^3.22.4"
     },
     "devDependencies": {
+        "eslint": "^9.0.0",
+        "@eslint/js": "^9.0.0",
+        "typescript-eslint": "^8.0.0",
         "@types/bcrypt": "^6.0.0",
         "@types/cors": "^2.8.17",
         "@types/express": "^4.17.21",
