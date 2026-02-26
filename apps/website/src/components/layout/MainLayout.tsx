@@ -98,8 +98,7 @@ export function MainLayout() {
                         <div>
                             <div className="text-xs font-semibold tracking-wider uppercase text-white/80 mb-2" style={{ fontFamily: 'Orbitron, sans-serif' }}>Ok, Box Box</div>
                             <p className="text-[11px] text-white/40 leading-relaxed">
-                                Racing Operations System for iRacing<br />
-                                Build v0.1.0-alpha
+                                Racing Operations System for iRacing
                             </p>
                         </div>
                         <div>
@@ -111,10 +110,9 @@ export function MainLayout() {
                             </div>
                         </div>
                         <div>
-                            <h4 className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-3">Community</h4>
+                            <h4 className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-3">Contact</h4>
                             <div className="flex flex-col gap-1 text-xs text-white/40">
-                                <span className="text-white/25">Discord — Coming Soon</span>
-                                <span className="text-white/25">Instagram — Coming Soon</span>
+                                <Link to="/contact" className="hover:text-white/70 transition-colors duration-150">Get in Touch</Link>
                             </div>
                         </div>
                     </div>

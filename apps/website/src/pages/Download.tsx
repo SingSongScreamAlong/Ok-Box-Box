@@ -41,7 +41,7 @@ export function Download() {
                     >
                         Download for Windows
                     </a>
-                    <p className="text-[10px] text-white/60 uppercase tracking-wider">v1.0.0-alpha · Windows 10+</p>
+                    <p className="text-[10px] text-white/60 uppercase tracking-wider">Windows 10+</p>
                 </div>
             </div>
 
@@ -50,48 +50,52 @@ export function Download() {
                 <StackingSections>
                     <StackingSection
                         index={0}
-                        id="enables"
-                        title="What the Relay Enables"
-                        subtitle="Live data flow, shared awareness, and system authority."
+                        id="what-relay-does"
+                        title="What Relay Does"
+                        subtitle="Secure telemetry capture and identity sync."
                         stripeColor="#f97316"
                     >
-                        <div className="text-sm text-white/80 leading-relaxed space-y-6">
-                            <div>
-                                <h3 className="text-xs uppercase tracking-wider text-[#3b82f6] font-semibold mb-2">Live Data Flow</h3>
-                                <p className="text-white/80">
-                                    Streams telemetry, timing, and session state from iRacing to Ok, Box Box in real time — no exports, uploads, or manual steps.
-                                </p>
-                            </div>
-                            <div>
-                                <h3 className="text-xs uppercase tracking-wider text-[#f97316] font-semibold mb-2">Shared Awareness</h3>
-                                <p className="text-white/80">
-                                    Powers driver views, team pit walls, and league control surfaces so everyone sees the same information at the same time.
-                                </p>
-                            </div>
-                            <div>
-                                <h3 className="text-xs uppercase tracking-wider text-white font-semibold mb-2">System Authority</h3>
-                                <p className="text-white/80">
-                                    Enables strategy coordination, incident review, and race operations using a single source of truth.
-                                </p>
-                            </div>
+                        <div className="text-sm text-white/80 leading-relaxed space-y-4">
+                            <ul className="space-y-3 text-white/80">
+                                <li className="flex items-start gap-3">
+                                    <span className="w-1 h-1 rounded-full bg-[#f97316] mt-2 flex-shrink-0" />
+                                    <span>Captures live session telemetry</span>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <span className="w-1 h-1 rounded-full bg-[#f97316] mt-2 flex-shrink-0" />
+                                    <span>Streams securely to your Ok, Box Box account</span>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <span className="w-1 h-1 rounded-full bg-[#f97316] mt-2 flex-shrink-0" />
+                                    <span>Syncs driver identity</span>
+                                </li>
+                            </ul>
                         </div>
                     </StackingSection>
 
                     <StackingSection
                         index={1}
-                        id="not"
-                        title="What the Relay Is Not"
+                        id="what-relay-does-not"
+                        title="What Relay Does Not Do"
                         subtitle="A passive connection layer. You are always in control."
                         stripeColor="#f97316"
                     >
                         <div className="text-sm text-white/80 leading-relaxed space-y-4">
                             <ul className="space-y-3 text-white/80">
-                                <li>- Does not modify iRacing files</li>
-                                <li>- Does not inject overlays into the sim</li>
-                                <li>- Does not control your car</li>
-                                <li>- Does not run when iRacing is closed</li>
+                                <li className="flex items-start gap-3">
+                                    <span className="w-1 h-1 rounded-full bg-white/40 mt-2 flex-shrink-0" />
+                                    <span>Does not modify sim files</span>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <span className="w-1 h-1 rounded-full bg-white/40 mt-2 flex-shrink-0" />
+                                    <span>Does not inject into iRacing</span>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <span className="w-1 h-1 rounded-full bg-white/40 mt-2 flex-shrink-0" />
+                                    <span>Does not access unrelated data</span>
+                                </li>
                             </ul>
-                            <p className="text-white/70 italic">
+                            <p className="text-white/50 text-xs mt-4">
                                 The Relay is a passive connection layer. You are always in control.
                             </p>
                         </div>
@@ -99,6 +103,31 @@ export function Download() {
 
                     <StackingSection
                         index={2}
+                        id="supported-environment"
+                        title="Supported Environment"
+                        subtitle="Compatibility and update behavior."
+                        stripeColor="#3b82f6"
+                    >
+                        <div className="text-sm text-white/80 leading-relaxed space-y-4">
+                            <ul className="space-y-3 text-white/80">
+                                <li className="flex items-start gap-3">
+                                    <span className="w-1 h-1 rounded-full bg-[#3b82f6] mt-2 flex-shrink-0" />
+                                    <span>Windows 10 and Windows 11</span>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <span className="w-1 h-1 rounded-full bg-[#3b82f6] mt-2 flex-shrink-0" />
+                                    <span>iRacing (current version)</span>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <span className="w-1 h-1 rounded-full bg-[#3b82f6] mt-2 flex-shrink-0" />
+                                    <span>Automatic updates when available</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </StackingSection>
+
+                    <StackingSection
+                        index={3}
                         id="after"
                         title="After You Install"
                         subtitle="No configuration required."
@@ -130,7 +159,7 @@ export function Download() {
                     </StackingSection>
 
                     <StackingSection
-                        index={3}
+                        index={4}
                         id="help"
                         title="Need Help?"
                         subtitle="View the installation guide for detailed instructions."
