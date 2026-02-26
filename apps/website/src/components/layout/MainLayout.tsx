@@ -110,9 +110,10 @@ export function MainLayout() {
                             </div>
                         </div>
                         <div>
-                            <h4 className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-3">Contact</h4>
+                            <h4 className="text-[10px] uppercase tracking-[0.15em] text-white/50 mb-3">Connect</h4>
                             <div className="flex flex-col gap-1 text-xs text-white/40">
-                                <Link to="/contact" className="hover:text-white/70 transition-colors duration-150">Get in Touch</Link>
+                                <a href="https://instagram.com/okboxbox" target="_blank" rel="noopener noreferrer" className="hover:text-white/70 transition-colors duration-150">Instagram</a>
+                                <Link to="/contact" className="hover:text-white/70 transition-colors duration-150">Contact</Link>
                             </div>
                         </div>
                     </div>
