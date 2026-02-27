@@ -1242,6 +1242,11 @@ export function DriverLanding() {
 
         {/* iRATING TREND */}
         {!loading && <IRatingSparkline points={trendPoints} />}
+
+        {/* BUILD IDENTIFIER - Remove when page is finalized */}
+        <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
+          HOME-v2.1 • ba8c6bd
+        </div>
       </div>
     </div>
   );
