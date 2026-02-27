@@ -73,6 +73,11 @@ export function DriverCockpit() {
   return (
     <div className="h-[calc(100vh-9rem)] flex relative bg-[#0a0a0a] overflow-hidden">
       
+      {/* BUILD IDENTIFIER - Remove when page is finalized */}
+      <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
+        COCKPIT-v1.0
+      </div>
+      
       {/* Background Video - Left Side of Page */}
       <div className="absolute left-0 top-0 bottom-0 w-64 overflow-hidden pointer-events-none z-[1]">
         <video
@@ -123,6 +128,7 @@ export function DriverCockpit() {
         <div className="p-4 border-b border-white/[0.06]">
           <h3 className="text-[10px] uppercase tracking-[0.15em] text-emerald-400 mb-3 flex items-center gap-2">
             <Flag className="w-3 h-3" />Race Position
+            <span className="text-white/20 ml-auto">Live</span>
           </h3>
           <div className="bg-white/[0.03] rounded p-4 border border-white/[0.08] backdrop-blur-sm">
             <div className="text-5xl font-bold text-white/90 font-mono">
@@ -425,7 +431,7 @@ export function DriverCockpit() {
             ))
           ) : (
             <div className="flex items-center justify-center h-full text-white/30 text-xs p-4 text-center">
-              {status === 'in_session' ? 'Waiting for standings data...' : 'Connect relay for live standings'}
+              {status === 'in_session' ? 'Waiting for standings data...' : 'Start iRacing session for live standings'}
             </div>
           )}
         </div>
@@ -453,7 +459,7 @@ export function DriverCockpit() {
               })
             ) : (
               <div className="flex items-center justify-center h-16 text-white/20 text-xs">
-                {isConnected ? 'Listening...' : 'Connect relay for team radio'}
+                {isConnected ? 'Listening...' : 'Start session for team radio'}
               </div>
             )}
           </div>
