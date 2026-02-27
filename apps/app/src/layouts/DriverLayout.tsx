@@ -190,7 +190,7 @@ export function DriverLayout() {
       {/* Footer */}
       <footer className="h-10 border-t border-white/10 bg-black/20 flex items-center justify-between px-4">
         <span className="text-[10px] uppercase tracking-wider text-white/30">
-          Driver Tier • v0.1.0-alpha
+          Driver Tier • Private Beta
         </span>
         <span className="text-[10px] uppercase tracking-wider text-white/30">
           © 2026 Ok, Box Box

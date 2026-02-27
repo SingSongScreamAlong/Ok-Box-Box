@@ -32,7 +32,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useDriverData } from '../../hooks/useDriverData';
 import { Link } from 'react-router-dom';
 import {
-  Wifi, WifiOff, Radio, ChevronRight,
+  WifiOff, Radio, ChevronRight,
   Play, Download, Gauge, Shield,
   Target, ArrowUpRight,
   Lock, Unlock, Bell, MessageSquare, Users,
@@ -268,31 +268,26 @@ function DriverIdentityStrip({ displayName, profile, consistency, relayStatus, i
               <div className={`text-lg font-bold font-mono ${CPI_TIER_STYLES[consistency.tier].text}`} style={ORBITRON}>
                 {consistency.index}
               </div>
-              <div className="text-[9px] text-white/30 uppercase tracking-wider">CPI</div>
+              <div className="text-[9px] text-white/30 uppercase tracking-wider cursor-help" title="Competitive Performance Index — composite score of consistency, incident discipline, and pace stability over your last 10 races">CPI</div>
             </div>
           )}
         </div>
 
         {/* Right: Relay pill + Live CTA */}
         <div className="flex items-center gap-3">
-          {/* Relay status pill */}
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider ${
-            isLive ? 'bg-green-500/20 text-green-400' :
-            relayStatus === 'connected' ? 'bg-blue-500/15 text-blue-400' :
-            relayStatus === 'connecting' ? 'bg-yellow-500/15 text-yellow-400' :
-            'bg-white/5 text-white/30'
-          }`}>
-            {isLive ? (
-              <Radio className="w-3 h-3 animate-pulse" />
-            ) : relayStatus === 'connected' ? (
-              <Wifi className="w-3 h-3" />
-            ) : relayStatus === 'connecting' ? (
-              <Wifi className="w-3 h-3 animate-pulse" />
-            ) : (
-              <WifiOff className="w-3 h-3" />
-            )}
-            {isLive ? 'Live' : relayStatus === 'connected' ? 'Connected' : relayStatus === 'connecting' ? 'Connecting' : 'Offline'}
-          </div>
+          {/* Relay status - only show if Live or needs action (removed duplicate Connected) */}
+          {(isLive || relayStatus === 'disconnected') && (
+            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider ${
+              isLive ? 'bg-green-500/20 text-green-400' : 'bg-white/5 text-white/30'
+            }`}>
+              {isLive ? (
+                <Radio className="w-3 h-3 animate-pulse" />
+              ) : (
+                <WifiOff className="w-3 h-3" />
+              )}
+              {isLive ? 'Live' : 'Offline'}
+            </div>
+          )}
 
           {isLive && (
             <Link
@@ -562,16 +557,38 @@ function PerformanceAttributesCompact({ snapshot }: { snapshot: PerformanceSnaps
   const consistencyScore = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_finish - 1) * 4)));
   const incidentScore = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_incidents) * 12)));
   const paceScore = Math.max(0, Math.min(100, Math.round(100 - Math.abs(snapshot.avg_finish - snapshot.avg_start) * 10)));
+  
+  // Check if we have enough data for pace stability
+  const hasPaceData = snapshot.session_count >= 3 && snapshot.avg_start > 0;
 
   return (
     <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
-      <div className="px-5 py-4 border-b border-white/10">
+      <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
         <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Performance Attributes</h2>
+        <span className="text-[9px] text-white/20">Last {snapshot.session_count} official races</span>
       </div>
       <div className="p-5 space-y-4">
-        <ProgressBar label="Consistency" value={consistencyScore} color="#3b82f6" />
-        <ProgressBar label="Incident Discipline" value={incidentScore} color="#22c55e" />
-        <ProgressBar label="Pace Stability" value={paceScore} color="#a855f7" />
+        <div title="Measures finishing position variance — higher = more consistent results">
+          <ProgressBar label="Consistency" value={consistencyScore} color="#3b82f6" />
+        </div>
+        <div title="Inverse of average incidents per race — higher = cleaner racing">
+          <ProgressBar label="Incident Discipline" value={incidentScore} color="#22c55e" />
+        </div>
+        {hasPaceData ? (
+          <div title="Measures positions gained/lost from grid to finish — higher = maintaining or improving position">
+            <ProgressBar label="Pace Stability" value={paceScore} color="#a855f7" />
+          </div>
+        ) : (
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] text-white/50 uppercase tracking-wider">Pace Stability</span>
+              <span className="text-[10px] text-white/25 italic">Insufficient data</span>
+            </div>
+            <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+              <div className="h-full rounded-full bg-white/[0.03]" style={{ width: '100%' }} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -612,9 +629,27 @@ function FiveRaceTrendSummary({ sessions, loading }: { sessions: DriverSessionSu
   const wins = recent.filter(s => s.finishPos === 1).length;
   const top5s = recent.filter(s => (s.finishPos ?? 99) <= 5).length;
 
-  // Trend direction
-  const isTrendingUp = totalIRDelta > 0;
-  const isTrendingDown = totalIRDelta < -50;
+  // Trend analysis - smarter narrative logic
+  const isTrendingUp = totalIRDelta > 20;
+  const isTrendingDown = totalIRDelta < -20;
+  const isSlightlyDown = totalIRDelta < 0 && totalIRDelta >= -20;
+  const highIncidents = avgIncidents > 3;
+  const cleanRacing = avgIncidents < 1.5;
+  
+  // Generate contextual narrative
+  const getTrendNarrative = () => {
+    if (isTrendingUp && cleanRacing) return { icon: TrendingUp, color: 'text-green-400', text: 'Strong momentum with clean racing' };
+    if (isTrendingUp) return { icon: TrendingUp, color: 'text-green-400', text: 'Positive trend — maintain discipline' };
+    if (isTrendingDown && highIncidents) return { icon: AlertTriangle, color: 'text-red-400', text: 'Incidents impacting iRating — focus on clean laps' };
+    if (isTrendingDown) return { icon: TrendingDown, color: 'text-red-400', text: 'Declining trend — review recent sessions' };
+    if (isSlightlyDown && highIncidents) return { icon: AlertTriangle, color: 'text-yellow-400', text: 'Slight decline due to incidents' };
+    if (isSlightlyDown) return { icon: TrendingDown, color: 'text-yellow-400', text: 'Minor decline — stay focused' };
+    if (cleanRacing) return { icon: Target, color: 'text-blue-400', text: 'Stable with clean racing' };
+    return { icon: Target, color: 'text-white/40', text: 'Holding steady' };
+  };
+  
+  const narrative = getTrendNarrative();
+  const NarrativeIcon = narrative.icon;
 
   return (
     <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
@@ -639,7 +674,7 @@ function FiveRaceTrendSummary({ sessions, loading }: { sessions: DriverSessionSu
             <div className="text-[9px] text-white/30 uppercase tracking-wider">Avg Inc</div>
           </div>
           <div className="text-center">
-            <div className={`text-lg font-bold font-mono ${isTrendingUp ? 'text-green-400' : isTrendingDown ? 'text-red-400' : 'text-white/60'}`} style={ORBITRON}>
+            <div className={`text-lg font-bold font-mono ${totalIRDelta > 0 ? 'text-green-400' : totalIRDelta < 0 ? 'text-red-400' : 'text-white/60'}`} style={ORBITRON}>
               {totalIRDelta > 0 ? '+' : ''}{totalIRDelta}
             </div>
             <div className="text-[9px] text-white/30 uppercase tracking-wider">iR Delta</div>
@@ -654,26 +689,10 @@ function FiveRaceTrendSummary({ sessions, loading }: { sessions: DriverSessionSu
           </div>
         </div>
         
-        {/* Trend indicator */}
+        {/* Trend indicator - now data-aware */}
         <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center justify-center gap-2">
-          {isTrendingUp && (
-            <>
-              <TrendingUp className="w-4 h-4 text-green-400" />
-              <span className="text-[11px] text-green-400">Positive momentum — keep it up</span>
-            </>
-          )}
-          {isTrendingDown && (
-            <>
-              <TrendingDown className="w-4 h-4 text-red-400" />
-              <span className="text-[11px] text-red-400">Review recent sessions for patterns</span>
-            </>
-          )}
-          {!isTrendingUp && !isTrendingDown && (
-            <>
-              <Target className="w-4 h-4 text-white/30" />
-              <span className="text-[11px] text-white/30">Steady performance</span>
-            </>
-          )}
+          <NarrativeIcon className={`w-4 h-4 ${narrative.color}`} />
+          <span className={`text-[11px] ${narrative.color}`}>{narrative.text}</span>
         </div>
       </div>
     </div>
@@ -1245,7 +1264,7 @@ export function DriverLanding() {
 
         {/* BUILD IDENTIFIER - Remove when page is finalized */}
         <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-          HOME-v2.1 • ba8c6bd
+          HOME-v2.2 • refinements
         </div>
       </div>
     </div>
