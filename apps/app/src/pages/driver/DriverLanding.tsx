@@ -229,10 +229,15 @@ function SinceLastSessionBlock({ snapshot, sessions }: { snapshot: PerformanceSn
   // Calculate deltas - use iRatingChange from DriverSessionSummary
   const lastIRDelta = lastSession?.iRatingChange ?? 0;
   const lastIncidents = lastSession?.incidents ?? 0;
+  const lastFinish = lastSession?.finishPos ?? 0;
   const avg5Incidents = recent5.length > 0 
     ? recent5.reduce((sum, s) => sum + (s.incidents ?? 0), 0) / recent5.length 
     : 0;
+  const avg5Finish = recent5.length > 0
+    ? recent5.reduce((sum, s) => sum + (s.finishPos ?? 0), 0) / recent5.length
+    : 0;
   const incidentDelta = lastIncidents - avg5Incidents;
+  const finishDelta = lastFinish - avg5Finish;
   
   // Format time since last session - use startedAt from DriverSessionSummary
   const lastSessionDate = lastSession?.startedAt ? new Date(lastSession.startedAt) : null;
@@ -240,8 +245,41 @@ function SinceLastSessionBlock({ snapshot, sessions }: { snapshot: PerformanceSn
     ? formatTimeSince(lastSessionDate) 
     : 'Unknown';
 
-  // Determine if anything notable happened
-  const hasAlerts = Math.abs(lastIRDelta) > 30 || lastIncidents > 4 || Math.abs(incidentDelta) > 1;
+  // Generate interpretation microcopy
+  const getInterpretation = (): string => {
+    const insights: string[] = [];
+    
+    // iRating interpretation
+    if (lastIRDelta === 0) {
+      insights.push('Neutral rating result.');
+    } else if (lastIRDelta > 30) {
+      insights.push('Strong rating gain.');
+    } else if (lastIRDelta < -30) {
+      insights.push('Significant rating loss.');
+    }
+    
+    // Finish vs average
+    if (finishDelta > 3) {
+      insights.push('Below recent average finish.');
+    } else if (finishDelta < -3) {
+      insights.push('Above recent average finish.');
+    }
+    
+    // Incident control
+    if (incidentDelta < -1) {
+      insights.push('Incident control improved.');
+    } else if (incidentDelta > 1) {
+      insights.push('Incident rate elevated.');
+    }
+    
+    if (insights.length === 0) {
+      return 'No material performance shift.';
+    }
+    
+    return insights.join(' ');
+  };
+
+  const interpretation = getInterpretation();
 
   return (
     <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
@@ -253,40 +291,39 @@ function SinceLastSessionBlock({ snapshot, sessions }: { snapshot: PerformanceSn
         <span className="text-[10px] text-white/20">{timeSince}</span>
       </div>
       <div className="px-5 py-4">
-        {hasAlerts ? (
-          <div className="grid grid-cols-3 gap-4">
-            {/* iRating Change */}
-            <div className="text-center">
-              <div className={`text-lg font-mono font-bold ${lastIRDelta > 0 ? 'text-emerald-400' : lastIRDelta < 0 ? 'text-red-400' : 'text-white/40'}`}>
-                {lastIRDelta > 0 ? '+' : ''}{lastIRDelta}
-              </div>
-              <div className="text-[9px] text-white/30 uppercase tracking-wider">iRating</div>
+        {/* Metrics Grid */}
+        <div className="grid grid-cols-3 gap-4 mb-3">
+          {/* iRating Change */}
+          <div className="text-center">
+            <div className={`text-lg font-mono font-bold ${lastIRDelta > 0 ? 'text-emerald-400' : lastIRDelta < 0 ? 'text-red-400' : 'text-white/40'}`}>
+              {lastIRDelta > 0 ? '+' : ''}{lastIRDelta}
             </div>
-            
-            {/* Incident Delta */}
-            <div className="text-center">
-              <div className={`text-lg font-mono font-bold ${incidentDelta < -0.5 ? 'text-emerald-400' : incidentDelta > 0.5 ? 'text-amber-400' : 'text-white/40'}`}>
-                {lastIncidents}x
-              </div>
-              <div className="text-[9px] text-white/30 uppercase tracking-wider">
-                {incidentDelta < -0.5 ? 'Below avg' : incidentDelta > 0.5 ? 'Above avg' : 'On avg'}
-              </div>
+            <div className="text-[9px] text-white/30 uppercase tracking-wider">iRating</div>
+          </div>
+          
+          {/* Incident Delta */}
+          <div className="text-center">
+            <div className={`text-lg font-mono font-bold ${incidentDelta < -0.5 ? 'text-emerald-400' : incidentDelta > 0.5 ? 'text-amber-400' : 'text-white/40'}`}>
+              {lastIncidents}x
             </div>
-            
-            {/* Position */}
-            <div className="text-center">
-              <div className="text-lg font-mono font-bold text-white/70">
-                P{lastSession?.finishPos ?? '--'}
-              </div>
-              <div className="text-[9px] text-white/30 uppercase tracking-wider">Finish</div>
+            <div className="text-[9px] text-white/30 uppercase tracking-wider">
+              {incidentDelta < -0.5 ? 'Below avg' : incidentDelta > 0.5 ? 'Above avg' : 'On avg'}
             </div>
           </div>
-        ) : (
-          <div className="flex items-center gap-2 text-white/40 text-sm">
-            <Activity className="w-4 h-4" />
-            <span>No new performance alerts. System stable.</span>
+          
+          {/* Position */}
+          <div className="text-center">
+            <div className="text-lg font-mono font-bold text-white/70">
+              P{lastSession?.finishPos ?? '--'}
+            </div>
+            <div className="text-[9px] text-white/30 uppercase tracking-wider">Finish</div>
           </div>
-        )}
+        </div>
+        
+        {/* Interpretation Layer */}
+        <div className="pt-3 border-t border-white/[0.06]">
+          <p className="text-[11px] text-white/40 italic">{interpretation}</p>
+        </div>
       </div>
     </div>
   );
@@ -315,38 +352,51 @@ function DriverStatusLine({ snapshot, sessions }: { snapshot: PerformanceSnapsho
   const confidence = Math.min(95, 50 + (sampleSize * 5));
 
   // Determine status message based on performance patterns
+  // Phase 7: Tightened conditional logic — summaries must match actual metrics
   let statusMessage = '';
   let statusColor = 'text-white/60';
   let statusIcon: 'warning' | 'positive' | 'stable' = 'stable';
 
   if (irDelta < -20 && avgIncidents > incidentThreshold) {
-    statusMessage = 'Incident density is limiting rating growth.';
+    // Rating down AND incidents high — incidents are the cause
+    statusMessage = 'Rating suppressed by incident density.';
     statusColor = 'text-amber-400';
     statusIcon = 'warning';
   } else if (irDelta < -20 && avgIncidents <= incidentThreshold) {
-    statusMessage = 'Rating declining despite clean racing. Review pace and racecraft.';
+    // Rating down BUT incidents low — investigate pace
+    statusMessage = 'Rating decline unrelated to contact — investigate pace.';
     statusColor = 'text-amber-400';
     statusIcon = 'warning';
-  } else if (Math.abs(irDelta) <= 20 && avgIncidents <= 2) {
-    statusMessage = 'Stable rating trend. Focus shifting to pace development.';
-    statusColor = 'text-blue-400';
-    statusIcon = 'stable';
+  } else if (irDelta > 20 && avgIncidents > incidentThreshold) {
+    // Rating up despite high incidents — acknowledge both
+    statusMessage = 'Positive rating movement despite elevated incident load.';
+    statusColor = 'text-yellow-400';
+    statusIcon = 'warning';
+  } else if (irDelta > 20 && avgIncidents <= 2) {
+    // Rating up AND clean — ideal state
+    statusMessage = 'Positive trajectory with clean execution.';
+    statusColor = 'text-emerald-400';
+    statusIcon = 'positive';
+  } else if (irDelta > 0 && avgIncidents <= 2) {
+    // Slight gain, clean racing
+    statusMessage = 'Gradual improvement. Maintain discipline.';
+    statusColor = 'text-emerald-400/80';
+    statusIcon = 'positive';
   } else if (Math.abs(irDelta) <= 20 && avgIncidents > incidentThreshold) {
+    // Stable rating but incidents elevated — warning
     statusMessage = 'Rating stable but incident rate elevated. Tighten discipline.';
     statusColor = 'text-amber-400';
     statusIcon = 'warning';
-  } else if (irDelta > 20 && avgIncidents <= 2) {
-    statusMessage = 'Positive trajectory. Maintain discipline.';
-    statusColor = 'text-emerald-400';
-    statusIcon = 'positive';
-  } else if (irDelta > 20 && avgIncidents > incidentThreshold) {
-    statusMessage = 'Rating rising but incident rate is a risk factor.';
-    statusColor = 'text-yellow-400';
+  } else if (Math.abs(irDelta) <= 20 && avgIncidents <= 2) {
+    // Stable and clean — focus on pace
+    statusMessage = 'Stable rating trend. Focus shifting to pace development.';
+    statusColor = 'text-blue-400';
+    statusIcon = 'stable';
+  } else if (irDelta < 0 && avgIncidents > 2 && avgIncidents <= incidentThreshold) {
+    // Slight decline with moderate incidents
+    statusMessage = 'Slight decline due to incidents.';
+    statusColor = 'text-amber-400/80';
     statusIcon = 'warning';
-  } else if (irDelta > 0) {
-    statusMessage = 'Gradual improvement. Continue current approach.';
-    statusColor = 'text-emerald-400/80';
-    statusIcon = 'positive';
   } else {
     statusMessage = 'Performance within normal variance.';
     statusColor = 'text-white/50';
@@ -354,16 +404,24 @@ function DriverStatusLine({ snapshot, sessions }: { snapshot: PerformanceSnapsho
   }
 
   return (
-    <div className="border-x border-b border-white/10 bg-[#0a0a0a]/60 px-5 py-2.5 flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        {statusIcon === 'warning' && <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />}
-        {statusIcon === 'positive' && <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />}
-        {statusIcon === 'stable' && <Activity className="w-3.5 h-3.5 text-blue-400" />}
-        <span className={`text-[12px] ${statusColor}`}>{statusMessage}</span>
+    <div className="border-x border-b border-white/10 bg-[#0a0a0a]/80 px-5 py-4">
+      {/* Primary: Status Narrative (visually dominant) */}
+      <div className="flex items-start gap-3 mb-3">
+        <div className="mt-0.5">
+          {statusIcon === 'warning' && <AlertTriangle className="w-5 h-5 text-amber-400" />}
+          {statusIcon === 'positive' && <TrendingUp className="w-5 h-5 text-emerald-400" />}
+          {statusIcon === 'stable' && <Activity className="w-5 h-5 text-blue-400" />}
+        </div>
+        <div>
+          <p className={`text-[15px] font-medium leading-snug ${statusColor}`}>{statusMessage}</p>
+          <p className="text-[10px] text-white/25 mt-1">{confidence}% confidence • Last {sampleSize} races</p>
+        </div>
       </div>
-      <div className="flex items-center gap-1.5">
-        <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
-        <span className="text-[9px] text-white/30 uppercase tracking-wider">{confidence}% confidence</span>
+      
+      {/* Secondary: Supporting Metrics (smaller, subdued) */}
+      <div className="flex items-center gap-4 pl-8 text-[10px] text-white/30">
+        <span>iR Δ: <span className={irDelta > 0 ? 'text-emerald-400/70' : irDelta < 0 ? 'text-red-400/70' : 'text-white/40'}>{irDelta > 0 ? '+' : ''}{irDelta}</span></span>
+        <span>Avg Inc: <span className={avgIncidents > incidentThreshold ? 'text-amber-400/70' : 'text-white/40'}>{avgIncidents.toFixed(1)}x</span></span>
       </div>
     </div>
   );
@@ -425,7 +483,7 @@ function DriverIdentityStrip({ displayName, profile, consistency, relayStatus, i
               <div className={`text-lg font-bold font-mono ${CPI_TIER_STYLES[consistency.tier].text}`} style={ORBITRON}>
                 {consistency.index}
               </div>
-              <div className="text-[9px] text-white/30 uppercase tracking-wider cursor-help" title="Competitive Performance Index (0-100)&#10;&#10;6-factor composite score:&#10;• Incident Rate (25%) — avg incidents per race&#10;• Consistency (20%) — finish position variance&#10;• iRating Momentum (20%) — recent iR trend&#10;• Clean Race % (15%) — races with ≤2 incidents&#10;• Completion Rate (10%) — races finished&#10;• Field Performance (10%) — vs field strength&#10;&#10;Based on last 10 official races.&#10;Higher = more competitive.">CPI</div>
+              <div className="text-[9px] text-white/30 uppercase tracking-wider cursor-help" title="CPI — Clean Performance Index&#10;&#10;Composite score of incident discipline, finish stability, and race completion across last 10 official races.&#10;&#10;Zones:&#10;• 0–30 = Critical&#10;• 30–60 = Developing&#10;• 60–80 = Stable&#10;• 80+ = Competitive&#10;&#10;6-factor weighted formula:&#10;• Incident Rate (25%)&#10;• Consistency (20%)&#10;• iRating Momentum (20%)&#10;• Clean Race % (15%)&#10;• Completion Rate (10%)&#10;• Field Performance (10%)">CPI</div>
             </div>
           )}
         </div>
@@ -686,7 +744,7 @@ function IRatingSparkline({ points }: { points: RatingTrendPoint[] }) {
         <div className="flex items-center gap-3">
           <span className="text-[11px] font-mono text-white/40">{ratings[ratings.length - 1]}</span>
           <span className={`text-[10px] font-mono ${delta > 0 ? 'text-green-400' : delta < 0 ? 'text-red-400' : 'text-white/30'}`}>
-            {delta > 0 ? '+' : ''}{delta}
+            {delta > 0 ? '↑' : delta < 0 ? '↓' : '→'} {delta > 0 ? '+' : ''}{delta}
           </span>
         </div>
       </div>
@@ -719,12 +777,14 @@ function PerformanceAttributesCompact({ snapshot, sessions }: { snapshot: Perfor
   
   // Component 2: Consistency / Variance (20%)
   const finishes = recentSessions.map(s => s.finishPos).filter((p): p is number => p != null);
-  let consistencyScore = 70;
+  let consistencyScore = -1; // -1 indicates insufficient data
+  let consistencyLabel = 'Low sample';
   if (finishes.length >= 3) {
     const avg = finishes.reduce((a, b) => a + b, 0) / finishes.length;
     const variance = finishes.reduce((s, f) => s + Math.pow(f - avg, 2), 0) / finishes.length;
     const stdDev = Math.sqrt(variance);
     consistencyScore = Math.max(0, Math.min(100, Math.round(100 - (stdDev * 10))));
+    consistencyLabel = consistencyScore < 30 ? 'High variance' : `±${stdDev.toFixed(1)} positions`;
   }
   
   // Component 3: iRating Momentum (20%)
@@ -746,13 +806,15 @@ function PerformanceAttributesCompact({ snapshot, sessions }: { snapshot: Perfor
   const fieldScore = Math.max(0, Math.min(100, Math.round(100 - ((snapshot.avg_finish - 1) * 5))));
 
   // Build components array with metadata
+  // Use consistencyScore of -1 to indicate insufficient data, display as "Low sample"
+  const effectiveConsistencyScore = consistencyScore < 0 ? 50 : consistencyScore; // Default to 50 if insufficient
   const components = [
-    { name: 'Incident Rate', score: incidentScore, weight: 25, color: '#22c55e', tooltip: `${snapshot.avg_incidents.toFixed(1)}x avg incidents` },
-    { name: 'Consistency', score: consistencyScore, weight: 20, color: '#3b82f6', tooltip: `Finish position variance` },
-    { name: 'iRating Momentum', score: momentumScore, weight: 20, color: '#8b5cf6', tooltip: `${snapshot.irating_delta > 0 ? '+' : ''}${snapshot.irating_delta} iR delta` },
-    { name: 'Clean Race %', score: cleanRaceScore, weight: 15, color: '#06b6d4', tooltip: `${cleanRaces}/${recentSessions.length} races with ≤2 inc` },
-    { name: 'Completion', score: completionScore, weight: 10, color: '#f59e0b', tooltip: `${completedRaces}/${recentSessions.length} races finished` },
-    { name: 'Field Performance', score: fieldScore, weight: 10, color: '#ec4899', tooltip: `Avg finish P${snapshot.avg_finish.toFixed(1)}` },
+    { name: 'Incident Rate', score: incidentScore, weight: 25, color: '#22c55e', tooltip: `${snapshot.avg_incidents.toFixed(1)}x avg incidents`, hasData: true },
+    { name: 'Consistency', score: effectiveConsistencyScore, weight: 20, color: '#3b82f6', tooltip: consistencyLabel, hasData: consistencyScore >= 0 },
+    { name: 'iRating Momentum', score: momentumScore, weight: 20, color: '#8b5cf6', tooltip: `${snapshot.irating_delta > 0 ? '+' : ''}${snapshot.irating_delta} iR delta`, hasData: true },
+    { name: 'Clean Race %', score: cleanRaceScore, weight: 15, color: '#06b6d4', tooltip: `${cleanRaces}/${recentSessions.length} races with ≤2 inc`, hasData: recentSessions.length > 0 },
+    { name: 'Completion', score: completionScore, weight: 10, color: '#f59e0b', tooltip: `${completedRaces}/${recentSessions.length} races finished`, hasData: recentSessions.length > 0 },
+    { name: 'Field Performance', score: fieldScore, weight: 10, color: '#ec4899', tooltip: `Avg finish P${snapshot.avg_finish.toFixed(1)}`, hasData: true },
   ];
 
   // Sort to find weakest and strongest
@@ -963,7 +1025,10 @@ function CrewPreviewPanel({ sessions, focus }: { sessions: DriverSessionSummary[
   return (
     <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
       <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-        <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Crew Intelligence</h2>
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Crew Intelligence</h2>
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400/60 uppercase tracking-wider">Monitoring</span>
+        </div>
         <Link to="/driver/crew" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
           Full Crew <ChevronRight className="w-3 h-3" />
         </Link>
@@ -1576,7 +1641,7 @@ export function DriverLanding() {
 
         {/* BUILD IDENTIFIER - Remove when page is finalized */}
         <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-          HOME-v3.1
+          HOME-v3.2
         </div>
       </div>
     </div>
