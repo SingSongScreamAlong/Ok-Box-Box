@@ -314,11 +314,11 @@ export function computeCrewInsights(
       // Normal case: clean races finish better
       insights.push({ role: 'spotter', message: `Clean races avg P${cleanAvg.toFixed(0)}. Incident races avg P${incidentAvg.toFixed(0)}. ${delta} position penalty from contact.`, confidence: spotterConfidence, dataWindow: spotterDataWindow });
     } else if (delta < -2) {
-      // Edge case: incident races finish better (racing hard in traffic)
-      insights.push({ role: 'spotter', message: `Incident races avg P${incidentAvg.toFixed(0)} vs clean P${cleanAvg.toFixed(0)}. Incidents occurring in competitive battles — focus on clean execution in traffic.`, confidence: spotterConfidence, dataWindow: spotterDataWindow });
+      // Edge case: incident races finish better — incidents in competitive zones
+      insights.push({ role: 'spotter', message: `Incidents occurring while running top-${Math.round(incidentAvg)} positions — competitive risk zones. Rating penalties applied despite finish gain.`, confidence: spotterConfidence, dataWindow: spotterDataWindow });
     } else {
       // Minimal difference
-      insights.push({ role: 'spotter', message: `Clean races avg P${cleanAvg.toFixed(0)}. Incident races avg P${incidentAvg.toFixed(0)}. Minimal finish impact — but incidents still cost iRating.`, confidence: spotterConfidence, dataWindow: spotterDataWindow });
+      insights.push({ role: 'spotter', message: `Clean races avg P${cleanAvg.toFixed(0)}. Incident races avg P${incidentAvg.toFixed(0)}. Minimal finish impact — incidents still cost iRating.`, confidence: spotterConfidence, dataWindow: spotterDataWindow });
     }
   } else if (focus === 'racecraft_traffic') {
     insights.push({ role: 'spotter', message: `Position loss in traffic detected. Prioritize clean air over aggressive lap 1 moves.`, confidence: spotterConfidence, dataWindow: `Last ${recent5.length} races` });
@@ -350,8 +350,8 @@ export function computeCrewInsights(
         // Normal: clean races finish better
         insights.push({ role: 'analyst', message: `Clean races: avg P${cleanAvg.toFixed(0)}. Incident races: avg P${incidentAvg.toFixed(0)}. Incident control = ${posDelta} position gain potential.`, confidence: analystConfidence, dataWindow: `${recent10.length}-race sample` });
       } else {
-        // Edge case: incident races finish better — reframe narrative
-        insights.push({ role: 'analyst', message: `Incident races: avg P${incidentAvg.toFixed(0)}. Clean races: avg P${cleanAvg.toFixed(0)}. Incidents in competitive positions — iRating still penalized regardless of finish.`, confidence: analystConfidence, dataWindow: `${recent10.length}-race sample` });
+        // Edge case: incident races finish better — explain the paradox clearly
+        insights.push({ role: 'analyst', message: `Incident races avg P${incidentAvg.toFixed(0)} vs clean P${cleanAvg.toFixed(0)}. Stronger running positions create contact risk — rating penalties applied despite better finishes.`, confidence: analystConfidence, dataWindow: `${recent10.length}-race sample` });
       }
     } else if (stdDev < 3) {
       insights.push({ role: 'analyst', message: `Finish range P${best}–P${worst} (±${stdDev.toFixed(1)}). Highly consistent — ${finishes.length} race sample.`, confidence: analystConfidence, dataWindow: analystDataWindow });

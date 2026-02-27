@@ -171,17 +171,20 @@ function CPIRing({ value, tier, size = 120 }: { value: number; tier: CPITier; si
 
 // ─── Progress Bar ────────────────────────────────────────────────────────────
 
-function ProgressBar({ label, value, color }: { label: string; value: number; color: string }) {
+function ProgressBar({ label, value, color, insufficientData }: { label: string; value: number; color: string; insufficientData?: boolean }) {
+  // Phase 3: Replace hard zero with meaningful labels
+  const displayValue = insufficientData ? 'Low sample' : value <= 10 ? 'Low' : value;
+  
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
         <span className="text-[11px] text-white/50 uppercase tracking-wider">{label}</span>
-        <span className="text-[11px] font-mono text-white/60">{value}</span>
+        <span className={`text-[11px] font-mono ${insufficientData || value <= 10 ? 'text-white/40 italic' : 'text-white/60'}`}>{displayValue}</span>
       </div>
       <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-1000 ease-out"
-          style={{ width: `${value}%`, backgroundColor: color }}
+          style={{ width: `${insufficientData ? 15 : Math.max(value, 5)}%`, backgroundColor: insufficientData ? '#666' : color }}
         />
       </div>
     </div>
@@ -321,8 +324,9 @@ function SinceLastSessionBlock({ snapshot, sessions }: { snapshot: PerformanceSn
         </div>
         
         {/* Interpretation Layer */}
-        <div className="pt-3 border-t border-white/[0.06]">
+        <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between">
           <p className="text-[11px] text-white/40 italic">{interpretation}</p>
+          <span className="text-[9px] text-white/20">Session analyzed</span>
         </div>
       </div>
     </div>
@@ -404,24 +408,24 @@ function DriverStatusLine({ snapshot, sessions }: { snapshot: PerformanceSnapsho
   }
 
   return (
-    <div className="border-x border-b border-white/10 bg-[#0a0a0a]/80 px-5 py-4">
+    <div className="border-x border-b border-white/10 bg-gradient-to-r from-[#0a0a0a]/90 to-[#0a0a0a]/70 px-5 py-5">
       {/* Primary: Status Narrative (visually dominant) */}
-      <div className="flex items-start gap-3 mb-3">
-        <div className="mt-0.5">
-          {statusIcon === 'warning' && <AlertTriangle className="w-5 h-5 text-amber-400" />}
-          {statusIcon === 'positive' && <TrendingUp className="w-5 h-5 text-emerald-400" />}
-          {statusIcon === 'stable' && <Activity className="w-5 h-5 text-blue-400" />}
+      <div className="flex items-start gap-3 mb-4">
+        <div className="mt-1">
+          {statusIcon === 'warning' && <AlertTriangle className="w-6 h-6 text-amber-400" />}
+          {statusIcon === 'positive' && <TrendingUp className="w-6 h-6 text-emerald-400" />}
+          {statusIcon === 'stable' && <Activity className="w-6 h-6 text-blue-400" />}
         </div>
         <div>
-          <p className={`text-[15px] font-medium leading-snug ${statusColor}`}>{statusMessage}</p>
-          <p className="text-[10px] text-white/25 mt-1">{confidence}% confidence • Last {sampleSize} races</p>
+          <p className={`text-[17px] font-semibold leading-snug ${statusColor}`}>{statusMessage}</p>
+          <p className="text-[10px] text-white/25 mt-1.5">{confidence}% confidence • Last {sampleSize} races</p>
         </div>
       </div>
       
       {/* Secondary: Supporting Metrics (smaller, subdued) */}
-      <div className="flex items-center gap-4 pl-8 text-[10px] text-white/30">
-        <span>iR Δ: <span className={irDelta > 0 ? 'text-emerald-400/70' : irDelta < 0 ? 'text-red-400/70' : 'text-white/40'}>{irDelta > 0 ? '+' : ''}{irDelta}</span></span>
-        <span>Avg Inc: <span className={avgIncidents > incidentThreshold ? 'text-amber-400/70' : 'text-white/40'}>{avgIncidents.toFixed(1)}x</span></span>
+      <div className="flex items-center gap-5 pl-9 text-[10px] text-white/25 border-t border-white/[0.04] pt-3">
+        <span>Rating Change: <span className={irDelta > 0 ? 'text-emerald-400/60' : irDelta < 0 ? 'text-red-400/60' : 'text-white/35'}>{irDelta > 0 ? '+' : ''}{irDelta}</span></span>
+        <span>Avg Incidents: <span className={avgIncidents > incidentThreshold ? 'text-amber-400/60' : 'text-white/35'}>{avgIncidents.toFixed(1)} per race</span></span>
       </div>
     </div>
   );
@@ -841,7 +845,7 @@ function PerformanceAttributesCompact({ snapshot, sessions }: { snapshot: Perfor
             <span className="text-[10px] uppercase tracking-wider text-amber-400">Focus Area</span>
           </div>
           <div title={weakest.tooltip}>
-            <ProgressBar label={weakest.name} value={weakest.score} color="#f59e0b" />
+            <ProgressBar label={weakest.name} value={weakest.score} color="#f59e0b" insufficientData={!weakest.hasData} />
           </div>
           <p className="text-[10px] text-white/30 mt-1.5">{weakest.tooltip} — limiting CPI by {weakest.weight}%</p>
         </div>
@@ -856,7 +860,7 @@ function PerformanceAttributesCompact({ snapshot, sessions }: { snapshot: Perfor
             <div className="space-y-2">
               {strengths.map(s => (
                 <div key={s.name} title={s.tooltip}>
-                  <ProgressBar label={s.name} value={s.score} color={s.color} />
+                  <ProgressBar label={s.name} value={s.score} color={s.color} insufficientData={!s.hasData} />
                 </div>
               ))}
             </div>
@@ -909,13 +913,16 @@ function FiveRaceTrendSummary({ sessions, loading }: { sessions: DriverSessionSu
   const highIncidents = avgIncidents > 3;
   const cleanRacing = avgIncidents < 1.5;
   
-  // Generate contextual narrative
+  // Phase 6: Generate contextual narrative — must reflect data precisely
   const getTrendNarrative = () => {
-    if (isTrendingUp && cleanRacing) return { icon: TrendingUp, color: 'text-green-400', text: 'Strong momentum with clean racing' };
+    if (isTrendingUp && cleanRacing) return { icon: TrendingUp, color: 'text-green-400', text: 'Strong momentum with clean execution' };
+    if (isTrendingUp && highIncidents) return { icon: TrendingUp, color: 'text-yellow-400', text: 'Positive rating movement despite incident load' };
     if (isTrendingUp) return { icon: TrendingUp, color: 'text-green-400', text: 'Positive trend — maintain discipline' };
-    if (isTrendingDown && highIncidents) return { icon: AlertTriangle, color: 'text-red-400', text: 'Incidents impacting iRating — focus on clean laps' };
+    if (isTrendingDown && highIncidents) return { icon: AlertTriangle, color: 'text-red-400', text: 'Rating suppressed by elevated incident load' };
+    if (isTrendingDown && cleanRacing) return { icon: TrendingDown, color: 'text-red-400', text: 'Rating decline not incident-driven — pace investigation required' };
     if (isTrendingDown) return { icon: TrendingDown, color: 'text-red-400', text: 'Declining trend — review recent sessions' };
     if (isSlightlyDown && highIncidents) return { icon: AlertTriangle, color: 'text-yellow-400', text: 'Slight decline due to incidents' };
+    if (isSlightlyDown && cleanRacing) return { icon: TrendingDown, color: 'text-yellow-400', text: 'Minor decline despite clean racing — investigate pace' };
     if (isSlightlyDown) return { icon: TrendingDown, color: 'text-yellow-400', text: 'Minor decline — stay focused' };
     if (cleanRacing) return { icon: Target, color: 'text-blue-400', text: 'Stable with clean racing' };
     return { icon: Target, color: 'text-white/40', text: 'Holding steady' };
@@ -1022,12 +1029,19 @@ function CrewPreviewPanel({ sessions, focus }: { sessions: DriverSessionSummary[
     { key: 'analyst' as const, label: 'Analyst', icon: BarChart3, color: '#8b5cf6', link: '/driver/crew/analyst' },
   ];
 
+  // Phase 5: Dynamic crew status based on focus
+  const crewStatus = focus === 'incident_management' || focus === 'racecraft_traffic' 
+    ? { label: 'Alert', color: 'bg-amber-500/10 text-amber-400/70' }
+    : focus === 'strong_momentum'
+    ? { label: 'Stable', color: 'bg-emerald-500/10 text-emerald-400/60' }
+    : { label: 'Monitoring', color: 'bg-blue-500/10 text-blue-400/60' };
+
   return (
     <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
       <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Crew Intelligence</h2>
-          <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400/60 uppercase tracking-wider">Monitoring</span>
+          <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase tracking-wider ${crewStatus.color}`}>{crewStatus.label}</span>
         </div>
         <Link to="/driver/crew" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
           Full Crew <ChevronRight className="w-3 h-3" />
@@ -1641,7 +1655,7 @@ export function DriverLanding() {
 
         {/* BUILD IDENTIFIER - Remove when page is finalized */}
         <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-          HOME-v3.2
+          HOME-v3.3
         </div>
       </div>
     </div>
