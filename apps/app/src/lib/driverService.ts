@@ -498,3 +498,76 @@ export async function fetchTracksFromHistory(): Promise<string[]> {
     return [];
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TELEMETRY METRICS API
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface TelemetryMetricsResponse {
+  driver_profile_id: string;
+  time_window: string;
+  available: boolean;
+  model_type: 'telemetry_informed' | 'results_based';
+  message?: string;
+  metrics: {
+    bsi: number;
+    tci: number;
+    cpi2: number;
+    rci: number;
+    behavioral_stability: number;
+    confidence: number;
+    session_count: number;
+  } | null;
+  braking: {
+    brakeTimingScore: number;
+    brakePressureSmoothness: number;
+    trailBrakingStability: number;
+    entryOvershootScore: number;
+    sampleCorners: number;
+  } | null;
+  throttle: {
+    throttleModulationScore: number;
+    exitTractionStability: number;
+    slipThrottleControl: number;
+    sampleCorners: number;
+  } | null;
+  steering: {
+    turnInConsistency: number;
+    midCornerStability: number;
+    rotationBalance: number;
+    sampleCorners: number;
+  } | null;
+  rhythm: {
+    lapTimeConsistency: number;
+    sectorConsistency: number;
+    inputRepeatability: number;
+    baselineAdherence: number;
+    sampleLaps: number;
+  } | null;
+}
+
+export async function fetchTelemetryMetrics(
+  timeWindow: 'last_10' | 'last_30' | 'all_time' = 'last_10'
+): Promise<TelemetryMetricsResponse | null> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) {
+      console.log('[IDP] No auth token');
+      return null;
+    }
+
+    const response = await fetch(`${API_BASE}/api/v1/drivers/me/telemetry-metrics?window=${timeWindow}`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      console.log('[IDP] Telemetry metrics API error:', response.status);
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('[IDP] Error fetching telemetry metrics:', error instanceof Error ? error.message : error);
+    return null;
+  }
+}

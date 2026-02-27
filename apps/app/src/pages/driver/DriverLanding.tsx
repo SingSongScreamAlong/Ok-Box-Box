@@ -43,9 +43,11 @@ import {
 import {
   getLicenseColor,
   fetchPerformanceSnapshot,
+  fetchTelemetryMetrics,
   PerformanceSnapshot,
   DriverSessionSummary,
   DriverStatsSnapshot,
+  TelemetryMetricsResponse,
 } from '../../lib/driverService';
 import {
   computePerformanceDirection,
@@ -1571,6 +1573,9 @@ export function DriverLanding() {
 
   // Performance snapshot
   const [snapshot, setSnapshot] = useState<PerformanceSnapshot | null | undefined>(undefined);
+  
+  // Telemetry metrics for behavioral indices
+  const [telemetryMetrics, setTelemetryMetrics] = useState<TelemetryMetricsResponse | null>(null);
 
   const loadSnapshot = useCallback(async () => {
     try {
@@ -1580,17 +1585,63 @@ export function DriverLanding() {
       setSnapshot(null);
     }
   }, []);
+  
+  const loadTelemetryMetrics = useCallback(async () => {
+    try {
+      const data = await fetchTelemetryMetrics('last_10');
+      setTelemetryMetrics(data);
+    } catch {
+      setTelemetryMetrics(null);
+    }
+  }, []);
 
-  useEffect(() => { loadSnapshot(); }, [loadSnapshot]);
+  useEffect(() => { loadSnapshot(); loadTelemetryMetrics(); }, [loadSnapshot, loadTelemetryMetrics]);
 
   // Derived intelligence
   const direction = useMemo(() => computePerformanceDirection(snapshot ?? null), [snapshot]);
   const consistency = useMemo(() => computeConsistency(snapshot ?? null, sessions), [snapshot, sessions]);
   const trendPoints = useMemo(() => buildRatingTrend(sessions), [sessions]);
+  
+  // Convert API telemetry response to SessionTelemetryMetrics format
+  const sessionTelemetry: SessionTelemetryMetrics | null = useMemo(() => {
+    if (!telemetryMetrics?.available || !telemetryMetrics.metrics) return null;
+    const m = telemetryMetrics.metrics;
+    return {
+      sessionId: 'aggregate',
+      timestamp: new Date().toISOString(),
+      braking: telemetryMetrics.braking ? {
+        brakeTimingScore: telemetryMetrics.braking.brakeTimingScore,
+        brakePressureSmoothness: telemetryMetrics.braking.brakePressureSmoothness,
+        trailBrakingStability: telemetryMetrics.braking.trailBrakingStability,
+        entryOvershootScore: telemetryMetrics.braking.entryOvershootScore,
+        sampleCorners: telemetryMetrics.braking.sampleCorners,
+      } : null,
+      throttle: telemetryMetrics.throttle ? {
+        throttleModulationScore: telemetryMetrics.throttle.throttleModulationScore,
+        exitTractionStability: telemetryMetrics.throttle.exitTractionStability,
+        slipThrottleControl: telemetryMetrics.throttle.slipThrottleControl,
+        sampleCorners: telemetryMetrics.throttle.sampleCorners,
+      } : null,
+      steering: telemetryMetrics.steering ? {
+        turnInConsistency: telemetryMetrics.steering.turnInConsistency,
+        midCornerStability: telemetryMetrics.steering.midCornerStability,
+        rotationBalance: telemetryMetrics.steering.rotationBalance,
+        sampleCorners: telemetryMetrics.steering.sampleCorners,
+      } : null,
+      rhythm: telemetryMetrics.rhythm ? {
+        lapTimeConsistency: telemetryMetrics.rhythm.lapTimeConsistency,
+        sectorConsistency: telemetryMetrics.rhythm.sectorConsistency,
+        inputRepeatability: telemetryMetrics.rhythm.inputRepeatability,
+        baselineAdherence: telemetryMetrics.rhythm.baselineAdherence,
+        sampleLaps: telemetryMetrics.rhythm.sampleLaps,
+      } : null,
+      source: 'historical',
+      telemetryConfidence: m.confidence,
+    };
+  }, [telemetryMetrics]);
 
   const sessionCount = sessions.length;
   const isTrainingMode = sessionCount < 3;
-  const driverLevel = computeDriverLevel(sessionCount);
 
   return (
     <div className="relative min-h-[calc(100vh-8rem)]">
@@ -1622,7 +1673,7 @@ export function DriverLanding() {
         />
 
         {/* DRIVER STATUS LINE — emotional anchor */}
-        {!isTrainingMode && <DriverStatusLine snapshot={snapshot ?? null} sessions={sessions} telemetry={null} />}
+        {!isTrainingMode && <DriverStatusLine snapshot={snapshot ?? null} sessions={sessions} telemetry={sessionTelemetry} />}
 
         {/* SINCE LAST SESSION — what changed */}
         {!isTrainingMode && <SinceLastSessionBlock snapshot={snapshot ?? null} sessions={sessions} />}
@@ -1646,7 +1697,7 @@ export function DriverLanding() {
 
         {/* CREW INTELLIGENCE PREVIEW */}
         {sessionCount > 0 && (
-          <CrewPreviewPanel sessions={sessions} focus={direction.primaryFocus} telemetry={null} />
+          <CrewPreviewPanel sessions={sessions} focus={direction.primaryFocus} telemetry={sessionTelemetry} />
         )}
 
         {/* COMPETITIVE TREND */}

@@ -23,6 +23,11 @@ import { backfillDriverHistory } from '../services/idp/iracing-sync.service.js';
 import { getIRacingProfileSyncService } from '../../services/iracing-oauth/profile-sync-service.js';
 import { getMetricsForDriver } from '../../db/repositories/session-metrics.repo.js';
 import { getAllAggregatesForDriver, getGlobalAggregate } from '../../db/repositories/driver-aggregates.repo.js';
+import { 
+    getDriverBehavioralAggregate, 
+    computeAndStoreDriverBehavioralAggregate,
+    aggregateToResponse,
+} from '../../db/repositories/behavioral-metrics.repo.js';
 import { getCurrentTraits } from '../../db/repositories/driver-traits.repo.js';
 import { getReportsForDriver } from '../../db/repositories/driver-reports.repo.js';
 import { chatCompletion, isLLMConfigured } from '../../services/ai/llm-service.js';
@@ -928,6 +933,75 @@ router.get('/:id/traits', allowPublic, async (req: Request, res: Response): Prom
     } catch (error) {
         apiLogger.error({ err: error }, '[IDP] Error fetching traits:', error);
         res.status(500).json({ error: 'Failed to fetch driver traits' });
+    }
+});
+
+/**
+ * GET /api/v1/drivers/:id/telemetry-metrics
+ * Get telemetry-derived behavioral indices for a driver
+ * Returns BSI, TCI, CPI-2, RCI and overall behavioral stability
+ */
+router.get('/:id/telemetry-metrics', allowPublic, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const timeWindow = (req.query.window as string) || 'last_10';
+        const validWindows = ['last_10', 'last_30', 'all_time'];
+        
+        if (!validWindows.includes(timeWindow)) {
+            res.status(400).json({ error: 'Invalid time window. Use: last_10, last_30, or all_time' });
+            return;
+        }
+
+        // Try to get existing aggregate
+        let aggregate = await getDriverBehavioralAggregate(
+            req.params.id, 
+            timeWindow as 'last_10' | 'last_30' | 'all_time'
+        );
+
+        // If no aggregate or stale (older than 1 hour), recompute
+        if (!aggregate || (Date.now() - new Date(aggregate.computed_at).getTime() > 3600000)) {
+            aggregate = await computeAndStoreDriverBehavioralAggregate(
+                req.params.id,
+                timeWindow as 'last_10' | 'last_30' | 'all_time'
+            );
+        }
+
+        const response = aggregateToResponse(aggregate);
+
+        if (!response) {
+            // No telemetry data available — return results-based placeholder
+            res.json({
+                driver_profile_id: req.params.id,
+                time_window: timeWindow,
+                available: false,
+                model_type: 'results_based',
+                message: 'No telemetry data available. Using results-based analysis.',
+                metrics: null,
+            });
+            return;
+        }
+
+        res.json({
+            driver_profile_id: req.params.id,
+            time_window: timeWindow,
+            available: true,
+            model_type: response.modelType,
+            metrics: {
+                bsi: response.bsi,
+                tci: response.tci,
+                cpi2: response.cpi2,
+                rci: response.rci,
+                behavioral_stability: response.behavioralStability,
+                confidence: response.confidence,
+                session_count: response.sessionCount,
+            },
+            braking: response.braking,
+            throttle: response.throttle,
+            steering: response.steering,
+            rhythm: response.rhythm,
+        });
+    } catch (error) {
+        apiLogger.error({ err: error }, '[IDP] Error fetching telemetry metrics:', error);
+        res.status(500).json({ error: 'Failed to fetch telemetry metrics' });
     }
 });
 
