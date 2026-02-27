@@ -555,7 +555,133 @@ function IRatingSparkline({ points }: { points: RatingTrendPoint[] }) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// QUICK STATS ROW
+// PERFORMANCE ATTRIBUTES COMPACT (max 3 bars - focused)
+// ═════════════════════════════════════════════════════════════════════════════
+
+function PerformanceAttributesCompact({ snapshot }: { snapshot: PerformanceSnapshot }) {
+  const consistencyScore = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_finish - 1) * 4)));
+  const incidentScore = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_incidents) * 12)));
+  const paceScore = Math.max(0, Math.min(100, Math.round(100 - Math.abs(snapshot.avg_finish - snapshot.avg_start) * 10)));
+
+  return (
+    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
+      <div className="px-5 py-4 border-b border-white/10">
+        <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Performance Attributes</h2>
+      </div>
+      <div className="p-5 space-y-4">
+        <ProgressBar label="Consistency" value={consistencyScore} color="#3b82f6" />
+        <ProgressBar label="Incident Discipline" value={incidentScore} color="#22c55e" />
+        <ProgressBar label="Pace Stability" value={paceScore} color="#a855f7" />
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 5-RACE TREND SUMMARY (replaces dense race cards)
+// ═════════════════════════════════════════════════════════════════════════════
+
+function FiveRaceTrendSummary({ sessions, loading }: { sessions: DriverSessionSummary[]; loading: boolean }) {
+  const recent = sessions.slice(0, 5);
+  
+  if (loading) {
+    return (
+      <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm p-5">
+        <div className="h-20 bg-white/[0.03] rounded animate-pulse" />
+      </div>
+    );
+  }
+
+  if (recent.length === 0) {
+    return (
+      <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
+        <div className="px-5 py-4 border-b border-white/10">
+          <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Recent Trend</h2>
+        </div>
+        <div className="p-5 text-center">
+          <p className="text-[11px] text-white/25">Complete a session to see your trend.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate aggregates
+  const avgFinish = recent.reduce((a, s) => a + (s.finishPos ?? 0), 0) / recent.length;
+  const avgIncidents = recent.reduce((a, s) => a + (s.incidents ?? 0), 0) / recent.length;
+  const totalIRDelta = recent.reduce((a, s) => a + (s.iRatingChange ?? 0), 0);
+  const wins = recent.filter(s => s.finishPos === 1).length;
+  const top5s = recent.filter(s => (s.finishPos ?? 99) <= 5).length;
+
+  // Trend direction
+  const isTrendingUp = totalIRDelta > 0;
+  const isTrendingDown = totalIRDelta < -50;
+
+  return (
+    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
+      <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+        <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>
+          Last {recent.length} Race{recent.length !== 1 ? 's' : ''}
+        </h2>
+        <Link to="/driver/history" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
+          Full History <ChevronRight className="w-3 h-3" />
+        </Link>
+      </div>
+      <div className="p-5">
+        <div className="grid grid-cols-5 gap-4">
+          <div className="text-center">
+            <div className="text-lg font-bold font-mono text-white" style={ORBITRON}>P{avgFinish.toFixed(1)}</div>
+            <div className="text-[9px] text-white/30 uppercase tracking-wider">Avg Finish</div>
+          </div>
+          <div className="text-center">
+            <div className={`text-lg font-bold font-mono ${avgIncidents > 3 ? 'text-red-400' : avgIncidents > 1.5 ? 'text-yellow-400' : 'text-green-400'}`} style={ORBITRON}>
+              {avgIncidents.toFixed(1)}x
+            </div>
+            <div className="text-[9px] text-white/30 uppercase tracking-wider">Avg Inc</div>
+          </div>
+          <div className="text-center">
+            <div className={`text-lg font-bold font-mono ${isTrendingUp ? 'text-green-400' : isTrendingDown ? 'text-red-400' : 'text-white/60'}`} style={ORBITRON}>
+              {totalIRDelta > 0 ? '+' : ''}{totalIRDelta}
+            </div>
+            <div className="text-[9px] text-white/30 uppercase tracking-wider">iR Delta</div>
+          </div>
+          <div className="text-center">
+            <div className={`text-lg font-bold font-mono ${wins > 0 ? 'text-yellow-400' : 'text-white/30'}`} style={ORBITRON}>{wins}</div>
+            <div className="text-[9px] text-white/30 uppercase tracking-wider">Wins</div>
+          </div>
+          <div className="text-center">
+            <div className={`text-lg font-bold font-mono ${top5s > 0 ? 'text-orange-400' : 'text-white/30'}`} style={ORBITRON}>{top5s}</div>
+            <div className="text-[9px] text-white/30 uppercase tracking-wider">Top 5s</div>
+          </div>
+        </div>
+        
+        {/* Trend indicator */}
+        <div className="mt-4 pt-4 border-t border-white/[0.06] flex items-center justify-center gap-2">
+          {isTrendingUp && (
+            <>
+              <TrendingUp className="w-4 h-4 text-green-400" />
+              <span className="text-[11px] text-green-400">Positive momentum — keep it up</span>
+            </>
+          )}
+          {isTrendingDown && (
+            <>
+              <TrendingDown className="w-4 h-4 text-red-400" />
+              <span className="text-[11px] text-red-400">Review recent sessions for patterns</span>
+            </>
+          )}
+          {!isTrendingUp && !isTrendingDown && (
+            <>
+              <Target className="w-4 h-4 text-white/30" />
+              <span className="text-[11px] text-white/30">Steady performance</span>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// QUICK STATS ROW (kept for potential future use)
 // ═════════════════════════════════════════════════════════════════════════════
 
 function QuickStatsRow({ stats }: { stats: DriverStatsSnapshot[] }) {
@@ -1096,38 +1222,26 @@ export function DriverLanding() {
           <PerformanceDirectiveCard direction={direction} snapshot={snapshot ?? null} />
         )}
 
-        {/* TWO-COLUMN LAYOUT */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-          {/* LEFT: Career Progression + iRating Trend (3/5 width) */}
-          <div className="lg:col-span-3 space-y-5">
-            <CareerProgressionPanel
-              consistency={consistency}
-              snapshot={snapshot ?? null}
-              sessionCount={sessionCount}
-            />
-            {!loading && <IRatingSparkline points={trendPoints} />}
-          </div>
-
-          {/* RIGHT: Racing Network + Licenses (2/5 width) */}
-          <div className="lg:col-span-2 space-y-5">
-            <RacingNetworkPanel />
-            <LicensesCompactPanel profile={profile} />
-          </div>
-        </div>
-
-        {/* QUICK STATS ROW */}
-        <QuickStatsRow stats={stats} />
+        {/* INTELLIGENCE BRIEF LAYOUT - Focused, single-column flow */}
+        
+        {/* PERFORMANCE ATTRIBUTES (max 3 bars) */}
+        {!isTrainingMode && snapshot && (
+          <PerformanceAttributesCompact snapshot={snapshot} />
+        )}
 
         {/* CREW INTELLIGENCE PREVIEW */}
         {sessionCount > 0 && (
           <CrewPreviewPanel sessions={sessions} focus={direction.primaryFocus} />
         )}
 
-        {/* RECENT PERFORMANCE (horizontal race cards with streak indicators) */}
-        <RecentPerformanceStrip sessions={sessions} loading={loading} />
+        {/* 5-RACE TREND SUMMARY */}
+        <FiveRaceTrendSummary sessions={sessions} loading={loading} />
 
-        {/* NEXT SESSION PROMPT */}
-        <NextSessionPrompt sessionCount={sessionCount} driverLevel={driverLevel} />
+        {/* LICENSES (compact) */}
+        <LicensesCompactPanel profile={profile} />
+
+        {/* iRATING TREND */}
+        {!loading && <IRatingSparkline points={trendPoints} />}
       </div>
     </div>
   );
