@@ -50,12 +50,15 @@ import {
 import {
   computePerformanceDirection,
   computeConsistency,
-  computeCrewInsights,
   buildRatingTrend,
+  computeTelemetryAwareCrewInsights,
+  generateIntelligenceAssessment,
+  computeBehavioralIndices,
   type ConsistencyMetrics,
   type CPITier,
   type FocusFlag,
   type RatingTrendPoint,
+  type SessionTelemetryMetrics,
 } from '../../lib/driverIntelligence';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -344,7 +347,15 @@ function formatTimeSince(date: Date): string {
   return 'Just now';
 }
 
-function DriverStatusLine({ snapshot, sessions }: { snapshot: PerformanceSnapshot | null; sessions: DriverSessionSummary[] }) {
+function DriverStatusLine({ 
+  snapshot, 
+  sessions, 
+  telemetry 
+}: { 
+  snapshot: PerformanceSnapshot | null; 
+  sessions: DriverSessionSummary[];
+  telemetry: SessionTelemetryMetrics | null;
+}) {
   if (!snapshot || sessions.length < 3) return null;
 
   const avgIncidents = snapshot.avg_incidents;
@@ -353,57 +364,43 @@ function DriverStatusLine({ snapshot, sessions }: { snapshot: PerformanceSnapsho
   
   // Calculate confidence based on sample size
   const sampleSize = Math.min(sessions.length, 10);
-  const confidence = Math.min(95, 50 + (sampleSize * 5));
+  const baseConfidence = Math.min(95, 50 + (sampleSize * 5));
 
-  // Determine status message based on performance patterns
-  // Phase 7: Tightened conditional logic — summaries must match actual metrics
-  let statusMessage = '';
+  // Compute behavioral indices from telemetry (null if no telemetry)
+  const behavioral = computeBehavioralIndices(telemetry);
+  const hasTelemetry = behavioral.confidence >= 50;
+
+  // Generate telemetry-aware intelligence assessment
+  const assessment = generateIntelligenceAssessment(
+    avgIncidents,
+    snapshot.avg_finish,
+    irDelta,
+    hasTelemetry ? behavioral : null
+  );
+
+  // Use assessment for status message
+  const statusMessage = assessment.statusMessage;
+  const confidence = hasTelemetry ? assessment.confidence : baseConfidence;
+  const modelType = assessment.modelType;
+
+  // Determine icon and color based on problem category
   let statusColor = 'text-white/60';
   let statusIcon: 'warning' | 'positive' | 'stable' = 'stable';
 
-  if (irDelta < -20 && avgIncidents > incidentThreshold) {
-    // Rating down AND incidents high — incidents are the cause
-    statusMessage = 'Rating suppressed by incident density.';
+  if (assessment.primaryCategory === 'incident_driven' || assessment.primaryCategory === 'control_driven') {
     statusColor = 'text-amber-400';
     statusIcon = 'warning';
-  } else if (irDelta < -20 && avgIncidents <= incidentThreshold) {
-    // Rating down BUT incidents low — investigate pace
-    statusMessage = 'Rating decline unrelated to contact — investigate pace.';
-    statusColor = 'text-amber-400';
-    statusIcon = 'warning';
-  } else if (irDelta > 20 && avgIncidents > incidentThreshold) {
-    // Rating up despite high incidents — acknowledge both
-    statusMessage = 'Positive rating movement despite elevated incident load.';
+  } else if (assessment.primaryCategory === 'racecraft_driven') {
     statusColor = 'text-yellow-400';
     statusIcon = 'warning';
-  } else if (irDelta > 20 && avgIncidents <= 2) {
-    // Rating up AND clean — ideal state
-    statusMessage = 'Positive trajectory with clean execution.';
+  } else if (assessment.primaryCategory === 'pace_driven') {
+    statusColor = 'text-orange-400';
+    statusIcon = 'warning';
+  } else if (assessment.primaryCategory === 'balanced' && irDelta > 0) {
     statusColor = 'text-emerald-400';
     statusIcon = 'positive';
-  } else if (irDelta > 0 && avgIncidents <= 2) {
-    // Slight gain, clean racing
-    statusMessage = 'Gradual improvement. Maintain discipline.';
-    statusColor = 'text-emerald-400/80';
-    statusIcon = 'positive';
-  } else if (Math.abs(irDelta) <= 20 && avgIncidents > incidentThreshold) {
-    // Stable rating but incidents elevated — warning
-    statusMessage = 'Rating stable but incident rate elevated. Tighten discipline.';
-    statusColor = 'text-amber-400';
-    statusIcon = 'warning';
-  } else if (Math.abs(irDelta) <= 20 && avgIncidents <= 2) {
-    // Stable and clean — focus on pace
-    statusMessage = 'Stable rating trend. Focus shifting to pace development.';
-    statusColor = 'text-blue-400';
-    statusIcon = 'stable';
-  } else if (irDelta < 0 && avgIncidents > 2 && avgIncidents <= incidentThreshold) {
-    // Slight decline with moderate incidents
-    statusMessage = 'Slight decline due to incidents.';
-    statusColor = 'text-amber-400/80';
-    statusIcon = 'warning';
   } else {
-    statusMessage = 'Performance within normal variance.';
-    statusColor = 'text-white/50';
+    statusColor = 'text-blue-400';
     statusIcon = 'stable';
   }
 
@@ -418,7 +415,16 @@ function DriverStatusLine({ snapshot, sessions }: { snapshot: PerformanceSnapsho
         </div>
         <div>
           <p className={`text-[17px] font-semibold leading-snug ${statusColor}`}>{statusMessage}</p>
-          <p className="text-[10px] text-white/25 mt-1.5">{confidence}% confidence • Last {sampleSize} races</p>
+          <div className="flex items-center gap-2 mt-1.5">
+            <p className="text-[10px] text-white/25">{confidence}% confidence • Last {sampleSize} races</p>
+            <span className={`text-[8px] px-1.5 py-0.5 rounded uppercase tracking-wider ${
+              modelType === 'telemetry_informed' 
+                ? 'bg-cyan-500/10 text-cyan-400/70' 
+                : 'bg-white/5 text-white/30'
+            }`}>
+              {modelType === 'telemetry_informed' ? 'Telemetry' : 'Results'}
+            </span>
+          </div>
         </div>
       </div>
       
@@ -426,6 +432,9 @@ function DriverStatusLine({ snapshot, sessions }: { snapshot: PerformanceSnapsho
       <div className="flex items-center gap-5 pl-9 text-[10px] text-white/25 border-t border-white/[0.04] pt-3">
         <span>Rating Change: <span className={irDelta > 0 ? 'text-emerald-400/60' : irDelta < 0 ? 'text-red-400/60' : 'text-white/35'}>{irDelta > 0 ? '+' : ''}{irDelta}</span></span>
         <span>Avg Incidents: <span className={avgIncidents > incidentThreshold ? 'text-amber-400/60' : 'text-white/35'}>{avgIncidents.toFixed(1)} per race</span></span>
+        {hasTelemetry && (
+          <span>Behavioral: <span className={behavioral.behavioralStability >= 70 ? 'text-emerald-400/60' : behavioral.behavioralStability >= 50 ? 'text-blue-400/60' : 'text-amber-400/60'}>{behavioral.behavioralStability}%</span></span>
+        )}
       </div>
     </div>
   );
@@ -1020,8 +1029,9 @@ function QuickStatsRow({ stats }: { stats: DriverStatsSnapshot[] }) {
 // CREW INTELLIGENCE PREVIEW
 // ═════════════════════════════════════════════════════════════════════════════
 
-function CrewPreviewPanel({ sessions, focus }: { sessions: DriverSessionSummary[]; focus: FocusFlag }) {
-  const insights = useMemo(() => computeCrewInsights(sessions, focus), [sessions, focus]);
+function CrewPreviewPanel({ sessions, focus, telemetry }: { sessions: DriverSessionSummary[]; focus: FocusFlag; telemetry: SessionTelemetryMetrics | null }) {
+  // Use telemetry-aware insights when available, fall back to results-based
+  const insights = useMemo(() => computeTelemetryAwareCrewInsights(sessions, focus, telemetry), [sessions, focus, telemetry]);
 
   const crewRoles = [
     { key: 'engineer' as const, label: 'Engineer', icon: Wrench, color: '#f97316', link: '/driver/crew/engineer' },
@@ -1612,7 +1622,7 @@ export function DriverLanding() {
         />
 
         {/* DRIVER STATUS LINE — emotional anchor */}
-        {!isTrainingMode && <DriverStatusLine snapshot={snapshot ?? null} sessions={sessions} />}
+        {!isTrainingMode && <DriverStatusLine snapshot={snapshot ?? null} sessions={sessions} telemetry={null} />}
 
         {/* SINCE LAST SESSION — what changed */}
         {!isTrainingMode && <SinceLastSessionBlock snapshot={snapshot ?? null} sessions={sessions} />}
@@ -1636,7 +1646,7 @@ export function DriverLanding() {
 
         {/* CREW INTELLIGENCE PREVIEW */}
         {sessionCount > 0 && (
-          <CrewPreviewPanel sessions={sessions} focus={direction.primaryFocus} />
+          <CrewPreviewPanel sessions={sessions} focus={direction.primaryFocus} telemetry={null} />
         )}
 
         {/* COMPETITIVE TREND */}
@@ -1655,7 +1665,7 @@ export function DriverLanding() {
 
         {/* BUILD IDENTIFIER - Remove when page is finalized */}
         <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-          HOME-v3.3
+          HOME-v3.4
         </div>
       </div>
     </div>
