@@ -1,5 +1,5 @@
 /**
- * Driver Intelligence Types & Computation — v0.3 (Cohesion Layer)
+ * Driver Intelligence Types & Computation — v0.4 (Telemetry Integration)
  *
  * Rule-based analysis derived from real session data.
  * No mock data. No placeholder values. All computations
@@ -7,9 +7,31 @@
  *
  * Crew insights are focus-aware: they align with the current
  * PerformanceDirection so the narrative is coherent, not fragmented.
+ *
+ * v0.4: Added telemetry integration layer for behavioral indices.
+ * Home page can now differentiate between:
+ * - Incident-driven problems
+ * - Control-driven problems
+ * - Racecraft-driven problems
+ * - Pace-driven problems
  */
 
 import type { DriverSessionSummary, PerformanceSnapshot } from './driverService';
+import type { 
+  BehavioralIndices, 
+  SessionTelemetryMetrics,
+  TelemetryDataAvailability,
+  IntelligenceAssessment,
+  ProblemCategory,
+} from './telemetryIntelligence';
+import {
+  computeBehavioralIndices,
+  generateIntelligenceAssessment,
+  checkTelemetryAvailability,
+  generateEngineerInsight,
+  generateSpotterInsight,
+  generateAnalystInsight,
+} from './telemetryIntelligence';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -383,4 +405,142 @@ export function buildRatingTrend(
     safetyRating: 0,
     discipline: s.discipline || 'sportsCar',
   }));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TELEMETRY-AWARE INTELLIGENCE LAYER (v0.4)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Re-export telemetry types for consumers
+export type { 
+  BehavioralIndices, 
+  SessionTelemetryMetrics, 
+  TelemetryDataAvailability,
+  IntelligenceAssessment,
+  ProblemCategory,
+};
+
+// Re-export telemetry functions for consumers
+export {
+  computeBehavioralIndices,
+  generateIntelligenceAssessment,
+  checkTelemetryAvailability,
+  generateEngineerInsight,
+  generateSpotterInsight,
+  generateAnalystInsight,
+};
+
+/**
+ * Enhanced performance direction with telemetry awareness
+ * Falls back to results-based analysis when telemetry unavailable
+ */
+export function computeEnhancedPerformanceDirection(
+  snapshot: PerformanceSnapshot | null,
+  telemetry: SessionTelemetryMetrics | null,
+): PerformanceDirection & { assessment: IntelligenceAssessment | null } {
+  const baseDirection = computePerformanceDirection(snapshot);
+  
+  if (!snapshot || snapshot.session_count < 3) {
+    return { ...baseDirection, assessment: null };
+  }
+
+  const behavioral = computeBehavioralIndices(telemetry);
+  const assessment = generateIntelligenceAssessment(
+    snapshot.avg_incidents,
+    snapshot.avg_finish,
+    snapshot.irating_delta,
+    behavioral.confidence >= 50 ? behavioral : null
+  );
+
+  // Override focus based on telemetry assessment if available
+  if (assessment.modelType === 'telemetry_informed') {
+    const focusMap: Record<ProblemCategory, FocusFlag> = {
+      incident_driven: 'incident_management',
+      control_driven: 'incident_management', // Control issues often lead to incidents
+      racecraft_driven: 'racecraft_traffic',
+      pace_driven: 'plateau_detection',
+      balanced: 'strong_momentum',
+    };
+
+    return {
+      ...baseDirection,
+      primaryFocus: focusMap[assessment.primaryCategory],
+      reasons: [...baseDirection.reasons, ...assessment.supportingData],
+      assessment,
+    };
+  }
+
+  return { ...baseDirection, assessment };
+}
+
+/**
+ * Compute telemetry-aware crew insights
+ * Uses behavioral indices when available, falls back to results-based
+ */
+export function computeTelemetryAwareCrewInsights(
+  sessions: DriverSessionSummary[],
+  focus: FocusFlag,
+  telemetry: SessionTelemetryMetrics | null,
+): CrewInsight[] {
+  const recent5 = sessions.slice(0, 5);
+  const recent10 = sessions.slice(0, 10);
+  
+  // Calculate aggregate stats
+  const avgIncidents = recent5.length > 0 
+    ? recent5.reduce((s, r) => s + (r.incidents ?? 0), 0) / recent5.length 
+    : 0;
+  const finishes = recent5.map(s => s.finishPos).filter((p): p is number => p != null);
+  const avgFinish = finishes.length > 0 ? finishes.reduce((a, b) => a + b, 0) / finishes.length : 0;
+  const finishVariance = finishes.length >= 3 
+    ? finishes.reduce((s, f) => s + Math.pow(f - avgFinish, 2), 0) / finishes.length 
+    : 100;
+  
+  // Calculate clean vs incident race performance
+  const cleanRaceFinishes = recent10.filter(s => (s.incidents ?? 0) <= 2).map(s => s.finishPos).filter((p): p is number => p != null);
+  const incidentRaceFinishes = recent10.filter(s => (s.incidents ?? 0) >= 4).map(s => s.finishPos).filter((p): p is number => p != null);
+  
+  // Get iRating delta
+  const iRatingDelta = recent5.reduce((sum, s) => sum + (s.iRatingChange ?? 0), 0);
+
+  // Compute behavioral indices
+  const behavioral = computeBehavioralIndices(telemetry);
+  const hasTelemetry = behavioral.confidence >= 50;
+
+  const insights: CrewInsight[] = [];
+
+  // Generate telemetry-aware insights for each role
+  if (hasTelemetry || focus === 'incident_management') {
+    const engineerInsight = generateEngineerInsight(behavioral, telemetry, avgIncidents);
+    insights.push({
+      role: engineerInsight.role,
+      message: engineerInsight.message,
+      confidence: engineerInsight.confidence,
+      dataWindow: engineerInsight.dataWindow,
+    });
+  }
+
+  if (hasTelemetry || focus === 'incident_management' || focus === 'racecraft_traffic') {
+    const spotterInsight = generateSpotterInsight(behavioral, avgIncidents, cleanRaceFinishes, incidentRaceFinishes);
+    insights.push({
+      role: spotterInsight.role,
+      message: spotterInsight.message,
+      confidence: spotterInsight.confidence,
+      dataWindow: spotterInsight.dataWindow,
+    });
+  }
+
+  const analystInsight = generateAnalystInsight(behavioral, avgFinish, iRatingDelta, finishVariance);
+  insights.push({
+    role: analystInsight.role,
+    message: analystInsight.message,
+    confidence: analystInsight.confidence,
+    dataWindow: analystInsight.dataWindow,
+  });
+
+  // If we don't have enough telemetry insights, fall back to original logic
+  if (insights.length < 3) {
+    return computeCrewInsights(sessions, focus);
+  }
+
+  return insights;
 }
