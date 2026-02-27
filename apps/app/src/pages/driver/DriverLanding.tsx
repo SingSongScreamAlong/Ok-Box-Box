@@ -554,16 +554,17 @@ function IRatingSparkline({ points }: { points: RatingTrendPoint[] }) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 function PerformanceAttributesCompact({ snapshot }: { snapshot: PerformanceSnapshot }) {
-  // Consistency: based on avg finish position (lower = better, so invert)
-  const consistencyScore = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_finish - 1) * 4)));
-  
   // Incident Discipline: inverse of avg incidents (lower incidents = higher score)
-  const incidentScore = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_incidents) * 12)));
+  // 0 incidents = 100, 8+ incidents = 0
+  const incidentScore = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_incidents * 12.5))));
   
-  // Finishing Rate: % of races where you finished in top half of field
-  // Using avg_finish as proxy - if avg finish is P10 in 20-car field, that's 50%
-  // Assume typical field size of 20, score based on avg finish
-  const finishingRate = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_finish - 1) * 5)));
+  // iRating Momentum: based on recent iR delta
+  // +100 iR = 100 score, -100 iR = 0, 0 = 50
+  const momentumScore = Math.max(0, Math.min(100, Math.round(50 + (snapshot.irating_delta / 2))));
+  
+  // Clean Race Rate: estimate based on incident average
+  // If avg incidents <= 2, assume high clean race %; if > 4, assume low
+  const cleanRaceScore = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_incidents * 20))));
 
   return (
     <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
@@ -572,14 +573,14 @@ function PerformanceAttributesCompact({ snapshot }: { snapshot: PerformanceSnaps
         <span className="text-[9px] text-white/20">Last {snapshot.session_count} official races</span>
       </div>
       <div className="p-5 space-y-4">
-        <div title={`Avg finish: P${snapshot.avg_finish.toFixed(1)} — higher score = more consistent top finishes`}>
-          <ProgressBar label="Consistency" value={consistencyScore} color="#3b82f6" />
-        </div>
         <div title={`Avg incidents: ${snapshot.avg_incidents.toFixed(1)}x per race — higher score = cleaner racing`}>
           <ProgressBar label="Incident Discipline" value={incidentScore} color="#22c55e" />
         </div>
-        <div title={`Based on avg finish P${snapshot.avg_finish.toFixed(1)} — higher score = stronger race finishes`}>
-          <ProgressBar label="Finishing Strength" value={finishingRate} color="#a855f7" />
+        <div title={`iRating delta: ${snapshot.irating_delta > 0 ? '+' : ''}${snapshot.irating_delta} — higher score = positive trajectory`}>
+          <ProgressBar label="iRating Momentum" value={momentumScore} color="#3b82f6" />
+        </div>
+        <div title={`Based on ${snapshot.avg_incidents.toFixed(1)}x avg incidents — higher score = more clean races`}>
+          <ProgressBar label="Clean Race Rate" value={cleanRaceScore} color="#a855f7" />
         </div>
       </div>
     </div>
@@ -1318,7 +1319,7 @@ export function DriverLanding() {
 
         {/* BUILD IDENTIFIER - Remove when page is finalized */}
         <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-          HOME-v2.6
+          HOME-v2.7
         </div>
       </div>
     </div>
