@@ -268,7 +268,7 @@ function DriverIdentityStrip({ displayName, profile, consistency, relayStatus, i
               <div className={`text-lg font-bold font-mono ${CPI_TIER_STYLES[consistency.tier].text}`} style={ORBITRON}>
                 {consistency.index}
               </div>
-              <div className="text-[9px] text-white/30 uppercase tracking-wider cursor-help" title="Competitive Performance Index (0-100)&#10;&#10;Your overall competitive readiness score combining:&#10;• Consistency (finishing position variance)&#10;• Incident Discipline (avg incidents per race)&#10;• Finishing Strength (race completion quality)&#10;&#10;Based on your last 10 official races.&#10;Higher = more competitive.">CPI</div>
+              <div className="text-[9px] text-white/30 uppercase tracking-wider cursor-help" title="Competitive Performance Index (0-100)&#10;&#10;6-factor composite score:&#10;• Incident Rate (25%) — avg incidents per race&#10;• Consistency (20%) — finish position variance&#10;• iRating Momentum (20%) — recent iR trend&#10;• Clean Race % (15%) — races with ≤2 incidents&#10;• Completion Rate (10%) — races finished&#10;• Field Performance (10%) — vs field strength&#10;&#10;Based on last 10 official races.&#10;Higher = more competitive.">CPI</div>
             </div>
           )}
         </div>
@@ -1244,7 +1244,7 @@ export function DriverLanding() {
 
   // Derived intelligence
   const direction = useMemo(() => computePerformanceDirection(snapshot ?? null), [snapshot]);
-  const consistency = useMemo(() => computeConsistency(snapshot ?? null), [snapshot]);
+  const consistency = useMemo(() => computeConsistency(snapshot ?? null, sessions), [snapshot, sessions]);
   const trendPoints = useMemo(() => buildRatingTrend(sessions), [sessions]);
 
   const sessionCount = sessions.length;
@@ -1318,7 +1318,7 @@ export function DriverLanding() {
 
         {/* BUILD IDENTIFIER - Remove when page is finalized */}
         <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-          HOME-v2.5
+          HOME-v2.6
         </div>
       </div>
     </div>

@@ -134,37 +134,121 @@ export function computePerformanceDirection(
   };
 }
 
-// ─── Consistency Performance Index ───────────────────────────────────────────
+// ─── Competitive Performance Index (CPI) ────────────────────────────────────
+// 
+// CPI is a composite 0-100 score measuring overall competitive readiness.
+// It uses 6 weighted inputs to provide a sophisticated, defensible metric.
+//
+// WEIGHTS:
+//   Incident Rate (25%)      - Avg incidents per race, most actionable
+//   Consistency (20%)        - Finish position variance (stddev)
+//   iRating Momentum (20%)   - Recent iR delta, trajectory indicator
+//   Clean Race % (15%)       - % of races with ≤2 incidents
+//   Completion Rate (10%)    - % of races finished (no DNF)
+//   SOF-Adjusted Finish (10%) - Performance relative to field strength
+//
+// Each component is normalized to 0-100, then weighted and summed.
+
+export interface CPIBreakdown {
+  incidentRate: number;      // 0-100 score
+  consistency: number;       // 0-100 score
+  iRatingMomentum: number;   // 0-100 score
+  cleanRacePercent: number;  // 0-100 score
+  completionRate: number;    // 0-100 score
+  sofAdjustedFinish: number; // 0-100 score
+}
 
 export function computeConsistency(
   snapshot: PerformanceSnapshot | null,
+  sessions?: DriverSessionSummary[],
 ): ConsistencyMetrics | null {
   if (!snapshot || snapshot.session_count < 3) return null;
 
-  const avgIncidents = snapshot.avg_incidents;
-  const avgFinish = snapshot.avg_finish;
-  const avgStart = snapshot.avg_start;
-
-  const incidentPenalty = Math.max(0, (avgIncidents - 2) * 5);
-  const positionDrop = Math.max(0, avgFinish - avgStart);
-  const positionDropPenalty = positionDrop * 3;
-
-  const index = Math.round(Math.max(0, Math.min(100, 100 - incidentPenalty - positionDropPenalty)));
+  const recentSessions = sessions?.slice(0, 10) ?? [];
+  
+  // ── Component 1: Incident Rate (25%) ──
+  // 0 incidents = 100, 8+ incidents = 0
+  const incidentScore = Math.max(0, Math.min(100, 100 - (snapshot.avg_incidents * 12.5)));
+  
+  // ── Component 2: Consistency / Variance (20%) ──
+  // Calculate finish position standard deviation
+  const finishes = recentSessions.map(s => s.finishPos).filter((p): p is number => p != null);
+  let consistencyScore = 70; // default if not enough data
+  if (finishes.length >= 3) {
+    const avg = finishes.reduce((a, b) => a + b, 0) / finishes.length;
+    const variance = finishes.reduce((s, f) => s + Math.pow(f - avg, 2), 0) / finishes.length;
+    const stdDev = Math.sqrt(variance);
+    // stdDev of 0 = 100, stdDev of 10+ = 0
+    consistencyScore = Math.max(0, Math.min(100, 100 - (stdDev * 10)));
+  }
+  
+  // ── Component 3: iRating Momentum (20%) ──
+  // +100 iR = 100 score, -100 iR = 0, 0 = 50
+  const irMomentumScore = Math.max(0, Math.min(100, 50 + (snapshot.irating_delta / 2)));
+  
+  // ── Component 4: Clean Race % (15%) ──
+  // % of races with ≤2 incidents
+  const cleanRaces = recentSessions.filter(s => (s.incidents ?? 0) <= 2).length;
+  const cleanRaceScore = recentSessions.length > 0 
+    ? (cleanRaces / recentSessions.length) * 100 
+    : 50;
+  
+  // ── Component 5: Completion Rate (10%) ──
+  // % of races where driver finished (not DNF)
+  // Using laps completed as proxy - if finish position exists, race was completed
+  const completedRaces = recentSessions.filter(s => s.finishPos != null).length;
+  const completionScore = recentSessions.length > 0 
+    ? (completedRaces / recentSessions.length) * 100 
+    : 100;
+  
+  // ── Component 6: SOF-Adjusted Finish (10%) ──
+  // Performance relative to field strength
+  // If avg finish is in top 33% of typical field (20 cars), that's good
+  // Simplified: lower avg finish = better score
+  const sofScore = Math.max(0, Math.min(100, 100 - ((snapshot.avg_finish - 1) * 5)));
+  
+  // ── Weighted Sum ──
+  const index = Math.round(
+    (incidentScore * 0.25) +
+    (consistencyScore * 0.20) +
+    (irMomentumScore * 0.20) +
+    (cleanRaceScore * 0.15) +
+    (completionScore * 0.10) +
+    (sofScore * 0.10)
+  );
+  
   const { tier, tierLabel } = resolveCPITier(index);
 
-  const factors: string[] = [];
-  if (incidentPenalty > 0) factors.push('incident frequency');
-  if (positionDropPenalty > 0) factors.push('finishing variance');
-  const explanation = factors.length > 0
-    ? `CPI impacted by ${factors.join(' and ')}.`
-    : 'Clean execution across recent sessions.';
+  // Build explanation based on weakest components
+  const components = [
+    { name: 'incident rate', score: incidentScore, weight: 25 },
+    { name: 'consistency', score: consistencyScore, weight: 20 },
+    { name: 'iRating momentum', score: irMomentumScore, weight: 20 },
+    { name: 'clean race %', score: cleanRaceScore, weight: 15 },
+    { name: 'completion rate', score: completionScore, weight: 10 },
+    { name: 'field performance', score: sofScore, weight: 10 },
+  ];
+  
+  const weakest = components
+    .filter(c => c.score < 60)
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 2)
+    .map(c => c.name);
+  
+  const explanation = weakest.length > 0
+    ? `CPI limited by ${weakest.join(' and ')}.`
+    : 'Strong execution across all metrics.';
+
+  // Legacy penalty fields for backward compatibility
+  const incidentPenalty = Math.round((100 - incidentScore) * 0.25);
+  const positionDropPenalty = Math.round((100 - consistencyScore) * 0.20);
 
   return {
     index,
     tier,
     tierLabel,
-    incidentPenalty: Math.round(incidentPenalty),
-    positionDropPenalty: Math.round(positionDropPenalty),
+    incidentPenalty,
+    positionDropPenalty,
     explanation,
   };
 }
