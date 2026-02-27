@@ -30,6 +30,8 @@ export interface PerformanceDirection {
 export interface CrewInsight {
   role: 'engineer' | 'spotter' | 'analyst';
   message: string;
+  confidence?: number; // 0-100, based on sample size and data quality
+  dataWindow?: string; // e.g., "Last 5 races", "10-race sample"
 }
 
 export type CPITier = 'elite' | 'competitive' | 'inconsistent' | 'at_risk';
@@ -265,6 +267,11 @@ export function computeCrewInsights(
   const recent5 = sessions.slice(0, 5);
   const recent10 = sessions.slice(0, 10);
   
+  // Calculate confidence based on sample size
+  const engineerConfidence = Math.min(95, 50 + (recent5.length * 9));
+  const spotterConfidence = Math.min(90, 45 + (recent5.length * 9));
+  const analystConfidence = Math.min(95, 40 + (recent10.length * 5));
+  
   // Calculate aggregate stats for data citations
   const totalIncidents = recent5.reduce((s, r) => s + (r.incidents ?? 0), 0);
   const avgIncidents = recent5.length > 0 ? totalIncidents / recent5.length : 0;
@@ -280,29 +287,41 @@ export function computeCrewInsights(
   const incidentAvg = incidentRaceFinishes.length > 0 ? incidentRaceFinishes.reduce((a, b) => a + b, 0) / incidentRaceFinishes.length : 0;
 
   // ── Engineer: data-anchored insights ──
+  const engineerDataWindow = `Last ${recent5.length} races`;
   if (focus === 'incident_management') {
     if (highIncidentRaces > 0) {
-      insights.push({ role: 'engineer', message: `${highIncidentRaces} of last ${recent5.length} races had 4+ incidents. Avg ${avgIncidents.toFixed(1)}x per race. Focus: braking entry control and throttle modulation.` });
+      insights.push({ role: 'engineer', message: `${highIncidentRaces} of last ${recent5.length} races had 4+ incidents. Avg ${avgIncidents.toFixed(1)}x per race. Focus: braking entry control and throttle modulation.`, confidence: engineerConfidence, dataWindow: engineerDataWindow });
     } else {
-      insights.push({ role: 'engineer', message: `${totalIncidents}x total incidents in last ${recent5.length} races. Incident density elevated — evaluate corner entry speed.` });
+      insights.push({ role: 'engineer', message: `${totalIncidents}x total incidents in last ${recent5.length} races. Incident density elevated — evaluate corner entry speed.`, confidence: engineerConfidence, dataWindow: engineerDataWindow });
     }
   } else if (focus === 'racecraft_traffic') {
     const posLost = recent5.filter(s => (s.finishPos ?? 0) > (s.startPos ?? 0)).length;
-    insights.push({ role: 'engineer', message: `Lost positions in ${posLost} of ${recent5.length} recent races. Traffic management is the development area.` });
+    insights.push({ role: 'engineer', message: `Lost positions in ${posLost} of ${recent5.length} recent races. Traffic management is the development area.`, confidence: engineerConfidence, dataWindow: engineerDataWindow });
   } else if (focus === 'plateau_detection') {
-    insights.push({ role: 'engineer', message: `Avg finish P${avgFinish.toFixed(1)} over ${recent5.length} races. Performance plateau detected — isolate setup vs input factors.` });
+    insights.push({ role: 'engineer', message: `Avg finish P${avgFinish.toFixed(1)} over ${recent5.length} races. Performance plateau detected — isolate setup vs input factors.`, confidence: engineerConfidence, dataWindow: engineerDataWindow });
   } else if (cleanRaces >= 3) {
-    insights.push({ role: 'engineer', message: `${cleanRaces} of ${recent5.length} races with ≤1 incident. Strong discipline — focus on pace extraction.` });
+    insights.push({ role: 'engineer', message: `${cleanRaces} of ${recent5.length} races with ≤1 incident. Strong discipline — focus on pace extraction.`, confidence: engineerConfidence, dataWindow: engineerDataWindow });
   } else {
-    insights.push({ role: 'engineer', message: `Avg ${avgIncidents.toFixed(1)}x incidents per race. Stable output — look for marginal gains in corner exit.` });
+    insights.push({ role: 'engineer', message: `Avg ${avgIncidents.toFixed(1)}x incidents per race. Stable output — look for marginal gains in corner exit.`, confidence: engineerConfidence, dataWindow: engineerDataWindow });
   }
 
   // ── Spotter: data-anchored insights ──
+  const spotterDataWindow = `${recent10.length}-race sample`;
   if (focus === 'incident_management' && incidentRaceFinishes.length > 0 && cleanRaceFinishes.length > 0) {
     const delta = Math.round(incidentAvg - cleanAvg);
-    insights.push({ role: 'spotter', message: `Clean races avg P${cleanAvg.toFixed(0)}. Incident races avg P${incidentAvg.toFixed(0)}. ${delta > 0 ? `${delta} position penalty` : 'Minimal impact'} from contact.` });
+    // Handle edge case: if incident races have BETTER finishes, adjust narrative
+    if (delta > 0) {
+      // Normal case: clean races finish better
+      insights.push({ role: 'spotter', message: `Clean races avg P${cleanAvg.toFixed(0)}. Incident races avg P${incidentAvg.toFixed(0)}. ${delta} position penalty from contact.`, confidence: spotterConfidence, dataWindow: spotterDataWindow });
+    } else if (delta < -2) {
+      // Edge case: incident races finish better (racing hard in traffic)
+      insights.push({ role: 'spotter', message: `Incident races avg P${incidentAvg.toFixed(0)} vs clean P${cleanAvg.toFixed(0)}. Incidents occurring in competitive battles — focus on clean execution in traffic.`, confidence: spotterConfidence, dataWindow: spotterDataWindow });
+    } else {
+      // Minimal difference
+      insights.push({ role: 'spotter', message: `Clean races avg P${cleanAvg.toFixed(0)}. Incident races avg P${incidentAvg.toFixed(0)}. Minimal finish impact — but incidents still cost iRating.`, confidence: spotterConfidence, dataWindow: spotterDataWindow });
+    }
   } else if (focus === 'racecraft_traffic') {
-    insights.push({ role: 'spotter', message: `Position loss in traffic detected. Prioritize clean air over aggressive lap 1 moves.` });
+    insights.push({ role: 'spotter', message: `Position loss in traffic detected. Prioritize clean air over aggressive lap 1 moves.`, confidence: spotterConfidence, dataWindow: `Last ${recent5.length} races` });
   } else {
     const trackCounts: Record<string, number> = {};
     for (const s of recent5) {
@@ -310,13 +329,14 @@ export function computeCrewInsights(
     }
     const repeated = Object.entries(trackCounts).find(([, count]) => count >= 2);
     if (repeated) {
-      insights.push({ role: 'spotter', message: `${repeated[1]} of ${recent5.length} sessions at ${repeated[0]}. Track familiarity building.` });
+      insights.push({ role: 'spotter', message: `${repeated[1]} of ${recent5.length} sessions at ${repeated[0]}. Track familiarity building.`, confidence: spotterConfidence, dataWindow: `Last ${recent5.length} races` });
     } else {
-      insights.push({ role: 'spotter', message: `${Object.keys(trackCounts).length} different circuits in last ${recent5.length} races. Broad exposure developing.` });
+      insights.push({ role: 'spotter', message: `${Object.keys(trackCounts).length} different circuits in last ${recent5.length} races. Broad exposure developing.`, confidence: spotterConfidence, dataWindow: `Last ${recent5.length} races` });
     }
   }
 
   // ── Analyst: data-anchored insights ──
+  const analystDataWindow = `${finishes.length}-race sample`;
   if (finishes.length >= 3) {
     const avg = finishes.reduce((a, b) => a + b, 0) / finishes.length;
     const variance = finishes.reduce((s, f) => s + Math.pow(f - avg, 2), 0) / finishes.length;
@@ -325,16 +345,23 @@ export function computeCrewInsights(
     const worst = Math.max(...finishes);
 
     if (focus === 'incident_management' && cleanRaceFinishes.length > 0 && incidentRaceFinishes.length > 0) {
-      insights.push({ role: 'analyst', message: `Clean races: avg P${cleanAvg.toFixed(0)}. Incident races: avg P${incidentAvg.toFixed(0)}. Incident control = ${Math.round(incidentAvg - cleanAvg)} position gain potential.` });
+      const posDelta = Math.round(incidentAvg - cleanAvg);
+      if (posDelta > 0) {
+        // Normal: clean races finish better
+        insights.push({ role: 'analyst', message: `Clean races: avg P${cleanAvg.toFixed(0)}. Incident races: avg P${incidentAvg.toFixed(0)}. Incident control = ${posDelta} position gain potential.`, confidence: analystConfidence, dataWindow: `${recent10.length}-race sample` });
+      } else {
+        // Edge case: incident races finish better — reframe narrative
+        insights.push({ role: 'analyst', message: `Incident races: avg P${incidentAvg.toFixed(0)}. Clean races: avg P${cleanAvg.toFixed(0)}. Incidents in competitive positions — iRating still penalized regardless of finish.`, confidence: analystConfidence, dataWindow: `${recent10.length}-race sample` });
+      }
     } else if (stdDev < 3) {
-      insights.push({ role: 'analyst', message: `Finish range P${best}–P${worst} (±${stdDev.toFixed(1)}). Highly consistent — ${finishes.length} race sample.` });
+      insights.push({ role: 'analyst', message: `Finish range P${best}–P${worst} (±${stdDev.toFixed(1)}). Highly consistent — ${finishes.length} race sample.`, confidence: analystConfidence, dataWindow: analystDataWindow });
     } else if (stdDev < 6) {
-      insights.push({ role: 'analyst', message: `Finish range P${best}–P${worst} (±${stdDev.toFixed(1)}). Moderate variance over ${finishes.length} races.` });
+      insights.push({ role: 'analyst', message: `Finish range P${best}–P${worst} (±${stdDev.toFixed(1)}). Moderate variance over ${finishes.length} races.`, confidence: analystConfidence, dataWindow: analystDataWindow });
     } else {
-      insights.push({ role: 'analyst', message: `Finish range P${best}–P${worst} (±${stdDev.toFixed(1)}). High variance — prioritize consistency over pace.` });
+      insights.push({ role: 'analyst', message: `Finish range P${best}–P${worst} (±${stdDev.toFixed(1)}). High variance — prioritize consistency over pace.`, confidence: analystConfidence, dataWindow: analystDataWindow });
     }
   } else {
-    insights.push({ role: 'analyst', message: `${finishes.length} of 3 required races for statistical analysis.` });
+    insights.push({ role: 'analyst', message: `${finishes.length} of 3 required races for statistical analysis.`, confidence: 30, dataWindow: 'Insufficient data' });
   }
 
   return insights;

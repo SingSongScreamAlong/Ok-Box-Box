@@ -982,7 +982,17 @@ function CrewPreviewPanel({ sessions, focus }: { sessions: DriverSessionSummary[
                 <ChevronRight className="w-3 h-3 text-white/10 group-hover:text-white/30 ml-auto" />
               </div>
               {insight ? (
-                <p className="text-[11px] text-white/40 leading-relaxed line-clamp-2">{insight.message}</p>
+                <>
+                  <p className="text-[11px] text-white/40 leading-relaxed line-clamp-2">{insight.message}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    {insight.confidence && (
+                      <span className="text-[9px] text-white/20">{insight.confidence}% conf</span>
+                    )}
+                    {insight.dataWindow && (
+                      <span className="text-[9px] text-white/15">• {insight.dataWindow}</span>
+                    )}
+                  </div>
+                </>
               ) : (
                 <p className="text-[10px] text-white/20 italic">Awaiting session data</p>
               )}
@@ -1051,21 +1061,21 @@ function NextActionBlock({ direction, snapshot }: { direction: ReturnType<typeof
     
     if (direction.primaryFocus === 'incident_management') {
       actions.push('Target sub-3 incident race');
-      actions.push('Focus braking entry control');
+      actions.push('Review braking telemetry');
       if (snapshot && snapshot.avg_incidents > 4) {
         actions.push('Practice 10 clean laps before racing');
       }
     } else if (direction.primaryFocus === 'racecraft_traffic') {
-      actions.push('Prioritize clean air over aggressive moves');
+      actions.push('Focus qualifying pace');
+      actions.push('Analyze entry delta variance');
       actions.push('Delay overtakes until lap 3+');
-      actions.push('Review defensive line selection');
     } else if (direction.primaryFocus === 'plateau_detection') {
       actions.push('Isolate setup vs input factors');
       actions.push('Review telemetry from best recent lap');
       actions.push('Consider split level adjustment');
     } else {
-      actions.push('Maintain current discipline');
-      actions.push('Focus on marginal pace gains');
+      actions.push('Maintain discipline');
+      actions.push('Expand consistency sample size');
       if (snapshot && snapshot.avg_finish > 15) {
         actions.push('Target top-half finish');
       }
@@ -1076,13 +1086,20 @@ function NextActionBlock({ direction, snapshot }: { direction: ReturnType<typeof
 
   const actions = getActions();
 
+  // Determine primary CTA based on focus
+  const primaryCTA = direction.primaryFocus === 'incident_management' 
+    ? { label: 'Open Engineer Brief', link: '/driver/crew/engineer' }
+    : direction.primaryFocus === 'racecraft_traffic'
+    ? { label: 'Open Spotter Brief', link: '/driver/crew/spotter' }
+    : { label: 'View Full CPI Analysis', link: '/driver/ratings' };
+
   return (
     <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
       <div className="px-5 py-4 border-b border-white/10">
         <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Next Action</h2>
       </div>
       <div className="p-5">
-        <div className="space-y-2">
+        <div className="space-y-2 mb-4">
           {actions.map((action, i) => (
             <div key={i} className="flex items-center gap-3">
               <div className="w-5 h-5 rounded-full border border-white/20 flex items-center justify-center text-[9px] font-bold text-white/40">
@@ -1091,6 +1108,22 @@ function NextActionBlock({ direction, snapshot }: { direction: ReturnType<typeof
               <span className="text-[12px] text-white/60">{action}</span>
             </div>
           ))}
+        </div>
+        
+        {/* CTA Buttons */}
+        <div className="flex flex-wrap gap-2 pt-3 border-t border-white/[0.06]">
+          <Link 
+            to={primaryCTA.link}
+            className="px-3 py-1.5 bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 text-[10px] uppercase tracking-wider text-white/60 hover:text-white/80 transition-colors flex items-center gap-1.5"
+          >
+            {primaryCTA.label} <ChevronRight className="w-3 h-3" />
+          </Link>
+          <Link 
+            to="/driver/history"
+            className="px-3 py-1.5 hover:bg-white/[0.04] border border-white/[0.06] text-[10px] uppercase tracking-wider text-white/30 hover:text-white/50 transition-colors flex items-center gap-1.5"
+          >
+            Review Last Race <ChevronRight className="w-3 h-3" />
+          </Link>
         </div>
       </div>
     </div>
@@ -1543,7 +1576,7 @@ export function DriverLanding() {
 
         {/* BUILD IDENTIFIER - Remove when page is finalized */}
         <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-          HOME-v3.0
+          HOME-v3.1
         </div>
       </div>
     </div>
