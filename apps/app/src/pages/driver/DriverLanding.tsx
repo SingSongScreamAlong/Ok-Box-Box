@@ -163,7 +163,7 @@ function CPIRing({ value, tier, size = 120 }: { value: number; tier: CPITier; si
         <span className={`text-3xl font-bold font-mono ${style.text}`} style={ORBITRON}>
           {value}
         </span>
-        <span className="text-[9px] text-white/40 uppercase tracking-widest mt-0.5">CPI</span>
+        <span className="text-[9px] text-white/40 uppercase tracking-widest mt-0.5" title="Competitive Performance Index - measures consistency, incident discipline, and pace stability">CPI</span>
       </div>
     </div>
   );
@@ -240,8 +240,8 @@ function DriverIdentityStrip({ displayName, profile, consistency, relayStatus, i
                   >
                     {primaryLicense.licenseClass}
                   </div>
-                  <span className="text-[11px] text-white/40">
-                    {primaryLicense.discipline === 'sportsCar' ? 'Road' : primaryLicense.discipline}
+                  <span className="text-[11px] text-white/40 capitalize">
+                    {primaryLicense.discipline === 'sportsCar' ? 'Road' : primaryLicense.discipline === 'dirtOval' ? 'Dirt Oval' : primaryLicense.discipline === 'dirtRoad' ? 'Dirt Road' : primaryLicense.discipline.charAt(0).toUpperCase() + primaryLicense.discipline.slice(1)}
                   </span>
                 </div>
               )}
@@ -492,6 +492,7 @@ function IRatingSparkline({ points }: { points: RatingTrendPoint[] }) {
         <div className="px-5 py-4 border-b border-white/10 flex items-center gap-2">
           <TrendingUp className="w-3.5 h-3.5 text-white/20" />
           <h3 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>iRating Trend</h3>
+          <span className="text-[9px] text-white/20 ml-2">(Primary License)</span>
         </div>
         <div className="p-4">
           <div className="h-16 relative overflow-hidden">
@@ -528,6 +529,7 @@ function IRatingSparkline({ points }: { points: RatingTrendPoint[] }) {
         <div className="flex items-center gap-2">
           <TrendingUp className="w-3.5 h-3.5 text-blue-400/50" />
           <h3 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>iRating Trend</h3>
+          <span className="text-[9px] text-white/20 ml-2">(Primary License)</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-[11px] font-mono text-white/40">{ratings[ratings.length - 1]}</span>
@@ -658,7 +660,7 @@ function LicensesCompactPanel({ profile }: { profile: ReturnType<typeof useDrive
       </div>
       <div className="p-3 space-y-1.5">
         {licenses.map(lic => (
-          <div key={lic.discipline} className="flex items-center justify-between py-2 px-3 bg-white/[0.03] rounded border border-white/[0.04]">
+          <div key={lic.discipline} className="flex items-center justify-between py-2 px-3 rounded border border-white/[0.06]">
             <div className="flex items-center gap-2.5">
               <div
                 className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold text-white"
@@ -798,31 +800,92 @@ function RacingNetworkPanel() {
 // PERFORMANCE DIRECTIVE (compact card)
 // ═════════════════════════════════════════════════════════════════════════════
 
-function PerformanceDirectiveCard({ direction }: { direction: ReturnType<typeof computePerformanceDirection> }) {
+function PerformanceDirectiveCard({ direction, snapshot }: { direction: ReturnType<typeof computePerformanceDirection>; snapshot: PerformanceSnapshot | null }) {
+  const [expanded, setExpanded] = useState(false);
+  
   if (direction.primaryFocus === 'needs_data') return null;
 
   const Icon = FOCUS_ICONS[direction.primaryFocus];
   const color = FOCUS_COLORS[direction.primaryFocus];
   const confidence = FOCUS_CONFIDENCE[direction.primaryFocus];
+  
+  // Border color based on focus type
+  const borderColor = direction.primaryFocus === 'incident_management' ? 'border-red-500/30' :
+    direction.primaryFocus === 'racecraft_traffic' ? 'border-yellow-500/30' :
+    direction.primaryFocus === 'plateau_detection' ? 'border-orange-500/30' :
+    'border-green-500/30';
 
   return (
-    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm p-4">
-      <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded bg-white/[0.04] flex items-center justify-center shrink-0 mt-0.5">
-          <Icon className={`w-4 h-4 ${color}`} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-xs font-semibold uppercase tracking-wider ${color}`} style={ORBITRON}>
-              {direction.label}
-            </span>
-            <span className="text-[9px] text-white/25 bg-white/[0.04] px-1.5 py-0.5 rounded">
-              Confidence: {confidence}
-            </span>
+    <div className={`border ${borderColor} bg-[#0e0e0e]/80 backdrop-blur-sm`}>
+      <div className="p-4">
+        <div className="flex items-start gap-3">
+          <div className={`w-10 h-10 rounded flex items-center justify-center shrink-0 ${
+            direction.primaryFocus === 'incident_management' ? 'bg-red-500/10' :
+            direction.primaryFocus === 'racecraft_traffic' ? 'bg-yellow-500/10' :
+            direction.primaryFocus === 'plateau_detection' ? 'bg-orange-500/10' :
+            'bg-green-500/10'
+          }`}>
+            <Icon className={`w-5 h-5 ${color}`} />
           </div>
-          <p className="text-[11px] text-white/40 mt-1.5 leading-relaxed line-clamp-2">{direction.action}</p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className={`text-sm font-semibold uppercase tracking-wider ${color}`} style={ORBITRON}>
+                {direction.label}
+              </span>
+              <span className="text-[9px] text-white/25 bg-white/[0.04] px-1.5 py-0.5 rounded">
+                Confidence: {confidence}
+              </span>
+            </div>
+            <p className="text-[12px] text-white/50 leading-relaxed">{direction.action}</p>
+          </div>
         </div>
       </div>
+      
+      {/* Why? expandable section */}
+      {direction.reasons.length > 0 && (
+        <div className="border-t border-white/[0.06]">
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="w-full px-4 py-2 flex items-center justify-between text-[10px] text-white/30 hover:text-white/50 hover:bg-white/[0.02] transition-colors"
+          >
+            <span className="uppercase tracking-wider">Why?</span>
+            <ChevronRight className={`w-3 h-3 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+          </button>
+          
+          {expanded && (
+            <div className="px-4 pb-4 space-y-2">
+              {direction.reasons.map((reason, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <div className="w-1 h-1 rounded-full bg-white/20 mt-1.5 shrink-0" />
+                  <p className="text-[11px] text-white/40">{reason}</p>
+                </div>
+              ))}
+              {snapshot && (
+                <div className="mt-3 pt-3 border-t border-white/[0.04] grid grid-cols-4 gap-3">
+                  <div>
+                    <div className="text-[9px] text-white/25 uppercase">Sessions</div>
+                    <div className="text-xs font-mono text-white/50">{snapshot.session_count}</div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] text-white/25 uppercase">Avg Incidents</div>
+                    <div className={`text-xs font-mono ${snapshot.avg_incidents > 3 ? 'text-red-400' : 'text-white/50'}`}>{snapshot.avg_incidents.toFixed(1)}x</div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] text-white/25 uppercase">Avg Finish</div>
+                    <div className="text-xs font-mono text-white/50">P{snapshot.avg_finish.toFixed(1)}</div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] text-white/25 uppercase">iR Delta</div>
+                    <div className={`text-xs font-mono ${snapshot.irating_delta > 0 ? 'text-green-400' : snapshot.irating_delta < 0 ? 'text-red-400' : 'text-white/50'}`}>
+                      {snapshot.irating_delta > 0 ? '+' : ''}{snapshot.irating_delta}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1030,7 +1093,7 @@ export function DriverLanding() {
 
         {/* PERFORMANCE DIRECTIVE (compact — not dominant) */}
         {!isTrainingMode && direction.primaryFocus !== 'needs_data' && (
-          <PerformanceDirectiveCard direction={direction} />
+          <PerformanceDirectiveCard direction={direction} snapshot={snapshot ?? null} />
         )}
 
         {/* TWO-COLUMN LAYOUT */}
