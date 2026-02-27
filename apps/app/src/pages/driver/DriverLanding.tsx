@@ -553,35 +553,93 @@ function IRatingSparkline({ points }: { points: RatingTrendPoint[] }) {
 // PERFORMANCE ATTRIBUTES COMPACT (max 3 bars - focused)
 // ═════════════════════════════════════════════════════════════════════════════
 
-function PerformanceAttributesCompact({ snapshot }: { snapshot: PerformanceSnapshot }) {
-  // Incident Discipline: inverse of avg incidents (lower incidents = higher score)
-  // 0 incidents = 100, 8+ incidents = 0
+function PerformanceAttributesCompact({ snapshot, sessions }: { snapshot: PerformanceSnapshot; sessions?: DriverSessionSummary[] }) {
+  // Calculate all 6 CPI components
+  const recentSessions = sessions?.slice(0, 10) ?? [];
+  
+  // Component 1: Incident Rate (25%)
   const incidentScore = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_incidents * 12.5))));
   
-  // iRating Momentum: based on recent iR delta
-  // +100 iR = 100 score, -100 iR = 0, 0 = 50
+  // Component 2: Consistency / Variance (20%)
+  const finishes = recentSessions.map(s => s.finishPos).filter((p): p is number => p != null);
+  let consistencyScore = 70;
+  if (finishes.length >= 3) {
+    const avg = finishes.reduce((a, b) => a + b, 0) / finishes.length;
+    const variance = finishes.reduce((s, f) => s + Math.pow(f - avg, 2), 0) / finishes.length;
+    const stdDev = Math.sqrt(variance);
+    consistencyScore = Math.max(0, Math.min(100, Math.round(100 - (stdDev * 10))));
+  }
+  
+  // Component 3: iRating Momentum (20%)
   const momentumScore = Math.max(0, Math.min(100, Math.round(50 + (snapshot.irating_delta / 2))));
   
-  // Clean Race Rate: estimate based on incident average
-  // If avg incidents <= 2, assume high clean race %; if > 4, assume low
-  const cleanRaceScore = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_incidents * 20))));
+  // Component 4: Clean Race % (15%)
+  const cleanRaces = recentSessions.filter(s => (s.incidents ?? 0) <= 2).length;
+  const cleanRaceScore = recentSessions.length > 0 
+    ? Math.round((cleanRaces / recentSessions.length) * 100)
+    : 50;
+  
+  // Component 5: Completion Rate (10%)
+  const completedRaces = recentSessions.filter(s => s.finishPos != null).length;
+  const completionScore = recentSessions.length > 0 
+    ? Math.round((completedRaces / recentSessions.length) * 100)
+    : 100;
+  
+  // Component 6: Field Performance (10%)
+  const fieldScore = Math.max(0, Math.min(100, Math.round(100 - ((snapshot.avg_finish - 1) * 5))));
+
+  // Build components array with metadata
+  const components = [
+    { name: 'Incident Rate', score: incidentScore, weight: 25, color: '#22c55e', tooltip: `${snapshot.avg_incidents.toFixed(1)}x avg incidents` },
+    { name: 'Consistency', score: consistencyScore, weight: 20, color: '#3b82f6', tooltip: `Finish position variance` },
+    { name: 'iRating Momentum', score: momentumScore, weight: 20, color: '#8b5cf6', tooltip: `${snapshot.irating_delta > 0 ? '+' : ''}${snapshot.irating_delta} iR delta` },
+    { name: 'Clean Race %', score: cleanRaceScore, weight: 15, color: '#06b6d4', tooltip: `${cleanRaces}/${recentSessions.length} races with ≤2 inc` },
+    { name: 'Completion', score: completionScore, weight: 10, color: '#f59e0b', tooltip: `${completedRaces}/${recentSessions.length} races finished` },
+    { name: 'Field Performance', score: fieldScore, weight: 10, color: '#ec4899', tooltip: `Avg finish P${snapshot.avg_finish.toFixed(1)}` },
+  ];
+
+  // Sort to find weakest and strongest
+  const sorted = [...components].sort((a, b) => a.score - b.score);
+  const weakest = sorted[0];
+  const strengths = sorted.filter(c => c.score >= 60).slice(-2).reverse();
 
   return (
     <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
       <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-        <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Performance Attributes</h2>
-        <span className="text-[9px] text-white/20">Last {snapshot.session_count} official races</span>
+        <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>CPI Breakdown</h2>
+        <Link to="/driver/ratings" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
+          Full Analysis <ChevronRight className="w-3 h-3" />
+        </Link>
       </div>
       <div className="p-5 space-y-4">
-        <div title={`Avg incidents: ${snapshot.avg_incidents.toFixed(1)}x per race — higher score = cleaner racing`}>
-          <ProgressBar label="Incident Discipline" value={incidentScore} color="#22c55e" />
+        {/* Focus Area - Weakest Component */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-[10px] uppercase tracking-wider text-amber-400">Focus Area</span>
+          </div>
+          <div title={weakest.tooltip}>
+            <ProgressBar label={weakest.name} value={weakest.score} color="#f59e0b" />
+          </div>
+          <p className="text-[10px] text-white/30 mt-1.5">{weakest.tooltip} — limiting CPI by {weakest.weight}%</p>
         </div>
-        <div title={`iRating delta: ${snapshot.irating_delta > 0 ? '+' : ''}${snapshot.irating_delta} — higher score = positive trajectory`}>
-          <ProgressBar label="iRating Momentum" value={momentumScore} color="#3b82f6" />
-        </div>
-        <div title={`Based on ${snapshot.avg_incidents.toFixed(1)}x avg incidents — higher score = more clean races`}>
-          <ProgressBar label="Clean Race Rate" value={cleanRaceScore} color="#a855f7" />
-        </div>
+
+        {/* Strengths */}
+        {strengths.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="text-[10px] uppercase tracking-wider text-emerald-400">Strengths</span>
+            </div>
+            <div className="space-y-2">
+              {strengths.map(s => (
+                <div key={s.name} title={s.tooltip}>
+                  <ProgressBar label={s.name} value={s.score} color={s.color} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1295,7 +1353,7 @@ export function DriverLanding() {
         
         {/* PERFORMANCE ATTRIBUTES (max 3 bars) */}
         {!isTrainingMode && snapshot && (
-          <PerformanceAttributesCompact snapshot={snapshot} />
+          <PerformanceAttributesCompact snapshot={snapshot} sessions={sessions} />
         )}
 
         {/* CREW INTELLIGENCE PREVIEW */}
@@ -1319,7 +1377,7 @@ export function DriverLanding() {
 
         {/* BUILD IDENTIFIER - Remove when page is finalized */}
         <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-          HOME-v2.7
+          HOME-v2.8
         </div>
       </div>
     </div>
