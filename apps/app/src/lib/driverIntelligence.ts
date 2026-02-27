@@ -178,73 +178,79 @@ export function computeCrewInsights(
   if (sessions.length === 0) return [];
 
   const insights: CrewInsight[] = [];
-  const last = sessions[0];
   const recent5 = sessions.slice(0, 5);
+  const recent10 = sessions.slice(0, 10);
+  
+  // Calculate aggregate stats for data citations
+  const totalIncidents = recent5.reduce((s, r) => s + (r.incidents ?? 0), 0);
+  const avgIncidents = recent5.length > 0 ? totalIncidents / recent5.length : 0;
+  const highIncidentRaces = recent5.filter(s => (s.incidents ?? 0) >= 4).length;
+  const cleanRaces = recent5.filter(s => (s.incidents ?? 0) <= 1).length;
+  const finishes = recent5.map(s => s.finishPos).filter((p): p is number => p != null);
+  const avgFinish = finishes.length > 0 ? finishes.reduce((a, b) => a + b, 0) / finishes.length : 0;
+  
+  // Calculate clean vs incident race performance delta
+  const cleanRaceFinishes = recent10.filter(s => (s.incidents ?? 0) <= 2).map(s => s.finishPos).filter((p): p is number => p != null);
+  const incidentRaceFinishes = recent10.filter(s => (s.incidents ?? 0) >= 4).map(s => s.finishPos).filter((p): p is number => p != null);
+  const cleanAvg = cleanRaceFinishes.length > 0 ? cleanRaceFinishes.reduce((a, b) => a + b, 0) / cleanRaceFinishes.length : 0;
+  const incidentAvg = incidentRaceFinishes.length > 0 ? incidentRaceFinishes.reduce((a, b) => a + b, 0) / incidentRaceFinishes.length : 0;
 
-  // ── Engineer: aligned to focus ──
+  // ── Engineer: data-anchored insights ──
   if (focus === 'incident_management') {
-    const inc = last.incidents ?? 0;
-    insights.push({ role: 'engineer', message: `${inc}x incidents last session. Evaluate braking reference points and entry speed — contact is likely initiated under deceleration.` });
-  } else if (focus === 'racecraft_traffic') {
-    const drop = (last.finishPos ?? 0) - (last.startPos ?? 0);
-    if (drop > 0) {
-      insights.push({ role: 'engineer', message: `Lost ${drop} position${drop > 1 ? 's' : ''} in traffic. Review defensive line selection and throttle application on exit.` });
+    if (highIncidentRaces > 0) {
+      insights.push({ role: 'engineer', message: `${highIncidentRaces} of last ${recent5.length} races had 4+ incidents. Avg ${avgIncidents.toFixed(1)}x per race. Focus: braking entry control and throttle modulation.` });
     } else {
-      insights.push({ role: 'engineer', message: 'Position held but traffic management remains the priority area. Monitor mid-corner proximity.' });
+      insights.push({ role: 'engineer', message: `${totalIncidents}x total incidents in last ${recent5.length} races. Incident density elevated — evaluate corner entry speed.` });
     }
+  } else if (focus === 'racecraft_traffic') {
+    const posLost = recent5.filter(s => (s.finishPos ?? 0) > (s.startPos ?? 0)).length;
+    insights.push({ role: 'engineer', message: `Lost positions in ${posLost} of ${recent5.length} recent races. Traffic management is the development area.` });
   } else if (focus === 'plateau_detection') {
-    insights.push({ role: 'engineer', message: 'Performance plateau active. Isolate whether pace deficit is setup-related or driver-input-related before next session.' });
-  } else if (last.finishPos != null && last.startPos != null && last.finishPos < last.startPos) {
-    const gain = last.startPos - last.finishPos;
-    insights.push({ role: 'engineer', message: `+${gain} position${gain > 1 ? 's' : ''} last race. Race pace exceeding qualifying pace — strong execution.` });
+    insights.push({ role: 'engineer', message: `Avg finish P${avgFinish.toFixed(1)} over ${recent5.length} races. Performance plateau detected — isolate setup vs input factors.` });
+  } else if (cleanRaces >= 3) {
+    insights.push({ role: 'engineer', message: `${cleanRaces} of ${recent5.length} races with ≤1 incident. Strong discipline — focus on pace extraction.` });
   } else {
-    insights.push({ role: 'engineer', message: 'Stable output. Look for marginal gains in corner exit speed and pit timing.' });
+    insights.push({ role: 'engineer', message: `Avg ${avgIncidents.toFixed(1)}x incidents per race. Stable output — look for marginal gains in corner exit.` });
   }
 
-  // ── Spotter: aligned to focus ──
-  if (focus === 'incident_management') {
-    insights.push({ role: 'spotter', message: 'Incident pattern suggests close-quarters risk. Increase following distance in braking zones and avoid side-by-side through high-speed sections.' });
+  // ── Spotter: data-anchored insights ──
+  if (focus === 'incident_management' && incidentRaceFinishes.length > 0 && cleanRaceFinishes.length > 0) {
+    const delta = Math.round(incidentAvg - cleanAvg);
+    insights.push({ role: 'spotter', message: `Clean races avg P${cleanAvg.toFixed(0)}. Incident races avg P${incidentAvg.toFixed(0)}. ${delta > 0 ? `${delta} position penalty` : 'Minimal impact'} from contact.` });
   } else if (focus === 'racecraft_traffic') {
-    insights.push({ role: 'spotter', message: 'Position loss in traffic detected. Prioritize clean air over aggressive overtakes — patience through lap 1 compounds.' });
-  } else if (recent5.length >= 2) {
+    insights.push({ role: 'spotter', message: `Position loss in traffic detected. Prioritize clean air over aggressive lap 1 moves.` });
+  } else {
     const trackCounts: Record<string, number> = {};
     for (const s of recent5) {
       if (s.trackName) trackCounts[s.trackName] = (trackCounts[s.trackName] || 0) + 1;
     }
     const repeated = Object.entries(trackCounts).find(([, count]) => count >= 2);
     if (repeated) {
-      insights.push({ role: 'spotter', message: `${repeated[1]} sessions at ${repeated[0]} — track familiarity building. Reference points should be sharpening.` });
+      insights.push({ role: 'spotter', message: `${repeated[1]} of ${recent5.length} sessions at ${repeated[0]}. Track familiarity building.` });
     } else {
-      insights.push({ role: 'spotter', message: `${Object.keys(trackCounts).length} different circuits recently. Broad exposure — adaptability is developing.` });
+      insights.push({ role: 'spotter', message: `${Object.keys(trackCounts).length} different circuits in last ${recent5.length} races. Broad exposure developing.` });
     }
-  } else {
-    insights.push({ role: 'spotter', message: 'Limited recent data. Additional sessions will improve traffic pattern recognition.' });
   }
 
-  // ── Analyst: aligned to focus ──
-  if (recent5.length >= 3) {
-    const finishes = recent5.map(s => s.finishPos).filter((p): p is number => p != null);
-    if (finishes.length >= 3) {
-      const avg = finishes.reduce((a, b) => a + b, 0) / finishes.length;
-      const variance = finishes.reduce((s, f) => s + Math.pow(f - avg, 2), 0) / finishes.length;
-      const stdDev = Math.sqrt(variance);
+  // ── Analyst: data-anchored insights ──
+  if (finishes.length >= 3) {
+    const avg = finishes.reduce((a, b) => a + b, 0) / finishes.length;
+    const variance = finishes.reduce((s, f) => s + Math.pow(f - avg, 2), 0) / finishes.length;
+    const stdDev = Math.sqrt(variance);
+    const best = Math.min(...finishes);
+    const worst = Math.max(...finishes);
 
-      if (focus === 'incident_management') {
-        insights.push({ role: 'analyst', message: `Finishing variance ±${stdDev.toFixed(1)} positions. Incident rate is the primary destabilizer — clean sessions will compress this spread.` });
-      } else if (focus === 'plateau_detection') {
-        insights.push({ role: 'analyst', message: `Finishing variance ±${stdDev.toFixed(1)} positions. Plateau may be ceiling-related — evaluate whether split level matches current skill.` });
-      } else if (stdDev < 3) {
-        insights.push({ role: 'analyst', message: `Finishing spread: ±${stdDev.toFixed(1)} positions. Highly consistent output.` });
-      } else if (stdDev < 6) {
-        insights.push({ role: 'analyst', message: `Finishing spread: ±${stdDev.toFixed(1)} positions. Moderate variance — isolate outlier sessions.` });
-      } else {
-        insights.push({ role: 'analyst', message: `Finishing spread: ±${stdDev.toFixed(1)} positions. High variance — results are unpredictable. Prioritize consistency over pace.` });
-      }
+    if (focus === 'incident_management' && cleanRaceFinishes.length > 0 && incidentRaceFinishes.length > 0) {
+      insights.push({ role: 'analyst', message: `Clean races: avg P${cleanAvg.toFixed(0)}. Incident races: avg P${incidentAvg.toFixed(0)}. Incident control = ${Math.round(incidentAvg - cleanAvg)} position gain potential.` });
+    } else if (stdDev < 3) {
+      insights.push({ role: 'analyst', message: `Finish range P${best}–P${worst} (±${stdDev.toFixed(1)}). Highly consistent — ${finishes.length} race sample.` });
+    } else if (stdDev < 6) {
+      insights.push({ role: 'analyst', message: `Finish range P${best}–P${worst} (±${stdDev.toFixed(1)}). Moderate variance over ${finishes.length} races.` });
     } else {
-      insights.push({ role: 'analyst', message: 'Insufficient finishing data for variance analysis.' });
+      insights.push({ role: 'analyst', message: `Finish range P${best}–P${worst} (±${stdDev.toFixed(1)}). High variance — prioritize consistency over pace.` });
     }
   } else {
-    insights.push({ role: 'analyst', message: 'Minimum 3 sessions required for statistical analysis.' });
+    insights.push({ role: 'analyst', message: `${finishes.length} of 3 required races for statistical analysis.` });
   }
 
   return insights;

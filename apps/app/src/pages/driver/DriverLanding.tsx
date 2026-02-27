@@ -822,7 +822,64 @@ function LicensesCompactPanel({ profile }: { profile: ReturnType<typeof useDrive
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// NEXT SESSION PROMPT
+// NEXT ACTION BLOCK (mission brief style)
+// ═════════════════════════════════════════════════════════════════════════════
+
+function NextActionBlock({ direction, snapshot }: { direction: ReturnType<typeof computePerformanceDirection>; snapshot: PerformanceSnapshot | null }) {
+  // Generate actionable next steps based on current focus
+  const getActions = () => {
+    const actions: string[] = [];
+    
+    if (direction.primaryFocus === 'incident_management') {
+      actions.push('Target sub-3 incident race');
+      actions.push('Focus braking entry control');
+      if (snapshot && snapshot.avg_incidents > 4) {
+        actions.push('Practice 10 clean laps before racing');
+      }
+    } else if (direction.primaryFocus === 'racecraft_traffic') {
+      actions.push('Prioritize clean air over aggressive moves');
+      actions.push('Delay overtakes until lap 3+');
+      actions.push('Review defensive line selection');
+    } else if (direction.primaryFocus === 'plateau_detection') {
+      actions.push('Isolate setup vs input factors');
+      actions.push('Review telemetry from best recent lap');
+      actions.push('Consider split level adjustment');
+    } else {
+      actions.push('Maintain current discipline');
+      actions.push('Focus on marginal pace gains');
+      if (snapshot && snapshot.avg_finish > 15) {
+        actions.push('Target top-half finish');
+      }
+    }
+    
+    return actions.slice(0, 3);
+  };
+
+  const actions = getActions();
+
+  return (
+    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
+      <div className="px-5 py-4 border-b border-white/10">
+        <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Next Action</h2>
+      </div>
+      <div className="p-5">
+        <div className="space-y-2">
+          {actions.map((action, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <div className="w-5 h-5 rounded-full border border-white/20 flex items-center justify-center text-[9px] font-bold text-white/40">
+                {i + 1}
+              </div>
+              <span className="text-[12px] text-white/60">{action}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// NEXT SESSION PROMPT (legacy - kept for reference)
 // ═════════════════════════════════════════════════════════════════════════════
 
 function NextSessionPrompt({ sessionCount, driverLevel }: { sessionCount: number; driverLevel: { level: number; title: string; xp: number; xpToNext: number } }) {
@@ -1228,7 +1285,7 @@ export function DriverLanding() {
           <TrainingModeCard sessionCount={sessionCount} />
         )}
 
-        {/* PERFORMANCE DIRECTIVE (compact — not dominant) */}
+        {/* PERFORMANCE RISK ALERT (hero section) */}
         {!isTrainingMode && direction.primaryFocus !== 'needs_data' && (
           <PerformanceDirectiveCard direction={direction} snapshot={snapshot ?? null} />
         )}
@@ -1245,8 +1302,13 @@ export function DriverLanding() {
           <CrewPreviewPanel sessions={sessions} focus={direction.primaryFocus} />
         )}
 
-        {/* 5-RACE TREND SUMMARY */}
+        {/* COMPETITIVE TREND */}
         <FiveRaceTrendSummary sessions={sessions} loading={loading} />
+
+        {/* NEXT ACTION */}
+        {!isTrainingMode && direction.primaryFocus !== 'needs_data' && (
+          <NextActionBlock direction={direction} snapshot={snapshot ?? null} />
+        )}
 
         {/* LICENSES (compact) */}
         <LicensesCompactPanel profile={profile} />
@@ -1256,7 +1318,7 @@ export function DriverLanding() {
 
         {/* BUILD IDENTIFIER - Remove when page is finalized */}
         <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-          HOME-v2.4
+          HOME-v2.5
         </div>
       </div>
     </div>
