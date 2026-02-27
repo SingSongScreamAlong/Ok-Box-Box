@@ -556,10 +556,16 @@ function IRatingSparkline({ points }: { points: RatingTrendPoint[] }) {
 function PerformanceAttributesCompact({ snapshot }: { snapshot: PerformanceSnapshot }) {
   const consistencyScore = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_finish - 1) * 4)));
   const incidentScore = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_incidents) * 12)));
-  const paceScore = Math.max(0, Math.min(100, Math.round(100 - Math.abs(snapshot.avg_finish - snapshot.avg_start) * 10)));
   
-  // Check if we have enough data for pace stability
-  const hasPaceData = snapshot.session_count >= 3 && snapshot.avg_start > 0;
+  // Pace stability: measures positions gained/lost from start to finish
+  // If avg_start is 0 or missing, we can't calculate this
+  const hasStartData = snapshot.avg_start > 0;
+  const positionDelta = hasStartData ? snapshot.avg_finish - snapshot.avg_start : 0;
+  // Positive delta = losing positions, negative = gaining positions
+  // Score: 100 = gaining 5+ positions, 50 = neutral, 0 = losing 5+ positions
+  const paceScore = hasStartData 
+    ? Math.max(0, Math.min(100, Math.round(50 - positionDelta * 10)))
+    : 0;
 
   return (
     <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
@@ -574,15 +580,15 @@ function PerformanceAttributesCompact({ snapshot }: { snapshot: PerformanceSnaps
         <div title="Inverse of average incidents per race — higher = cleaner racing">
           <ProgressBar label="Incident Discipline" value={incidentScore} color="#22c55e" />
         </div>
-        {hasPaceData ? (
-          <div title="Measures positions gained/lost from grid to finish — higher = maintaining or improving position">
+        {hasStartData ? (
+          <div title={`Avg start P${snapshot.avg_start.toFixed(1)} → Avg finish P${snapshot.avg_finish.toFixed(1)} (${positionDelta > 0 ? 'losing' : positionDelta < 0 ? 'gaining' : 'holding'} ${Math.abs(positionDelta).toFixed(1)} positions)`}>
             <ProgressBar label="Pace Stability" value={paceScore} color="#a855f7" />
           </div>
         ) : (
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[11px] text-white/50 uppercase tracking-wider">Pace Stability</span>
-              <span className="text-[10px] text-white/25 italic">Insufficient data</span>
+              <span className="text-[10px] text-white/25 italic">No grid position data</span>
             </div>
             <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
               <div className="h-full rounded-full bg-white/[0.03]" style={{ width: '100%' }} />
@@ -1264,7 +1270,7 @@ export function DriverLanding() {
 
         {/* BUILD IDENTIFIER - Remove when page is finalized */}
         <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-          HOME-v2.2 • refinements
+          HOME-v2.3
         </div>
       </div>
     </div>
