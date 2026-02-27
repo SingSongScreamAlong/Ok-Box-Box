@@ -268,7 +268,7 @@ function DriverIdentityStrip({ displayName, profile, consistency, relayStatus, i
               <div className={`text-lg font-bold font-mono ${CPI_TIER_STYLES[consistency.tier].text}`} style={ORBITRON}>
                 {consistency.index}
               </div>
-              <div className="text-[9px] text-white/30 uppercase tracking-wider cursor-help" title="Competitive Performance Index — composite score of consistency, incident discipline, and pace stability over your last 10 races">CPI</div>
+              <div className="text-[9px] text-white/30 uppercase tracking-wider cursor-help" title="Competitive Performance Index (0-100)&#10;&#10;Your overall competitive readiness score combining:&#10;• Consistency (finishing position variance)&#10;• Incident Discipline (avg incidents per race)&#10;• Finishing Strength (race completion quality)&#10;&#10;Based on your last 10 official races.&#10;Higher = more competitive.">CPI</div>
             </div>
           )}
         </div>
@@ -554,18 +554,16 @@ function IRatingSparkline({ points }: { points: RatingTrendPoint[] }) {
 // ═════════════════════════════════════════════════════════════════════════════
 
 function PerformanceAttributesCompact({ snapshot }: { snapshot: PerformanceSnapshot }) {
+  // Consistency: based on avg finish position (lower = better, so invert)
   const consistencyScore = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_finish - 1) * 4)));
+  
+  // Incident Discipline: inverse of avg incidents (lower incidents = higher score)
   const incidentScore = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_incidents) * 12)));
   
-  // Pace stability: measures positions gained/lost from start to finish
-  // If avg_start is 0 or missing, we can't calculate this
-  const hasStartData = snapshot.avg_start > 0;
-  const positionDelta = hasStartData ? snapshot.avg_finish - snapshot.avg_start : 0;
-  // Positive delta = losing positions, negative = gaining positions
-  // Score: 100 = gaining 5+ positions, 50 = neutral, 0 = losing 5+ positions
-  const paceScore = hasStartData 
-    ? Math.max(0, Math.min(100, Math.round(50 - positionDelta * 10)))
-    : 0;
+  // Finishing Rate: % of races where you finished in top half of field
+  // Using avg_finish as proxy - if avg finish is P10 in 20-car field, that's 50%
+  // Assume typical field size of 20, score based on avg finish
+  const finishingRate = Math.max(0, Math.min(100, Math.round(100 - (snapshot.avg_finish - 1) * 5)));
 
   return (
     <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
@@ -574,27 +572,15 @@ function PerformanceAttributesCompact({ snapshot }: { snapshot: PerformanceSnaps
         <span className="text-[9px] text-white/20">Last {snapshot.session_count} official races</span>
       </div>
       <div className="p-5 space-y-4">
-        <div title="Measures finishing position variance — higher = more consistent results">
+        <div title={`Avg finish: P${snapshot.avg_finish.toFixed(1)} — higher score = more consistent top finishes`}>
           <ProgressBar label="Consistency" value={consistencyScore} color="#3b82f6" />
         </div>
-        <div title="Inverse of average incidents per race — higher = cleaner racing">
+        <div title={`Avg incidents: ${snapshot.avg_incidents.toFixed(1)}x per race — higher score = cleaner racing`}>
           <ProgressBar label="Incident Discipline" value={incidentScore} color="#22c55e" />
         </div>
-        {hasStartData ? (
-          <div title={`Avg start P${snapshot.avg_start.toFixed(1)} → Avg finish P${snapshot.avg_finish.toFixed(1)} (${positionDelta > 0 ? 'losing' : positionDelta < 0 ? 'gaining' : 'holding'} ${Math.abs(positionDelta).toFixed(1)} positions)`}>
-            <ProgressBar label="Pace Stability" value={paceScore} color="#a855f7" />
-          </div>
-        ) : (
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] text-white/50 uppercase tracking-wider">Pace Stability</span>
-              <span className="text-[10px] text-white/25 italic">No grid position data</span>
-            </div>
-            <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-              <div className="h-full rounded-full bg-white/[0.03]" style={{ width: '100%' }} />
-            </div>
-          </div>
-        )}
+        <div title={`Based on avg finish P${snapshot.avg_finish.toFixed(1)} — higher score = stronger race finishes`}>
+          <ProgressBar label="Finishing Strength" value={finishingRate} color="#a855f7" />
+        </div>
       </div>
     </div>
   );
@@ -1270,7 +1256,7 @@ export function DriverLanding() {
 
         {/* BUILD IDENTIFIER - Remove when page is finalized */}
         <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-          HOME-v2.3
+          HOME-v2.4
         </div>
       </div>
     </div>
