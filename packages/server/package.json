@@ -15,6 +15,7 @@
         "typecheck": "tsc --noEmit",
         "lint": "eslint src --ext .ts",
         "lint:fix": "eslint src --ext .ts --fix",
+        "lint:changed": "node scripts/lint-changed.js",
         "migrate": "psql $DATABASE_URL -f src/db/migrations/001_initial.sql"
     },
     "dependencies": {

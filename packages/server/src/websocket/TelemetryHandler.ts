@@ -6,6 +6,7 @@ import { updateTelemetryCache } from './telemetry-cache.js';
 import { getOrCreateEngine } from './inference-engine.js';
 import { getOrCreateAnalyzer } from '../services/ai/live-session-analyzer.js';
 import { generateSpotterCallouts } from '../services/ai/proactive-spotter.js';
+import { wsLogger, logOncePerInterval } from '../observability/logger.js';
 
 // Store current session info for late-joining clients
 let currentSessionInfo: { sessionId: string; trackName: string; trackId?: number; sessionType: string; carName?: string; rpmRedline?: number; fuelTankCapacity?: number; trackLength?: string } | null = null;
@@ -37,7 +38,10 @@ export class TelemetryHandler {
         // Session metadata (contains track name, session type)
         socket.on('session_metadata', (data: unknown) => {
             const rawData = data as any;
-            console.log('📍 SESSION METADATA:', JSON.stringify(rawData));
+            // Throttle metadata logging to once per 10 seconds (avoids spam on reconnects)
+            logOncePerInterval('session-metadata', 10000, () => {
+                wsLogger.debug({ metadata: rawData }, 'Session metadata received');
+            });
             
             if (rawData && typeof rawData === 'object') {
                 updateTelemetryCache('live', {
@@ -65,6 +69,7 @@ export class TelemetryHandler {
         // Also handle session_info (relay forwards this)
         socket.on('session_info', (data: unknown) => {
             const rawData = data as any;
+            // eslint-disable-next-line no-console -- Low-frequency event, useful for debugging relay connection
             console.log('📍 SESSION INFO:', JSON.stringify(rawData));
             
             if (rawData && typeof rawData === 'object') {
@@ -78,6 +83,7 @@ export class TelemetryHandler {
         // Incident events from relay
         socket.on('incident', (data: unknown) => {
             const rawData = data as any;
+            // eslint-disable-next-line no-console -- Incident events are rare and important to log
             console.log('⚠️ INCIDENT:', JSON.stringify(rawData).substring(0, 300));
             
             // Broadcast to all connected clients
@@ -87,6 +93,7 @@ export class TelemetryHandler {
         // Race events (flags, safety car, etc.)
         socket.on('race_event', (data: unknown) => {
             const rawData = data as any;
+            // eslint-disable-next-line no-console -- Race events (flags, safety car) are rare and important
             console.log('🏁 RACE EVENT:', JSON.stringify(rawData));
             
             // Broadcast to all connected clients
@@ -129,6 +136,7 @@ export class TelemetryHandler {
             // Log first packet for debugging
             if (!TelemetryHandler.firstPacketLogged) {
                 TelemetryHandler.firstPacketLogged = true;
+                // eslint-disable-next-line no-console -- One-time log per session for debugging
                 console.log('📊 FIRST TELEMETRY:', JSON.stringify(rawData).substring(0, 500));
             }
             
