@@ -38,7 +38,7 @@ import {
   Lock, Unlock, Bell, MessageSquare, Users,
   Trophy, AlertTriangle, TrendingDown, Zap,
   Wrench, Eye, BarChart3, Award, TrendingUp,
-  Flame, Sparkles
+  Flame, Sparkles, Activity, Clock
 } from 'lucide-react';
 import {
   getLicenseColor,
@@ -211,6 +211,163 @@ function UnlockIndicator({ label, unlocked, requirement }: { label: string; unlo
 // ═════════════════════════════════════════════════════════════════════════════
 // DRIVER IDENTITY STRIP
 // ═════════════════════════════════════════════════════════════════════════════
+
+// ═════════════════════════════════════════════════════════════════════════════
+// DRIVER STATUS LINE — Emotional anchor, one-line summary
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SINCE LAST SESSION — What changed since driver's last login
+// ═════════════════════════════════════════════════════════════════════════════
+
+function SinceLastSessionBlock({ snapshot, sessions }: { snapshot: PerformanceSnapshot | null; sessions: DriverSessionSummary[] }) {
+  if (!snapshot || sessions.length < 2) return null;
+
+  const lastSession = sessions[0];
+  const recent5 = sessions.slice(0, 5);
+  
+  // Calculate deltas - use iRatingChange from DriverSessionSummary
+  const lastIRDelta = lastSession?.iRatingChange ?? 0;
+  const lastIncidents = lastSession?.incidents ?? 0;
+  const avg5Incidents = recent5.length > 0 
+    ? recent5.reduce((sum, s) => sum + (s.incidents ?? 0), 0) / recent5.length 
+    : 0;
+  const incidentDelta = lastIncidents - avg5Incidents;
+  
+  // Format time since last session - use startedAt from DriverSessionSummary
+  const lastSessionDate = lastSession?.startedAt ? new Date(lastSession.startedAt) : null;
+  const timeSince = lastSessionDate 
+    ? formatTimeSince(lastSessionDate) 
+    : 'Unknown';
+
+  // Determine if anything notable happened
+  const hasAlerts = Math.abs(lastIRDelta) > 30 || lastIncidents > 4 || Math.abs(incidentDelta) > 1;
+
+  return (
+    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
+      <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-white/30" />
+          <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Since Last Session</h2>
+        </div>
+        <span className="text-[10px] text-white/20">{timeSince}</span>
+      </div>
+      <div className="px-5 py-4">
+        {hasAlerts ? (
+          <div className="grid grid-cols-3 gap-4">
+            {/* iRating Change */}
+            <div className="text-center">
+              <div className={`text-lg font-mono font-bold ${lastIRDelta > 0 ? 'text-emerald-400' : lastIRDelta < 0 ? 'text-red-400' : 'text-white/40'}`}>
+                {lastIRDelta > 0 ? '+' : ''}{lastIRDelta}
+              </div>
+              <div className="text-[9px] text-white/30 uppercase tracking-wider">iRating</div>
+            </div>
+            
+            {/* Incident Delta */}
+            <div className="text-center">
+              <div className={`text-lg font-mono font-bold ${incidentDelta < -0.5 ? 'text-emerald-400' : incidentDelta > 0.5 ? 'text-amber-400' : 'text-white/40'}`}>
+                {lastIncidents}x
+              </div>
+              <div className="text-[9px] text-white/30 uppercase tracking-wider">
+                {incidentDelta < -0.5 ? 'Below avg' : incidentDelta > 0.5 ? 'Above avg' : 'On avg'}
+              </div>
+            </div>
+            
+            {/* Position */}
+            <div className="text-center">
+              <div className="text-lg font-mono font-bold text-white/70">
+                P{lastSession?.finishPos ?? '--'}
+              </div>
+              <div className="text-[9px] text-white/30 uppercase tracking-wider">Finish</div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-white/40 text-sm">
+            <Activity className="w-4 h-4" />
+            <span>No new performance alerts. System stable.</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function formatTimeSince(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffHours / 24);
+  
+  if (diffDays > 0) return `${diffDays}d ago`;
+  if (diffHours > 0) return `${diffHours}h ago`;
+  return 'Just now';
+}
+
+function DriverStatusLine({ snapshot, sessions }: { snapshot: PerformanceSnapshot | null; sessions: DriverSessionSummary[] }) {
+  if (!snapshot || sessions.length < 3) return null;
+
+  const avgIncidents = snapshot.avg_incidents;
+  const irDelta = snapshot.irating_delta;
+  const incidentThreshold = 3;
+  
+  // Calculate confidence based on sample size
+  const sampleSize = Math.min(sessions.length, 10);
+  const confidence = Math.min(95, 50 + (sampleSize * 5));
+
+  // Determine status message based on performance patterns
+  let statusMessage = '';
+  let statusColor = 'text-white/60';
+  let statusIcon: 'warning' | 'positive' | 'stable' = 'stable';
+
+  if (irDelta < -20 && avgIncidents > incidentThreshold) {
+    statusMessage = 'Incident density is limiting rating growth.';
+    statusColor = 'text-amber-400';
+    statusIcon = 'warning';
+  } else if (irDelta < -20 && avgIncidents <= incidentThreshold) {
+    statusMessage = 'Rating declining despite clean racing. Review pace and racecraft.';
+    statusColor = 'text-amber-400';
+    statusIcon = 'warning';
+  } else if (Math.abs(irDelta) <= 20 && avgIncidents <= 2) {
+    statusMessage = 'Stable rating trend. Focus shifting to pace development.';
+    statusColor = 'text-blue-400';
+    statusIcon = 'stable';
+  } else if (Math.abs(irDelta) <= 20 && avgIncidents > incidentThreshold) {
+    statusMessage = 'Rating stable but incident rate elevated. Tighten discipline.';
+    statusColor = 'text-amber-400';
+    statusIcon = 'warning';
+  } else if (irDelta > 20 && avgIncidents <= 2) {
+    statusMessage = 'Positive trajectory. Maintain discipline.';
+    statusColor = 'text-emerald-400';
+    statusIcon = 'positive';
+  } else if (irDelta > 20 && avgIncidents > incidentThreshold) {
+    statusMessage = 'Rating rising but incident rate is a risk factor.';
+    statusColor = 'text-yellow-400';
+    statusIcon = 'warning';
+  } else if (irDelta > 0) {
+    statusMessage = 'Gradual improvement. Continue current approach.';
+    statusColor = 'text-emerald-400/80';
+    statusIcon = 'positive';
+  } else {
+    statusMessage = 'Performance within normal variance.';
+    statusColor = 'text-white/50';
+    statusIcon = 'stable';
+  }
+
+  return (
+    <div className="border-x border-b border-white/10 bg-[#0a0a0a]/60 px-5 py-2.5 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        {statusIcon === 'warning' && <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />}
+        {statusIcon === 'positive' && <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />}
+        {statusIcon === 'stable' && <Activity className="w-3.5 h-3.5 text-blue-400" />}
+        <span className={`text-[12px] ${statusColor}`}>{statusMessage}</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <div className="w-1.5 h-1.5 rounded-full bg-white/20" />
+        <span className="text-[9px] text-white/30 uppercase tracking-wider">{confidence}% confidence</span>
+      </div>
+    </div>
+  );
+}
 
 function DriverIdentityStrip({ displayName, profile, consistency, relayStatus, isLive }: {
   displayName: string;
@@ -524,7 +681,7 @@ function IRatingSparkline({ points }: { points: RatingTrendPoint[] }) {
         <div className="flex items-center gap-2">
           <TrendingUp className="w-3.5 h-3.5 text-blue-400/50" />
           <h3 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>iRating Trend</h3>
-          <span className="text-[9px] text-white/20 ml-2">(Primary License)</span>
+          <span className="text-[9px] text-white/20 ml-2">Rolling 90-day • Primary License</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-[11px] font-mono text-white/40">{ratings[ratings.length - 1]}</span>
@@ -606,7 +763,10 @@ function PerformanceAttributesCompact({ snapshot, sessions }: { snapshot: Perfor
   return (
     <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
       <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-        <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>CPI Breakdown</h2>
+        <div>
+          <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>CPI Breakdown</h2>
+          <p className="text-[9px] text-white/20 mt-0.5">Based on last {Math.min(recentSessions.length, 10)} official races</p>
+        </div>
         <Link to="/driver/ratings" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
           Full Analysis <ChevronRight className="w-3 h-3" />
         </Link>
@@ -1339,6 +1499,12 @@ export function DriverLanding() {
           isLive={isLive}
         />
 
+        {/* DRIVER STATUS LINE — emotional anchor */}
+        {!isTrainingMode && <DriverStatusLine snapshot={snapshot ?? null} sessions={sessions} />}
+
+        {/* SINCE LAST SESSION — what changed */}
+        {!isTrainingMode && <SinceLastSessionBlock snapshot={snapshot ?? null} sessions={sessions} />}
+
         {/* TRAINING MODE — consolidated onboarding (replaces all scattered empty states) */}
         {!loading && isTrainingMode && (
           <TrainingModeCard sessionCount={sessionCount} />
@@ -1377,7 +1543,7 @@ export function DriverLanding() {
 
         {/* BUILD IDENTIFIER - Remove when page is finalized */}
         <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-          HOME-v2.8
+          HOME-v3.0
         </div>
       </div>
     </div>
