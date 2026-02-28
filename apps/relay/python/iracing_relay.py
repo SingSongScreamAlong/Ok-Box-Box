@@ -154,8 +154,27 @@ def read_telemetry_raw() -> Optional[Dict]:
 
     try:
         t = time.time()
+        # Use CamCarIdx (spectated car) if available and different from player car in pits
+        # This allows QA while spectating
         player_car_idx = safe(ir['PlayerCarIdx'])
-        driver_info = ir['DriverInfo']['Drivers'][player_car_idx] if ir['DriverInfo'] else {}
+        cam_car_idx = safe(ir['CamCarIdx'])
+        
+        # Debug: log cam car info periodically
+        global _last_cam_log
+        if not hasattr(read_telemetry_raw, '_last_cam_log'):
+            read_telemetry_raw._last_cam_log = 0
+        if t - read_telemetry_raw._last_cam_log > 5:
+            read_telemetry_raw._last_cam_log = t
+            logger.warning(f"CamCarIdx={cam_car_idx} PlayerCarIdx={player_car_idx}")
+        
+        # If player car is in pits (position 0) but we're spectating someone else, use that car
+        player_pos = safe(ir['PlayerCarPosition'])
+        if player_pos == 0 and cam_car_idx is not None and cam_car_idx != player_car_idx:
+            active_car_idx = cam_car_idx
+        else:
+            active_car_idx = player_car_idx
+            
+        driver_info = ir['DriverInfo']['Drivers'][active_car_idx] if ir['DriverInfo'] else {}
 
         # Raw tire wear values (L/M/R per corner — iRacing surface layer)
         tire_wear_raw = {}
@@ -181,34 +200,48 @@ def read_telemetry_raw() -> Optional[Dict]:
             except:
                 tire_temps_raw[corner] = {'l': 0, 'm': 0, 'r': 0}
 
+        # Get position/lap data from CarIdx arrays for spectated car
+        car_positions = ir['CarIdxPosition'] or []
+        car_class_pos = ir['CarIdxClassPosition'] or []
+        car_laps = ir['CarIdxLap'] or []
+        car_lap_pcts = ir['CarIdxLapDistPct'] or []
+        car_on_pit = ir['CarIdxOnPitRoad'] or []
+        
+        # Use active car's data from arrays (works for both driving and spectating)
+        active_position = car_positions[active_car_idx] if active_car_idx < len(car_positions) else 0
+        active_class_pos = car_class_pos[active_car_idx] if active_car_idx < len(car_class_pos) else 0
+        active_lap = car_laps[active_car_idx] if active_car_idx < len(car_laps) else 0
+        active_lap_pct = car_lap_pcts[active_car_idx] if active_car_idx < len(car_lap_pcts) else 0
+        active_in_pit = car_on_pit[active_car_idx] if active_car_idx < len(car_on_pit) else False
+
         car_data = {
-            'carId': player_car_idx,
-            'driverId': str(player_car_idx),
+            'carId': active_car_idx,
+            'driverId': str(active_car_idx),
             'driverName': driver_info.get('UserName', 'Driver'),
             'carName': driver_info.get('CarScreenName', 'Unknown Car'),
             'carClass': driver_info.get('CarClassShortName', ''),
             'iRating': driver_info.get('IRating', 0),
             'licenseLevel': driver_info.get('LicString', ''),
 
-            # Position & Lap
-            'position': safe(ir['PlayerCarPosition']),
-            'classPosition': safe(ir['PlayerCarClassPosition']),
-            'lap': safe(ir['Lap']),
-            'lapsCompleted': safe(ir['LapCompleted']),
-            'lapDistPct': safe(ir['LapDistPct']),
+            # Position & Lap (from CarIdx arrays for spectator support)
+            'position': active_position,
+            'classPosition': active_class_pos,
+            'lap': active_lap,
+            'lapsCompleted': active_lap - 1 if active_lap > 0 else -1,
+            'lapDistPct': active_lap_pct,
 
-            # Speed & Motion (raw, m/s and radians)
-            'speed': safe(ir['Speed']),
-            'gear': safe(ir['Gear']),
-            'rpm': safe(ir['RPM']),
-            'throttle': safe(ir['Throttle']),
-            'brake': safe(ir['Brake']),
-            'clutch': safe(ir['Clutch']),
-            'steeringAngle': safe(ir['SteeringWheelAngle']),
+            # Speed & Motion - these only work for player car, use 0 for spectated
+            'speed': safe(ir['Speed']) if active_car_idx == player_car_idx else 0,
+            'gear': safe(ir['Gear']) if active_car_idx == player_car_idx else 0,
+            'rpm': safe(ir['RPM']) if active_car_idx == player_car_idx else 0,
+            'throttle': safe(ir['Throttle']) if active_car_idx == player_car_idx else 0,
+            'brake': safe(ir['Brake']) if active_car_idx == player_car_idx else 0,
+            'clutch': safe(ir['Clutch']) if active_car_idx == player_car_idx else 0,
+            'steeringAngle': safe(ir['SteeringWheelAngle']) if active_car_idx == player_car_idx else 0,
 
             # Protocol position
-            'pos': {'s': safe(ir['LapDistPct'])},
-            'inPit': bool(ir['OnPitRoad']),
+            'pos': {'s': active_lap_pct},
+            'inPit': bool(active_in_pit),
 
             # Lap Times (seconds)
             'lastLapTime': safe(ir['LapLastLapTime']),
@@ -321,6 +354,9 @@ def read_standings_raw() -> Optional[Dict]:
     """Read ALL cars on track — no cap. Emitted at 1Hz, not 60Hz."""
     if not ir or not ir.is_connected or not current_session_id:
         return None
+
+    # Ensure we have latest data
+    ir.freeze_var_buffer_latest()
 
     try:
         player_car_idx = safe(ir['PlayerCarIdx'])
