@@ -36,9 +36,24 @@ export interface TelemetryPacket {
     bestLapTime: number;
     position: number;
     fuelLevel: number;
+    // Rotation control channels
+    yaw?: number;        // Heading angle (radians)
+    velocityX?: number;  // X velocity (m/s)
+    velocityY?: number;  // Y velocity (m/s)
     // Quality metrics
     fps?: number;
     latency?: number;
+}
+
+export interface SegmentInsightPublic {
+    binStartPct: number;
+    binEndPct: number;
+    timeDelta: number;
+    speedDelta: number;
+    likelyCause: string;
+    suggestion: string;
+    confidence: number;
+    sectionType: string;
 }
 
 export interface LiveMetrics {
@@ -59,7 +74,7 @@ export interface LiveMetrics {
         bsi: number;  // Braking Stability Index
         tci: number;  // Throttle Control Index
         cpi2: number; // Cornering Precision Index
-        rci: number;  // Rhythm & Consistency Index
+        rci: number;  // Rotation Control Index
     };
     
     // Current lap info
@@ -74,6 +89,17 @@ export interface LiveMetrics {
     // Warnings
     warnings: string[];
     
+    // V1.1: Segment insights (top 3 areas losing time vs best lap)
+    segmentInsights?: SegmentInsightPublic[];
+    
+    // V1.1: Segmentation health (debug/monitoring)
+    segmentHealth?: {
+        coveragePct: number;          // % of bins with enough samples
+        insightCount: number;         // Number of insights passing filter
+        referenceAgeLaps: number;     // How old the best-lap reference is
+        hasBestLapReference: boolean; // Whether we have a reference lap
+    };
+    
     // Confidence
     confidence: number;
     ticksProcessed: number;
@@ -87,6 +113,7 @@ const STREAM_PREFIX = 'telemetry:';
 const LIVE_PREFIX = 'live:';
 const CONSUMER_GROUP = 'driverdna';
 const MAX_STREAM_LEN = 30000; // ~8 minutes at 60Hz
+const CLAIM_MIN_IDLE_MS = 60000; // Claim stuck messages after 60s
 
 /**
  * Push telemetry packet to Redis Stream
@@ -266,5 +293,107 @@ export async function cleanupStream(runId: string): Promise<void> {
         await redis.del(streamKey);
     } catch (err) {
         console.error('[TelemetryStreams] Cleanup error:', err instanceof Error ? err.message : err);
+    }
+}
+
+/**
+ * Claim stuck pending messages (for crash recovery)
+ * Call this on worker startup to recover messages from dead consumers
+ */
+export async function claimStuckMessages(
+    runId: string,
+    consumerId: string,
+    count: number = 100
+): Promise<TelemetryPacket[]> {
+    const redis = await getRedisClient();
+    if (!redis) return [];
+
+    try {
+        const streamKey = `${STREAM_PREFIX}${runId}`;
+        
+        // XAUTOCLAIM: claim messages idle for > CLAIM_MIN_IDLE_MS
+        const result = await redis.xAutoClaim(
+            streamKey,
+            CONSUMER_GROUP,
+            consumerId,
+            CLAIM_MIN_IDLE_MS,
+            '0-0',
+            { COUNT: count }
+        );
+        
+        if (!result || !result.messages || result.messages.length === 0) {
+            return [];
+        }
+
+        const packets: TelemetryPacket[] = [];
+        const messageIds: string[] = [];
+
+        for (const message of result.messages) {
+            if (!message) continue;
+            try {
+                const packet = JSON.parse(message.message.data);
+                packets.push(packet);
+                messageIds.push(message.id);
+            } catch {
+                // Skip malformed, but still ACK to clear
+                messageIds.push(message.id);
+            }
+        }
+
+        // ACK claimed messages after processing
+        if (messageIds.length > 0) {
+            await redis.xAck(streamKey, CONSUMER_GROUP, messageIds);
+        }
+
+        if (packets.length > 0) {
+            console.log(`[TelemetryStreams] Claimed ${packets.length} stuck messages for ${runId}`);
+        }
+
+        return packets;
+    } catch (err) {
+        console.error('[TelemetryStreams] Claim error:', err instanceof Error ? err.message : err);
+        return [];
+    }
+}
+
+/**
+ * Get stream diagnostics (for monitoring)
+ */
+export async function getStreamDiagnostics(runId: string): Promise<{
+    streamLength: number;
+    pendingCount: number;
+    consumers: number;
+    lastDeliveredId: string | null;
+} | null> {
+    const redis = await getRedisClient();
+    if (!redis) return null;
+
+    try {
+        const streamKey = `${STREAM_PREFIX}${runId}`;
+        
+        // Get stream length
+        const streamLength = await redis.xLen(streamKey);
+        
+        // Get group info
+        let pendingCount = 0;
+        let consumers = 0;
+        let lastDeliveredId: string | null = null;
+        
+        try {
+            const groups = await redis.xInfoGroups(streamKey);
+            const group = groups.find((g: any) => g.name === CONSUMER_GROUP);
+            if (group) {
+                pendingCount = group.pending || 0;
+                consumers = group.consumers || 0;
+                lastDeliveredId = group.lastDeliveredId || null;
+            }
+        } catch {
+            // Group may not exist yet
+        }
+
+        return { streamLength, pendingCount, consumers, lastDeliveredId };
+    } catch (err) {
+        console.error('[TelemetryStreams] Diagnostics error:', err instanceof Error ? err.message : err);
+        return null;
     }
 }

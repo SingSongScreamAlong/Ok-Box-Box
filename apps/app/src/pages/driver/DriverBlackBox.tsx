@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { useRelay } from '../../hooks/useRelay';
+import { useLiveBehavioral, getBehavioralGrade } from '../../hooks/useLiveBehavioral';
 import { Link } from 'react-router-dom';
 import { 
   Fuel,
@@ -11,7 +12,8 @@ import {
   Radio,
   Zap,
   MessageSquare,
-  ChevronRight
+  ChevronRight,
+  Gauge
 } from 'lucide-react';
 import { TrackMinimap } from '../../components/TrackMinimap';
 
@@ -28,6 +30,10 @@ interface AIAlert {
 
 export function DriverBlackBox() {
   const { status, telemetry, session } = useRelay();
+  const { metrics: behavioralMetrics } = useLiveBehavioral({ 
+    runId: 'live',
+    enabled: status === 'in_session' || status === 'connected'
+  });
   const videoRef = useRef<HTMLVideoElement>(null);
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
 
@@ -403,6 +409,44 @@ export function DriverBlackBox() {
             </div>
           </div>
         </div>
+
+        {/* LIVE TECHNIQUE PANEL */}
+        {behavioralMetrics && (
+          <div className="bg-cyan-500/10 border border-cyan-500/30">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-cyan-500/20">
+              <div className="flex items-center gap-2">
+                <Gauge className="w-4 h-4 text-cyan-400" />
+                <span className="text-[10px] uppercase tracking-wider text-cyan-400">Technique</span>
+              </div>
+              <span className="text-[9px] text-white/30">
+                {behavioralMetrics.confidence >= 80 ? '● High' : behavioralMetrics.confidence >= 50 ? '◐ Med' : '○ Low'}
+              </span>
+            </div>
+            <div className="p-2 grid grid-cols-4 gap-2">
+              {[
+                { key: 'bsi', label: 'Brake', value: behavioralMetrics.behavioral.bsi },
+                { key: 'tci', label: 'Throttle', value: behavioralMetrics.behavioral.tci },
+                { key: 'cpi2', label: 'Corner', value: behavioralMetrics.behavioral.cpi2 },
+                { key: 'rci', label: 'Rhythm', value: behavioralMetrics.behavioral.rci },
+              ].map(({ key, label, value }) => {
+                const { grade, color } = getBehavioralGrade(value);
+                return (
+                  <div key={key} className="text-center">
+                    <div className="text-[9px] text-white/40 uppercase">{label}</div>
+                    <div className={`text-lg font-bold font-mono ${color}`}>{grade}</div>
+                  </div>
+                );
+              })}
+            </div>
+            {behavioralMetrics.warnings.length > 0 && (
+              <div className="px-2 pb-2">
+                <div className="text-[10px] text-yellow-400/80 bg-yellow-500/10 rounded px-2 py-1">
+                  ⚠ {behavioralMetrics.warnings[0]}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* AI CREW OUTPUT STREAM */}
         <div className="bg-black/60 border border-white/10">

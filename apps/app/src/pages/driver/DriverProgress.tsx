@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDriverData } from '../../hooks/useDriverData';
-import { getLicenseColor } from '../../lib/driverService';
+import { getLicenseColor, fetchTelemetryMetrics, TelemetryMetricsResponse } from '../../lib/driverService';
 import { 
   TrendingUp, Target, Clock, ArrowLeft,
   ChevronRight, CheckCircle2, Circle, Lightbulb, BookOpen,
   Flame, Zap, MessageSquare, Play, BarChart2, Loader2, Plus, Sparkles,
-  Award, Shield, Star, Trophy, Medal, Flag
+  Award, Shield, Star, Trophy, Medal, Flag, Gauge
 } from 'lucide-react';
 import { 
   fetchDevelopmentData, 
@@ -73,6 +73,7 @@ export function DriverProgress() {
   const [suggestions, setSuggestions] = useState<GoalSuggestion[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  const [telemetryMetrics, setTelemetryMetrics] = useState<TelemetryMetricsResponse | null>(null);
 
   const driverName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
 
@@ -81,11 +82,13 @@ export function DriverProgress() {
     Promise.all([
       fetchDevelopmentData(),
       fetchGoals(),
-      fetchGoalSuggestions()
-    ]).then(([devData, goalsData, suggestionsData]) => {
+      fetchGoalSuggestions(),
+      fetchTelemetryMetrics('last_10')
+    ]).then(([devData, goalsData, suggestionsData, telemetryData]) => {
       setData(devData);
       setGoals(goalsData);
       setSuggestions(suggestionsData);
+      setTelemetryMetrics(telemetryData);
       setExpandedFocus(devData?.focusAreas?.[0]?.id || null);
       setLoading(false);
     }).catch(() => {
@@ -561,6 +564,57 @@ export function DriverProgress() {
 
           {activeSection === 'skills' && (
             <div className="space-y-6">
+              {/* Telemetry-Backed Technique Skills */}
+              {telemetryMetrics?.available && telemetryMetrics.metrics && (
+                <div className="bg-cyan-500/5 backdrop-blur-xl border border-cyan-500/20 rounded-lg overflow-hidden">
+                  <div className="px-4 py-3 border-b border-cyan-500/10 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Gauge className="w-4 h-4 text-cyan-400" />
+                      <h3 className="text-[10px] uppercase tracking-[0.15em] font-semibold text-cyan-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>Telemetry-Backed Skills</h3>
+                    </div>
+                    <span className="text-[9px] px-2 py-0.5 bg-cyan-500/20 text-cyan-400 rounded uppercase">Evidence-Based</span>
+                  </div>
+                  <div className="p-4 grid grid-cols-2 gap-3">
+                    {[
+                      { name: 'Trail Braking', value: telemetryMetrics.braking?.trailBrakingStability ?? 0, desc: 'Maintaining brake pressure through corner entry' },
+                      { name: 'Brake Modulation', value: telemetryMetrics.braking?.brakePressureSmoothness ?? 0, desc: 'Smooth brake application without lockups' },
+                      { name: 'Throttle Control', value: telemetryMetrics.throttle?.throttleModulationScore ?? 0, desc: 'Progressive throttle application on exit' },
+                      { name: 'Traction Management', value: telemetryMetrics.throttle?.exitTractionStability ?? 0, desc: 'Avoiding wheelspin on corner exit' },
+                      { name: 'Turn-In Consistency', value: telemetryMetrics.steering?.turnInConsistency ?? 0, desc: 'Repeatable steering inputs at corner entry' },
+                      { name: 'Mid-Corner Stability', value: telemetryMetrics.steering?.midCornerStability ?? 0, desc: 'Smooth steering through apex' },
+                      { name: 'Lap Consistency', value: telemetryMetrics.rhythm?.lapTimeConsistency ?? 0, desc: 'Low variance between lap times' },
+                      { name: 'Input Repeatability', value: telemetryMetrics.rhythm?.inputRepeatability ?? 0, desc: 'Consistent inputs lap after lap' },
+                    ].map(({ name, value, desc }) => {
+                      const level = value >= 80 ? 3 : value >= 60 ? 2 : value >= 40 ? 1 : 0;
+                      const status = value >= 80 ? 'mastered' : value >= 50 ? 'learning' : 'next';
+                      const color = getSkillStatusColor(status);
+                      return (
+                        <div key={name} className={`p-3 rounded-lg border ${color}`} title={desc}>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium">{name}</span>
+                            <div className="flex items-center gap-1">
+                              {[0, 1, 2].map(i => (
+                                <div key={i} className={`w-2 h-2 rounded-full ${i < level ? 'bg-current' : 'bg-white/10'}`} />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-[10px] opacity-60 mb-2">{desc}</p>
+                          <div className="h-1 bg-black/20 rounded-full overflow-hidden">
+                            <div className="h-full bg-current rounded-full opacity-60" style={{ width: `${value}%` }} />
+                          </div>
+                          <div className="flex items-center justify-between mt-1">
+                            <span className="text-[9px] opacity-50">
+                              {status === 'mastered' ? 'Mastered' : status === 'learning' ? 'In Progress' : 'Developing'}
+                            </span>
+                            <span className="text-[9px] font-mono opacity-50">{Math.round(value)}%</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {data.skillTree.map(category => (
                 <div key={category.category} className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg overflow-hidden">
                   <div className="px-4 py-3 border-b border-white/[0.06]">

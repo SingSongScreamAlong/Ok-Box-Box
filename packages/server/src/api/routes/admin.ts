@@ -15,6 +15,8 @@ import { requireAuth, requireSuperAdmin } from '../middleware/auth.js';
 import { getAuthService } from '../../services/auth/auth-service.js';
 import { getLicenseService } from '../../services/licensing/license-service.js';
 import { pool } from '../../db/client.js';
+import { getActiveRuns, getStreamDiagnostics } from '../../services/telemetry/telemetry-streams.js';
+import { getRunState } from '../../services/telemetry/behavioral-worker.js';
 
 const router = Router();
 
@@ -367,6 +369,137 @@ router.post('/licenses/:id/suspend', requireSuperAdmin, async (req: Request, res
         res.status(500).json({
             success: false,
             error: { code: 'UPDATE_ERROR', message: 'Failed to suspend license' }
+        });
+    }
+});
+
+// ========================
+// Telemetry Diagnostics
+// ========================
+
+/**
+ * Get telemetry stream health for all active runs
+ * GET /api/admin/telemetry/streams
+ */
+router.get('/telemetry/streams', requireSuperAdmin, async (_req: Request, res: Response): Promise<void> => {
+    try {
+        const activeRuns = await getActiveRuns();
+        
+        const streams = await Promise.all(
+            activeRuns.map(async (runId) => {
+                const diagnostics = await getStreamDiagnostics(runId);
+                const workerState = getRunState(runId);
+                
+                return {
+                    runId,
+                    stream: diagnostics,
+                    worker: workerState ? {
+                        totalTicks: workerState.totalTicks,
+                        currentLap: workerState.currentLap,
+                        lastTs: workerState.lastTs,
+                        ageMs: Date.now() - workerState.lastTs,
+                        behavioral: workerState.smoothedBehavioral,
+                        reliability: workerState.pillars.reliability,
+                        rotationSamples: workerState.rotationSampleCount,
+                        overRotationEvents: workerState.overRotationEvents,
+                        underRotationEvents: workerState.underRotationEvents,
+                    } : null
+                };
+            })
+        );
+
+        res.json({
+            success: true,
+            data: {
+                activeRunCount: activeRuns.length,
+                streams,
+                timestamp: new Date().toISOString()
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching telemetry diagnostics:', error);
+        res.status(500).json({
+            success: false,
+            error: { code: 'FETCH_ERROR', message: 'Failed to fetch telemetry diagnostics' }
+        });
+    }
+});
+
+/**
+ * Get detailed diagnostics for a specific run
+ * GET /api/admin/telemetry/streams/:runId
+ */
+router.get('/telemetry/streams/:runId', requireSuperAdmin, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { runId } = req.params;
+        const diagnostics = await getStreamDiagnostics(runId);
+        const workerState = getRunState(runId);
+
+        if (!diagnostics && !workerState) {
+            res.status(404).json({
+                success: false,
+                error: { code: 'NOT_FOUND', message: 'Run not found' }
+            });
+            return;
+        }
+
+        res.json({
+            success: true,
+            data: {
+                runId,
+                stream: diagnostics,
+                worker: workerState ? {
+                    runId: workerState.runId,
+                    userId: workerState.userId,
+                    sessionId: workerState.sessionId,
+                    totalTicks: workerState.totalTicks,
+                    currentLap: workerState.currentLap,
+                    lapTimes: workerState.lapTimes,
+                    lastTs: workerState.lastTs,
+                    startTs: workerState.startTs,
+                    ageMs: Date.now() - workerState.lastTs,
+                    durationMs: Date.now() - workerState.startTs,
+                    pillars: workerState.pillars,
+                    behavioral: workerState.behavioral,
+                    smoothedBehavioral: workerState.smoothedBehavioral,
+                    // Rotation control details
+                    rotationSampleCount: workerState.rotationSampleCount,
+                    overRotationEvents: workerState.overRotationEvents,
+                    underRotationEvents: workerState.underRotationEvents,
+                    yawRateAvg: workerState.yawRateCount > 0 
+                        ? workerState.yawRateSum / workerState.yawRateCount 
+                        : null,
+                    // Braking details
+                    brakeOnsetCount: workerState.brakeOnsetCount,
+                    brakeSmoothCount: workerState.brakeSmoothCount,
+                    absTicks: workerState.absTicks,
+                    trailBrakeTicks: workerState.trailBrakeTicks,
+                    // Throttle details
+                    throttleOnsetCount: workerState.throttleOnsetCount,
+                    throttleSmoothCount: workerState.throttleSmoothCount,
+                    throttleModulationTicks: workerState.throttleModulationTicks,
+                    // Steering details
+                    steerCorrectionCount: workerState.steerCorrectionCount,
+                    turnInCount: workerState.turnInCount,
+                    midCornerSteerChanges: workerState.midCornerSteerChanges,
+                    // Quality
+                    avgFps: workerState.fpsCount > 0 
+                        ? workerState.fpsSum / workerState.fpsCount 
+                        : null,
+                    avgLatency: workerState.latencyCount > 0 
+                        ? workerState.latencySum / workerState.latencyCount 
+                        : null,
+                    coaching: workerState.coaching,
+                    warnings: workerState.warnings,
+                } : null,
+                timestamp: new Date().toISOString()
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching run diagnostics:', error);
+        res.status(500).json({
+            success: false,
+            error: { code: 'FETCH_ERROR', message: 'Failed to fetch run diagnostics' }
         });
     }
 });

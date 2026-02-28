@@ -38,6 +38,15 @@ interface TeamDriver {
   incidents: number;
   stintLaps: number;
   cameraAvailable: boolean;
+  // Behavioral health (from live telemetry)
+  behavioral?: {
+    bsi: number;
+    tci: number;
+    cpi2: number;
+    rci: number;
+    status: 'excellent' | 'good' | 'warning' | 'critical';
+    warning?: string;
+  };
 }
 
 const mockTeamDrivers: TeamDriver[] = [
@@ -57,7 +66,15 @@ const mockTeamDrivers: TeamDriver[] = [
     delta: -0.234,
     incidents: 0,
     stintLaps: 12,
-    cameraAvailable: true
+    cameraAvailable: true,
+    behavioral: {
+      bsi: 78,
+      tci: 65,
+      cpi2: 82,
+      rci: 71,
+      status: 'warning',
+      warning: 'Throttle application harsh'
+    }
   },
   {
     id: 'd2',
@@ -719,6 +736,61 @@ export function PitwallHome() {
                       <span className="text-amber-400">~25 min</span>
                     </div>
                   </div>
+                </div>
+              </div>
+              
+              {/* Per-Driver Behavioral Health */}
+              <div className="mt-4">
+                <div className="text-[10px] uppercase text-white/40 mb-3">Live Technique Health</div>
+                <div className="grid grid-cols-4 gap-3">
+                  {localDrivers.filter(d => d.isActive).map(driver => {
+                    const b = driver.behavioral;
+                    const statusColor = b?.status === 'excellent' ? 'border-emerald-500/40 bg-emerald-500/10' 
+                      : b?.status === 'good' ? 'border-cyan-500/40 bg-cyan-500/10'
+                      : b?.status === 'warning' ? 'border-amber-500/40 bg-amber-500/10'
+                      : 'border-red-500/40 bg-red-500/10';
+                    const statusText = b?.status === 'excellent' ? 'text-emerald-400' 
+                      : b?.status === 'good' ? 'text-cyan-400'
+                      : b?.status === 'warning' ? 'text-amber-400'
+                      : 'text-red-400';
+                    return (
+                      <div key={driver.id} className={`rounded p-3 border ${statusColor}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-white">{driver.name}</span>
+                          <span className={`text-[9px] uppercase font-semibold ${statusText}`}>
+                            {b?.status || 'N/A'}
+                          </span>
+                        </div>
+                        {b && (
+                          <>
+                            <div className="grid grid-cols-4 gap-1 mb-2">
+                              {[
+                                { label: 'BSI', value: b.bsi },
+                                { label: 'TCI', value: b.tci },
+                                { label: 'CPI', value: b.cpi2 },
+                                { label: 'RCI', value: b.rci },
+                              ].map(({ label, value }) => (
+                                <div key={label} className="text-center">
+                                  <div className="text-[8px] text-white/40">{label}</div>
+                                  <div className={`text-[10px] font-mono ${value >= 70 ? 'text-emerald-400' : value >= 50 ? 'text-cyan-400' : 'text-amber-400'}`}>
+                                    {value}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            {b.warning && (
+                              <div className="text-[9px] text-amber-400/80 bg-amber-500/10 rounded px-2 py-1">
+                                ⚠ {b.warning}
+                              </div>
+                            )}
+                          </>
+                        )}
+                        {!b && (
+                          <div className="text-[9px] text-white/30 italic">No telemetry data</div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>

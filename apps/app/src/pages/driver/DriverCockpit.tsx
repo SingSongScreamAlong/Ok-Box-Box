@@ -3,11 +3,12 @@ import { useEffect, useState } from 'react';
 import { useRelay } from '../../hooks/useRelay';
 import { useEngineer } from '../../hooks/useEngineer';
 import { useVoice } from '../../hooks/useVoice';
+import { useLiveBehavioral, getBehavioralGrade } from '../../hooks/useLiveBehavioral';
 // useRaceSimulation removed - using live data only
 import { 
   Volume2, VolumeX, Gauge, Fuel, Flag, Clock, 
   TrendingUp, TrendingDown, Minus, MapPin,
-  AlertTriangle, CircleDot, Wrench
+  AlertTriangle, CircleDot, Wrench, Activity
 } from 'lucide-react';
 import { TrackMap } from '../../components/TrackMapRive';
 import { getTrackId } from '../../data/tracks';
@@ -21,6 +22,10 @@ export function DriverCockpit() {
   const { status, telemetry: realTelemetry, session } = useRelay();
   const { messages: engineerMessages, criticalMessages } = useEngineer();
   const { isEnabled: voiceEnabled, toggleVoice, speak } = useVoice();
+  const { metrics: behavioralMetrics } = useLiveBehavioral({ 
+    runId: 'live',
+    enabled: status === 'in_session' || status === 'connected'
+  });
 
   // LIVE DATA ONLY - No demo fallback
   const isConnected = status === 'connected' || status === 'in_session';
@@ -226,6 +231,47 @@ export function DriverCockpit() {
             })}
           </div>
         </div>
+
+        {/* Live Technique Panel */}
+        {behavioralMetrics && (
+          <div className="p-4 border-b border-white/[0.06]">
+            <h3 className="text-[10px] uppercase tracking-[0.15em] text-cyan-400 mb-3 flex items-center gap-2">
+              <Activity className="w-3 h-3" />Technique
+              <span className="text-white/20 ml-auto">
+                {behavioralMetrics.confidence >= 80 ? '●' : behavioralMetrics.confidence >= 50 ? '◐' : '○'}
+              </span>
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { key: 'bsi', label: 'Brake', value: behavioralMetrics.behavioral.bsi },
+                { key: 'tci', label: 'Throttle', value: behavioralMetrics.behavioral.tci },
+                { key: 'cpi2', label: 'Corner', value: behavioralMetrics.behavioral.cpi2 },
+                { key: 'rci', label: 'Rhythm', value: behavioralMetrics.behavioral.rci },
+              ].map(({ key, label, value }) => {
+                const { grade, color } = getBehavioralGrade(value);
+                return (
+                  <div key={key} className="bg-white/[0.03] rounded p-2 border border-white/[0.08]">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-white/50">{label}</span>
+                      <span className={`text-sm font-bold font-mono ${color}`}>{grade}</span>
+                    </div>
+                    <div className="h-1 bg-white/[0.06] rounded-full overflow-hidden mt-1">
+                      <div 
+                        className={`h-full rounded-full ${value >= 80 ? 'bg-emerald-500' : value >= 60 ? 'bg-cyan-500' : value >= 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                        style={{ width: `${value}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {behavioralMetrics.coaching.length > 0 && (
+              <div className="mt-2 text-[10px] text-cyan-300/70 bg-cyan-500/10 rounded p-2 border border-cyan-500/20">
+                💡 {behavioralMetrics.coaching[0]}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Damage & Engine */}
         <div className="p-4 flex-1">

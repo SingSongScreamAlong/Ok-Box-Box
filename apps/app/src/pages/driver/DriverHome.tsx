@@ -1,8 +1,9 @@
 ﻿import { useRelay } from '../../hooks/useRelay';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDriverData } from '../../hooks/useDriverData';
+import { useLiveBehavioral, getBehavioralGrade } from '../../hooks/useLiveBehavioral';
 import { Link } from 'react-router-dom';
-import { Wifi, WifiOff, Radio, Headphones, Wrench, Eye, BarChart3, ChevronRight, CheckCircle2, Circle, AlertCircle, Play, MessageSquare, Shield, TrendingUp, Award } from 'lucide-react';
+import { Wifi, WifiOff, Radio, Headphones, Wrench, Eye, BarChart3, ChevronRight, CheckCircle2, Circle, AlertCircle, Play, MessageSquare, Shield, TrendingUp, Award, Gauge } from 'lucide-react';
 import { getLicenseColor } from '../../lib/driverService';
 
 type CrewMemberStatus = 'ready' | 'active' | 'standby' | 'offline';
@@ -22,6 +23,10 @@ export function DriverHome() {
   const { user } = useAuth();
   const { status, session } = useRelay();
   const { profile } = useDriverData();
+  const { metrics: behavioralMetrics } = useLiveBehavioral({ 
+    runId: 'live',
+    enabled: status === 'in_session' || status === 'connected'
+  });
   const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
 
   const isLive = status === 'in_session';
@@ -123,6 +128,65 @@ export function DriverHome() {
                   <span className="text-xs text-white/50">Overall SR: <span className="text-green-400 font-mono font-bold">{profile.safetyRatingOverall.toFixed(2)}</span></span>
                 </div>
               )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Live Technique Status - Only show when connected */}
+      {behavioralMetrics && isConnected && (
+        <div className="bg-cyan-500/5 border border-cyan-500/20 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Gauge className="w-5 h-5 text-cyan-400" />
+              <h2 className="text-sm uppercase tracking-[0.15em] text-cyan-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>Live Technique</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+              <span className="text-[10px] uppercase tracking-wider text-cyan-400/70">
+                {behavioralMetrics.confidence >= 80 ? 'High Confidence' : behavioralMetrics.confidence >= 50 ? 'Building' : 'Warming Up'}
+              </span>
+            </div>
+          </div>
+          <div className="grid grid-cols-4 gap-4">
+            {[
+              { key: 'bsi', label: 'Braking', value: behavioralMetrics.behavioral.bsi },
+              { key: 'tci', label: 'Throttle', value: behavioralMetrics.behavioral.tci },
+              { key: 'cpi2', label: 'Cornering', value: behavioralMetrics.behavioral.cpi2 },
+              { key: 'rci', label: 'Rhythm', value: behavioralMetrics.behavioral.rci },
+            ].map(({ key, label, value }) => {
+              const { grade, color } = getBehavioralGrade(value);
+              return (
+                <div key={key} className="text-center">
+                  <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1">{label}</div>
+                  <div className={`text-2xl font-bold font-mono ${color}`}>{grade}</div>
+                  <div className="text-[10px] font-mono text-white/30">{Math.round(value)}/100</div>
+                </div>
+              );
+            })}
+          </div>
+          {behavioralMetrics.coaching.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-cyan-500/20">
+              <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Live Coaching</div>
+              <div className="text-sm text-cyan-300/80">💡 {behavioralMetrics.coaching[0]}</div>
+            </div>
+          )}
+          {/* V1.1: Segment Insights */}
+          {behavioralMetrics.segmentInsights && behavioralMetrics.segmentInsights.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-cyan-500/20">
+              <div className="text-[10px] uppercase tracking-wider text-orange-400/70 mb-2">Where You're Losing Time</div>
+              <div className="space-y-2">
+                {behavioralMetrics.segmentInsights.slice(0, 2).map((insight, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm text-orange-300/80">
+                    <span className="text-orange-400">📍</span>
+                    <span>
+                      <span className="text-white/50 capitalize">{insight.sectionType.replace('_', ' ')} ({Math.round(insight.binStartPct)}%):</span>{' '}
+                      {insight.suggestion}
+                      <span className="text-white/30 ml-1 text-xs">(-{Math.round(insight.timeDelta)}ms)</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

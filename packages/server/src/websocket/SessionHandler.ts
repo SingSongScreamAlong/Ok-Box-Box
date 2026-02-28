@@ -5,6 +5,7 @@ import { destroyEngine } from './inference-engine.js';
 import { clearTelemetryCache } from './telemetry-cache.js';
 import { getAnalyzer, destroyAnalyzer } from '../services/ai/live-session-analyzer.js';
 import { destroySpotterState } from '../services/ai/proactive-spotter.js';
+import { endRun } from '../services/telemetry/behavioral-worker.js';
 
 export interface DriverSessionState {
     driverId: string;
@@ -170,6 +171,14 @@ export class SessionHandler {
             destroySpotterState('live');
             clearTelemetryCache(data.sessionId);
             clearTelemetryCache('live');
+
+            // End behavioral worker run (persists final snapshot + cleans up stream)
+            endRun(data.sessionId).catch(err => {
+                console.error(`[BehavioralWorker] Failed to end run ${data.sessionId}:`, err);
+            });
+            endRun('live').catch(err => {
+                console.error('[BehavioralWorker] Failed to end live run:', err);
+            });
 
             socket.emit('ack', { originalType: 'session_end', success: true });
         });

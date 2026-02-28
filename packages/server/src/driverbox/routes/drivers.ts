@@ -33,6 +33,7 @@ import { getReportsForDriver } from '../../db/repositories/driver-reports.repo.j
 import { chatCompletion, isLLMConfigured } from '../../services/ai/llm-service.js';
 import { getTelemetryForVoice } from '../../websocket/telemetry-cache.js';
 import { getAnalyzer } from '../../services/ai/live-session-analyzer.js';
+import { getRunState } from '../../services/telemetry/behavioral-worker.js';
 import {
     requireOwner,
     requireTeamStandard,
@@ -2305,6 +2306,53 @@ function buildLiveTelemetryContext(): string {
                 const lapTime = s.bestLapTime > 0 ? ` | best ${Math.floor(s.bestLapTime / 60)}:${(s.bestLapTime % 60).toFixed(3).padStart(6, '0')}` : '';
                 lines.push(`  P${s.position} ${s.driverName} (${s.carName}, iR ${s.iRating})${lapTime}${s.onPitRoad ? ' [PIT]' : ''}${marker}`);
             });
+        }
+    }
+
+    // LIVE BEHAVIORAL INDICES from BehavioralWorker
+    // Real-time technique analysis computed from telemetry stream
+    const behavioralState = getRunState('live');
+    if (behavioralState && behavioralState.totalTicks > 100) {
+        lines.push('');
+        lines.push('--- LIVE TECHNIQUE ANALYSIS ---');
+        lines.push(`Braking Stability Index (BSI): ${Math.round(behavioralState.behavioral.bsi)}/100`);
+        lines.push(`Throttle Control Index (TCI): ${Math.round(behavioralState.behavioral.tci)}/100`);
+        lines.push(`Cornering Precision Index (CPI-2): ${Math.round(behavioralState.behavioral.cpi2)}/100`);
+        lines.push(`Rhythm & Consistency Index (RCI): ${Math.round(behavioralState.behavioral.rci)}/100`);
+        
+        // Pillar scores
+        lines.push('');
+        lines.push('Pillar Scores:');
+        lines.push(`  Pace: ${Math.round(behavioralState.pillars.pace)}/100`);
+        lines.push(`  Consistency: ${Math.round(behavioralState.pillars.consistency)}/100`);
+        lines.push(`  Technique: ${Math.round(behavioralState.pillars.technique)}/100`);
+        lines.push(`  Safety: ${Math.round(behavioralState.pillars.safety)}/100`);
+        lines.push(`  Reliability: ${Math.round(behavioralState.pillars.reliability)}/100`);
+        
+        // Active coaching hints
+        if (behavioralState.coaching.length > 0) {
+            lines.push('');
+            lines.push('Active Coaching Hints:');
+            behavioralState.coaching.forEach(hint => lines.push(`  • ${hint}`));
+        }
+        
+        // Warnings
+        if (behavioralState.warnings.length > 0) {
+            lines.push('');
+            lines.push('Technique Warnings:');
+            behavioralState.warnings.forEach(warning => lines.push(`  ⚠ ${warning}`));
+        }
+        
+        // Raw stats for context
+        lines.push('');
+        lines.push(`Analysis based on ${behavioralState.totalTicks} telemetry samples, ${behavioralState.lapTimes.length} completed laps`);
+        if (behavioralState.brakeOnsetCount > 0) {
+            const smoothBrakeRatio = (behavioralState.brakeSmoothCount / behavioralState.brakeOnsetCount * 100).toFixed(0);
+            lines.push(`Brake zones analyzed: ${behavioralState.brakeOnsetCount} (${smoothBrakeRatio}% smooth application)`);
+        }
+        if (behavioralState.turnInCount > 0) {
+            const correctionRatio = (behavioralState.steerCorrectionCount / behavioralState.turnInCount * 100).toFixed(0);
+            lines.push(`Corners analyzed: ${behavioralState.turnInCount} (${correctionRatio}% required corrections)`);
         }
     }
 

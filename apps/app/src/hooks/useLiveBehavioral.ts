@@ -9,6 +9,24 @@ import { io, Socket } from 'socket.io-client';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'http://localhost:3001';
 
+export interface SegmentInsight {
+    binStartPct: number;
+    binEndPct: number;
+    timeDelta: number;
+    speedDelta: number;
+    likelyCause: string;
+    suggestion: string;
+    confidence: number;
+    sectionType: string;
+}
+
+export interface SegmentHealth {
+    coveragePct: number;
+    insightCount: number;
+    referenceAgeLaps: number;
+    hasBestLapReference: boolean;
+}
+
 export interface LiveBehavioralMetrics {
     runId: string;
     ts: number;
@@ -35,6 +53,10 @@ export interface LiveBehavioralMetrics {
     
     coaching: string[];
     warnings: string[];
+    
+    // V1.1: Segment analysis
+    segmentInsights?: SegmentInsight[];
+    segmentHealth?: SegmentHealth;
     
     confidence: number;
     ticksProcessed: number;

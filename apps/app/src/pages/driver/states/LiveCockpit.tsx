@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from 'react';
 import { useRelay } from '../../../hooks/useRelay';
+import { useLiveBehavioral, getBehavioralGrade } from '../../../hooks/useLiveBehavioral';
 import { Link } from 'react-router-dom';
 import { 
   Fuel,
@@ -18,7 +19,8 @@ import {
   Timer,
   ChevronDown,
   ChevronUp,
-  Activity
+  Activity,
+  Gauge
 } from 'lucide-react';
 import { TrackMinimap } from '../../../components/TrackMinimap';
 
@@ -39,9 +41,14 @@ interface AIAlert {
  */
 export function LiveCockpit() {
   const { status, telemetry, session, raceIntelligence } = useRelay();
+  const { metrics: behavioralMetrics } = useLiveBehavioral({ 
+    runId: 'live',
+    enabled: status === 'in_session' || status === 'connected'
+  });
   const videoRef = useRef<HTMLVideoElement>(null);
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
   const [showIntel, setShowIntel] = useState(true);
+  const [showBehavioral, setShowBehavioral] = useState(true);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -444,6 +451,112 @@ export function LiveCockpit() {
             )}
           </div>
         </div>
+
+        {/* Live Behavioral Panel */}
+        {behavioralMetrics && (
+          <div className="bg-black/60 border border-cyan-500/30">
+            <button
+              onClick={() => setShowBehavioral(!showBehavioral)}
+              className="w-full flex items-center justify-between px-3 py-2 border-b border-cyan-500/20 hover:bg-white/5 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Gauge className="w-4 h-4 text-cyan-400" />
+                <span className="text-[10px] uppercase tracking-wider text-cyan-400 font-semibold">Technique</span>
+                <span className="text-[10px] text-white/30">
+                  {behavioralMetrics.confidence >= 80 ? '● High' : behavioralMetrics.confidence >= 50 ? '◐ Med' : '○ Low'}
+                </span>
+              </div>
+              {showBehavioral ? <ChevronUp className="w-3 h-3 text-white/30" /> : <ChevronDown className="w-3 h-3 text-white/30" />}
+            </button>
+
+            {showBehavioral && (
+              <div className="p-2 space-y-2">
+                {/* Behavioral Indices */}
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { key: 'bsi', label: 'Braking', value: behavioralMetrics.behavioral.bsi },
+                    { key: 'tci', label: 'Throttle', value: behavioralMetrics.behavioral.tci },
+                    { key: 'cpi2', label: 'Cornering', value: behavioralMetrics.behavioral.cpi2 },
+                    { key: 'rci', label: 'Rhythm', value: behavioralMetrics.behavioral.rci },
+                  ].map(({ key, label, value }) => {
+                    const { grade, color } = getBehavioralGrade(value);
+                    return (
+                      <div key={key} className="bg-white/5 p-2 text-center">
+                        <div className="text-[10px] text-white/40 uppercase">{label}</div>
+                        <div className={`text-lg font-bold font-mono ${color}`}>{grade}</div>
+                        <div className="text-[10px] text-white/30 font-mono">{Math.round(value)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Coaching Hints */}
+                {behavioralMetrics.coaching.length > 0 && (
+                  <div className="space-y-1">
+                    {behavioralMetrics.coaching.slice(0, 2).map((hint, i) => (
+                      <div key={i} className="flex items-start gap-2 px-2 py-1 bg-cyan-500/10 border-l-2 border-cyan-500 text-xs text-cyan-300">
+                        <Target className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                        <span>{hint}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Warnings */}
+                {behavioralMetrics.warnings.length > 0 && (
+                  <div className="space-y-1">
+                    {behavioralMetrics.warnings.map((warning, i) => (
+                      <div key={i} className="flex items-start gap-2 px-2 py-1 bg-yellow-500/10 border-l-2 border-yellow-500 text-xs text-yellow-300">
+                        <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
+                        <span>{warning}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Pillars Summary */}
+                <div className="grid grid-cols-5 gap-1">
+                  {[
+                    { label: 'Pace', value: behavioralMetrics.pillars.pace },
+                    { label: 'Consist', value: behavioralMetrics.pillars.consistency },
+                    { label: 'Tech', value: behavioralMetrics.pillars.technique },
+                    { label: 'Safety', value: behavioralMetrics.pillars.safety },
+                    { label: 'Reliab', value: behavioralMetrics.pillars.reliability },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="text-center">
+                      <div className="text-[8px] text-white/30 uppercase">{label}</div>
+                      <div className="h-1 bg-white/10 mt-0.5 overflow-hidden">
+                        <div 
+                          className={`h-full ${value >= 80 ? 'bg-emerald-500' : value >= 60 ? 'bg-cyan-500' : value >= 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                          style={{ width: `${value}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* V1.1: Segment Insights */}
+                {behavioralMetrics.segmentInsights && behavioralMetrics.segmentInsights.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-white/10">
+                    <div className="text-[9px] uppercase tracking-wider text-orange-400/70 mb-1">Where You're Losing Time</div>
+                    <div className="space-y-1">
+                      {behavioralMetrics.segmentInsights.slice(0, 2).map((insight, i) => (
+                        <div key={i} className="flex items-start gap-2 px-2 py-1 bg-orange-500/10 border-l-2 border-orange-500 text-[10px] text-orange-300/80">
+                          <span className="font-mono text-orange-400">{insight.sectionType === 'slow_corner' ? '🔄' : insight.sectionType === 'straight' ? '➡️' : '📍'}</span>
+                          <span>
+                            <span className="text-white/50">{insight.sectionType.replace('_', ' ')} ({Math.round(insight.binStartPct)}%):</span>{' '}
+                            {insight.suggestion}
+                            <span className="text-white/30 ml-1">(-{Math.round(insight.timeDelta)}ms)</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Track Map */}
         <div className="grid grid-cols-12 gap-2">

@@ -169,6 +169,10 @@ export class TelemetryHandler {
                 bestLapTime: telemetryCar?.bestLapTime || 0,
                 position: telemetryCar?.position || 0,
                 fuelLevel: telemetryCar?.fuelLevel || 0,
+                // Rotation control channels
+                yaw: telemetryCar?.yaw,
+                velocityX: telemetryCar?.velocityX,
+                velocityY: telemetryCar?.velocityY,
                 fps: rawData?.fps,
                 latency: rawData?.latency,
             };

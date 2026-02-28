@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { fetchTelemetryMetrics, TelemetryMetricsResponse } from '../../lib/driverService';
 import { 
   ArrowLeft, Brain, Target, TrendingUp, TrendingDown, Minus,
   Zap, AlertTriangle, CheckCircle, Clock, Activity,
   ChevronRight, Info, Loader2, RefreshCw, User, Sparkles,
-  MessageSquare, Flag, Star
+  MessageSquare, Flag, Star, Gauge
 } from 'lucide-react';
 
 // Types matching the IDP system
@@ -204,14 +205,25 @@ export function DriverIDP() {
   const [expandedOpinion, setExpandedOpinion] = useState<string | null>(null);
   const [report, setReport] = useState<DriverReport | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
+  const [telemetryMetrics, setTelemetryMetrics] = useState<TelemetryMetricsResponse | null>(null);
 
   // Fetch IDP data
   useEffect(() => {
     if (session?.access_token) {
       fetchIDPData();
       fetchReport();
+      loadTelemetryMetrics();
     }
   }, [session?.access_token]);
+
+  const loadTelemetryMetrics = async () => {
+    try {
+      const data = await fetchTelemetryMetrics('last_10');
+      setTelemetryMetrics(data);
+    } catch {
+      setTelemetryMetrics(null);
+    }
+  };
 
   const fetchReport = async () => {
     if (!session?.access_token) return;
@@ -495,6 +507,99 @@ export function DriverIDP() {
                     <strong className="text-blue-300">{data.dataBreakdown.racesAnalyzed} races</strong> analyzed for racecraft metrics. 
                     Practice sessions are stored for track learning but excluded from incident/racecraft analysis.
                   </span>
+                </div>
+              </div>
+            )}
+
+            {/* Telemetry-Backed Behavioral Analysis */}
+            {telemetryMetrics?.available && telemetryMetrics.metrics && (
+              <div className="bg-cyan-500/5 backdrop-blur-xl border border-cyan-500/20 rounded-lg overflow-hidden">
+                <div className="px-6 py-4 flex items-center justify-between border-b border-cyan-500/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-cyan-500/20 flex items-center justify-center">
+                      <Gauge className="w-5 h-5 text-cyan-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-cyan-400">Telemetry Analysis</h3>
+                      <p className="text-[10px] text-white/40">Based on {telemetryMetrics.metrics.session_count} sessions</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] px-2 py-0.5 rounded uppercase tracking-wider ${
+                      telemetryMetrics.metrics.confidence >= 70 
+                        ? 'bg-emerald-500/20 text-emerald-400' 
+                        : telemetryMetrics.metrics.confidence >= 50 
+                          ? 'bg-cyan-500/20 text-cyan-400'
+                          : 'bg-white/10 text-white/50'
+                    }`}>
+                      {telemetryMetrics.metrics.confidence >= 70 ? 'High' : telemetryMetrics.metrics.confidence >= 50 ? 'Medium' : 'Low'} Confidence
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="p-6 space-y-4">
+                  {/* Behavioral Indices Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {[
+                      { key: 'bsi', label: 'Braking Stability', value: telemetryMetrics.metrics.bsi, desc: 'Brake application smoothness & trail braking' },
+                      { key: 'tci', label: 'Throttle Control', value: telemetryMetrics.metrics.tci, desc: 'Throttle modulation & traction management' },
+                      { key: 'cpi2', label: 'Cornering Precision', value: telemetryMetrics.metrics.cpi2, desc: 'Turn-in consistency & mid-corner stability' },
+                      { key: 'rci', label: 'Rhythm & Consistency', value: telemetryMetrics.metrics.rci, desc: 'Lap time variance & input repeatability' },
+                    ].map(({ key, label, value, desc }) => {
+                      const grade = value >= 80 ? 'A' : value >= 70 ? 'B' : value >= 60 ? 'C' : value >= 50 ? 'D' : 'F';
+                      const color = value >= 80 ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' 
+                        : value >= 70 ? 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30'
+                        : value >= 60 ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30'
+                        : 'text-red-400 bg-red-500/10 border-red-500/30';
+                      return (
+                        <div key={key} className={`${color} rounded-lg p-3 border`} title={desc}>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] uppercase tracking-wider opacity-70">{label}</span>
+                            <span className="text-lg font-bold font-mono">{grade}</span>
+                          </div>
+                          <div className="h-1.5 bg-black/20 rounded-full overflow-hidden">
+                            <div className="h-full bg-current rounded-full" style={{ width: `${value}%` }} />
+                          </div>
+                          <div className="text-[10px] font-mono mt-1 opacity-60">{Math.round(value)}/100</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Overall Behavioral Stability */}
+                  <div className="p-4 bg-black/20 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-white/60">Overall Behavioral Stability</span>
+                      <span className={`text-lg font-bold font-mono ${
+                        telemetryMetrics.metrics.behavioral_stability >= 70 ? 'text-emerald-400' 
+                        : telemetryMetrics.metrics.behavioral_stability >= 50 ? 'text-cyan-400' 
+                        : 'text-amber-400'
+                      }`}>
+                        {Math.round(telemetryMetrics.metrics.behavioral_stability)}%
+                      </span>
+                    </div>
+                    <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full ${
+                          telemetryMetrics.metrics.behavioral_stability >= 70 ? 'bg-emerald-500' 
+                          : telemetryMetrics.metrics.behavioral_stability >= 50 ? 'bg-cyan-500' 
+                          : 'bg-amber-500'
+                        }`}
+                        style={{ width: `${telemetryMetrics.metrics.behavioral_stability}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-white/40 mt-2">
+                      Composite score of braking, throttle, cornering, and rhythm consistency from telemetry data.
+                    </p>
+                  </div>
+                  
+                  {/* Evidence vs Inference indicator */}
+                  <div className="flex items-center gap-2 p-2 bg-cyan-500/5 border border-cyan-500/10 rounded text-[10px] text-cyan-300/70">
+                    <Info className="w-3 h-3 flex-shrink-0" />
+                    <span>
+                      These metrics are <strong className="text-cyan-300">telemetry-backed</strong> — computed from actual brake, throttle, and steering inputs during your sessions.
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
