@@ -7,6 +7,7 @@ import { getOrCreateEngine } from './inference-engine.js';
 import { getOrCreateAnalyzer } from '../services/ai/live-session-analyzer.js';
 import { generateSpotterCallouts } from '../services/ai/proactive-spotter.js';
 import { wsLogger, logOncePerInterval } from '../observability/logger.js';
+import { pushTelemetryToStream, TelemetryPacket } from '../services/telemetry/telemetry-streams.js';
 
 // Store current session info for late-joining clients
 let currentSessionInfo: { sessionId: string; trackName: string; trackId?: number; sessionType: string; carName?: string; rpmRedline?: number; fuelTankCapacity?: number; trackLength?: string } | null = null;
@@ -146,6 +147,34 @@ export class TelemetryHandler {
             const inferenceEngine = getOrCreateEngine(telemetrySessionId);
             inferenceEngine.processTelemetry(rawData);
             const inferred = inferenceEngine.getInferredStrategy(telemetryCar);
+            
+            // Push to Redis Stream for behavioral analysis (non-blocking)
+            const streamPacket: TelemetryPacket = {
+                runId: telemetrySessionId,
+                userId: telemetryCar?.userId || 'unknown',
+                ts: Date.now(),
+                sessionTime: rawData?.sessionTime || 0,
+                lap: telemetryCar?.lap || 0,
+                lapDistPct: telemetryCar?.lapDistPct || 0,
+                speed: telemetryCar?.speed || 0,
+                throttle: telemetryCar?.throttle || 0,
+                brake: telemetryCar?.brake || 0,
+                steer: telemetryCar?.steeringAngle || telemetryCar?.steer || 0,
+                gear: telemetryCar?.gear || 0,
+                rpm: telemetryCar?.rpm || 0,
+                trackSurface: telemetryCar?.trackSurface ?? 1,
+                absActive: telemetryCar?.absActive || 0,
+                incidentCount: telemetryCar?.incidentCount || rawData?.incidentCount || 0,
+                lastLapTime: telemetryCar?.lastLapTime || 0,
+                bestLapTime: telemetryCar?.bestLapTime || 0,
+                position: telemetryCar?.position || 0,
+                fuelLevel: telemetryCar?.fuelLevel || 0,
+                fps: rawData?.fps,
+                latency: rawData?.latency,
+            };
+            pushTelemetryToStream(streamPacket).catch(() => {
+                // Silent fail — Redis may not be available
+            });
             
             // Always try to cache telemetry for voice, even if validation fails
             if (rawData && typeof rawData === 'object') {

@@ -13,6 +13,7 @@ import { AuthGate } from './AuthGate.js';
 import { RoomManager } from './RoomManager.js';
 import { TelemetryHandler } from './TelemetryHandler.js';
 import { BroadcastHandler, setIO } from './BroadcastHandler.js';
+import { BehavioralGateway } from './BehavioralGateway.js';
 import { getWhisperService, getVoiceService, VOICE_PRESETS } from '../services/voice/index.js';
 import { getTelemetryForVoice } from './telemetry-cache.js';
 import { getCachedDriverContext, formatDriverContextForAI } from '../services/voice/driver-context.service.js';
@@ -41,6 +42,7 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
     const sessionHandler = new SessionHandler(io);
     const telemetryHandler = new TelemetryHandler(io);
     const broadcastHandler = new BroadcastHandler(io);
+    const behavioralGateway = new BehavioralGateway(io);
     const roomManager = new RoomManager(); // stateless mostly
 
     io.on('connection', (socket: Socket) => {
@@ -72,6 +74,7 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
         sessionHandler.setup(socket);
         telemetryHandler.setup(socket);
         broadcastHandler.setup(socket);
+        behavioralGateway.setup(socket);
 
         // 4. Voice Query Handler
         socket.on('voice:query', async (data: { audio: string; format?: string }) => {
