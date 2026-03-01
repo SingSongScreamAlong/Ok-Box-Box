@@ -6,6 +6,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { requireAuth, requireCapability } from '../middleware/auth.js';
 import { getWhisperService, getVoiceService, VOICE_PRESETS } from '../../services/voice/index.js';
 
 const router = Router();
@@ -29,7 +30,7 @@ interface AudioRequest extends Request {
  * 4. Convert response to speech with ElevenLabs
  * 5. Return audio response
  */
-router.post('/query', async (req: AudioRequest, res: Response) => {
+router.post('/query', requireAuth, requireCapability('voice_engineer'), async (req: AudioRequest, res: Response) => {
     try {
         const { sessionId, driverId, audio } = req.body;
 

@@ -122,11 +122,11 @@ router.post('/entitlements/grant', requireAuth, requireAdmin, async (req: Reques
         const adminUser = req.user!;
         const body = req.body as GrantRequest;
 
-        // Validate product
-        if (!['blackbox', 'controlbox', 'bundle'].includes(body.product)) {
+        // Validate product (use current product names: driver, team, league, bundle)
+        if (!['driver', 'team', 'league', 'bundle'].includes(body.product)) {
             res.status(400).json({
                 success: false,
-                error: { code: 'INVALID_PRODUCT', message: 'Product must be blackbox, controlbox, or bundle' }
+                error: { code: 'INVALID_PRODUCT', message: 'Product must be driver, team, league, or bundle' }
             });
             return;
         }

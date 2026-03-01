@@ -41,8 +41,11 @@ function extractToken(req: Request): string | null {
     return null;
 }
 
-// Lazy import to avoid circular defaults if possible, but standard import is fine for services
-import { getEntitlementRepository } from '../../services/billing/entitlement-service.js';
+import {
+    getEntitlementRepository,
+    deriveCapabilitiesFromEntitlements,
+    type Capabilities
+} from '../../services/billing/entitlement-service.js';
 
 /**
  * Middleware to require authentication
@@ -170,6 +173,47 @@ export async function optionalAuth(req: Request, _res: Response, next: NextFunct
     }
 
     next();
+}
+
+/**
+ * Middleware factory: require a specific capability from the user's entitlements.
+ *
+ * Must be used AFTER requireAuth (entitlements already loaded onto req.user).
+ *
+ * Usage:
+ *   router.post('/voice/query', requireAuth, requireCapability('voice_engineer'), handler)
+ */
+export function requireCapability(capability: keyof Capabilities) {
+    return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        if (!req.user) {
+            res.status(401).json({
+                success: false,
+                error: { code: 'AUTH_REQUIRED', message: 'Authentication required.' }
+            });
+            return;
+        }
+
+        // Super admins bypass capability checks
+        if (req.user.isSuperAdmin) {
+            return next();
+        }
+
+        const entitlements: any[] = (req.user as any).entitlements ?? [];
+        const caps = deriveCapabilitiesFromEntitlements(entitlements, []);
+
+        if (!caps[capability]) {
+            res.status(403).json({
+                success: false,
+                error: {
+                    code: 'SUBSCRIPTION_REQUIRED',
+                    message: 'Your plan does not include access to this feature. Visit /pricing to upgrade.'
+                }
+            });
+            return;
+        }
+
+        next();
+    };
 }
 
 /**
