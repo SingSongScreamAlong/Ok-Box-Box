@@ -1,7 +1,5 @@
 import { Server } from 'socket.io';
-import jwt from 'jsonwebtoken';
-import type { JwtPayload } from 'jsonwebtoken';
-import { config } from '../config/index.js';
+import { getAuthService } from '../services/auth/auth-service.js';
 import { getEntitlementRepository } from '../services/billing/entitlement-service.js';
 import { socketRateLimiter } from './rate-limit.js';
 
@@ -13,36 +11,45 @@ export class AuthGate {
         this.io.use(async (socket, next) => {
             const token = socket.handshake.auth.token || socket.handshake.headers['authorization']?.split(' ')[1];
 
-            // ALPHA TESTING: Allow unauthenticated connections
             if (!token) {
-                console.log(`🔌 Allowing unauthenticated connection for alpha testing (${socket.id})`);
-                socket.data.user = { sub: 'anonymous', entitlements: [] };
-                return next();
+                return next(new Error('Authentication required'));
             }
 
-            try {
-                const decoded = jwt.verify(token, config.jwtSecret) as JwtPayload;
+            const authService = getAuthService();
+            let user: any = null;
 
-                // Fetch entitlements for rate limiting
-                // (We attach this to socket.data.user so rate limiter can see it)
-                let entitlements: any[] = [];
-                try {
-                    // Determine userId from sub (subject)
-                    const userId = decoded.sub;
+            // 1. Try internal JWT first
+            const payload = authService.verifyAccessToken(token);
+            if (payload) {
+                user = await authService.getUserById(payload.sub);
+            }
 
-                    if (userId) {
-                        entitlements = await getEntitlementRepository().getForUser(userId);
-                    }
-                } catch (err) {
-                    // Ignore entitlement fetch error, proceed with basics
+            // 2. Fallback: Try Supabase JWT (from apps/app frontend)
+            if (!user) {
+                const supabasePayload = await authService.verifySupabaseToken(token);
+                if (supabasePayload) {
+                    user = await authService.findOrCreateSupabaseUser(
+                        supabasePayload.sub,
+                        supabasePayload.email,
+                        supabasePayload.displayName || supabasePayload.email.split('@')[0]
+                    );
                 }
+            }
 
-                socket.data.user = { ...decoded, entitlements };
-                next();
-            } catch (err) {
-                console.log(`🔌 Connection rejected: Invalid token (${socket.id})`);
+            if (!user || !user.isActive) {
                 return next(new Error('Authentication error: Invalid token'));
             }
+
+            // Fetch entitlements for rate limiting
+            let entitlements: any[] = [];
+            try {
+                entitlements = await getEntitlementRepository().getForUser(user.id);
+            } catch (err) {
+                // Ignore entitlement fetch error, proceed with basics
+            }
+
+            socket.data.user = { ...user, entitlements };
+            next();
         });
 
         // Rate Limiter Middleware for Incoming Events

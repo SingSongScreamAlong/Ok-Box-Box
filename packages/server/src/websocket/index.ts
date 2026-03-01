@@ -6,6 +6,7 @@ import { Server as HttpServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { config } from '../config/index.js';
 import { socketRateLimiter } from './rate-limit.js';
+import { deriveCapabilitiesFromEntitlements } from '../services/billing/entitlement-service.js';
 
 // Modules
 import { SessionHandler } from './SessionHandler.js';
@@ -46,26 +47,12 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
     const roomManager = new RoomManager(); // stateless mostly
 
     io.on('connection', (socket: Socket) => {
-        console.log(`🔌 Client connected: ${socket.id}`);
-
-        // Debug: Log all incoming events
-        socket.onAny((eventName, ...args) => {
-            // Filter high-frequency events (telemetry=60Hz, strategy_raw=1Hz, etc.)
-            const quietEvents = ['telemetry', 'video_frame', 'strategy_raw', 'competitor_data', 'standings'];
-            if (!quietEvents.includes(eventName)) {
-                console.log(`📨 Event received: ${eventName}`, JSON.stringify(args).substring(0, 200));
-            }
-        });
-
         // Dashboard join handler - send current session info to late-joining clients
-        socket.on('dashboard:join', (data: { type: string }) => {
-            console.log(`   Dashboard ${socket.id} joined as ${data.type}`);
-            
+        socket.on('dashboard:join', (_data: { type: string }) => {
             // Send current session info if available
             const sessionInfo = TelemetryHandler.getCurrentSessionInfo();
             if (sessionInfo) {
                 socket.emit('session:active', sessionInfo);
-                console.log(`   Sent session:active to late joiner: ${sessionInfo.trackName}`);
             }
         });
 
@@ -79,6 +66,14 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
         // 4. Voice Query Handler
         socket.on('voice:query', async (data: { audio: string; format?: string }) => {
             try {
+                // Check voice_engineer capability
+                const entitlements: any[] = socket.data.user?.entitlements ?? [];
+                const caps = deriveCapabilitiesFromEntitlements(entitlements, []);
+                if (!socket.data.user?.isSuperAdmin && !caps.voice_engineer) {
+                    socket.emit('voice:response', { success: false, error: 'Subscription required. Visit /pricing to upgrade.' });
+                    return;
+                }
+
                 const whisperService = getWhisperService();
                 const voiceService = getVoiceService();
 
@@ -164,7 +159,6 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
         });
 
         socket.on('disconnect', () => {
-            console.log(`🔌 Client disconnected: ${socket.id}`);
             socketRateLimiter.cleanup(socket.id);
         });
     });
