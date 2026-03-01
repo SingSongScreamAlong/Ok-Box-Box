@@ -63,6 +63,11 @@ import { CreateEvent } from './pages/CreateEvent';
 import { EventView } from './pages/EventView';
 import { DriverProfilePage as PitwallDriverProfile } from './pages/pitwall/DriverProfile';
 import { DownloadPage } from './pages/Download';
+import { Pricing } from './pages/Pricing';
+import { SubscriptionManagement } from './pages/SubscriptionManagement';
+import { BillingReturn } from './pages/BillingReturn';
+import { TrackSelectorPage } from './pages/track-intel/TrackSelectorPage';
+import { TrackMapPage } from './pages/track-intel/TrackMapPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -168,6 +173,19 @@ function App() {
 
         {/* Download page - No auth required */}
         <Route path="/download" element={<DownloadPage />} />
+
+        {/* Pricing - public */}
+        <Route path="/pricing" element={<Pricing />} />
+
+        {/* Billing return - public (post-checkout redirect) */}
+        <Route path="/billing/return" element={<BillingReturn />} />
+
+        {/* Subscription management - protected */}
+        <Route path="/subscription" element={<ProtectedRoute><SubscriptionManagement /></ProtectedRoute>} />
+
+        {/* Track Intelligence */}
+        <Route path="/track-intel" element={<ProtectedRoute><TrackSelectorPage /></ProtectedRoute>} />
+        <Route path="/track-intel/:trackId" element={<ProtectedRoute><TrackMapPage /></ProtectedRoute>} />
 
         {/* League Tier routes */}
         <Route path="/leagues" element={<ProtectedRoute><Leagues /></ProtectedRoute>} />
