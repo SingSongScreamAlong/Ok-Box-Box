@@ -267,7 +267,7 @@ export interface HealthCheckResponse {
     uptime: number;
     checks: {
         database: 'ok' | 'error';
-        redis: 'ok' | 'error';
+        redis: 'ok' | 'error' | 'disabled';
         ai: 'ok' | 'error' | 'disabled';
     };
     timestamp: string;

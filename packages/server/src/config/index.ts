@@ -49,6 +49,10 @@ export const config = {
     // External AI Services
     openaiApiKey: process.env.OPENAI_API_KEY || '',
     elevenLabsApiKey: process.env.ELEVENLABS_API_KEY || '',
+
+    // Supabase (server-side only — admin operations like account deletion)
+    supabaseUrl: process.env.SUPABASE_URL || '',
+    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
 } as const;
 
 // Validate required production configs

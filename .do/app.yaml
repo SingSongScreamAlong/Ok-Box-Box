@@ -64,7 +64,10 @@ services:
         type: SECRET
       - key: SUPABASE_URL
         scope: RUN_TIME
-        value: "${SUPABASE_URL}"
+        type: SECRET
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        scope: RUN_TIME
+        type: SECRET
       
       # CORS - Allow app and marketing site origins
       - key: CORS_ORIGINS

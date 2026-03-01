@@ -7,6 +7,8 @@ import { Router, Request, Response } from 'express';
 import type { LoginRequest, RefreshTokenRequest } from '@controlbox/common';
 import { getAuthService } from '../../services/auth/auth-service.js';
 import { requireAuth } from '../middleware/auth.js';
+import { pool } from '../../db/client.js';
+import { config } from '../../config/index.js';
 
 const router = Router();
 
@@ -413,6 +415,71 @@ router.get('/me/bootstrap', requireAuth, async (req: Request, res: Response): Pr
         res.status(500).json({
             success: false,
             error: { code: 'BOOTSTRAP_ERROR', message: 'Failed to load bootstrap data' }
+        });
+    }
+});
+
+/**
+ * Delete current user account
+ * DELETE /api/auth/me
+ *
+ * - Deactivates admin_users row (blocks future logins)
+ * - Deletes active entitlements (removes access immediately)
+ * - Revokes all refresh tokens
+ * - Deletes the Supabase auth user (requires SUPABASE_SERVICE_ROLE_KEY)
+ *
+ * Note: Stripe subscriptions continue billing until they naturally expire or
+ * the user contacts support. Add Stripe cancellation when a cancel-subscription
+ * API is added to the billing service.
+ */
+router.delete('/me', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const user = req.user!;
+        const authService = getAuthService();
+
+        // 1. Revoke all refresh tokens immediately
+        await authService.revokeAllUserTokens(user.id);
+
+        // 2. Deactivate the admin_users row (blocks future internal JWT logins)
+        await authService.deactivateUser(user.id);
+
+        // 3. Remove all entitlements (kills active access gates)
+        await pool.query(
+            `DELETE FROM user_entitlements WHERE user_id = $1`,
+            [user.id]
+        );
+
+        // 4. Delete Supabase auth user so they cannot log in via Supabase either
+        if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+            try {
+                const supabaseAdminUrl = `${config.supabaseUrl}/auth/v1/admin/users/${user.id}`;
+                const response = await fetch(supabaseAdminUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${config.supabaseServiceRoleKey}`,
+                        'apikey': config.supabaseServiceRoleKey,
+                    },
+                });
+                if (!response.ok) {
+                    const body = await response.text();
+                    console.error(`[AccountDeletion] Supabase user delete failed (${response.status}): ${body}`);
+                    // Non-fatal — user is already deactivated locally
+                }
+            } catch (supabaseErr) {
+                console.error('[AccountDeletion] Failed to delete Supabase user:', supabaseErr);
+                // Non-fatal
+            }
+        }
+
+        res.json({
+            success: true,
+            data: { message: 'Account deleted successfully' }
+        });
+    } catch (error) {
+        console.error('Account deletion error:', error);
+        res.status(500).json({
+            success: false,
+            error: { code: 'DELETION_ERROR', message: 'Failed to delete account' }
         });
     }
 });

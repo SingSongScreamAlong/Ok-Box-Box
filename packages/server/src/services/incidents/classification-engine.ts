@@ -39,18 +39,43 @@ export class ClassificationEngine extends EventEmitter {
 
     constructor() {
         super();
-        // Ideally we should use Dependency Injection here
         this.spatialAwareness = new SpatialAwarenessService();
-        const spatialAwareness = this.spatialAwareness; // Keep local ref for compatibility if needed below
-        // Note: spatialAwareness needs to receive telemetry updates. 
-        // In this architecture, it should probably be a singleton or managed by SessionManager.
-        // For now, we instantiate it here, but it will be empty unless fed data.
-        // TODO: Wire up telemetry feed to this instance.
-
-        this.contactAnalyzer = new ContactAnalyzer(spatialAwareness);
+        this.contactAnalyzer = new ContactAnalyzer(this.spatialAwareness);
         this.severityScorer = new SeverityScorer();
         this.responsibilityPredictor = new ResponsibilityPredictor();
         this.incidentRepo = new IncidentRepository();
+    }
+
+    /**
+     * Feed 60Hz relay telemetry into the spatial awareness model so contact
+     * analysis has position history when an incident trigger fires.
+     */
+    public updateSpatialContext(rawData: any): void {
+        if (!rawData?.cars?.length) return;
+        // Build a minimal TelemetrySnapshot compatible with SpatialAwarenessService
+        const snapshot = {
+            type: 'telemetry' as const,
+            sessionId: rawData.sessionId ?? 'live',
+            sessionTimeMs: rawData.sessionTimeMs ?? Date.now(),
+            cars: (rawData.cars as any[]).map((c: any) => ({
+                carId: c.carId ?? 0,
+                driverId: c.driverId ? String(c.driverId) : String(c.carId ?? 0),
+                speed: c.speed ?? 0,
+                gear: c.gear ?? 0,
+                pos: c.pos ?? { s: c.lapDistPct ?? 0 },
+                rpm: c.rpm ?? 0,
+                throttle: c.throttle ?? 0,
+                brake: c.brake ?? 0,
+                steeringAngle: c.steeringAngle ?? 0,
+                lapDistPct: c.lapDistPct ?? c.pos?.s ?? 0,
+                lap: c.lap ?? 0,
+            })),
+        };
+        try {
+            this.spatialAwareness.processTelemetry(snapshot as any);
+        } catch {
+            // Spatial awareness is best-effort; never block the telemetry hot path
+        }
     }
 
     /**

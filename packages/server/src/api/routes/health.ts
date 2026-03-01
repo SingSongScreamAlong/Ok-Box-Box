@@ -6,6 +6,8 @@ import { Router, type Request, type Response } from 'express';
 import type { HealthCheckResponse } from '@controlbox/common';
 import { pool } from '../../db/client.js';
 import { isLLMConfigured, getLLMModelInfo } from '../../services/ai/llm-service.js';
+import { getRedisClient } from '../../services/redis-client.js';
+import { config } from '../../config/index.js';
 
 export const healthRouter = Router();
 
@@ -21,8 +23,21 @@ healthRouter.get('/', async (_req: Request, res: Response) => {
         dbStatus = 'error';
     }
 
-    // TODO: Check Redis when implemented
-    const redisStatus: 'ok' | 'error' = 'ok';
+    // Check Redis (optional dependency — 'disabled' if not configured)
+    let redisStatus: 'ok' | 'error' | 'disabled' = 'disabled';
+    if (config.redisUrl) {
+        try {
+            const redis = await getRedisClient();
+            if (redis) {
+                await redis.ping();
+                redisStatus = 'ok';
+            } else {
+                redisStatus = 'error';
+            }
+        } catch {
+            redisStatus = 'error';
+        }
+    }
 
     // Check AI configuration
     const aiStatus: 'ok' | 'error' | 'disabled' = isLLMConfigured() ? 'ok' : 'disabled';
