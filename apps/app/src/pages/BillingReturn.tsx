@@ -1,7 +1,6 @@
 /**
  * Billing Return Page
- * Landing page after Squarespace checkout.
- * Ported from packages/dashboard — adapted for Supabase auth (Gen 3)
+ * Landing page after Stripe checkout — polls for entitlement activation.
  */
 
 import { useEffect, useState } from 'react';

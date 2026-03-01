@@ -118,10 +118,6 @@ apiRouter.use('/evidence', evidenceRouter);
 import launchRouter from './launch.js';
 apiRouter.use('/', launchRouter);
 
-// Billing / Entitlements (Squarespace webhooks)
-import billingSquarespaceRouter from './billing-squarespace.js';
-apiRouter.use('/billing/squarespace', billingSquarespaceRouter);
-
 // Billing / Stripe (Subscriptions)
 import billingStripeRouter from './billing-stripe.js';
 apiRouter.use('/billing/stripe', billingStripeRouter);
