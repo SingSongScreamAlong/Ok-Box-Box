@@ -66,9 +66,9 @@ services:
         scope: RUN_TIME
         value: "${SUPABASE_URL}"
       
-      # CORS - Allow dashboard and relay origins
+      # CORS - Allow app and marketing site origins
       - key: CORS_ORIGINS
-        value: "https://okboxbox.com,https://www.okboxbox.com,*"
+        value: "https://app.okboxbox.com,https://okboxbox.com,https://www.okboxbox.com"
       
       # Stripe Billing
       - key: STRIPE_SECRET_KEY
@@ -103,9 +103,9 @@ services:
         scope: RUN_TIME
         type: SECRET
       
-      # Dashboard URL for billing redirects
+      # Dashboard URL for billing redirects (must be the app, not the marketing site)
       - key: DASHBOARD_URL
-        value: "https://okboxbox.com"
+        value: "https://app.okboxbox.com"
     
     # Logs and alerts
     log_destinations:
@@ -133,6 +133,12 @@ static_sites:
         value: "https://octopus-app-qsi3i.ondigitalocean.app"
       - key: VITE_WS_URL
         value: "wss://octopus-app-qsi3i.ondigitalocean.app"
+      - key: VITE_SUPABASE_URL
+        scope: BUILD_TIME
+        type: SECRET
+      - key: VITE_SUPABASE_ANON_KEY
+        scope: BUILD_TIME
+        type: SECRET
 
 
 # =====================================================================
