@@ -23,6 +23,12 @@ export const TRACK_SLUG_MAP: Record<string, string> = {
   // Laguna Seca
   'laguna-seca': '47',
 
+  // Phoenix Raceway
+  'phoenix-raceway': '419',
+  'phoenix': '419',
+  'ism-raceway': '419',
+  'phoenix-oval': '419',
+
   // Road Atlanta
   // 'road-atlanta': '30', // Warn: ID 30 is Irwindale. Need to find Road Atlanta ID.
 };
