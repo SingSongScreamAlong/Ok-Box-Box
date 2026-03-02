@@ -482,8 +482,15 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     socket.on('competitor_data', (data: any[]) => {
       if (data && Array.isArray(data)) {
         const totalDrivers = Math.max(data.length, 1);
+        const playerCompetitor = data.find((car: any) => !!car?.isPlayer);
         setTelemetry(prev => ({
           ...prev,
+          position: typeof playerCompetitor?.position === 'number' && playerCompetitor.position > 0
+            ? playerCompetitor.position
+            : prev.position,
+          trackPosition: typeof playerCompetitor?.lapDistPct === 'number' && playerCompetitor.lapDistPct >= 0 && playerCompetitor.lapDistPct <= 1
+            ? playerCompetitor.lapDistPct
+            : prev.trackPosition,
           otherCars: data.map((car, idx) => ({
             trackPercentage: (typeof car.lapDistPct === 'number' && car.lapDistPct >= 0 && car.lapDistPct <= 1)
               ? car.lapDistPct
