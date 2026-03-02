@@ -2,7 +2,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useRelay } from '../hooks/useRelay';
 import { DriverDataProvider } from '../hooks/useDriverData';
-import { Settings, LogOut, User, ChevronDown, BarChart3, Users, Trophy, Zap, MessageSquare, TrendingUp, Flag, Award, Brain } from 'lucide-react';
+import { Settings, LogOut, User, ChevronDown, BarChart3, Users, Trophy, Zap, MessageSquare, TrendingUp, Flag, Award, Brain, Map } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 export function DriverLayout() {
@@ -52,6 +52,7 @@ export function DriverLayout() {
     { to: '/driver/idp', icon: Brain, label: 'Profile' },
     { to: '/driver/ratings', icon: Award, label: 'Ratings' },
     { to: '/driver/history', icon: BarChart3, label: 'History' },
+    { to: '/track-intel', icon: Map, label: 'Tracks' },
   ];
 
   return (

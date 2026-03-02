@@ -307,11 +307,30 @@ router.get('/me/bootstrap', requireAuth, async (req: Request, res: Response): Pr
         const entitlements = await entitlementRepo.getForUser(user.id);
 
         // =====================================================
-        // MEMBERSHIPS (TODO: Read from team_members and league_members tables)
+        // MEMBERSHIPS — read from team_memberships and admin_user_league_roles
         // =====================================================
+        const [teamRows, leagueRows] = await Promise.all([
+            pool.query<{ id: string; name: string; role: string }>(
+                `SELECT t.id, t.name, tm.role
+                 FROM team_memberships tm
+                 JOIN driver_profiles dp ON dp.id = tm.driver_profile_id
+                 JOIN teams t ON t.id = tm.team_id
+                 WHERE dp.user_account_id = $1
+                   AND tm.status = 'active'`,
+                [user.id]
+            ),
+            pool.query<{ id: string; name: string; role: string }>(
+                `SELECT DISTINCT ON (l.id) l.id, l.name, aulr.role::text AS role
+                 FROM admin_user_league_roles aulr
+                 JOIN leagues l ON l.id = aulr.league_id
+                 WHERE aulr.admin_user_id = $1
+                 ORDER BY l.id, aulr.granted_at DESC`,
+                [user.id]
+            ),
+        ]);
         const memberships = {
-            teams: [] as { id: string; name: string; role: string }[],
-            leagues: [] as { id: string; name: string; role: string }[]
+            teams:   teamRows.rows.map(r => ({ id: r.id, name: r.name, role: r.role })),
+            leagues: leagueRows.rows.map(r => ({ id: r.id, name: r.name, role: r.role })),
         };
 
         // =====================================================
