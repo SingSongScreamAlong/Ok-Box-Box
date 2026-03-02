@@ -97,8 +97,12 @@ interface CarSegmentState {
 
     // Quality tracking
     inPitLane: boolean;
+    wasInPitLane: boolean; // Previous tick pit state for pit-exit detection
     trackSurface: number;
     hasTrafficOverlap: boolean;
+
+    // Stint tracking (for stintLap calculation)
+    stintStartLap: number;
 
     // History for trend analysis
     segmentHistory: SegmentSpeedResult[];
@@ -198,7 +202,13 @@ export class SegmentSpeedDetector extends EventEmitter {
             return null; // Need at least 2 samples
         }
 
+        // Detect pit exit → new stint starts
+        if (state.wasInPitLane && !inPitLane) {
+            state.stintStartLap = lap;
+        }
+
         // Update quality flags
+        state.wasInPitLane = state.inPitLane;
         state.inPitLane = inPitLane;
         state.trackSurface = trackSurface;
         state.hasTrafficOverlap = hasTrafficOverlap;
@@ -278,9 +288,9 @@ export class SegmentSpeedDetector extends EventEmitter {
             },
             quality,
             qualityReasons: reasons,
-            deltaFromBestMs: undefined, // TODO: Calculate from baseline
+            deltaFromBestMs: this.calcDeltaFromBest(state.segmentHistory, segment.segmentId, segmentTimeMs),
             lapNumber: state.lastLap,
-            stintLap: 0 // TODO: Get from stint tracker
+            stintLap: Math.max(1, state.lastLap - state.stintStartLap + 1)
         };
 
         // Store in history
@@ -574,6 +584,23 @@ export class SegmentSpeedDetector extends EventEmitter {
         return 'unknown';
     }
 
+    /**
+     * Calculate delta from best clean segment time in history.
+     * Returns undefined if no clean baseline exists yet.
+     */
+    private calcDeltaFromBest(
+        history: SegmentSpeedResult[],
+        segmentId: string,
+        currentTimeMs: number
+    ): number | undefined {
+        const cleanTimes = history
+            .filter(s => s.segmentId === segmentId && s.quality === 'CLEAN')
+            .map(s => s.segmentTimeMs);
+        if (cleanTimes.length === 0) return undefined;
+        const best = Math.min(...cleanTimes);
+        return currentTimeMs - best;
+    }
+
     // ========================================================================
     // HELPERS
     // ========================================================================
@@ -596,8 +623,10 @@ export class SegmentSpeedDetector extends EventEmitter {
             segmentEntryPct: 0,
             segmentEntryLap: 0,
             inPitLane: false,
+            wasInPitLane: false,
             trackSurface: 1,
             hasTrafficOverlap: false,
+            stintStartLap: lap,
             segmentHistory: []
         };
     }

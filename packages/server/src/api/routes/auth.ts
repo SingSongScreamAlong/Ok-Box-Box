@@ -245,32 +245,37 @@ router.get('/entitlements', requireAuth, async (req: Request, res: Response): Pr
     try {
         const user = req.user!;
 
-        // Build entitlements payload (v2 schema)
-        // TODO: Read from database when product subscriptions are implemented
+        const { getEntitlementRepository } =
+            await import('../../services/billing/entitlement-service.js');
+        const entitlementRepo = getEntitlementRepository();
+        const dbEntitlements = await entitlementRepo.getForUser(user.id);
+
+        const active = dbEntitlements.filter(e => e.status === 'active' || e.status === 'trial');
+        const hasDriver = user.isSuperAdmin || active.some(e => e.product === 'driver' || e.product === 'bundle');
+        const hasTeam   = user.isSuperAdmin || active.some(e => e.product === 'team'   || e.product === 'bundle');
+        const hasLeague = user.isSuperAdmin || active.some(e => e.product === 'league' || e.product === 'bundle');
+
+        // Highest active tier for legacy blackbox.tier field
+        const tier = hasLeague ? 'LEAGUE' : hasTeam ? 'TEAM' : hasDriver ? 'DRIVER' : 'FREE';
+
+        const roles: string[] = [];
+        if (hasDriver) roles.push('DRIVER');
+        if (hasTeam)   roles.push('TEAM');
+        if (hasLeague) roles.push('RACE_CONTROL');
+        if (user.isSuperAdmin) roles.push('ADMIN');
+
         const entitlements = {
             userId: user.id,
-            orgId: undefined, // TODO: Get from org membership
-            roles: user.isSuperAdmin
-                ? ['DRIVER', 'TEAM', 'RACE_CONTROL', 'ADMIN']
-                : ['DRIVER', 'TEAM'],
+            orgId: undefined,
+            roles,
             products: {
-                blackbox: {
-                    enabled: true,
-                    tier: 'TEAM' as const  // TODO: Read from license
-                },
-                controlbox: {
-                    enabled: user.isSuperAdmin  // TODO: Read from license
-                }
+                blackbox: { enabled: hasDriver, tier },
+                controlbox: { enabled: hasLeague || user.isSuperAdmin }
             },
-            defaults: {
-                preferredMode: 'DRIVER' as const  // TODO: Store per-user preference
-            }
+            defaults: { preferredMode: 'DRIVER' as const }
         };
 
-        res.json({
-            success: true,
-            data: entitlements
-        });
+        res.json({ success: true, data: entitlements });
     } catch (error) {
         console.error('Get entitlements error:', error);
         res.status(500).json({

@@ -14,6 +14,10 @@ interface DriverLapState {
     lastLapDistPct: number;
     fuelAtLapStart: number;
     wasInPit: boolean; // For out-lap detection
+    // In-lap dirty flags (accumulated; reset on each new lap)
+    hadIncident: boolean;
+    hadTrafficThisLap: boolean;
+    hadYellowThisLap: boolean;
 }
 
 export interface LapTrackerEvents {
@@ -62,7 +66,10 @@ export class LapTracker extends EventEmitter {
                 lapStartTime: sessionTimeMs,
                 lastLapDistPct: lapDistPct,
                 fuelAtLapStart: fuelLevel,
-                wasInPit: inPit
+                wasInPit: inPit,
+                hadIncident: false,
+                hadTrafficThisLap: false,
+                hadYellowThisLap: false,
             };
             this.driverStates.set(driverId, state);
             return null;
@@ -81,13 +88,13 @@ export class LapTracker extends EventEmitter {
             const lapTimeMs = sessionTimeMs - state.lapStartTime;
             const fuelUsed = state.fuelAtLapStart - fuelLevel;
 
-            // Determine lap flags
+            // Determine lap flags from accumulated in-lap state
             const flags: LapFlags = {
-                isClean: true, // TODO: Integrate with incident detection
+                isClean: !state.hadIncident,
                 isInLap: inPit,
                 isOutLap: state.wasInPit,
-                hadTraffic: false, // TODO: Integrate with spatial awareness
-                hadYellow: false,  // TODO: Integrate with flag state
+                hadTraffic: state.hadTrafficThisLap,
+                hadYellow: state.hadYellowThisLap,
                 isPersonalBest: false // Calculated after adding to history
             };
 
@@ -129,6 +136,9 @@ export class LapTracker extends EventEmitter {
             state.lapStartTime = sessionTimeMs;
             state.fuelAtLapStart = fuelLevel;
             state.wasInPit = inPit;
+            state.hadIncident = false;
+            state.hadTrafficThisLap = false;
+            state.hadYellowThisLap = false;
         }
 
         // Update tracking state
@@ -136,6 +146,33 @@ export class LapTracker extends EventEmitter {
         state.wasInPit = inPit;
 
         return completedLap;
+    }
+
+    /**
+     * Mark current lap as dirty (incident occurred).
+     * Called by incident detection when an incident is logged for this driver.
+     */
+    markIncident(driverId: string): void {
+        const state = this.driverStates.get(driverId);
+        if (state) state.hadIncident = true;
+    }
+
+    /**
+     * Mark current lap as traffic-affected (slower car within 2s gap).
+     * Called by spatial awareness service when close traffic is detected.
+     */
+    markTraffic(driverId: string): void {
+        const state = this.driverStates.get(driverId);
+        if (state) state.hadTrafficThisLap = true;
+    }
+
+    /**
+     * Mark current lap as yellow-flag-affected.
+     * Called by session flag handler when a yellow/FCY is active.
+     */
+    markYellow(driverId: string): void {
+        const state = this.driverStates.get(driverId);
+        if (state) state.hadYellowThisLap = true;
     }
 
     /**
