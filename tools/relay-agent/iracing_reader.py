@@ -257,8 +257,9 @@ class IRacingReader:
                 # Keep player car even when iRacing reports position 0 (common in pits/grid).
                 # Otherwise, player disappears from telemetry and UI falls back to P1 car.
                 is_player = car_idx == player_car_idx
-                if positions[car_idx] <= 0 and not is_player:
-                    continue  # Skip non-player cars not in session
+                has_valid_lap_pct = car_idx < len(lap_pcts) and lap_pcts[car_idx] is not None and lap_pcts[car_idx] >= 0
+                if positions[car_idx] <= 0 and not is_player and not has_valid_lap_pct:
+                    continue  # Skip non-player cars not in session/without usable track position
                 
                 # Get incident count for this car
                 incident_count = 0

@@ -381,7 +381,19 @@ export function DriverCockpit() {
           <TrackMap
             trackId={trackId}
             carPosition={activeTelemetry.carPosition}
-            otherCars={realTelemetry.otherCars?.map(o => ({ x: 0, y: 0, trackPercentage: o.trackPercentage, carNumber: o.carNumber, color: o.color })) || []}
+            otherCars={realTelemetry.otherCars
+              ?.filter(o => typeof o.trackPercentage === 'number' && o.trackPercentage >= 0 && o.trackPercentage <= 1)
+              .map(o => ({
+                x: 0,
+                y: 0,
+                trackPercentage: o.trackPercentage,
+                carNumber: o.carNumber,
+                color: o.color,
+                driverName: o.driverName,
+                position: o.position,
+                isPlayer: o.isPlayer,
+                inPit: o.inPit,
+              })) || []}
             telemetry={heatmapData}
             className="w-full h-full"
           />

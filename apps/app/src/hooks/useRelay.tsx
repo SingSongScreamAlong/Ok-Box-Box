@@ -10,6 +10,7 @@ export interface CarMapPosition {
   position?: number;
   color?: string;
   isPlayer?: boolean;
+  inPit?: boolean;
   gap?: string;
   lastLap?: string;
 }
@@ -429,6 +430,10 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       
       // Extract leaderboard from standings array (relay sends standings)
       const drivers = data?.standings || data?.drivers;
+      const liveCars = Array.isArray(data?.cars) ? data.cars : [];
+      const carsByIdx = new Map<any, any>(
+        liveCars.map((c: any) => [c?.carIdx ?? c?.carId, c])
+      );
       const playerStanding = Array.isArray(data?.standings)
         ? data.standings.find((s: any) => s?.isPlayer)
         : undefined;
@@ -439,15 +444,27 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       
       if (drivers && Array.isArray(drivers) && drivers.length > 0) {
         const sortedDrivers = [...drivers].sort((a, b) => (a.position || 999) - (b.position || 999));
+        const totalDrivers = Math.max(sortedDrivers.length, 1);
         setTelemetry(prev => ({
           ...prev,
           position: typeof playerStanding?.position === 'number' && playerStanding.position > 0
             ? playerStanding.position
             : prev.position,
           otherCars: sortedDrivers.map((driver, idx) => {
+            const liveCar = carsByIdx.get(driver.carIdx ?? driver.carId);
             const isPlayer = !!driver.isPlayer || (playerCarIdx != null && driver.carIdx === playerCarIdx);
+            const standingPct = typeof driver.lapDistPct === 'number' ? driver.lapDistPct : undefined;
+            const livePct = typeof liveCar?.pos?.s === 'number' ? liveCar.pos.s : undefined;
+            const positionBasedPct =
+              (typeof driver.position === 'number' && driver.position > 0)
+                ? ((driver.position - 1) / totalDrivers)
+                : (idx / totalDrivers);
+            const trackPercentage =
+              (standingPct != null && standingPct >= 0 && standingPct <= 1)
+                ? standingPct
+                : ((livePct != null && livePct >= 0 && livePct <= 1) ? livePct : positionBasedPct);
             return {
-              trackPercentage: driver.lapDistPct || 0,
+              trackPercentage,
               carNumber: driver.carNumber || String(driver.position || idx + 1),
               driverName: driver.driverName || `Car ${idx + 1}`,
               position: driver.position || idx + 1,
@@ -455,6 +472,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
               lastLap: driver.lastLapTime > 0 ? formatLapTime(driver.lastLapTime) : '—',
               color: isPlayer ? '#10b981' : '#374151',
               isPlayer,
+              inPit: !!(driver.onPitRoad ?? liveCar?.onPitRoad ?? liveCar?.inPit),
             };
           }),
         }));
@@ -463,10 +481,13 @@ export function RelayProvider({ children }: { children: ReactNode }) {
 
     socket.on('competitor_data', (data: any[]) => {
       if (data && Array.isArray(data)) {
+        const totalDrivers = Math.max(data.length, 1);
         setTelemetry(prev => ({
           ...prev,
           otherCars: data.map((car, idx) => ({
-            trackPercentage: car.lapDistPct ?? 0,
+            trackPercentage: (typeof car.lapDistPct === 'number' && car.lapDistPct >= 0 && car.lapDistPct <= 1)
+              ? car.lapDistPct
+              : (idx / totalDrivers),
             carNumber: car.carNumber || String(car.position || idx + 1),
             driverName: car.driver || `Car ${idx + 1}`,
             position: car.position || idx + 1,
