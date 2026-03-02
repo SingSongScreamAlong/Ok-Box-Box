@@ -81,12 +81,14 @@ class RelayAgent:
         self.session_id: Optional[str] = None
         self.last_flag_state: str = 'green'
         self.last_strategy_raw: float = 0 # Phase 11 (now strategy_raw)
+        self.last_standings_emit: float = 0
 
         # v2: Rate control for multi-stream telemetry
         self.last_baseline_time: float = 0
         self.last_controls_time: float = 0
         self.BASELINE_INTERVAL: float = 1.0 / 4    # 4 Hz
         self.CONTROLS_INTERVAL: float = 1.0 / 15   # 15 Hz
+        self.STANDINGS_INTERVAL: float = 1.0       # 1 Hz
         
         # Stats
         self.start_time = 0
@@ -395,29 +397,31 @@ class RelayAgent:
         self.cloud_client.emit('telemetry', telemetry)
         self.telemetry_count += 1
         
-        # === Standings for leaderboard ===
-        standings = []
-        for car in sorted(cars, key=lambda c: c.position if c.position > 0 else 999):
-            standings.append({
-                'carIdx': car.car_id,
-                'driverName': car.driver_name,
-                'carNumber': car.car_number,
-                'position': car.position,
-                'classPosition': car.class_position,
-                'lapDistPct': car.track_pct,
-                'lap': car.lap,
-                'lastLapTime': car.last_lap_time,
-                'bestLapTime': car.best_lap_time,
-                'onPitRoad': car.in_pit,
-                'isPlayer': car.is_player,
-                'iRating': car.irating,
-                'gapToLeader': 0,
+        # === Standings for leaderboard (1Hz) ===
+        if now - self.last_standings_emit >= self.STANDINGS_INTERVAL:
+            standings = []
+            for car in sorted(cars, key=lambda c: c.position if c.position > 0 else 999):
+                standings.append({
+                    'carIdx': car.car_id,
+                    'driverName': car.driver_name,
+                    'carNumber': car.car_number,
+                    'position': car.position,
+                    'classPosition': car.class_position,
+                    'lapDistPct': car.track_pct,
+                    'lap': car.lap,
+                    'lastLapTime': car.last_lap_time,
+                    'bestLapTime': car.best_lap_time,
+                    'onPitRoad': car.in_pit,
+                    'isPlayer': car.is_player,
+                    'iRating': car.irating,
+                    'gapToLeader': 0,
+                })
+            self.cloud_client.emit('standings', {
+                'sessionId': self.session_id,
+                'standings': standings,
+                'totalCars': len(standings),
             })
-        self.cloud_client.emit('standings', {
-            'sessionId': self.session_id,
-            'standings': standings,
-            'totalCars': len(standings),
-        })
+            self.last_standings_emit = now
         
         # === v2 streams + MoTeC (player car only) ===
         player_car = None

@@ -52,8 +52,21 @@ export class AuthGate {
                 const eventName = packet[0];
 
                 // Skip rate limiting for high-freq telemetry to avoid overhead/blocking
-                // Telemetry implements its own internal throttling/processing usually
-                if (eventName === 'telemetry' || eventName === 'telemetry_binary' || eventName === 'video_frame') {
+                // and for relay feed events that must not be dropped.
+                const relayBypassEvents = new Set([
+                    'telemetry',
+                    'telemetry_binary',
+                    'video_frame',
+                    'standings',
+                    'strategy_raw',
+                    'session_metadata',
+                    'session_info',
+                    'incident',
+                    'race_event',
+                    'telemetry:baseline',
+                    'telemetry:controls',
+                ]);
+                if (relayBypassEvents.has(eventName)) {
                     return next();
                 }
 
