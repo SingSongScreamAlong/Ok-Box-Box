@@ -258,7 +258,9 @@ class IRacingReader:
                 # Otherwise, player disappears from telemetry and UI falls back to P1 car.
                 is_player = car_idx == player_car_idx
                 has_valid_lap_pct = car_idx < len(lap_pcts) and lap_pcts[car_idx] is not None and lap_pcts[car_idx] >= 0
-                if positions[car_idx] <= 0 and not is_player and not has_valid_lap_pct:
+                on_pit_road = bool(on_pit[car_idx]) if car_idx < len(on_pit) else False
+                has_lap_progress = car_idx < len(laps) and laps[car_idx] is not None and laps[car_idx] > 0
+                if positions[car_idx] <= 0 and not is_player and not has_valid_lap_pct and not on_pit_road and not has_lap_progress:
                     continue  # Skip non-player cars not in session/without usable track position
                 
                 # Get incident count for this car
