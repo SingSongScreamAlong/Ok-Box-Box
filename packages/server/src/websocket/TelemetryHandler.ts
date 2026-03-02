@@ -117,7 +117,11 @@ export class TelemetryHandler {
 
             // Emit competitor_data to frontend (all cars)
             const competitorData = rawData.standings
-                .sort((a: any, b: any) => (a.position || 0) - (b.position || 0))
+                .sort((a: any, b: any) => {
+                    const aPos = typeof a.position === 'number' && a.position > 0 ? a.position : 999;
+                    const bPos = typeof b.position === 'number' && b.position > 0 ? b.position : 999;
+                    return aPos - bPos;
+                })
                 .map((s: any) => ({
                     position: s.position || 0,
                     driver: s.driverName || `Car ${s.carIdx}`,
@@ -133,6 +137,16 @@ export class TelemetryHandler {
         // Telemetry snapshot
         socket.on('telemetry', (data: unknown) => {
             const rawData = data as any;
+            const selectDriverCar = (payload: any) => {
+                const cars = Array.isArray(payload?.cars) ? payload.cars : [];
+                return (
+                    cars.find((c: any) => c?.isPlayer) ||
+                    cars.find((c: any) => payload?.playerCarIdx != null && (c?.carIdx === payload.playerCarIdx || c?.carId === payload.playerCarIdx)) ||
+                    cars[0] ||
+                    payload?.car ||
+                    payload
+                );
+            };
             
             // Log first packet for debugging
             if (!TelemetryHandler.firstPacketLogged) {
@@ -142,7 +156,7 @@ export class TelemetryHandler {
             }
             
             // Run server-side inference engine on raw telemetry (60Hz)
-            const telemetryCar = rawData?.cars?.[0] || rawData?.car || rawData;
+            const telemetryCar = selectDriverCar(rawData);
             const telemetrySessionId = rawData?.sessionId || 'live';
             const inferenceEngine = getOrCreateEngine(telemetrySessionId);
             inferenceEngine.processTelemetry(rawData);
@@ -184,7 +198,7 @@ export class TelemetryHandler {
             if (rawData && typeof rawData === 'object') {
                 
                 // Try multiple possible data structures
-                const car = rawData.cars?.[0] || rawData.car || rawData;
+                const car = selectDriverCar(rawData);
                 const speedMph = car?.speed ? Math.round(car.speed * 2.237) : undefined;
                 
                 // Cache ALL telemetry for voice queries
@@ -329,8 +343,8 @@ export class TelemetryHandler {
                 timing: { entries: timingEntries }
             };
 
-            // Update telemetry cache for voice context (use first car as driver)
-            const driverCar = validData.cars?.[0];
+            // Update telemetry cache for voice context (prefer player car)
+            const driverCar = selectDriverCar(validData);
             if (driverCar) {
                 updateTelemetryCache(validData.sessionId || 'live', {
                     trackName: session.trackName,
@@ -358,6 +372,15 @@ export class TelemetryHandler {
             // This allows the Live Race Ops Console to receive telemetry data
             if (driverCar) {
                 const driverSpeedMph = driverCar.speed ? Math.round(driverCar.speed * 2.237) : 0;
+                const playerStanding = this.cachedStandings.find((s: any) => s.isPlayer);
+                const racePosition =
+                    (typeof driverCar.position === 'number' && driverCar.position > 0)
+                        ? driverCar.position
+                        : (typeof playerStanding?.position === 'number' && playerStanding.position > 0 ? playerStanding.position : 0);
+                const trackPosition =
+                    (typeof driverCar.lapDistPct === 'number' ? driverCar.lapDistPct : undefined) ??
+                    (typeof driverCar.pos?.s === 'number' ? driverCar.pos.s : undefined) ??
+                    (typeof playerStanding?.lapDistPct === 'number' ? playerStanding.lapDistPct : 0);
                 const lrocTelemetry = {
                     driverId: driverCar.driverId || String(driverCar.carId),
                     driverName: driverCar.driverName || 'Driver',
@@ -388,8 +411,8 @@ export class TelemetryHandler {
                     deltaToBestLap: driverCar.deltaToSessionBest || 0,
                     bestSectorTimes: [],
                     gForce: { lateral: 0, longitudinal: 0, vertical: 0 },
-                    trackPosition: driverCar.lapDistPct || 0,
-                    racePosition: driverCar.position || 0,
+                    trackPosition,
+                    racePosition,
                     gapAhead: inferred.gaps.toCarAhead,
                     gapBehind: 0, // Gap behind only available in 1Hz car:status path
                     flags: 0,
@@ -404,16 +427,19 @@ export class TelemetryHandler {
                 this.io.volatile.emit('telemetry_update', lrocTelemetry);
                 
                 // Also emit telemetry:driver for Driver Tier app compatibility
-                // Include cached standings so frontend can build otherCars array
-                this.io.volatile.emit('telemetry:driver', {
-                    ...rawData,
+                const driverPayload = {
+                    sessionId: validData.sessionId,
+                    timestamp: Date.now(),
+                    cars: validData.cars,
+                    drivers: driverCar ? [driverCar] : [],
                     standings: this.cachedStandings,
                     totalCars: this.cachedStandings.length || undefined,
                     trackName: rawData.trackName || session?.trackName,
                     sessionType: rawData.sessionType || session?.sessionType,
                     rpmRedline: currentSessionInfo?.rpmRedline,
                     fuelTankCapacity: currentSessionInfo?.fuelTankCapacity,
-                });
+                };
+                this.io.emit('telemetry:driver', driverPayload);
                 
                 // Also emit session_info for LROC (throttled to 1Hz)
                 const now = Date.now();
@@ -706,7 +732,8 @@ export class TelemetryHandler {
             const maxDamage = Math.max(inferred.damage.aero, inferred.damage.engine);
             const damageStatus = maxDamage < 0.05 ? 'green' : maxDamage < 0.3 ? 'yellow' : 'red';
 
-            this.io.to(`session:${data.sessionId}`).emit('car:status', {
+            // Emit globally so cockpit clients that don't join session rooms can receive
+            this.io.volatile.emit('car:status', {
                 fuel: {
                     level: inferred.fuel.level,
                     percentage: fuelPct,

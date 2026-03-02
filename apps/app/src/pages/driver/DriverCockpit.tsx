@@ -74,6 +74,7 @@ export function DriverCockpit() {
 
   const DeltaIcon = activeTelemetry.delta < 0 ? TrendingUp : activeTelemetry.delta > 0 ? TrendingDown : Minus;
   const deltaColor = activeTelemetry.delta < 0 ? 'text-emerald-400' : activeTelemetry.delta > 0 ? 'text-red-400' : 'text-white/50';
+  const positionLabel = activeTelemetry.position > 0 ? `P${activeTelemetry.position}` : 'P--';
 
   return (
     <div className="h-[calc(100vh-9rem)] flex relative bg-[#0a0a0a] overflow-hidden">
@@ -137,7 +138,7 @@ export function DriverCockpit() {
           </h3>
           <div className="bg-white/[0.03] rounded p-4 border border-white/[0.08] backdrop-blur-sm">
             <div className="text-5xl font-bold text-white/90 font-mono">
-              P{activeTelemetry.position}
+              {positionLabel}
             </div>
             <div className="flex items-center gap-2 mt-2">
               <DeltaIcon className={`w-4 h-4 ${deltaColor}`} />
@@ -442,7 +443,7 @@ export function DriverCockpit() {
         </div>
 
         {/* Leaderboard List */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
           {/* Show real data from otherCars or placeholder when no data */}
           {realTelemetry.otherCars && realTelemetry.otherCars.length > 0 ? (
             realTelemetry.otherCars.map((car, idx) => (

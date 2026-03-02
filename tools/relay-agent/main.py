@@ -183,8 +183,7 @@ class RelayAgent:
             try:
                 # Send session metadata on first connect
                 if not session_sent:
-                    self._send_session_metadata()
-                    session_sent = True
+                    session_sent = self._send_session_metadata()
                 
                 # Check flag state changes
                 self._check_flag_state()
@@ -298,12 +297,12 @@ class RelayAgent:
         return self._pit_stop_counts.get(car_id, 0)
 
     
-    def _send_session_metadata(self):
-        """Send session metadata to cloud"""
+    def _send_session_metadata(self) -> bool:
+        """Send session metadata to cloud. Returns True on success."""
         session = self.ir_reader.get_session_data()
         if not session:
-            logger.warning("Could not read session data")
-            return
+            logger.warning("No session data available")
+            return False
         
         self.session_id = session.session_id
         metadata = map_session_metadata(session, config.RELAY_ID)
@@ -313,12 +312,16 @@ class RelayAgent:
         logger.info(f"   Category: {self.discipline_category}")
         logger.info(f"   Multi-class: {session.is_multiclass}")
         
-        self.cloud_client.send_session_metadata(metadata)
+        ok = self.cloud_client.send_session_metadata(metadata)
+        if not ok:
+            logger.warning("⚠️ Failed to send session_metadata, will retry")
+            return False
         
         # NOW start video encoder (client has session ID)
         if not self.video_encoder.running:
-            logger.info("🎥 Starting video encoder...")
             self.video_encoder.start()
+
+        return True
     
     def _check_flag_state(self):
         """Check for flag state changes and send race events"""
@@ -359,10 +362,10 @@ class RelayAgent:
     
     def _send_telemetry(self):
         """
-        Send telemetry using v2 multi-stream protocol.
+        Send telemetry to server.
         
-        - Baseline: 4 Hz (always)
-        - Controls: 15 Hz (when viewers present)
+        JSON telemetry + standings are sent for ALL cars (works in spectator mode).
+        v2 streams (baseline/controls) only sent when a player car is found.
         """
         cars = self.ir_reader.get_all_cars()
         
@@ -370,15 +373,59 @@ class RelayAgent:
             return
         
         now = time.time()
-        player_car = None
         
-        # Find player car
+        # === JSON telemetry for ALL cars (server needs this for telemetry:driver) ===
+        telemetry = map_telemetry_snapshot(self.session_id, cars)
+        for i, car in enumerate(cars):
+            telemetry['cars'][i]['driverName'] = car.driver_name
+            telemetry['cars'][i]['carName'] = car.car_name
+            telemetry['cars'][i]['carNumber'] = car.car_number
+            telemetry['cars'][i]['lastLapTime'] = car.last_lap_time
+            telemetry['cars'][i]['bestLapTime'] = car.best_lap_time
+            telemetry['cars'][i]['incidentCount'] = car.incident_count
+            telemetry['cars'][i]['steeringAngle'] = car.steering
+            telemetry['cars'][i]['fuelLevel'] = car.fuel_level
+            telemetry['cars'][i]['fuelPct'] = car.fuel_pct
+            telemetry['cars'][i]['fuelUsePerHour'] = car.fuel_use_per_hour
+            telemetry['cars'][i]['onPitRoad'] = car.in_pit
+            telemetry['cars'][i]['isOnTrack'] = not car.in_pit
+            telemetry['cars'][i]['iRating'] = car.irating
+            telemetry['cars'][i]['carIdx'] = car.car_id
+            telemetry['cars'][i]['isPlayer'] = car.is_player
+        self.cloud_client.emit('telemetry', telemetry)
+        self.telemetry_count += 1
+        
+        # === Standings for leaderboard ===
+        standings = []
+        for car in sorted(cars, key=lambda c: c.position if c.position > 0 else 999):
+            standings.append({
+                'carIdx': car.car_id,
+                'driverName': car.driver_name,
+                'carNumber': car.car_number,
+                'position': car.position,
+                'classPosition': car.class_position,
+                'lapDistPct': car.track_pct,
+                'lap': car.lap,
+                'lastLapTime': car.last_lap_time,
+                'bestLapTime': car.best_lap_time,
+                'onPitRoad': car.in_pit,
+                'isPlayer': car.is_player,
+                'iRating': car.irating,
+                'gapToLeader': 0,
+            })
+        self.cloud_client.emit('standings', {
+            'sessionId': self.session_id,
+            'standings': standings,
+            'totalCars': len(standings),
+        })
+        
+        # === v2 streams + MoTeC (player car only) ===
+        player_car = None
         for car in cars:
             if car.is_player:
                 player_car = car
-                # Log to MoTeC
                 self.motec_exporter.add_sample({
-                    "Speed": car.speed * 3.6, # m/s to km/h
+                    "Speed": car.speed * 3.6,
                     "RPM": car.rpm,
                     "Gear": float(car.gear),
                     "Throttle": car.throttle * 100,
@@ -388,46 +435,33 @@ class RelayAgent:
                 })
                 break
         
-        if not player_car:
-            return
-        
-        # Build car data dict for v2 streams
-        car_data = {
-            'speed': player_car.speed,
-            'gear': player_car.gear,
-            'rpm': player_car.rpm,
-            'lap': player_car.lap,
-            'lapDistPct': player_car.track_pct,
-            'position': player_car.position,
-            'fuelLevel': player_car.fuel_level,
-            'fuelPct': player_car.fuel_pct,
-            'sessionFlags': 0,  # TODO: get from session
-            'gapAhead': None,   # TODO: calculate
-            'gapBehind': None,  # TODO: calculate
-            'throttle': player_car.throttle,
-            'brake': player_car.brake,
-            'clutch': player_car.clutch,
-            'steering': player_car.steering,
-        }
-        
-        # v2: Baseline stream (4 Hz always)
-        if (now - self.last_baseline_time) >= self.BASELINE_INTERVAL:
-            self.cloud_client.send_baseline_stream(car_data)
-            self.last_baseline_time = now
-            self.telemetry_count += 1
-        
-        # v2: Controls stream (15 Hz when viewers present)
-        if self.cloud_client.should_send_controls():
-            if (now - self.last_controls_time) >= self.CONTROLS_INTERVAL:
-                self.cloud_client.send_controls_stream(car_data)
-                self.last_controls_time = now
-        
-        # Legacy: Also send old format for backward compatibility
-        telemetry = map_telemetry_snapshot(self.session_id, cars)
-        self.cloud_client.send_telemetry_binary(telemetry)
-        
-        if config.LOG_TELEMETRY:
-            logger.debug(f"📊 Telemetry: {len(cars)} cars")
+        if player_car:
+            car_data = {
+                'speed': player_car.speed,
+                'gear': player_car.gear,
+                'rpm': player_car.rpm,
+                'lap': player_car.lap,
+                'lapDistPct': player_car.track_pct,
+                'position': player_car.position,
+                'fuelLevel': player_car.fuel_level,
+                'fuelPct': player_car.fuel_pct,
+                'sessionFlags': 0,
+                'gapAhead': None,
+                'gapBehind': None,
+                'throttle': player_car.throttle,
+                'brake': player_car.brake,
+                'clutch': player_car.clutch,
+                'steering': player_car.steering,
+            }
+            
+            if (now - self.last_baseline_time) >= self.BASELINE_INTERVAL:
+                self.cloud_client.send_baseline_stream(car_data)
+                self.last_baseline_time = now
+            
+            if self.cloud_client.should_send_controls():
+                if (now - self.last_controls_time) >= self.CONTROLS_INTERVAL:
+                    self.cloud_client.send_controls_stream(car_data)
+                    self.last_controls_time = now
 
 
 

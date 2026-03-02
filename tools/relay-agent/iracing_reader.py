@@ -251,8 +251,14 @@ class IRacingReader:
             player_yaw = self.ir['Yaw'] or 0
             
             for car_idx, driver_info in self._car_info_cache.items():
-                if car_idx >= len(positions) or positions[car_idx] <= 0:
-                    continue  # Skip cars not in session
+                if car_idx >= len(positions):
+                    continue  # Skip invalid indices
+
+                # Keep player car even when iRacing reports position 0 (common in pits/grid).
+                # Otherwise, player disappears from telemetry and UI falls back to P1 car.
+                is_player = car_idx == player_car_idx
+                if positions[car_idx] <= 0 and not is_player:
+                    continue  # Skip non-player cars not in session
                 
                 # Get incident count for this car
                 incident_count = 0
@@ -262,7 +268,6 @@ class IRacingReader:
                     pass
                 
                 # Populate coordinate data for player car only
-                is_player = car_idx == player_car_idx
                 
                 car_data = CarData(
                     car_id=car_idx,

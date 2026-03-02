@@ -216,6 +216,14 @@ function formatLapTime(seconds: number): string {
   return mins > 0 ? `${mins}:${secs.padStart(6, '0')}` : secs;
 }
 
+function normalizeTrackName(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.toLowerCase() === 'unknown track') return null;
+  return trimmed;
+}
+
 export function RelayProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<RelayStatus>('disconnected');
   const [initialized, setInitialized] = useState(false);
@@ -312,9 +320,10 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     socket.on('session_info', (data: any) => {
       console.log('[Relay] Session info:', data);
       setStatus('in_session');
+      const nextTrackName = normalizeTrackName(data.track ?? data.trackName);
       setSession(prev => ({
         ...prev,
-        trackName: data.track || data.trackName || prev.trackName || 'Unknown Track',
+        trackName: nextTrackName ?? prev.trackName,
         sessionType: (data.session || data.sessionType || prev.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
         timeRemaining: data.remainingTime || prev.timeRemaining,
         lapsRemaining: data.totalLaps || prev.lapsRemaining,
@@ -324,9 +333,10 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     socket.on('session:active', (data: any) => {
       console.log('[Relay] Session active:', data);
       setStatus('in_session');
+      const nextTrackName = normalizeTrackName(data.trackName);
       setSession(prev => ({
         ...prev,
-        trackName: data.trackName || prev.trackName || 'Unknown Track',
+        trackName: nextTrackName ?? prev.trackName,
         trackId: data.trackId || prev.trackId,  // iRacing track ID for shape file loading
         sessionType: (data.sessionType || prev.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
         rpmRedline: data.rpmRedline || prev.rpmRedline,
@@ -338,18 +348,25 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     socket.on('session:metadata', (data: any) => {
       console.log('[Relay] Session metadata:', data);
       setStatus('in_session');
+      const nextTrackName = normalizeTrackName(data.trackName);
       setSession(prev => ({
         ...prev,
-        trackName: data.trackName || prev.trackName || 'Unknown Track',
+        trackName: nextTrackName ?? prev.trackName,
         sessionType: (data.sessionType || prev.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
       }));
     });
 
     // Handler for processing telemetry data
     const handleTelemetryData = (data: any) => {
-      const car = data?.cars?.[0];
       const driver = data?.drivers?.[0];
-      const driverData = car || driver || data;
+      const cars = Array.isArray(data?.cars) ? data.cars : [];
+      const preferredCar =
+        cars.find((c: any) => c?.isPlayer) ||
+        cars.find((c: any) => driver?.carIdx != null && c?.carIdx === driver.carIdx) ||
+        cars.find((c: any) => driver?.carId != null && c?.carId === driver.carId) ||
+        cars[0];
+      const car = preferredCar;
+      const driverData = driver || car || data;
       
       // Guard: position can be {x,y,z} object from LROC telemetry_update — only accept numbers
       const rawPos = driver?.position ?? car?.position ?? driverData.racePosition ?? driverData.position;
@@ -402,23 +419,33 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       handleTelemetryData(data);
       
       if (data?.trackName || data?.sessionType) {
+        const nextTrackName = normalizeTrackName(data.trackName);
         setSession(prev => ({
           ...prev,
-          trackName: data.trackName || prev.trackName,
+          trackName: nextTrackName ?? prev.trackName,
           sessionType: data.sessionType || prev.sessionType,
         }));
       }
       
       // Extract leaderboard from standings array (relay sends standings)
       const drivers = data?.standings || data?.drivers;
-      const playerCarIdx = data?.cars?.[0]?.carIdx;
+      const playerStanding = Array.isArray(data?.standings)
+        ? data.standings.find((s: any) => s?.isPlayer)
+        : undefined;
+      const playerCarIdx =
+        data?.drivers?.[0]?.carIdx ??
+        data?.cars?.find((c: any) => c?.isPlayer)?.carIdx ??
+        playerStanding?.carIdx;
       
       if (drivers && Array.isArray(drivers) && drivers.length > 0) {
         const sortedDrivers = [...drivers].sort((a, b) => (a.position || 999) - (b.position || 999));
         setTelemetry(prev => ({
           ...prev,
+          position: typeof playerStanding?.position === 'number' && playerStanding.position > 0
+            ? playerStanding.position
+            : prev.position,
           otherCars: sortedDrivers.map((driver, idx) => {
-            const isPlayer = driver.isPlayer || driver.carIdx === playerCarIdx;
+            const isPlayer = !!driver.isPlayer || (playerCarIdx != null && driver.carIdx === playerCarIdx);
             return {
               trackPercentage: driver.lapDistPct || 0,
               carNumber: driver.carNumber || String(driver.position || idx + 1),

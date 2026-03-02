@@ -23,6 +23,7 @@ def map_session_metadata(session: SessionData, relay_id: str) -> Dict[str, Any]:
         'sessionId': session.session_id,
         'timestamp': int(time.time() * 1000),
         'trackName': session.track_name,
+        'sessionType': session_type,
         'trackConfig': session.track_config if session.track_config else None,
         'trackId': session.track_id,  # iRacing track ID for shape file loading
         'trackLength': session.track_length,
