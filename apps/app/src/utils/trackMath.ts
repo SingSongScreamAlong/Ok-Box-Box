@@ -8,52 +8,37 @@ export interface Point {
 
 /**
  * Calculates a point (x, y) on the track centerline given a 0-1 percentage.
- * Handles interpolation between points for smooth visuals.
+ * Handles interpolation between points and wrap-around at the finish line.
  */
 export function getPointAtPercentage(shape: TrackShape | null | undefined, percentage: number): Point | null {
     if (!shape || !shape.centerline || shape.centerline.length < 2) return null;
 
-    // Normalize percentage
     const pct = Math.max(0, Math.min(1, percentage));
     const cl = shape.centerline;
 
-    // Find the segment containing this percentage
-    // We assume points are sorted by distPct (0 -> 1)
     let idx = cl.findIndex(p => p.distPct >= pct);
+    // If pct exceeds the last point's distPct (e.g. exactly 1.0), wrap to segment [last, first]
+    if (idx === -1) idx = 0;
 
-    // Handle wrap-around or end of track
-    if (idx === -1) {
-        // If we exceeded the last point's distPct (likely 1.0), wrap to 0? 
-        // Or just clamp to last segment.
-        idx = 0;
-    }
-
-    // p2 is the point *after* our location
-    // p1 is the point *before* our location
+    // p2 is the point at or just after our position; p1 is the point just before
     const p2 = cl[idx];
     const p1 = cl[idx === 0 ? cl.length - 1 : idx - 1];
 
-    let d1 = p1.distPct;
-    let d2 = p2.distPct;
+    const d1 = p1.distPct;
+    const d2 = p2.distPct;
 
-    // Handle loop closure case (e.g. p1 is 0.99, p2 is 0.01)
+    let ratio: number;
     if (d1 > d2) {
-        // We are crossing the finish line.
-        // Treating 0 as 1.0 for the calculation relative to d1
-        // Actually, easiest is to treat d1 as 0-offset if we are wrapping?
-        // Let's assume standardized 0->1.
-        // If d1 > d2, it means p1 is end, p2 is start.
-        d1 = 0;
-        // This logic is tricky for loop closure.
-        // Simplified: If we are between Last and First, interpolating might be weird unless we handle the wrap.
-        // For now, let's just clamp to p2 if d1 > d2 to avoid jump gltiches.
-        // Or use the `carPosition` logic from TrackVisuals which seemed to work:
-        if (d1 > d2) d1 = 0; // This was the logic in TrackVisuals, let's trust it for now.
+        // Wrap-around: p1 is near the finish (e.g. 0.998), p2 is near the start (e.g. 0.002).
+        // "Unwrap" by treating d2 as d2 + 1.0 and pct as pct + 1.0 when pct < d1.
+        const unwrappedD2 = d2 + 1.0;
+        const unwrappedPct = pct < d1 ? pct + 1.0 : pct;
+        const segLen = unwrappedD2 - d1;
+        ratio = segLen > 0.000001 ? (unwrappedPct - d1) / segLen : 0;
+    } else {
+        const segLen = d2 - d1;
+        ratio = segLen > 0.000001 ? (pct - d1) / segLen : 0;
     }
-
-    // Avoid divide by zero
-    const segmentLength = d2 - d1;
-    const ratio = segmentLength > 0.000001 ? (pct - d1) / segmentLength : 0;
 
     return {
         x: p1.x + (p2.x - p1.x) * ratio,

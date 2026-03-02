@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { 
+import {
   Users, Clock, Fuel, Flag, AlertTriangle, ChevronDown, ChevronUp,
   Thermometer, Droplets, Wind, Sun, CloudRain
 } from 'lucide-react';
 import { useRelay } from '../../hooks/useRelay';
 import { getTeam, Team } from '../../lib/teams';
 import { useTeamData } from '../../hooks/useTeamData';
+import { TrackMapPro } from '../../components/TrackMapPro';
 
 // Types for Team Race Viewer
 interface Driver {
@@ -152,7 +153,7 @@ export function TeamRaceViewer() {
   const [session, setSession] = useState<RaceSession | null>(null); // Demo disabled - start null
   const [expandedStint, setExpandedStint] = useState<string | null>(null);
   const [showStintHistory, setShowStintHistory] = useState(true);
-  useRelay(); // Hook for relay connection state
+  const { status: relayStatus, telemetry: relayTelemetry, session: relaySession } = useRelay();
   const videoRef = useRef<HTMLVideoElement>(null);
   
   // Map service drivers to local format
@@ -240,14 +241,47 @@ export function TeamRaceViewer() {
     }
   };
 
-  // Guard against null data — show loading state
+  // The active track name: prefer local mock session, fall back to relay
+  const activeTrackName = session?.trackName || relaySession.trackName || null;
+
+  // Build car position for TrackMapPro from relay telemetry
+  const relayCarPosition = relayTelemetry.trackPosition !== null ? {
+    x: 0, y: 0,
+    trackPercentage: relayTelemetry.trackPosition,
+    isPlayer: true,
+  } : teamCar ? {
+    x: 0, y: 0,
+    trackPercentage: teamCar.trackPosition,
+    isPlayer: true,
+    inPit: teamCar.inPit,
+  } : undefined;
+
+  // Other cars from relay, or nothing
+  const relayOtherCars = relayTelemetry.otherCars.length > 0
+    ? relayTelemetry.otherCars.map(c => ({ x: 0, y: 0, ...c }))
+    : undefined;
+
+  // Guard against null data — show waiting state with track map if relay is connected
   if (!teamCar || !session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+      <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center gap-6 p-8">
         <div className="text-center">
-          <div className="text-white/40 text-sm uppercase tracking-wider mb-2">Team Race Viewer</div>
-          <div className="text-white/20 text-xs">Waiting for session data...</div>
+          <div className="text-white/40 text-sm uppercase tracking-wider mb-1">Team Race Viewer</div>
+          <div className="text-white/20 text-xs">
+            {relayStatus === 'connected' || relayStatus === 'in_session'
+              ? `Connected — ${activeTrackName || 'No active session'}`
+              : 'Waiting for session data...'}
+          </div>
         </div>
+        {activeTrackName && (
+          <div className="w-full max-w-lg h-64 rounded border border-white/10 overflow-hidden">
+            <TrackMapPro
+              trackId={activeTrackName}
+              carPosition={relayCarPosition}
+              otherCars={relayOtherCars}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -650,8 +684,20 @@ export function TeamRaceViewer() {
             )}
           </div>
 
-          {/* Right Column - Strategy & Alerts */}
+          {/* Right Column - Track Map, Strategy & Alerts */}
           <div className="col-span-3">
+            {/* Track Map */}
+            {activeTrackName && (
+              <div className="bg-white/5 backdrop-blur-xl border border-white/10 mb-4 overflow-hidden" style={{ height: '220px' }}>
+                <TrackMapPro
+                  trackId={activeTrackName}
+                  carPosition={relayCarPosition}
+                  otherCars={relayOtherCars}
+                  className="w-full h-full bg-transparent"
+                />
+              </div>
+            )}
+
             {/* Next Pit Window */}
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 mb-4">
               <div className="text-[10px] font-semibold text-white/40 uppercase tracking-[0.2em] mb-3">

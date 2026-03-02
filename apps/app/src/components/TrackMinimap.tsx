@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useTrackData } from '../hooks/useTrackData';
 import { getTrackId } from '../data/tracks';
+import { getPointAtPercentage } from '../utils/trackMath';
 import type { CarMapPosition } from '../hooks/useRelay';
 
 /**
@@ -35,24 +36,7 @@ export function TrackMinimap({ trackName, trackPosition, otherCars, className = 
         return `${xMin - pad} ${yMin - pad} ${xMax - xMin + pad * 2} ${yMax - yMin + pad * 2}`;
     }, [shape]);
 
-    const getCoords = (pct: number) => {
-        if (!shape?.centerline) return null;
-        const cl = shape.centerline;
-        let idx = cl.findIndex(p => p.distPct >= pct);
-        if (idx === -1) idx = 0;
-        const p2 = cl[idx];
-        const p1 = cl[idx === 0 ? cl.length - 1 : idx - 1];
-        let d1 = p1.distPct;
-        const d2 = p2.distPct;
-        if (d1 > d2) d1 = 0;
-        const ratio = (pct - d1) / (d2 - d1 || 1);
-        return {
-            x: p1.x + (p2.x - p1.x) * ratio,
-            y: p1.y + (p2.y - p1.y) * ratio
-        };
-    };
-
-    const playerCoords = trackPosition != null ? getCoords(trackPosition) : null;
+    const playerCoords = trackPosition != null ? getPointAtPercentage(shape, trackPosition) : null;
 
     if (!trackName || loading || !shape) {
         return (
@@ -75,7 +59,7 @@ export function TrackMinimap({ trackName, trackPosition, otherCars, className = 
                 {/* Other cars — small dots */}
                 {otherCars?.map((car, i) => {
                     if (car.isPlayer || !car.trackPercentage) return null;
-                    const c = getCoords(car.trackPercentage);
+                    const c = getPointAtPercentage(shape, car.trackPercentage);
                     if (!c) return null;
                     return (
                         <motion.circle
