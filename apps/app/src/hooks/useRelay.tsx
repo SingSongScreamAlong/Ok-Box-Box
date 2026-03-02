@@ -358,6 +358,12 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     });
 
     // Handler for processing telemetry data
+    const isValidTrackPct = (value: unknown): value is number =>
+      typeof value === 'number' && value >= 0 && value <= 1;
+
+    const getCarTrackKey = (row: any, idx: number): string =>
+      String(row?.carIdx ?? row?.carId ?? row?.driverId ?? row?.carNumber ?? idx);
+
     const handleTelemetryData = (data: any) => {
       const driver = data?.drivers?.[0];
       const cars = Array.isArray(data?.cars) ? data.cars : [];
@@ -412,31 +418,41 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       handleTelemetryData(data);
 
       const standings = Array.isArray(data?.standings) ? data.standings : [];
-      const cars = Array.isArray(data?.cars) ? data.cars : [];
-      const driverRows = standings.length > 0 ? standings : cars;
+      const liveCars = Array.isArray(data?.cars) ? data.cars : [];
+      const carsByIdx = new Map<any, any>(
+        liveCars.map((c: any) => [c?.carIdx ?? c?.carId, c])
+      );
+      const driverRows = standings.length > 0 ? standings : liveCars;
 
       if (driverRows.length > 0) {
         const sortedDrivers = [...driverRows].sort((a, b) => (a.position || 999) - (b.position || 999));
         const totalDrivers = Math.max(sortedDrivers.length, 1);
-        const playerRow = sortedDrivers.find((d: any) => !!d?.isPlayer) || null;
+        const playerStanding = sortedDrivers.find((d: any) => !!d?.isPlayer) || null;
+        const playerLive = playerStanding
+          ? carsByIdx.get(playerStanding?.carIdx ?? playerStanding?.carId)
+          : liveCars.find((c: any) => !!c?.isPlayer) || null;
 
         setTelemetry(prev => ({
           ...prev,
-          position: typeof playerRow?.position === 'number' && playerRow.position > 0
-            ? playerRow.position
+          position: typeof playerStanding?.position === 'number' && playerStanding.position > 0
+            ? playerStanding.position
             : prev.position,
-          trackPosition: typeof playerRow?.lapDistPct === 'number' && playerRow.lapDistPct >= 0 && playerRow.lapDistPct <= 1
-            ? playerRow.lapDistPct
-            : (typeof playerRow?.pos?.s === 'number' && playerRow.pos.s >= 0 && playerRow.pos.s <= 1
-              ? playerRow.pos.s
+          trackPosition: isValidTrackPct(playerStanding?.lapDistPct)
+            ? playerStanding.lapDistPct
+            : (isValidTrackPct(playerLive?.pos?.s)
+              ? playerLive.pos.s
               : prev.trackPosition),
           otherCars: sortedDrivers.map((driver: any, idx: number) => {
-            const standingPct = typeof driver?.lapDistPct === 'number' ? driver.lapDistPct : undefined;
-            const livePct = typeof driver?.pos?.s === 'number' ? driver.pos.s : undefined;
+            const liveCar = carsByIdx.get(driver?.carIdx ?? driver?.carId);
+            const standingPct = driver?.lapDistPct;
+            const livePct = driver?.pos?.s ?? liveCar?.pos?.s;
+            const prevPct = prev.otherCars.find((c) => getCarTrackKey(c, idx) === getCarTrackKey(driver, idx))?.trackPercentage;
             const trackPercentage =
-              (standingPct != null && standingPct >= 0 && standingPct <= 1)
+              isValidTrackPct(standingPct)
                 ? standingPct
-                : ((livePct != null && livePct >= 0 && livePct <= 1) ? livePct : (idx / totalDrivers));
+                : (isValidTrackPct(livePct)
+                  ? livePct
+                  : (isValidTrackPct(prevPct) ? prevPct : (idx / totalDrivers)));
 
             return {
               trackPercentage,
@@ -495,16 +511,19 @@ export function RelayProvider({ children }: { children: ReactNode }) {
           otherCars: sortedDrivers.map((driver, idx) => {
             const liveCar = carsByIdx.get(driver.carIdx ?? driver.carId);
             const isPlayer = !!driver.isPlayer || (playerCarIdx != null && driver.carIdx === playerCarIdx);
-            const standingPct = typeof driver.lapDistPct === 'number' ? driver.lapDistPct : undefined;
-            const livePct = typeof liveCar?.pos?.s === 'number' ? liveCar.pos.s : undefined;
+            const standingPct = driver.lapDistPct;
+            const livePct = liveCar?.pos?.s;
+            const prevPct = prev.otherCars.find((c) => getCarTrackKey(c, idx) === getCarTrackKey(driver, idx))?.trackPercentage;
             const positionBasedPct =
               (typeof driver.position === 'number' && driver.position > 0)
                 ? ((driver.position - 1) / totalDrivers)
                 : (idx / totalDrivers);
             const trackPercentage =
-              (standingPct != null && standingPct >= 0 && standingPct <= 1)
+              isValidTrackPct(standingPct)
                 ? standingPct
-                : ((livePct != null && livePct >= 0 && livePct <= 1) ? livePct : positionBasedPct);
+                : (isValidTrackPct(livePct)
+                  ? livePct
+                  : (isValidTrackPct(prevPct) ? prevPct : positionBasedPct));
             return {
               trackPercentage,
               carNumber: driver.carNumber || String(driver.position || idx + 1),
@@ -534,9 +553,12 @@ export function RelayProvider({ children }: { children: ReactNode }) {
             ? playerCompetitor.lapDistPct
             : prev.trackPosition,
           otherCars: data.map((car, idx) => ({
-            trackPercentage: (typeof car.lapDistPct === 'number' && car.lapDistPct >= 0 && car.lapDistPct <= 1)
+            trackPercentage: isValidTrackPct(car.lapDistPct)
               ? car.lapDistPct
-              : (idx / totalDrivers),
+              : (() => {
+                const prevPct = prev.otherCars.find((c) => getCarTrackKey(c, idx) === getCarTrackKey(car, idx))?.trackPercentage;
+                return isValidTrackPct(prevPct) ? prevPct : (idx / totalDrivers);
+              })(),
             carNumber: car.carNumber || String(car.position || idx + 1),
             driverName: car.driver || `Car ${idx + 1}`,
             position: car.position || idx + 1,
