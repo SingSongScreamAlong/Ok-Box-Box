@@ -75,6 +75,10 @@ export function DriverCockpit() {
   const DeltaIcon = activeTelemetry.delta < 0 ? TrendingUp : activeTelemetry.delta > 0 ? TrendingDown : Minus;
   const deltaColor = activeTelemetry.delta < 0 ? 'text-emerald-400' : activeTelemetry.delta > 0 ? 'text-red-400' : 'text-white/50';
   const positionLabel = activeTelemetry.position > 0 ? `P${activeTelemetry.position}` : 'P--';
+  const sortedLiveCars = [...(realTelemetry.otherCars || [])].sort((a, b) => (a.position || 999) - (b.position || 999));
+  const mapCars = sortedLiveCars.filter(o => typeof o.trackPercentage === 'number' && o.trackPercentage >= 0 && o.trackPercentage <= 1);
+  const inPitCount = sortedLiveCars.filter(c => !!c.inPit).length;
+  const unknownPositionCount = sortedLiveCars.filter(c => !c.position || c.position <= 0).length;
 
   return (
     <div className="h-[calc(100vh-9rem)] flex relative bg-[#0a0a0a] overflow-hidden">
@@ -351,6 +355,11 @@ export function DriverCockpit() {
             <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border ${isConnected ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-white/40 bg-white/[0.04] border-white/[0.06]'}`}>
               {isConnected ? 'Live' : 'Offline'}
             </span>
+            {isConnected && (
+              <span className="text-[10px] text-white/45 font-mono">
+                Cars {sortedLiveCars.length} • Pit {inPitCount} • Unknown {unknownPositionCount}
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -381,8 +390,7 @@ export function DriverCockpit() {
           <TrackMap
             trackId={trackId}
             carPosition={activeTelemetry.carPosition}
-            otherCars={realTelemetry.otherCars
-              ?.filter(o => typeof o.trackPercentage === 'number' && o.trackPercentage >= 0 && o.trackPercentage <= 1)
+            otherCars={mapCars
               .map(o => ({
                 x: 0,
                 y: 0,
@@ -393,7 +401,7 @@ export function DriverCockpit() {
                 position: o.position,
                 isPlayer: o.isPlayer,
                 inPit: o.inPit,
-              })) || []}
+              }))}
             telemetry={heatmapData}
             className="w-full h-full"
           />
@@ -457,8 +465,10 @@ export function DriverCockpit() {
         {/* Leaderboard List */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden">
           {/* Show real data from otherCars or placeholder when no data */}
-          {realTelemetry.otherCars && realTelemetry.otherCars.length > 0 ? (
-            realTelemetry.otherCars.map((car, idx) => (
+          {sortedLiveCars.length > 0 ? (
+            sortedLiveCars.map((car, idx) => {
+              const displayPosition = typeof car.position === 'number' && car.position > 0 ? car.position : null;
+              return (
               <div 
                 key={`${idx}-${car.carNumber || 'car'}`}
                 className={`flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.04] ${
@@ -466,11 +476,11 @@ export function DriverCockpit() {
                 }`}
               >
                 <div className={`w-6 text-center font-mono text-sm font-bold ${
-                  idx === 0 ? 'text-yellow-400' : 
-                  idx === 1 ? 'text-gray-300' : 
-                  idx === 2 ? 'text-amber-600' : 'text-white/50'
+                  displayPosition === 1 ? 'text-yellow-400' : 
+                  displayPosition === 2 ? 'text-gray-300' : 
+                  displayPosition === 3 ? 'text-amber-600' : 'text-white/50'
                 }`}>
-                  {idx + 1}
+                  {displayPosition ?? '--'}
                 </div>
                 <div 
                   className="w-8 h-6 rounded text-[10px] font-mono font-bold flex items-center justify-center text-white"
@@ -487,7 +497,8 @@ export function DriverCockpit() {
                   {car.gap || '--'}
                 </div>
               </div>
-            ))
+              );
+            })
           ) : (
             <div className="flex items-center justify-center h-full text-white/30 text-xs p-4 text-center">
               {status === 'in_session' ? 'Waiting for standings data...' : 'Start iRacing session for live standings'}
