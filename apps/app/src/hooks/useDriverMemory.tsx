@@ -43,10 +43,11 @@ export function useDriverMemory() {
       setState(prev => ({ ...prev, loading: true, error: null }));
 
       // First get the driver profile ID
+      // user_account_id is the FK that links Supabase auth user → driver_profiles
       const { data: profile, error: profileError } = await supabase
         .from('driver_profiles')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_account_id', user.id)
         .single();
 
       if (profileError || !profile) {
@@ -55,10 +56,38 @@ export function useDriverMemory() {
         return;
       }
 
-      // TODO: Enable when driver_memory, driver_identity, engineer_opinions,
-      // and driver_memory_events tables are created in Supabase.
-      // These tables don't exist yet — querying them causes 406 errors.
-      setState(prev => ({ ...prev, loading: false }));
+      // Fetch all driver memory tables in parallel
+      const [memoryResult, identityResult, opinionsResult, eventsResult] = await Promise.all([
+        supabase.from('driver_memory').select('*').eq('driver_profile_id', profile.id).single(),
+        supabase.from('driver_identity').select('*').eq('driver_profile_id', profile.id).single(),
+        supabase.from('engineer_opinions')
+          .select('*')
+          .eq('driver_profile_id', profile.id)
+          .order('priority', { ascending: false })
+          .limit(10),
+        supabase.from('driver_memory_events')
+          .select('*')
+          .eq('driver_profile_id', profile.id)
+          .order('created_at', { ascending: false })
+          .limit(20),
+      ]);
+
+      setState(prev => ({
+        ...prev,
+        loading: false,
+        memory: memoryResult.data
+          ? transformMemory(memoryResult.data as Record<string, unknown>)
+          : null,
+        identity: identityResult.data
+          ? transformIdentity(identityResult.data as Record<string, unknown>)
+          : null,
+        opinions: (opinionsResult.data || []).map(o =>
+          transformOpinion(o as Record<string, unknown>)
+        ),
+        recentEvents: (eventsResult.data || []).map(e =>
+          transformEvent(e as Record<string, unknown>)
+        ),
+      }));
     } catch (err) {
       console.error('Error fetching driver memory:', err);
       setState(prev => ({

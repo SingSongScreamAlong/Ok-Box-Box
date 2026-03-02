@@ -131,12 +131,12 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
           id: d.id,
           name: d.displayName,
           shortName: d.displayName.split(' ').map(n => n[0]).join(''),
-          number: '00', // TODO: Get from car assignment
+          number: (d as any).carNumber || '',
           color: '#f97316',
           iRatingRoad: d.irating?.road || 1350,
           iRatingOval: d.irating?.oval || 1350,
           safetyRating: d.safetyRating?.road || 2.5,
-          avgLapTime: 90000, // TODO: Calculate from sessions
+          avgLapTime: (d as any).avgLapTime || 90000,
           fuelPerLap: 2.5,
           maxStintLaps: 30,
           available: d.available !== false,
