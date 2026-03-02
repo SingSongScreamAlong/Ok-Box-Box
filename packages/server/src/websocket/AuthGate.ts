@@ -58,9 +58,17 @@ export class AuthGate {
             socket.use((packet, next) => {
                 const eventName = packet[0];
 
-                // Skip rate limiting for high-freq telemetry to avoid overhead/blocking
-                // Telemetry implements its own internal throttling/processing usually
+                // Skip rate limiting for high-freq telemetry to avoid overhead/blocking.
+                // Guard against oversized payloads to prevent abuse via this bypass.
                 if (eventName === 'telemetry' || eventName === 'telemetry_binary' || eventName === 'video_frame') {
+                    const MAX_TELEMETRY_BYTES = 512 * 1024; // 512 KB
+                    const payload = packet[1];
+                    const payloadSize = payload instanceof Buffer
+                        ? payload.byteLength
+                        : Buffer.byteLength(typeof payload === 'string' ? payload : JSON.stringify(payload), 'utf8');
+                    if (payloadSize > MAX_TELEMETRY_BYTES) {
+                        return next(new Error('Telemetry payload too large'));
+                    }
                     return next();
                 }
 
