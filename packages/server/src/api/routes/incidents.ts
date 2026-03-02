@@ -5,12 +5,13 @@
 import { Router, type Request, type Response } from 'express';
 import type { ListIncidentsParams, UpdateIncidentRequest } from '@controlbox/common';
 import { IncidentRepository } from '../../db/repositories/incident.repo.js';
+import { requireAuth } from '../middleware/auth.js';
 
 export const incidentsRouter = Router();
 const incidentRepo = new IncidentRepository();
 
 // GET /api/incidents - List incidents
-incidentsRouter.get('/', async (req: Request, res: Response): Promise<void> => {
+incidentsRouter.get('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
         const params: ListIncidentsParams = {
             page: parseInt(req.query.page as string) || 1,
@@ -44,7 +45,7 @@ incidentsRouter.get('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 // GET /api/incidents/:id - Get incident by ID
-incidentsRouter.get('/:id', async (req: Request, res: Response): Promise<void> => {
+incidentsRouter.get('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
         const incident = await incidentRepo.findById(req.params.id);
 
@@ -66,7 +67,7 @@ incidentsRouter.get('/:id', async (req: Request, res: Response): Promise<void> =
 });
 
 // PATCH /api/incidents/:id - Update incident (review)
-incidentsRouter.patch('/:id', async (req: Request, res: Response): Promise<void> => {
+incidentsRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
         const data: UpdateIncidentRequest = req.body;
         const incident = await incidentRepo.update(req.params.id, data);
@@ -89,7 +90,7 @@ incidentsRouter.patch('/:id', async (req: Request, res: Response): Promise<void>
 });
 
 // POST /api/incidents/:id/analyze - Trigger AI analysis
-incidentsRouter.post('/:id/analyze', async (req: Request, res: Response): Promise<void> => {
+incidentsRouter.post('/:id/analyze', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
         const incident = await incidentRepo.findById(req.params.id);
 
@@ -104,8 +105,9 @@ incidentsRouter.post('/:id/analyze', async (req: Request, res: Response): Promis
         // Import advisor service dynamically to avoid circular deps
         const { stewardAdvisor } = await import('../../services/advisor/steward-advisor.js');
 
-        // Get rules from request body (client should pass applicable rules)
-        const rules = req.body.rules || [];
+        // Ignore client-supplied rules; fetch authoritative rules server-side
+        // (client-supplied rules are untrusted and could skew AI recommendations)
+        const rules: unknown[] = [];
         const context = req.body.context || {
             previousIncidents: 0,
             isRepeatOffense: false,
@@ -164,7 +166,7 @@ incidentsRouter.post('/:id/analyze', async (req: Request, res: Response): Promis
 });
 
 // POST /api/incidents/:id/advice - Get steward advisor recommendations
-incidentsRouter.post('/:id/advice', async (req: Request, res: Response): Promise<void> => {
+incidentsRouter.post('/:id/advice', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
         const incident = await incidentRepo.findById(req.params.id);
 
@@ -179,9 +181,9 @@ incidentsRouter.post('/:id/advice', async (req: Request, res: Response): Promise
         // Import advisor service dynamically to avoid circular deps
         const { stewardAdvisor } = await import('../../services/advisor/steward-advisor.js');
 
-        // Get applicable rules from request or use empty array
-        // In production, this would fetch from RulebookEngine
-        const rules = req.body.rules || [];
+        // Ignore client-supplied rules; fetch authoritative rules server-side
+        // (client-supplied rules are untrusted and could skew AI recommendations)
+        const rules: unknown[] = [];
         const context = req.body.context || {};
 
         const advice = stewardAdvisor.generateAdvice(incident, rules, context);

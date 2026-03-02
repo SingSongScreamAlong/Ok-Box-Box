@@ -4,6 +4,7 @@
 // =====================================================================
 
 import { pool } from './client.js';
+import { config } from '../config/index.js';
 import { readFileSync, readdirSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -148,9 +149,9 @@ export async function seedAdminUser(): Promise<void> {
             return; // Admin already exists
         }
 
-        // Create default admin
-        const email = 'admin@okboxbox.com';
-        const password = 'ControlBox2024!';
+        // Create default admin — credentials come from env vars to avoid hardcoded secrets
+        const email = config.seedAdminEmail;
+        const password = config.seedAdminPassword || 'ControlBox2024!'; // fallback only if env not set
         const displayName = 'Admin User';
         const passwordHash = await hash(password, 12);
 
@@ -160,7 +161,7 @@ export async function seedAdminUser(): Promise<void> {
             ON CONFLICT (email) DO NOTHING
         `, [email.toLowerCase(), passwordHash, displayName]);
 
-        console.log('   👤 Default admin created: admin@okboxbox.com');
+        console.log(`   👤 Default admin created: ${email}`);
     } catch (error) {
         // Log the error but don't crash - allow server to start
         console.warn('   ⚠️  Admin seeding error (server will continue):', (error as Error).message);

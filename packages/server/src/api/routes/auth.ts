@@ -9,6 +9,7 @@ import { getAuthService } from '../../services/auth/auth-service.js';
 import { requireAuth } from '../middleware/auth.js';
 import { pool } from '../../db/client.js';
 import { config } from '../../config/index.js';
+import { getEntitlementRepository, deriveCapabilitiesFromEntitlements } from '../../services/billing/entitlement-service.js';
 
 const router = Router();
 
@@ -245,8 +246,6 @@ router.get('/entitlements', requireAuth, async (req: Request, res: Response): Pr
     try {
         const user = req.user!;
 
-        const { getEntitlementRepository } =
-            await import('../../services/billing/entitlement-service.js');
         const entitlementRepo = getEntitlementRepository();
         const dbEntitlements = await entitlementRepo.getForUser(user.id);
 
@@ -306,8 +305,6 @@ router.get('/me/bootstrap', requireAuth, async (req: Request, res: Response): Pr
         // =====================================================
         // LOAD ENTITLEMENTS FROM DATABASE
         // =====================================================
-        const { getEntitlementRepository, deriveCapabilitiesFromEntitlements } =
-            await import('../../services/billing/entitlement-service.js');
         const entitlementRepo = getEntitlementRepository();
         const entitlements = await entitlementRepo.getForUser(user.id);
 
