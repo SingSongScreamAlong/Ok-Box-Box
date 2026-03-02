@@ -19,6 +19,10 @@ import { getTrackId } from '../../data/tracks';
  */
 
 export function DriverCockpit() {
+  const shortCommit = __GIT_COMMIT__ && __GIT_COMMIT__ !== 'UNKNOWN'
+    ? __GIT_COMMIT__.slice(0, 7)
+    : 'no-commit';
+  const cockpitBuildTag = `cockpit-${import.meta.env.MODE}-v${__APP_VERSION__}.${shortCommit}`;
   const { status, telemetry: realTelemetry, session } = useRelay();
   const { messages: engineerMessages, criticalMessages } = useEngineer();
   const { isEnabled: voiceEnabled, toggleVoice, speak } = useVoice();
@@ -85,7 +89,7 @@ export function DriverCockpit() {
       
       {/* BUILD IDENTIFIER - Remove when page is finalized */}
       <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-        COCKPIT-v1.0
+        {cockpitBuildTag}
       </div>
       
       {/* Background Video - Left Side of Page */}
