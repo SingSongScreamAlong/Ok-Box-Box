@@ -938,68 +938,97 @@ router.get('/:id/traits', allowPublic, async (req: Request, res: Response): Prom
 });
 
 /**
+ * Shared telemetry-metrics responder for both /me and /:id routes
+ */
+async function sendTelemetryMetricsResponse(
+    res: Response,
+    driverProfileId: string,
+    timeWindowRaw?: string
+): Promise<void> {
+    const timeWindow = timeWindowRaw || 'last_10';
+    const validWindows = ['last_10', 'last_30', 'all_time'];
+
+    if (!validWindows.includes(timeWindow)) {
+        res.status(400).json({ error: 'Invalid time window. Use: last_10, last_30, or all_time' });
+        return;
+    }
+
+    let aggregate = await getDriverBehavioralAggregate(
+        driverProfileId,
+        timeWindow as 'last_10' | 'last_30' | 'all_time'
+    );
+
+    // If no aggregate or stale (older than 1 hour), recompute
+    if (!aggregate || (Date.now() - new Date(aggregate.computed_at).getTime() > 3600000)) {
+        aggregate = await computeAndStoreDriverBehavioralAggregate(
+            driverProfileId,
+            timeWindow as 'last_10' | 'last_30' | 'all_time'
+        );
+    }
+
+    const response = aggregateToResponse(aggregate);
+
+    if (!response) {
+        // No telemetry data available — return results-based placeholder
+        res.json({
+            driver_profile_id: driverProfileId,
+            time_window: timeWindow,
+            available: false,
+            model_type: 'results_based',
+            message: 'No telemetry data available. Using results-based analysis.',
+            metrics: null,
+        });
+        return;
+    }
+
+    res.json({
+        driver_profile_id: driverProfileId,
+        time_window: timeWindow,
+        available: true,
+        model_type: response.modelType,
+        metrics: {
+            bsi: response.bsi,
+            tci: response.tci,
+            cpi2: response.cpi2,
+            rci: response.rci,
+            behavioral_stability: response.behavioralStability,
+            confidence: response.confidence,
+            session_count: response.sessionCount,
+        },
+        braking: response.braking,
+        throttle: response.throttle,
+        steering: response.steering,
+        rhythm: response.rhythm,
+    });
+}
+
+/**
+ * GET /api/v1/drivers/me/telemetry-metrics
+ * Authenticated alias for current user's telemetry-derived behavioral indices
+ */
+router.get('/me/telemetry-metrics', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const profile = await getDriverProfileByUserId(req.user!.id);
+        if (!profile) {
+            res.status(404).json({ error: 'No driver profile found' });
+            return;
+        }
+
+        await sendTelemetryMetricsResponse(res, profile.id, req.query.window as string | undefined);
+    } catch (error) {
+        apiLogger.error({ err: error }, '[IDP] Error fetching telemetry metrics (me):', error);
+        res.status(500).json({ error: 'Failed to fetch telemetry metrics' });
+    }
+});
+
+/**
  * GET /api/v1/drivers/:id/telemetry-metrics
  * Get telemetry-derived behavioral indices for a driver
  * Returns BSI, TCI, CPI-2, RCI and overall behavioral stability
  */
 router.get('/:id/telemetry-metrics', allowPublic, async (req: Request, res: Response): Promise<void> => {
     try {
-        const timeWindow = (req.query.window as string) || 'last_10';
-        const validWindows = ['last_10', 'last_30', 'all_time'];
-        
-        if (!validWindows.includes(timeWindow)) {
-            res.status(400).json({ error: 'Invalid time window. Use: last_10, last_30, or all_time' });
-            return;
-        }
-
-        // Try to get existing aggregate
-        let aggregate = await getDriverBehavioralAggregate(
-            req.params.id, 
-            timeWindow as 'last_10' | 'last_30' | 'all_time'
-        );
-
-        // If no aggregate or stale (older than 1 hour), recompute
-        if (!aggregate || (Date.now() - new Date(aggregate.computed_at).getTime() > 3600000)) {
-            aggregate = await computeAndStoreDriverBehavioralAggregate(
-                req.params.id,
-                timeWindow as 'last_10' | 'last_30' | 'all_time'
-            );
-        }
-
-        const response = aggregateToResponse(aggregate);
-
-        if (!response) {
-            // No telemetry data available — return results-based placeholder
-            res.json({
-                driver_profile_id: req.params.id,
-                time_window: timeWindow,
-                available: false,
-                model_type: 'results_based',
-                message: 'No telemetry data available. Using results-based analysis.',
-                metrics: null,
-            });
-            return;
-        }
-
-        res.json({
-            driver_profile_id: req.params.id,
-            time_window: timeWindow,
-            available: true,
-            model_type: response.modelType,
-            metrics: {
-                bsi: response.bsi,
-                tci: response.tci,
-                cpi2: response.cpi2,
-                rci: response.rci,
-                behavioral_stability: response.behavioralStability,
-                confidence: response.confidence,
-                session_count: response.sessionCount,
-            },
-            braking: response.braking,
-            throttle: response.throttle,
-            steering: response.steering,
-            rhythm: response.rhythm,
-        });
+        await sendTelemetryMetricsResponse(res, req.params.id, req.query.window as string | undefined);
     } catch (error) {
         apiLogger.error({ err: error }, '[IDP] Error fetching telemetry metrics:', error);
         res.status(500).json({ error: 'Failed to fetch telemetry metrics' });
