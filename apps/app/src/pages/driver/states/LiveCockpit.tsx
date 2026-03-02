@@ -563,7 +563,7 @@ export function LiveCockpit() {
           <div className="col-span-4 bg-black/60 border border-white/10 p-2">
             <div className="text-[10px] uppercase tracking-wider text-white/40 mb-1 px-1">Track Map</div>
             <TrackMinimap
-              trackName={session.trackName}
+              trackName={session.trackId ? String(session.trackId) : session.trackName}
               trackPosition={telemetry.trackPosition}
               otherCars={telemetry.otherCars}
               className="h-32"

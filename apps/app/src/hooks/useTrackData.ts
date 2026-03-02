@@ -25,11 +25,14 @@ const shapeModules = import.meta.glob('../../../../packages/dashboard/src/data/t
     eager: false
 });
 
-// Also import slug-named track files (like monza-combinedchicanes.json)
+// Also import slug-named track files (like monza-combinedchicanes.json).
+// NOTE: Vite's *.json glob also matches *.shape.json, so we pre-filter those
+// out here. This avoids ~200 ghost entries polluting the slug lookup.
 const slugModules = import.meta.glob('../../../../packages/dashboard/src/data/trackData/*.json', {
     import: 'default',
     eager: false
 });
+const slugOnlyKeys = Object.keys(slugModules).filter(k => !k.endsWith('.shape.json'));
 
 // Cache for loaded shapes
 const shapeCache: Record<string, TrackShape> = {};
@@ -93,17 +96,18 @@ export function useTrackData(trackId: string | undefined) {
                 let moduleKey = Object.keys(shapeModules).find(key => key.includes(`/${trackId}.shape.json`));
                 let modules = shapeModules;
 
-                // If not found, try slug modules (like monza-combinedchicanes.json)
+                // If not found, try slug-named files (like monza-combinedchicanes.json).
+                // Use slugOnlyKeys which excludes the *.shape.json entries.
                 if (!moduleKey) {
-                    moduleKey = Object.keys(slugModules).find(key =>
-                        key.includes(`/${normalizedId}.json`) && !key.includes('.shape.json')
+                    moduleKey = slugOnlyKeys.find(key =>
+                        key.includes(`/${normalizedId}.json`)
                     );
                     modules = slugModules;
                 }
 
-                // Still not found? Try partial match on slug modules
+                // Still not found? Try partial match against slug-only files.
                 if (!moduleKey) {
-                    moduleKey = Object.keys(slugModules).find(key => {
+                    moduleKey = slugOnlyKeys.find(key => {
                         const filename = key.split('/').pop()?.replace('.json', '') || '';
                         return filename === normalizedId || normalizedId.includes(filename) || filename.includes(normalizedId);
                     });
