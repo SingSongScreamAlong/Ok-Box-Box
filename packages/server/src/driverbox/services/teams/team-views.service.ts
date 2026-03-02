@@ -9,7 +9,7 @@
 
 import { getActiveMembers } from '../../../db/repositories/team-membership.repo.js';
 import { getDriverProfileById } from '../../../db/repositories/driver-profile.repo.js';
-import { getGlobalAggregate } from '../../../db/repositories/driver-aggregates.repo.js';
+import { getGlobalAggregate, getAggregatesByContext } from '../../../db/repositories/driver-aggregates.repo.js';
 import { getCurrentTraits } from '../../../db/repositories/driver-traits.repo.js';
 import type {
     TeamRosterView,
@@ -48,10 +48,22 @@ export async function getTeamRosterView(teamId: string): Promise<TeamRosterView 
             // Fetch traits
             const traits = await getCurrentTraits(m.driver_profile_id);
 
-            // Determine recent form (placeholder logic - would use windowed aggregates)
-            // TODO: Implement actual form logic comparing 30d vs 90d aggregates
-            const form: 'improving' | 'stable' | 'declining' | 'insufficient_data' =
-                aggregates ? 'stable' : 'insufficient_data';
+            // Derive form by comparing 30d vs 90d pace percentile windows
+            let form: 'improving' | 'stable' | 'declining' | 'insufficient_data' = 'insufficient_data';
+            if (aggregates) {
+                // Get windowed global aggregates (no car/track filter → global windows)
+                const windowedAggregates = await getAggregatesByContext(m.driver_profile_id);
+                const agg30 = windowedAggregates.find(a => a.window_type === 'rolling_30d' && !a.car_name && !a.track_name);
+                const agg90 = windowedAggregates.find(a => a.window_type === 'rolling_90d' && !a.car_name && !a.track_name);
+                if (agg30?.avg_pace_percentile != null && agg90?.avg_pace_percentile != null) {
+                    const delta = agg30.avg_pace_percentile - agg90.avg_pace_percentile;
+                    if (delta > 3) form = 'improving';
+                    else if (delta < -3) form = 'declining';
+                    else form = 'stable';
+                } else if (aggregates.session_count >= 3) {
+                    form = 'stable'; // Enough data but no windowed breakdown yet
+                }
+            }
 
             if (aggregates) {
                 summary = {
