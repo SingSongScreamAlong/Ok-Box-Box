@@ -410,6 +410,48 @@ export function RelayProvider({ children }: { children: ReactNode }) {
 
     socket.on('telemetry_update', (data: any) => {
       handleTelemetryData(data);
+
+      const standings = Array.isArray(data?.standings) ? data.standings : [];
+      const cars = Array.isArray(data?.cars) ? data.cars : [];
+      const driverRows = standings.length > 0 ? standings : cars;
+
+      if (driverRows.length > 0) {
+        const sortedDrivers = [...driverRows].sort((a, b) => (a.position || 999) - (b.position || 999));
+        const totalDrivers = Math.max(sortedDrivers.length, 1);
+        const playerRow = sortedDrivers.find((d: any) => !!d?.isPlayer) || null;
+
+        setTelemetry(prev => ({
+          ...prev,
+          position: typeof playerRow?.position === 'number' && playerRow.position > 0
+            ? playerRow.position
+            : prev.position,
+          trackPosition: typeof playerRow?.lapDistPct === 'number' && playerRow.lapDistPct >= 0 && playerRow.lapDistPct <= 1
+            ? playerRow.lapDistPct
+            : (typeof playerRow?.pos?.s === 'number' && playerRow.pos.s >= 0 && playerRow.pos.s <= 1
+              ? playerRow.pos.s
+              : prev.trackPosition),
+          otherCars: sortedDrivers.map((driver: any, idx: number) => {
+            const standingPct = typeof driver?.lapDistPct === 'number' ? driver.lapDistPct : undefined;
+            const livePct = typeof driver?.pos?.s === 'number' ? driver.pos.s : undefined;
+            const trackPercentage =
+              (standingPct != null && standingPct >= 0 && standingPct <= 1)
+                ? standingPct
+                : ((livePct != null && livePct >= 0 && livePct <= 1) ? livePct : (idx / totalDrivers));
+
+            return {
+              trackPercentage,
+              carNumber: driver?.carNumber || String(driver?.position || idx + 1),
+              driverName: driver?.driverName || driver?.driver || `Car ${idx + 1}`,
+              position: driver?.position || idx + 1,
+              gap: driver?.isPlayer ? '—' : (driver?.gapToLeader ? `+${driver.gapToLeader.toFixed(1)}s` : (driver?.gap || '--')),
+              lastLap: driver?.lastLapTime > 0 ? formatLapTime(driver.lastLapTime) : (driver?.lastLap || '—'),
+              color: driver?.isPlayer ? '#10b981' : '#374151',
+              isPlayer: !!driver?.isPlayer,
+              inPit: !!(driver?.onPitRoad ?? driver?.inPit),
+            };
+          }),
+        }));
+      }
     });
 
     socket.on('telemetry:driver', (data: any) => {

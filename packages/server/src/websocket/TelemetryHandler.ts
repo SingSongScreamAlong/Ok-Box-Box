@@ -373,6 +373,32 @@ export class TelemetryHandler {
             if (driverCar) {
                 const driverSpeedMph = driverCar.speed ? Math.round(driverCar.speed * 2.237) : 0;
                 const playerStanding = this.cachedStandings.find((s: any) => s.isPlayer);
+                const lightweightCars = (Array.isArray(validData.cars) ? validData.cars : []).map((c: any) => ({
+                    carIdx: c.carIdx ?? c.carId,
+                    carId: c.carId,
+                    carNumber: c.carNumber,
+                    driverName: c.driverName,
+                    position: c.position,
+                    lap: c.lap,
+                    lastLapTime: c.lastLapTime,
+                    bestLapTime: c.bestLapTime,
+                    onPitRoad: c.onPitRoad,
+                    isPlayer: !!c.isPlayer,
+                    pos: { s: c?.pos?.s },
+                }));
+                const lightweightStandings = this.cachedStandings.map((s: any) => ({
+                    carIdx: s.carIdx ?? s.carId,
+                    carNumber: s.carNumber,
+                    driverName: s.driverName,
+                    position: s.position,
+                    lapDistPct: s.lapDistPct,
+                    lap: s.lap,
+                    lastLapTime: s.lastLapTime,
+                    bestLapTime: s.bestLapTime,
+                    onPitRoad: s.onPitRoad,
+                    isPlayer: !!s.isPlayer,
+                    gapToLeader: s.gapToLeader,
+                }));
                 const racePosition =
                     (typeof driverCar.position === 'number' && driverCar.position > 0)
                         ? driverCar.position
@@ -420,7 +446,10 @@ export class TelemetryHandler {
                     carSettings: { brakeBias: 0, abs: 0, tractionControl: 0, tractionControl2: 0, fuelMixture: 0 },
                     energy: { batteryPct: 0, deployPct: 0, deployMode: 0 },
                     weather: { windSpeed: rawData.windSpeed || 0, windDirection: rawData.windDir || 0 },
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    cars: lightweightCars,
+                    standings: lightweightStandings,
+                    totalCars: lightweightStandings.length || lightweightCars.length || undefined,
                 };
                 
                 // Broadcast to all connected clients (LROC doesn't join session rooms)
