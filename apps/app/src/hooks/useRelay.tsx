@@ -486,27 +486,31 @@ export function RelayProvider({ children }: { children: ReactNode }) {
         }));
       }
       
-      // Extract leaderboard from standings array (relay sends standings)
-      const drivers = data?.standings || data?.drivers;
+      // Extract leaderboard from best available all-car source.
+      // telemetry:driver often includes only player in drivers[], while standings[] carries full field.
+      const standingsRows = Array.isArray(data?.standings) ? data.standings : [];
+      const driverRows = Array.isArray(data?.drivers) ? data.drivers : [];
       const liveCars = Array.isArray(data?.cars) ? data.cars : [];
       const carsByIdx = new Map<any, any>(
         liveCars.map((c: any) => [c?.carIdx ?? c?.carId, c])
       );
-      const playerStanding = Array.isArray(data?.standings)
-        ? data.standings.find((s: any) => s?.isPlayer)
-        : undefined;
+      const rankedRows = standingsRows.length > 0
+        ? standingsRows
+        : (driverRows.length > 1 ? driverRows : liveCars);
+      const playerStanding = standingsRows.find((s: any) => s?.isPlayer);
       const playerCarIdx =
         data?.drivers?.[0]?.carIdx ??
         data?.cars?.find((c: any) => c?.isPlayer)?.carIdx ??
         playerStanding?.carIdx;
       
-      if (drivers && Array.isArray(drivers) && drivers.length > 0) {
-        const sortedDrivers = [...drivers].sort((a, b) => (a.position || 999) - (b.position || 999));
+      if (rankedRows.length > 0) {
+        const sortedDrivers = [...rankedRows].sort((a, b) => (a.position || 999) - (b.position || 999));
         const totalDrivers = Math.max(sortedDrivers.length, 1);
+        const playerRow = sortedDrivers.find((d: any) => !!d?.isPlayer) || playerStanding;
         setTelemetry(prev => ({
           ...prev,
-          position: typeof playerStanding?.position === 'number' && playerStanding.position > 0
-            ? playerStanding.position
+          position: typeof playerRow?.position === 'number' && playerRow.position > 0
+            ? playerRow.position
             : prev.position,
           otherCars: sortedDrivers.map((driver, idx) => {
             const liveCar = carsByIdx.get(driver.carIdx ?? driver.carId);
