@@ -236,6 +236,68 @@ export class VoiceService {
         return result.success ? (result.audioBuffer ?? null) : null;
     }
 
+    // ── Cache accessors (used by streaming TTS endpoint) ─────────────────────
+
+    /**
+     * Return a cached audio buffer without generating anything.
+     */
+    getCachedAudioBuffer(text: string, voiceId: string): Buffer | null {
+        const key = getCacheKey(text, voiceId);
+        return audioCache.get(key)?.audioBuffer ?? null;
+    }
+
+    /**
+     * Store an audio buffer in the shared cache (used when piping streaming TTS).
+     */
+    cacheAudioBuffer(text: string, voiceId: string, buffer: Buffer): void {
+        const key = getCacheKey(text, voiceId);
+        audioCache.set(key, { audioBuffer: buffer, createdAt: new Date() });
+        cleanupCache();
+    }
+
+    /**
+     * Make a streaming request to ElevenLabs and return the raw Response for piping.
+     * Callers are responsible for caching the accumulated bytes.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async fetchElevenLabsStream(request: VoiceGenerationRequest): Promise<{ ok: boolean; body: any } | null> {
+        if (!this.isAvailable) return null;
+
+        const voiceId = request.voiceId || DEFAULT_VOICE_ID;
+
+        try {
+            const response = await fetch(
+                `${ELEVENLABS_API_URL}/text-to-speech/${voiceId}/stream`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'audio/mpeg',
+                        'Content-Type': 'application/json',
+                        'xi-api-key': this.apiKey,
+                    },
+                    body: JSON.stringify({
+                        text: request.text,
+                        model_id: request.modelId || DEFAULT_MODEL_ID,
+                        voice_settings: {
+                            stability: request.stability ?? 0.5,
+                            similarity_boost: request.similarityBoost ?? 0.75,
+                        },
+                    }),
+                }
+            );
+
+            if (!response.ok) {
+                console.error('ElevenLabs stream error:', response.status);
+                return null;
+            }
+
+            return response;
+        } catch (error) {
+            console.error('ElevenLabs stream fetch error:', error);
+            return null;
+        }
+    }
+
     /**
      * Pre-generate all ack phrases so subsequent calls are instant cache hits.
      */
