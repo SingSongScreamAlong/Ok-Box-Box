@@ -1,28 +1,27 @@
 /**
  * Driver HUD Component
  *
- * PTT voice pipeline — two paths, same output:
+ * PTT voice pipeline (single path, Whisper STT):
  *
- * FAST PATH (browser Web Speech API, ~50ms STT):
- *   PTT release → SpeechRecognition result → POST /voice/query-text (NDJSON)
- *     → ack audio plays immediately
- *     → {type:"response", text} → GET /voice/tts-stream (binary streaming audio)
- *     → response audio plays as bytes arrive (first word ~575ms from PTT release)
- *
- * FALLBACK (Whisper, ~450ms STT):
  *   PTT release → audio blob → POST /voice/query (NDJSON)
- *     → ack audio after STT
- *     → {type:"audio", audioBase64} → plays from buffer
+ *     {type:"transcript"} → show driver's words on HUD
+ *     {type:"ack"}        → play immediately ("Copy, checking...")
+ *     {type:"response"}   → show text + hit GET /voice/tts-stream (binary streaming)
+ *     {type:"done"}
  *
- * All audio passes through a radio crackle Web Audio filter chain:
+ * All audio routes through a Web Audio radio crackle filter chain:
  *   800–3500 Hz band-pass + soft-clip distortion + dynamics compressor
+ *
+ * Two playback mechanisms, same filter chain:
+ *   - Ack (base64 from NDJSON)   → decodeAudioData + BufferSource
+ *   - TTS response (streaming)   → <audio src=/tts-stream> via MediaElementSource
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { socketClient } from '../lib/socket-client';
 import './DriverHUD.css';
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface TelemetryData {
     speed: number;
@@ -47,36 +46,11 @@ interface DriverHUDProps {
     sessionId?: string;
 }
 
-// ── Browser SpeechRecognition types (not in standard TS lib) ─────────────────
-
-interface SpeechRecognitionEvent {
-    results: { [i: number]: { [j: number]: { transcript: string } } };
-}
-interface BrowserSpeechRecognition extends EventTarget {
-    continuous: boolean;
-    interimResults: boolean;
-    lang: string;
-    maxAlternatives: number;
-    onresult: ((e: SpeechRecognitionEvent) => void) | null;
-    onerror: ((e: Event) => void) | null;
-    onend: (() => void) | null;
-    start(): void;
-    stop(): void;
-    abort(): void;
-}
-declare let SpeechRecognition: { new(): BrowserSpeechRecognition };
-
-function getSpeechRecognition(): BrowserSpeechRecognition | null {
-    const w = window as unknown as Record<string, unknown>;
-    const Ctor = (w['SpeechRecognition'] || w['webkitSpeechRecognition']) as (new () => BrowserSpeechRecognition) | undefined;
-    return Ctor ? new Ctor() : null;
-}
-
-// ── Web Audio — radio crackle filter chain ────────────────────────────────────
+// ── Web Audio filter chain ────────────────────────────────────────────────────
 
 interface AudioGraph {
     ctx: AudioContext;
-    input: AudioNode; // Entry point: connect sources here
+    input: AudioNode;
 }
 
 function buildAudioGraph(streamingAudioEl: HTMLAudioElement): AudioGraph {
@@ -108,15 +82,13 @@ function buildAudioGraph(streamingAudioEl: HTMLAudioElement): AudioGraph {
     compressor.attack.value = 0.001;
     compressor.release.value = 0.1;
 
-    // Chain: input (highPass) → lowPass → distortion → compressor → output
     highPass.connect(lowPass);
     lowPass.connect(distortion);
     distortion.connect(compressor);
     compressor.connect(ctx.destination);
 
-    // Connect dedicated streaming audio element permanently
-    const mediaSource = ctx.createMediaElementSource(streamingAudioEl);
-    mediaSource.connect(highPass);
+    // Streaming audio element connected once — stays wired permanently
+    ctx.createMediaElementSource(streamingAudioEl).connect(highPass);
 
     return { ctx, input: highPass };
 }
@@ -132,15 +104,10 @@ export const DriverHUD: React.FC<DriverHUDProps> = ({ sessionId }) => {
     const [lastTranscript, setLastTranscript] = useState<string | null>(null);
     const [voiceError, setVoiceError] = useState<string | null>(null);
 
-    // Audio graph (lazy-init on first PTT press)
     const audioGraphRef = useRef<AudioGraph | null>(null);
-    // Dedicated streaming audio element — connected to filter chain permanently
     const streamingAudioRef = useRef<HTMLAudioElement | null>(null);
-    // MediaRecorder for Whisper fallback
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
-    // Browser STT instance
-    const recognitionRef = useRef<BrowserSpeechRecognition | null>(null);
 
     // ── Error auto-clear ──────────────────────────────────────────────────────
     useEffect(() => {
@@ -158,23 +125,19 @@ export const DriverHUD: React.FC<DriverHUDProps> = ({ sessionId }) => {
         return () => { socketClient.off('telemetry:driver'); socketClient.off('disconnect'); };
     }, [sessionId]);
 
-    // ── Audio graph init ──────────────────────────────────────────────────────
+    // ── Audio graph (lazy-init on first PTT press) ────────────────────────────
 
     const ensureAudioGraph = useCallback((): AudioGraph => {
         if (audioGraphRef.current) return audioGraphRef.current;
-
-        // Create the streaming audio element programmatically so we can connect
-        // it to the Web Audio graph via MediaElementSource (only allowed once per element)
         const streamEl = new Audio();
         streamEl.preload = 'none';
         streamingAudioRef.current = streamEl;
-
         const graph = buildAudioGraph(streamEl);
         audioGraphRef.current = graph;
         return graph;
     }, []);
 
-    // Play a base64-encoded audio clip (for ack phrases from NDJSON)
+    // Play base64 audio (ack phrases) through the crackle chain
     const playWithCrackle = useCallback(async (audioBase64: string): Promise<void> => {
         try {
             const graph = ensureAudioGraph();
@@ -184,9 +147,9 @@ export const DriverHUD: React.FC<DriverHUDProps> = ({ sessionId }) => {
             const bytes = new Uint8Array(binary.length);
             for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
 
-            const audioBuffer = await graph.ctx.decodeAudioData(bytes.buffer);
+            const buf = await graph.ctx.decodeAudioData(bytes.buffer);
             const source = graph.ctx.createBufferSource();
-            source.buffer = audioBuffer;
+            source.buffer = buf;
             source.connect(graph.input);
             source.start();
         } catch (err) {
@@ -194,143 +157,31 @@ export const DriverHUD: React.FC<DriverHUDProps> = ({ sessionId }) => {
         }
     }, [ensureAudioGraph]);
 
-    // Play streaming TTS by pointing the dedicated audio element at the stream URL
+    // Stream response audio from /tts-stream through the crackle chain
     const playStreamingTTS = useCallback(async (text: string): Promise<void> => {
         try {
             const graph = ensureAudioGraph();
             if (graph.ctx.state === 'suspended') await graph.ctx.resume();
-
             const audio = streamingAudioRef.current;
             if (!audio) return;
-
-            const url = `/api/voice/tts-stream?text=${encodeURIComponent(text)}`;
-            audio.src = url;
+            audio.src = `/api/voice/tts-stream?text=${encodeURIComponent(text)}`;
             await audio.play();
         } catch (err) {
             console.error('[HUD] streaming TTS error:', err);
         }
     }, [ensureAudioGraph]);
 
-    // ── NDJSON stream reader (shared by both paths) ───────────────────────────
-
-    const readNDJSONStream = useCallback(async (
-        response: Response,
-        onResponse: (text: string) => void,
-    ): Promise<void> => {
-        if (!response.body) return;
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = '';
-
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() ?? '';
-
-            for (const line of lines) {
-                if (!line.trim()) continue;
-                try {
-                    const chunk = JSON.parse(line) as {
-                        type: string;
-                        text?: string;
-                        audioBase64?: string;
-                        message?: string;
-                    };
-
-                    switch (chunk.type) {
-                        case 'transcript':
-                            setLastTranscript(chunk.text ?? null);
-                            break;
-                        case 'ack':
-                            if (chunk.audioBase64) playWithCrackle(chunk.audioBase64);
-                            break;
-                        case 'response':
-                            if (chunk.text) {
-                                setLastResponse(chunk.text);
-                                onResponse(chunk.text);
-                            }
-                            break;
-                        // Fallback path sends base64 audio directly
-                        case 'audio':
-                            if (chunk.audioBase64) playWithCrackle(chunk.audioBase64);
-                            break;
-                        case 'error':
-                            setVoiceError(chunk.message ?? 'Engineer unavailable');
-                            break;
-                    }
-                } catch { /* malformed line */ }
-            }
-        }
-    }, [playWithCrackle]);
-
-    // ── Fast path: browser STT transcript → /voice/query-text ────────────────
-
-    const processTextQuery = useCallback(async (transcript: string): Promise<void> => {
-        try {
-            const response = await fetch('/api/voice/query-text', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ transcript, driverId: 'driver' }),
-            });
-
-            if (!response.ok) { setVoiceError('No response from engineer'); return; }
-
-            // When response text arrives, immediately start streaming TTS
-            await readNDJSONStream(response, (text) => playStreamingTTS(text));
-        } catch {
-            setVoiceError('Radio link failed');
-        }
-    }, [readNDJSONStream, playStreamingTTS]);
-
-    // ── Fallback path: audio blob → /voice/query (includes TTS as base64) ────
-
-    const processAudioQuery = useCallback(async (audioBlob: Blob): Promise<void> => {
-        try {
-            const base64Audio = await blobToBase64(audioBlob);
-            const response = await fetch('/api/voice/query', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ audio: base64Audio, sessionId, driverId: 'driver' }),
-            });
-
-            if (!response.ok) { setVoiceError('No response from engineer'); return; }
-
-            // Fallback path returns base64 audio in {type:"audio"} chunk
-            await readNDJSONStream(response, () => {});
-        } catch {
-            setVoiceError('Radio link failed');
-        }
-    }, [readNDJSONStream, sessionId]);
-
     // ── PTT: start ────────────────────────────────────────────────────────────
 
     const startRecording = useCallback(async () => {
-        // Unblock AudioContext on the first user gesture
-        ensureAudioGraph();
-
-        // Start browser STT
-        const recognition = getSpeechRecognition();
-        if (recognition) {
-            recognition.continuous = false;
-            recognition.interimResults = false;
-            recognition.lang = 'en-US';
-            recognition.maxAlternatives = 1;
-            recognitionRef.current = recognition;
-            try { recognition.start(); } catch { /* already started */ }
-        }
-
-        // Also start MediaRecorder as fallback audio for Whisper
+        ensureAudioGraph(); // unblocks AudioContext on user gesture
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+            const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
             audioChunksRef.current = [];
-            mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
-            mediaRecorder.start();
-            mediaRecorderRef.current = mediaRecorder;
+            recorder.ondataavailable = (e) => { if (e.data.size > 0) audioChunksRef.current.push(e.data); };
+            recorder.start();
+            mediaRecorderRef.current = recorder;
             setIsPTTActive(true);
         } catch {
             setVoiceError('Mic access denied');
@@ -341,54 +192,83 @@ export const DriverHUD: React.FC<DriverHUDProps> = ({ sessionId }) => {
 
     const stopRecording = useCallback(async () => {
         if (!mediaRecorderRef.current) return;
-
         setIsPTTActive(false);
         setIsProcessing(true);
 
-        const mediaRecorder = mediaRecorderRef.current;
-        const recognition = recognitionRef.current;
+        const recorder = mediaRecorderRef.current;
 
-        // Stop MediaRecorder — accumulate audio blob for potential Whisper fallback
-        const audioReady = new Promise<Blob>((resolve) => {
-            mediaRecorder.onstop = () => {
-                resolve(new Blob(audioChunksRef.current, { type: 'audio/webm' }));
-                mediaRecorder.stream.getTracks().forEach(t => t.stop());
+        return new Promise<void>((resolve) => {
+            recorder.onstop = async () => {
+                try {
+                    const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                    const base64Audio = await blobToBase64(audioBlob);
+
+                    const response = await fetch('/api/voice/query', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ audio: base64Audio, sessionId, driverId: 'driver' }),
+                    });
+
+                    if (!response.ok || !response.body) {
+                        setVoiceError('No response from engineer');
+                        return;
+                    }
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let buffer = '';
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        buffer += decoder.decode(value, { stream: true });
+                        const lines = buffer.split('\n');
+                        buffer = lines.pop() ?? '';
+
+                        for (const line of lines) {
+                            if (!line.trim()) continue;
+                            try {
+                                const chunk = JSON.parse(line) as {
+                                    type: string;
+                                    text?: string;
+                                    audioBase64?: string;
+                                    message?: string;
+                                };
+                                switch (chunk.type) {
+                                    case 'transcript':
+                                        setLastTranscript(chunk.text ?? null);
+                                        break;
+                                    case 'ack':
+                                        if (chunk.audioBase64) playWithCrackle(chunk.audioBase64);
+                                        break;
+                                    case 'response':
+                                        if (chunk.text) {
+                                            setLastResponse(chunk.text);
+                                            // Kick off streaming TTS immediately — don't wait for done
+                                            playStreamingTTS(chunk.text);
+                                        }
+                                        break;
+                                    case 'error':
+                                        setVoiceError(chunk.message ?? 'Engineer unavailable');
+                                        break;
+                                }
+                            } catch { /* malformed line */ }
+                        }
+                    }
+                } catch {
+                    setVoiceError('Radio link failed');
+                } finally {
+                    setIsProcessing(false);
+                    recorder.stream.getTracks().forEach(t => t.stop());
+                    resolve();
+                }
             };
-            mediaRecorder.stop();
+            recorder.stop();
         });
+    }, [sessionId, playWithCrackle, playStreamingTTS]);
 
-        // Race: browser STT (fast) vs 400ms timeout (then use Whisper)
-        const browserTranscript = recognition
-            ? await new Promise<string | null>((resolve) => {
-                const timeout = setTimeout(() => resolve(null), 400);
-
-                recognition.onresult = (e) => {
-                    clearTimeout(timeout);
-                    resolve(e.results[0]?.[0]?.transcript?.trim() ?? null);
-                };
-                recognition.onerror = () => { clearTimeout(timeout); resolve(null); };
-                recognition.onend = () => { /* timeout still handles null case */ };
-                recognition.stop();
-            })
-            : null;
-
-        try {
-            if (browserTranscript) {
-                // ⚡ Fast path — browser STT won, skip Whisper entirely
-                console.log(`⚡ [BrowserSTT] "${browserTranscript}"`);
-                await processTextQuery(browserTranscript);
-            } else {
-                // 🐢 Fallback — send audio to Whisper
-                console.log('[HUD] Browser STT failed/timed out — using Whisper');
-                const audioBlob = await audioReady;
-                await processAudioQuery(audioBlob);
-            }
-        } finally {
-            setIsProcessing(false);
-        }
-    }, [processTextQuery, processAudioQuery]);
-
-    // ── PTT event handlers ────────────────────────────────────────────────────
+    // ── PTT handlers ──────────────────────────────────────────────────────────
 
     const handlePTTDown = useCallback(() => {
         if (!isProcessing) startRecording();
@@ -400,18 +280,16 @@ export const DriverHUD: React.FC<DriverHUDProps> = ({ sessionId }) => {
 
     // ── Format helpers ────────────────────────────────────────────────────────
 
-    const formatLapTime = (s: number | null) => {
-        if (!s || s <= 0) return '--:--.---';
-        return `${Math.floor(s / 60)}:${(s % 60).toFixed(3).padStart(6, '0')}`;
-    };
+    const formatLapTime = (s: number | null) =>
+        !s || s <= 0 ? '--:--.---' : `${Math.floor(s / 60)}:${(s % 60).toFixed(3).padStart(6, '0')}`;
 
     const formatGap = (g: number | null) =>
         g === null ? '---' : `${g >= 0 ? '+' : ''}${g.toFixed(2)}`;
 
-    const formatDelta = (d: number | null) => {
-        if (d === null) return { text: '-.---', cls: '' };
-        return { text: `${d >= 0 ? '+' : '-'}${Math.abs(d).toFixed(3)}`, cls: d < 0 ? 'delta-faster' : d > 0 ? 'delta-slower' : '' };
-    };
+    const formatDelta = (d: number | null) =>
+        d === null
+            ? { text: '-.---', cls: '' }
+            : { text: `${d >= 0 ? '+' : '-'}${Math.abs(d).toFixed(3)}`, cls: d < 0 ? 'delta-faster' : d > 0 ? 'delta-slower' : '' };
 
     const wearClass = (w: number) => w > 80 ? 'wear-critical' : w > 50 ? 'wear-warning' : 'wear-good';
 
@@ -505,7 +383,6 @@ export const DriverHUD: React.FC<DriverHUDProps> = ({ sessionId }) => {
                 </div>
             </div>
 
-            {/* Engineer readout */}
             {voiceError ? (
                 <div className="engineer-response error">
                     <span className="response-icon">⚠</span>
@@ -523,7 +400,6 @@ export const DriverHUD: React.FC<DriverHUDProps> = ({ sessionId }) => {
                 </div>
             ) : null}
 
-            {/* PTT button */}
             <button
                 className={`ptt-button ${isPTTActive ? 'active' : ''} ${isProcessing ? 'processing' : ''}`}
                 onMouseDown={handlePTTDown}

@@ -95,17 +95,7 @@ ${liveContext || 'No live session data available.'}`;
         console.log(`🎧 Engineer → "${responseText}"`);
         sendChunk(res, { type: 'response', text: responseText });
 
-        // ── 3. TTS for the full response ──────────────────────────────────────
-        if (voiceService.isServiceAvailable()) {
-            const ttsResult = await voiceService.textToSpeech({
-                text: responseText,
-                ...VOICE_PRESETS.raceEngineer,
-            });
-            if (ttsResult.success && ttsResult.audioBuffer) {
-                sendChunk(res, { type: 'audio', audioBase64: ttsResult.audioBuffer.toString('base64') });
-            }
-        }
-
+        // TTS is handled by the client via GET /voice/tts-stream — no audio chunk here
         sendChunk(res, { type: 'done' });
         res.end();
 
