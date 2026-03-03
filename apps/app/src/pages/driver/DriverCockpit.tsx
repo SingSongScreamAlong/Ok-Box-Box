@@ -1,14 +1,17 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRelay } from '../../hooks/useRelay';
 import { useEngineer } from '../../hooks/useEngineer';
 import { useVoice } from '../../hooks/useVoice';
 import { useLiveBehavioral, getBehavioralGrade } from '../../hooks/useLiveBehavioral';
-// useRaceSimulation removed - using live data only
-import { 
-  Volume2, VolumeX, Gauge, Fuel, Flag, Clock, 
+import { usePTT } from '../../hooks/usePTT';
+import { useVoiceQuery } from '../../hooks/useVoiceQuery';
+import type { ChatMessage } from '../../lib/crewChatService';
+import {
+  Volume2, VolumeX, Gauge, Fuel, Flag, Clock,
   TrendingUp, TrendingDown, Minus, MapPin,
-  AlertTriangle, CircleDot, Wrench, Activity
+  AlertTriangle, CircleDot, Wrench, Activity,
+  Mic, MicOff, Loader2
 } from 'lucide-react';
 import { TrackMap } from '../../components/TrackMapRive';
 import { getTrackId } from '../../data/tracks';
@@ -29,6 +32,29 @@ export function DriverCockpit() {
 
   // LIVE DATA ONLY - No demo fallback
   const isConnected = status === 'connected' || status === 'in_session';
+
+  // Voice query (PTT → Whisper → crew AI → ElevenLabs)
+  const voiceChatHistoryRef = useRef<ChatMessage[]>([]);
+  const getHistory = useCallback(() => voiceChatHistoryRef.current, []);
+  const handleVoiceResponse = useCallback((transcript: string, response: string) => {
+    voiceChatHistoryRef.current = [
+      ...voiceChatHistoryRef.current.slice(-10),
+      { role: 'user', content: transcript },
+      { role: 'engineer', content: response },
+    ];
+  }, []);
+
+  const voiceQuery = useVoiceQuery({
+    role: 'engineer',
+    getHistory,
+    onResponse: handleVoiceResponse,
+  });
+
+  const ptt = usePTT({
+    onPress: () => voiceQuery.startListening(),
+    onRelease: () => voiceQuery.stopListening(),
+    enabled: true,
+  });
 
   // Format lap time helper
   const formatLapTime = (seconds: number | null): string => {
@@ -77,11 +103,6 @@ export function DriverCockpit() {
 
   return (
     <div className="h-[calc(100vh-9rem)] flex relative bg-[#0a0a0a] overflow-hidden">
-      
-      {/* BUILD IDENTIFIER - Remove when page is finalized */}
-      <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-        COCKPIT-v1.0
-      </div>
       
       {/* Background Video - Left Side of Page */}
       <div className="absolute left-0 top-0 bottom-0 w-64 overflow-hidden pointer-events-none z-[1]">
@@ -397,28 +418,9 @@ export function DriverCockpit() {
             </div>
           </div>
 
-          {/* Bottom Left Controls */}
+          {/* Bottom Left Controls — PTT */}
           <div className="absolute bottom-4 left-4">
-            <div className="bg-[#0e0e0e]/80 backdrop-blur-xl border border-white/[0.08] rounded-lg p-1.5 flex items-center gap-1">
-              <button
-                onClick={toggleVoice}
-                className={`p-2 rounded transition-all ${
-                  voiceEnabled 
-                    ? 'bg-[#f97316]/20 text-[#f97316]' 
-                    : 'text-white/40 hover:text-white/70 hover:bg-white/[0.06]'
-                }`}
-                title={voiceEnabled ? 'Mute Voice' : 'Enable Voice'}
-              >
-                {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-              </button>
-              <div className="w-px h-5 bg-white/[0.08]" />
-              <button
-                className="p-2 rounded text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-all"
-                title="Settings"
-              >
-                <MapPin className="w-4 h-4" />
-              </button>
-            </div>
+            <PTTButton voiceQuery={voiceQuery} pttBinding={ptt.binding} micDenied={voiceQuery.micDenied} />
           </div>
         </div>
       </div>
@@ -445,19 +447,23 @@ export function DriverCockpit() {
         <div className="flex-1 overflow-hidden">
           {/* Show real data from otherCars or placeholder when no data */}
           {realTelemetry.otherCars && realTelemetry.otherCars.length > 0 ? (
-            realTelemetry.otherCars.map((car, idx) => (
-              <div 
-                key={`${idx}-${car.carNumber || 'car'}`}
+            [...realTelemetry.otherCars]
+              .sort((a, b) => (a.position ?? 99) - (b.position ?? 99))
+              .map((car, idx) => {
+              const pos = car.position ?? idx + 1;
+              return (
+              <div
+                key={`${car.carNumber || idx}-car`}
                 className={`flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.04] ${
                   car.isPlayer ? 'bg-cyan-500/10 border-l-2 border-l-cyan-500' : 'hover:bg-white/[0.02]'
                 }`}
               >
                 <div className={`w-6 text-center font-mono text-sm font-bold ${
-                  idx === 0 ? 'text-yellow-400' : 
-                  idx === 1 ? 'text-gray-300' : 
-                  idx === 2 ? 'text-amber-600' : 'text-white/50'
+                  pos === 1 ? 'text-yellow-400' :
+                  pos === 2 ? 'text-gray-300' :
+                  pos === 3 ? 'text-amber-600' : 'text-white/50'
                 }`}>
-                  {idx + 1}
+                  {pos}
                 </div>
                 <div 
                   className="w-8 h-6 rounded text-[10px] font-mono font-bold flex items-center justify-center text-white"
@@ -474,20 +480,31 @@ export function DriverCockpit() {
                   {car.gap || '--'}
                 </div>
               </div>
-            ))
-          ) : (
+            );
+          })) : (
             <div className="flex items-center justify-center h-full text-white/30 text-xs p-4 text-center">
               {status === 'in_session' ? 'Waiting for standings data...' : 'Start iRacing session for live standings'}
             </div>
           )}
         </div>
 
-        {/* Team Radio Transcripts - F1 Style */}
+        {/* Voice Query transcript overlay */}
+        {(voiceQuery.status !== 'idle' || voiceQuery.transcript) && (
+          <VoiceQueryOverlay
+            status={voiceQuery.status}
+            transcript={voiceQuery.transcript}
+            lastResponse={voiceQuery.lastResponse}
+            error={voiceQuery.error}
+          />
+        )}
+
+        {/* Team Radio */}
         <div className="border-t border-white/[0.06] flex flex-col">
           <div className="px-3 py-2 border-b border-white/[0.06] flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${criticalMessages.length > 0 ? 'bg-red-500 animate-pulse' : engineerMessages.length > 0 ? 'bg-green-500' : 'bg-white/20'}`} />
             <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-semibold">Team Radio</span>
           </div>
+
           <div className="p-2 space-y-2 max-h-32 overflow-hidden">
             {engineerMessages.length > 0 ? (
               engineerMessages.slice(-3).reverse().map((msg, i) => {
@@ -512,6 +529,107 @@ export function DriverCockpit() {
         </div>
       </div>
 
+    </div>
+  );
+}
+
+// ─── PTT Button ───────────────────────────────────────────────────────────────
+
+import type { VoiceQueryStatus } from '../../hooks/useVoiceQuery';
+import type { PTTBinding } from '../../hooks/usePTT';
+
+interface PTTButtonProps {
+  voiceQuery: { status: VoiceQueryStatus; startListening: () => Promise<void>; stopListening: () => void };
+  pttBinding: PTTBinding | null;
+  micDenied: boolean;
+}
+
+function PTTButton({ voiceQuery, pttBinding, micDenied }: PTTButtonProps) {
+  const { status } = voiceQuery;
+
+  const stateMap: Record<VoiceQueryStatus, { label: string; color: string; icon: React.ReactNode; pulse: boolean }> = {
+    idle: {
+      label: pttBinding ? pttBinding.label : 'Hold to Talk',
+      color: pttBinding
+        ? 'border-white/20 text-white/50 hover:text-white/80 hover:border-white/40'
+        : 'border-white/10 text-white/30',
+      icon: <Mic className="w-4 h-4" />,
+      pulse: false,
+    },
+    listening: {
+      label: 'Listening…',
+      color: 'border-[#06b6d4] text-[#06b6d4] bg-[#06b6d4]/10',
+      icon: <Mic className="w-4 h-4" />,
+      pulse: true,
+    },
+    processing: {
+      label: 'Processing…',
+      color: 'border-[#f97316]/60 text-[#f97316]/80',
+      icon: <Loader2 className="w-4 h-4 animate-spin" />,
+      pulse: false,
+    },
+    responding: {
+      label: 'Engineer',
+      color: 'border-emerald-500/60 text-emerald-400',
+      icon: <Volume2 className="w-4 h-4" />,
+      pulse: true,
+    },
+    error: {
+      label: micDenied ? 'Mic denied' : 'Error',
+      color: 'border-red-500/50 text-red-400',
+      icon: <MicOff className="w-4 h-4" />,
+      pulse: false,
+    },
+  };
+
+  const s = stateMap[status];
+
+  return (
+    <div
+      className={`bg-[#0e0e0e]/90 backdrop-blur-xl border rounded-lg px-3 py-2 flex items-center gap-2 transition-all duration-150 select-none ${s.color}`}
+      onMouseDown={() => { if (status === 'idle') voiceQuery.startListening(); }}
+      onMouseUp={() => { if (status === 'listening') voiceQuery.stopListening(); }}
+      onTouchStart={(e) => { e.preventDefault(); if (status === 'idle') voiceQuery.startListening(); }}
+      onTouchEnd={(e) => { e.preventDefault(); if (status === 'listening') voiceQuery.stopListening(); }}
+      style={{ cursor: status === 'idle' ? 'pointer' : 'default' }}
+    >
+      <span className={s.pulse ? 'animate-pulse' : ''}>{s.icon}</span>
+      <span className="text-[10px] uppercase tracking-wider font-semibold">{s.label}</span>
+      {status === 'idle' && !pttBinding && (
+        <span className="text-[9px] text-white/20 ml-1">— bind in settings</span>
+      )}
+    </div>
+  );
+}
+
+// ─── Voice Query Overlay ──────────────────────────────────────────────────────
+
+interface VoiceQueryOverlayProps {
+  status: VoiceQueryStatus;
+  transcript: string | null;
+  lastResponse: string | null;
+  error: string | null;
+}
+
+function VoiceQueryOverlay({ status, transcript, lastResponse, error }: VoiceQueryOverlayProps) {
+  if (status === 'idle' && !transcript && !error) return null;
+  return (
+    <div className="absolute bottom-20 left-4 right-4 z-20 bg-[#0e0e0e]/95 backdrop-blur-xl border border-white/[0.08] rounded-lg p-3 space-y-2 max-w-sm">
+      {transcript && (
+        <div className="flex items-start gap-2">
+          <Mic className="w-3 h-3 text-[#06b6d4] mt-0.5 flex-shrink-0" />
+          <p className="text-xs text-white/60 italic">"{transcript}"</p>
+        </div>
+      )}
+      {lastResponse && (
+        <div className="flex items-start gap-2">
+          <span className="text-[9px] font-bold uppercase text-[#f97316] mt-0.5 flex-shrink-0">ENG</span>
+          <p className="text-xs text-white/90">"{lastResponse}"</p>
+        </div>
+      )}
+      {error && (
+        <p className="text-xs text-red-400">{error}</p>
+      )}
     </div>
   );
 }

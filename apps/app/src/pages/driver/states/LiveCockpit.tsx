@@ -1,8 +1,11 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { useRelay } from '../../../hooks/useRelay';
 import { useLiveBehavioral, getBehavioralGrade } from '../../../hooks/useLiveBehavioral';
+import { usePTT } from '../../../hooks/usePTT';
+import { useVoiceQuery } from '../../../hooks/useVoiceQuery';
+import type { ChatMessage } from '../../../lib/crewChatService';
 import { Link } from 'react-router-dom';
-import { 
+import {
   Fuel,
   Flag,
   AlertTriangle,
@@ -20,7 +23,9 @@ import {
   ChevronDown,
   ChevronUp,
   Activity,
-  Gauge
+  Gauge,
+  Mic,
+  Loader2
 } from 'lucide-react';
 import { TrackMinimap } from '../../../components/TrackMinimap';
 
@@ -49,6 +54,23 @@ export function LiveCockpit() {
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
   const [showIntel, setShowIntel] = useState(true);
   const [showBehavioral, setShowBehavioral] = useState(true);
+
+  // PTT voice query
+  const voiceChatHistoryRef = useRef<ChatMessage[]>([]);
+  const getHistory = useCallback(() => voiceChatHistoryRef.current, []);
+  const handleVoiceResponse = useCallback((transcript: string, response: string) => {
+    voiceChatHistoryRef.current = [
+      ...voiceChatHistoryRef.current.slice(-10),
+      { role: 'user', content: transcript },
+      { role: 'engineer', content: response },
+    ];
+  }, []);
+  const voiceQuery = useVoiceQuery({ role: 'engineer', getHistory, onResponse: handleVoiceResponse });
+  usePTT({
+    onPress: () => voiceQuery.startListening(),
+    onRelease: () => voiceQuery.stopListening(),
+    enabled: true,
+  });
 
   useEffect(() => {
     if (videoRef.current) {
@@ -782,7 +804,22 @@ export function LiveCockpit() {
               <MessageSquare className="w-3 h-3" /> Analyst
             </Link>
           </div>
-          <div className="text-[10px] text-white/20">Live Cockpit</div>
+          {/* PTT mic status indicator */}
+          <div className={`flex items-center gap-1 text-[10px] uppercase tracking-wider ${
+            voiceQuery.status === 'listening' ? 'text-[#06b6d4] animate-pulse' :
+            voiceQuery.status === 'processing' ? 'text-[#f97316]/70' :
+            voiceQuery.status === 'responding' ? 'text-emerald-400 animate-pulse' :
+            voiceQuery.status === 'error' ? 'text-red-400' :
+            'text-white/20'
+          }`}>
+            {voiceQuery.status === 'processing'
+              ? <Loader2 className="w-3 h-3 animate-spin" />
+              : <Mic className="w-3 h-3" />}
+            {voiceQuery.status === 'idle' ? 'PTT' :
+             voiceQuery.status === 'listening' ? 'Listening' :
+             voiceQuery.status === 'processing' ? 'Thinking' :
+             voiceQuery.status === 'responding' ? 'Engineer' : 'Error'}
+          </div>
         </div>
       </div>
     </div>
