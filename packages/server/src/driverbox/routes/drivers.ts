@@ -2255,7 +2255,7 @@ VOICE MODE — 1-2 sentences max. Save the full debrief for after the session.${
 // AI Helper Functions
 // ========================
 
-function buildDriverContextForAI(profile: any, aggregate: any, traits: any[], recentSessions: any[]): string {
+export function buildDriverContextForAI(profile: any, aggregate: any, traits: any[], recentSessions: any[]): string {
     const lines: string[] = [];
 
     lines.push(`Driver: ${profile.display_name || 'Unknown'}`);
@@ -2516,6 +2516,42 @@ export function buildLiveTelemetryContext(): string {
     }
 
     return lines.join('\n');
+}
+
+// Cache for voice driver context — keyed by driver profile ID, TTL 10 min.
+// Avoids 3 DB round-trips on every voice query once the session is warm.
+const voiceDriverContextCache = new Map<string, { context: string; builtAt: number }>();
+const VOICE_DRIVER_CONTEXT_TTL_MS = 10 * 60 * 1000;
+
+/**
+ * Fetch and cache the full driver context string for voice routes.
+ * Loads profile, aggregate, traits, and recent sessions in parallel.
+ * Returns an empty string if the driverId is not found.
+ */
+export async function fetchDriverContextForVoice(driverId: string): Promise<string> {
+    if (!driverId) return '';
+
+    const cached = voiceDriverContextCache.get(driverId);
+    if (cached && Date.now() - cached.builtAt < VOICE_DRIVER_CONTEXT_TTL_MS) {
+        return cached.context;
+    }
+
+    try {
+        const profile = await getDriverProfileById(driverId);
+        if (!profile) return '';
+
+        const [aggregate, traits, recentSessions] = await Promise.all([
+            getGlobalAggregate(profile.id, 'all_time'),
+            getCurrentTraits(profile.id),
+            getMetricsForDriver(profile.id, 10, 0),
+        ]);
+
+        const context = buildDriverContextForAI(profile, aggregate, traits, recentSessions);
+        voiceDriverContextCache.set(driverId, { context, builtAt: Date.now() });
+        return context;
+    } catch {
+        return '';
+    }
 }
 
 function buildFallbackCoachingInsight(aggregate: any, traits: any[]): string {

@@ -8,7 +8,7 @@
 
 import { Router, Request, Response } from 'express';
 import { getWhisperService, getVoiceService, VOICE_PRESETS } from '../../services/voice/index.js';
-import { buildLiveTelemetryContext } from '../../driverbox/routes/drivers.js';
+import { buildLiveTelemetryContext, fetchDriverContextForVoice } from '../../driverbox/routes/drivers.js';
 
 const router = Router();
 
@@ -71,26 +71,31 @@ router.post('/query', async (req: AudioRequest, res: Response) => {
         console.log(`🎙️ Driver ${driverId || '?'}: "${transcript}"`);
         sendChunk(res, { type: 'transcript', text: transcript });
 
-        // ── 2. Ack audio + LLM in parallel ───────────────────────────────────
-        // Live telemetry context is fast (local state, no DB)
+        // ── 2. Load driver context + ack audio in parallel ───────────────────
+        // Driver context is cached after first call (10-min TTL) — negligible latency.
+        // Live telemetry is synchronous (local state, no DB).
         const liveContext = buildLiveTelemetryContext();
+        const [driverContext, ackBuffer] = await Promise.all([
+            driverId ? fetchDriverContextForVoice(driverId) : Promise.resolve(''),
+            voiceService.getAckAudio(),
+        ]);
+
+        const isLive = liveContext.length > 0;
+        const allContext = [driverContext, liveContext].filter(Boolean).join('\n');
 
         const systemPrompt = `You are a professional motorsport race engineer talking to your driver over radio.
 Technical, precise, data-driven. Reference actual numbers from the data when available.
 VOICE MODE — keep responses to 1-2 sentences. The driver is at speed. Be clear and actionable.
-Never make up data.${liveContext ? '\nThe driver is IN A LIVE SESSION. They just spoke over radio. Reply in 1-2 sentences max.' : ''}
-${liveContext || 'No live session data available.'}`;
+Never make up data.
+${isLive ? 'The driver is IN A LIVE SESSION. Use live data for current car state (tires, fuel, gaps, damage). Cross-reference their profile for context (e.g. "that pace is consistent with your norm" or "your tires are degrading faster than usual").' : 'The driver is NOT in a live session. Answer from their historical profile data.'}
+${allContext || 'No driver or session data available.'}`;
 
-        const [ackBuffer, llmResponse] = await Promise.all([
-            voiceService.getAckAudio(),
-            callLLM(systemPrompt, transcript),
-        ]);
-
-        // Stream ack immediately so the driver hears something right away
+        // ── 3. Send ack immediately, then call LLM ───────────────────────────
         if (ackBuffer) {
             sendChunk(res, { type: 'ack', audioBase64: ackBuffer.toString('base64') });
         }
 
+        const llmResponse = await callLLM(systemPrompt, transcript);
         const responseText = llmResponse || 'Copy, standby.';
         console.log(`🎧 Engineer → "${responseText}"`);
         sendChunk(res, { type: 'response', text: responseText });
@@ -169,21 +174,26 @@ router.post('/query-text', async (req: Request, res: Response) => {
         sendChunk(res, { type: 'transcript', text: transcript });
 
         const liveContext = buildLiveTelemetryContext();
+        const [driverContext, ackBuffer] = await Promise.all([
+            driverId ? fetchDriverContextForVoice(driverId) : Promise.resolve(''),
+            voiceService.getAckAudio(),
+        ]);
+
+        const isLive = liveContext.length > 0;
+        const allContext = [driverContext, liveContext].filter(Boolean).join('\n');
+
         const systemPrompt = `You are a professional motorsport race engineer talking to your driver over radio.
 Technical, precise, data-driven. Reference actual numbers from the data when available.
 VOICE MODE — keep responses to 1-2 sentences. The driver is at speed. Be clear and actionable.
-Never make up data.${liveContext ? '\nThe driver is IN A LIVE SESSION. Reply in 1-2 sentences max.' : ''}
-${liveContext || 'No live session data available.'}`;
-
-        const [ackBuffer, llmResponse] = await Promise.all([
-            voiceService.getAckAudio(),
-            callLLM(systemPrompt, transcript),
-        ]);
+Never make up data.
+${isLive ? 'The driver is IN A LIVE SESSION. Use live data for current car state (tires, fuel, gaps, damage). Cross-reference their profile for context (e.g. "that pace is consistent with your norm" or "your tires are degrading faster than usual").' : 'The driver is NOT in a live session. Answer from their historical profile data.'}
+${allContext || 'No driver or session data available.'}`;
 
         if (ackBuffer) {
             sendChunk(res, { type: 'ack', audioBase64: ackBuffer.toString('base64') });
         }
 
+        const llmResponse = await callLLM(systemPrompt, transcript);
         const responseText = llmResponse || 'Copy, standby.';
         console.log(`🎧 [BrowserSTT] Engineer → "${responseText}"`);
         // Send response text — client fetches audio via /tts-stream separately
