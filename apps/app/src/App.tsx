@@ -58,6 +58,7 @@ import { DriverStats } from './pages/driver/DriverStats';
 import { ReplayViewer } from './pages/driver/ReplayViewer';
 import { DriverHUD } from './pages/driver/DriverHUD';
 import { DriverVoice } from './pages/driver/DriverVoice';
+import { DriverBlackBox } from './pages/driver/DriverBlackBox';
 import { DriverComparison } from './pages/pitwall/DriverComparison';
 import { StintPlanner } from './pages/pitwall/StintPlanner';
 import { RacePlan } from './pages/pitwall/RacePlan';
@@ -139,6 +140,7 @@ function App() {
           <Route path="replay/:sessionId" element={<ReplayViewer />} />
           <Route path="settings/hud" element={<DriverHUD />} />
           <Route path="settings/voice" element={<DriverVoice />} />
+          <Route path="blackbox" element={<DriverBlackBox />} />
         </Route>
 
         {/* Settings & Profile Creation (outside driver layout) */}

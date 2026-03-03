@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { TrackMap } from '../../components/TrackMapRive';
 import { getTrackId } from '../../data/tracks';
+import { DriverHUDOverlay } from '../../components/DriverHUDOverlay';
 
 /**
  * DriverCockpit - Glanceable Second Monitor / iPad View
@@ -366,11 +367,16 @@ export function DriverCockpit() {
         {/* Top Bar */}
         <div className="h-12 border-b border-white/[0.06] bg-[#0e0e0e]/60 backdrop-blur-xl flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <div className={`w-1.5 h-1.5 rounded-full ${status === 'in_session' ? 'bg-emerald-400 animate-pulse' : isConnected ? 'bg-yellow-400' : 'bg-white/20'}`} />
             <span className="text-sm text-white/70">{session?.trackName || 'No Track'}</span>
-            <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border ${isConnected ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-white/40 bg-white/[0.04] border-white/[0.06]'}`}>
-              {isConnected ? 'Live' : 'Offline'}
+            <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border ${status === 'in_session' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : isConnected ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30' : 'text-white/40 bg-white/[0.04] border-white/[0.06]'}`}>
+              {status === 'in_session' ? 'Live' : isConnected ? 'Ready' : 'Offline'}
             </span>
+            {status === 'in_session' && realTelemetry.lapsRemaining != null && (
+              <span className="text-[10px] text-white/40 font-mono">
+                {realTelemetry.lapsRemaining} laps left
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -405,6 +411,15 @@ export function DriverCockpit() {
             telemetry={heatmapData}
             className="w-full h-full"
           />
+          {!isConnected && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
+              <div className="bg-[#0e0e0e]/80 backdrop-blur-xl border border-white/[0.08] rounded-lg px-8 py-6 flex flex-col items-center gap-3 text-center">
+                <CircleDot className="w-8 h-8 text-white/20" />
+                <p className="text-sm text-white/60 font-medium">iRacing not connected</p>
+                <p className="text-xs text-white/30 max-w-xs">Launch the Ok Box Box relay app and start an iRacing session to see live data here.</p>
+              </div>
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e0e] via-transparent to-transparent pointer-events-none" />
           
           {/* Speed Overlay */}
@@ -488,15 +503,12 @@ export function DriverCockpit() {
           )}
         </div>
 
-        {/* Voice Query transcript overlay */}
-        {(voiceQuery.status !== 'idle' || voiceQuery.transcript) && (
-          <VoiceQueryOverlay
-            status={voiceQuery.status}
-            transcript={voiceQuery.transcript}
-            lastResponse={voiceQuery.lastResponse}
-            error={voiceQuery.error}
-          />
-        )}
+        {/* Driver HUD Overlay (fixed, bottom-left, fades when idle) */}
+        <DriverHUDOverlay
+          voiceStatus={voiceQuery.status}
+          voiceTranscript={voiceQuery.transcript}
+          voiceResponse={voiceQuery.lastResponse}
+        />
 
         {/* Team Radio */}
         <div className="border-t border-white/[0.06] flex flex-col">
@@ -602,34 +614,3 @@ function PTTButton({ voiceQuery, pttBinding, micDenied }: PTTButtonProps) {
   );
 }
 
-// ─── Voice Query Overlay ──────────────────────────────────────────────────────
-
-interface VoiceQueryOverlayProps {
-  status: VoiceQueryStatus;
-  transcript: string | null;
-  lastResponse: string | null;
-  error: string | null;
-}
-
-function VoiceQueryOverlay({ status, transcript, lastResponse, error }: VoiceQueryOverlayProps) {
-  if (status === 'idle' && !transcript && !error) return null;
-  return (
-    <div className="absolute bottom-20 left-4 right-4 z-20 bg-[#0e0e0e]/95 backdrop-blur-xl border border-white/[0.08] rounded-lg p-3 space-y-2 max-w-sm">
-      {transcript && (
-        <div className="flex items-start gap-2">
-          <Mic className="w-3 h-3 text-[#06b6d4] mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-white/60 italic">"{transcript}"</p>
-        </div>
-      )}
-      {lastResponse && (
-        <div className="flex items-start gap-2">
-          <span className="text-[9px] font-bold uppercase text-[#f97316] mt-0.5 flex-shrink-0">ENG</span>
-          <p className="text-xs text-white/90">"{lastResponse}"</p>
-        </div>
-      )}
-      {error && (
-        <p className="text-xs text-red-400">{error}</p>
-      )}
-    </div>
-  );
-}

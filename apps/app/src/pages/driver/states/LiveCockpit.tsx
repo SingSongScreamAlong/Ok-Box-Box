@@ -28,6 +28,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { TrackMinimap } from '../../../components/TrackMinimap';
+import { DriverHUDOverlay } from '../../../components/DriverHUDOverlay';
 
 type Urgency = 'critical' | 'warning' | 'info';
 
@@ -822,6 +823,13 @@ export function LiveCockpit() {
           </div>
         </div>
       </div>
+
+      {/* Driver HUD Overlay — fixed, fades when idle */}
+      <DriverHUDOverlay
+        voiceStatus={voiceQuery.status}
+        voiceTranscript={voiceQuery.transcript}
+        voiceResponse={voiceQuery.lastResponse}
+      />
     </div>
   );
 }
