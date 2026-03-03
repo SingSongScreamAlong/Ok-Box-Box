@@ -7,18 +7,31 @@ import type { CarMapPosition } from '../hooks/useRelay';
 
 /**
  * TrackMinimap — Compact track map for embedding in driver pages.
- * Shows player position + nearby cars on the actual track shape.
+ * Shows player position + nearby cars + incident markers on the actual track shape.
  * Designed for sidebar or card placement (120-200px).
  */
+
+interface IncidentMarker {
+    id: string;
+    trackPosition: number; // 0–1 track percentage
+    severity: 'low' | 'medium' | 'high';
+}
 
 interface TrackMinimapProps {
     trackName: string | null;
     trackPosition: number | null;
     otherCars?: CarMapPosition[];
+    incidents?: IncidentMarker[];
     className?: string;
 }
 
-export function TrackMinimap({ trackName, trackPosition, otherCars, className = '' }: TrackMinimapProps) {
+const INCIDENT_COLORS: Record<IncidentMarker['severity'], string> = {
+    high: '#ef4444',
+    medium: '#f97316',
+    low: '#eab308',
+};
+
+export function TrackMinimap({ trackName, trackPosition, otherCars, incidents, className = '' }: TrackMinimapProps) {
     const shapeId = trackName ? getTrackId(trackName) : undefined;
     const { shape, loading } = useTrackData(shapeId);
 
@@ -55,6 +68,21 @@ export function TrackMinimap({ trackName, trackPosition, otherCars, className = 
                 <path d={pathData} stroke="#1e293b" strokeWidth="10" fill="none" strokeLinecap="round" strokeLinejoin="round" />
                 {/* Track surface */}
                 <path d={pathData} stroke="rgba(255,255,255,0.15)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+
+                {/* Incident markers — rendered below cars so cars stay readable */}
+                {incidents?.map((inc) => {
+                    const c = getPointAtPercentage(shape, inc.trackPosition);
+                    if (!c) return null;
+                    const color = INCIDENT_COLORS[inc.severity];
+                    return (
+                        <g key={inc.id}>
+                            {/* Outer glow */}
+                            <circle cx={c.x} cy={c.y} r="9" fill={color} opacity="0.25" />
+                            {/* Inner dot */}
+                            <circle cx={c.x} cy={c.y} r="4.5" fill={color} opacity="0.85" />
+                        </g>
+                    );
+                })}
 
                 {/* Other cars — small dots */}
                 {otherCars?.map((car, i) => {

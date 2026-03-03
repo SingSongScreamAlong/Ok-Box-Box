@@ -1964,6 +1964,10 @@ Each should be one sentence. Return as a JSON array of strings.`
  * POST /api/v1/drivers/me/crew-chat
  * AI crew chat endpoint — Engineer, Spotter, or Analyst persona
  */
+// Driver context cache — avoids 3 DB queries per chat message (TTL: 10 min)
+const driverContextCache = new Map<string, { context: string; builtAt: number }>();
+const DRIVER_CONTEXT_CACHE_TTL_MS = 10 * 60 * 1000;
+
 router.post('/me/crew-chat', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
         const profile = await getDriverProfileByUserId(req.user!.id);
@@ -1974,15 +1978,21 @@ router.post('/me/crew-chat', requireAuth, async (req: Request, res: Response): P
             return;
         }
 
-        // Gather driver context (historical stats + live telemetry)
+        // Gather driver context — cached per user for 10 minutes
         let driverContext = '';
         if (profile) {
-            const [aggregate, traits, recentSessions] = await Promise.all([
-                getGlobalAggregate(profile.id, 'all_time'),
-                getCurrentTraits(profile.id),
-                getMetricsForDriver(profile.id, 10, 0),
-            ]);
-            driverContext = buildDriverContextForAI(profile, aggregate, traits, recentSessions);
+            const cached = driverContextCache.get(req.user!.id);
+            if (cached && Date.now() - cached.builtAt < DRIVER_CONTEXT_CACHE_TTL_MS) {
+                driverContext = cached.context;
+            } else {
+                const [aggregate, traits, recentSessions] = await Promise.all([
+                    getGlobalAggregate(profile.id, 'all_time'),
+                    getCurrentTraits(profile.id),
+                    getMetricsForDriver(profile.id, 10, 0),
+                ]);
+                driverContext = buildDriverContextForAI(profile, aggregate, traits, recentSessions);
+                driverContextCache.set(req.user!.id, { context: driverContext, builtAt: Date.now() });
+            }
         }
 
         // Inject live telemetry if driver is in a session
@@ -2098,6 +2108,7 @@ IMPORTANT: Never make up data. Only reference numbers from the data below. If yo
         const result = await chatCompletion(messages, {
             temperature: 0.7,
             maxTokens: 500,
+            model: 'gpt-4o-mini',
         });
 
         if (result.success && result.content) {
@@ -2312,7 +2323,7 @@ function buildDriverContextForAI(profile: any, aggregate: any, traits: any[], re
     return lines.join('\n');
 }
 
-function buildLiveTelemetryContext(): string {
+export function buildLiveTelemetryContext(): string {
     // Try both 'live' key and any active session
     const snapshot = getTelemetryForVoice('live');
     if (!snapshot || !snapshot.updatedAt) return '';
