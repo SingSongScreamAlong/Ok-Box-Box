@@ -372,7 +372,6 @@ export class TelemetryHandler {
             // This allows the Live Race Ops Console to receive telemetry data
             if (driverCar) {
                 const driverSpeedMph = driverCar.speed ? Math.round(driverCar.speed * 2.237) : 0;
-                const playerStanding = this.cachedStandings.find((s: any) => s.isPlayer);
                 const lightweightCars = (Array.isArray(validData.cars) ? validData.cars : []).map((c: any) => ({
                     carIdx: c.carIdx ?? c.carId,
                     carId: c.carId,
@@ -386,7 +385,27 @@ export class TelemetryHandler {
                     isPlayer: !!c.isPlayer,
                     pos: { s: c?.pos?.s },
                 }));
-                const lightweightStandings = this.cachedStandings.map((s: any) => ({
+                const derivedStandings = lightweightCars.map((c: any, idx: number) => ({
+                    carIdx: c.carIdx ?? c.carId,
+                    carNumber: c.carNumber,
+                    driverName: c.driverName,
+                    position: c.position || idx + 1,
+                    lapDistPct: c?.pos?.s,
+                    lap: c.lap,
+                    lastLapTime: c.lastLapTime,
+                    bestLapTime: c.bestLapTime,
+                    onPitRoad: c.onPitRoad,
+                    isPlayer: !!c.isPlayer,
+                    gapToLeader: 0,
+                }));
+                const effectiveStandings = this.cachedStandings.length > 0
+                    ? this.cachedStandings
+                    : derivedStandings;
+                if (this.cachedStandings.length === 0 && derivedStandings.length > 0) {
+                    this.cachedStandings = derivedStandings;
+                }
+                const playerStanding = effectiveStandings.find((s: any) => s.isPlayer);
+                const lightweightStandings = effectiveStandings.map((s: any) => ({
                     carIdx: s.carIdx ?? s.carId,
                     carNumber: s.carNumber,
                     driverName: s.driverName,
@@ -461,8 +480,8 @@ export class TelemetryHandler {
                     timestamp: Date.now(),
                     cars: validData.cars,
                     drivers: driverCar ? [driverCar] : [],
-                    standings: this.cachedStandings,
-                    totalCars: this.cachedStandings.length || undefined,
+                    standings: effectiveStandings,
+                    totalCars: effectiveStandings.length || lightweightCars.length || undefined,
                     trackName: rawData.trackName || session?.trackName,
                     sessionType: rawData.sessionType || session?.sessionType,
                     rpmRedline: currentSessionInfo?.rpmRedline,
