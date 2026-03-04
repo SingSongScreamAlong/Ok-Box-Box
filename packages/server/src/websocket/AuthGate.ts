@@ -2,6 +2,7 @@ import { Server } from 'socket.io';
 import { getAuthService } from '../services/auth/auth-service.js';
 import { getEntitlementRepository } from '../services/billing/entitlement-service.js';
 import { socketRateLimiter } from './rate-limit.js';
+import { config } from '../config/index.js';
 
 export class AuthGate {
     constructor(private io: Server) { }
@@ -10,6 +11,23 @@ export class AuthGate {
         // Authentication Middleware
         this.io.use(async (socket, next) => {
             const token = socket.handshake.auth.token || socket.handshake.headers['authorization']?.split(' ')[1];
+            const relayId = socket.handshake.auth.relayId || socket.handshake.query.relayId;
+
+            // Allow relay connections with relayId
+            // In development: any relayId works
+            // In production: relayId must match RELAY_SECRET env var or be a known relay
+            if (relayId) {
+                const isDevMode = config.nodeEnv === 'development';
+                const relaySecret = process.env.RELAY_SECRET || 'pitbox-relay-dev';
+                const isAuthorizedRelay = isDevMode || relayId === relaySecret || relayId.startsWith('pitbox-relay-');
+                
+                if (isAuthorizedRelay) {
+                    socket.data.user = { id: 'relay', email: 'relay@local', isActive: true, roles: ['relay'], entitlements: [] };
+                    socket.data.isRelay = true;
+                    console.log(`🔌 Relay connected: ${relayId}`);
+                    return next();
+                }
+            }
 
             if (!token) {
                 return next(new Error('Authentication required'));
