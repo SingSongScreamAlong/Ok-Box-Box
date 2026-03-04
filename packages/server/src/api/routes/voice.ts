@@ -10,6 +10,7 @@ import { Router, Request, Response } from 'express';
 import { requireAuth, requireCapability } from '../middleware/auth.js';
 import { getWhisperService, getVoiceService, VOICE_PRESETS } from '../../services/voice/index.js';
 import { buildLiveTelemetryContext, fetchDriverContextForVoice } from '../../driverbox/routes/drivers.js';
+import { processPreferenceChange } from '../../services/ai/preference-parser.js';
 
 const router = Router();
 
@@ -71,6 +72,13 @@ router.post('/query', requireAuth, requireCapability('voice_engineer'), async (r
         const transcript = transcription.text;
         console.log(`🎙️ Driver ${driverId || '?'}: "${transcript}"`);
         sendChunk(res, { type: 'transcript', text: transcript });
+
+        // ── 1b. Check for preference changes (async, don't block) ─────────────
+        if (driverId) {
+            processPreferenceChange(driverId, transcript).then(ack => {
+                if (ack) console.log(`📝 Preference updated for ${driverId}: ${ack}`);
+            }).catch(() => { /* ignore preference parse errors */ });
+        }
 
         // ── 2. Load driver context + ack audio in parallel ───────────────────
         // Driver context is cached after first call (10-min TTL) — negligible latency.
@@ -173,6 +181,13 @@ router.post('/query-text', requireAuth, requireCapability('voice_engineer'), asy
     try {
         console.log(`⚡ [BrowserSTT] Driver ${driverId || '?'}: "${transcript}"`);
         sendChunk(res, { type: 'transcript', text: transcript });
+
+        // Check for preference changes (async, don't block)
+        if (driverId) {
+            processPreferenceChange(driverId, transcript).then(ack => {
+                if (ack) console.log(`📝 Preference updated for ${driverId}: ${ack}`);
+            }).catch(() => { /* ignore preference parse errors */ });
+        }
 
         const liveContext = buildLiveTelemetryContext();
         const [driverContext, ackBuffer] = await Promise.all([

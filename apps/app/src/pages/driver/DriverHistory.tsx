@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useDriverData } from '../../hooks/useDriverData';
-import { getDisciplineLabel, getLicenseColor, DriverDiscipline } from '../../lib/driverService';
+import { getDisciplineLabel, getLicenseColor, DriverDiscipline, fetchCrewBrief, CrewBrief } from '../../lib/driverService';
 import { 
   Calendar, MapPin, Flag, Trophy, AlertTriangle, Loader2,
   TrendingUp, TrendingDown, Minus, Filter, ChevronRight,
@@ -25,7 +25,18 @@ export function DriverHistory() {
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [disciplineFilter, setDisciplineFilter] = useState<DriverDiscipline | 'all'>('all');
+  const [crewBriefs, setCrewBriefs] = useState<CrewBrief[]>([]);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Load crew briefs (session debriefs from AI)
+  const loadCrewBriefs = useCallback(async () => {
+    const briefs = await fetchCrewBrief();
+    if (briefs) setCrewBriefs(briefs);
+  }, []);
+
+  useEffect(() => {
+    loadCrewBriefs();
+  }, [loadCrewBriefs]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -309,6 +320,32 @@ export function DriverHistory() {
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-4">
+          {/* AI Session Debriefs */}
+          {crewBriefs.length > 0 && viewMode === 'overview' && (
+            <div className="mb-6 bg-white/[0.03] backdrop-blur-xl border border-[#f97316]/20 rounded p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Award className="w-4 h-4 text-[#f97316]" />
+                <h3 className="text-xs uppercase tracking-[0.15em] text-[#f97316]" style={{ fontFamily: 'Orbitron, sans-serif' }}>Engineer Debriefs</h3>
+              </div>
+              <div className="space-y-3">
+                {crewBriefs.slice(0, 3).map((brief) => (
+                  <div key={brief.id} className="p-3 bg-white/[0.02] rounded border border-white/[0.06]">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-semibold text-white/80">{brief.title}</span>
+                      <span className="text-[9px] text-white/30">{new Date(brief.created_at).toLocaleDateString()}</span>
+                    </div>
+                    {brief.content?.summary && (
+                      <p className="text-[11px] text-white/50 leading-relaxed">{brief.content.summary}</p>
+                    )}
+                    {brief.content?.key_insight && (
+                      <p className="text-[11px] text-[#f97316]/80 mt-2 italic">"{brief.content.key_insight}"</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* iRacing Profile Summary when no sessions */}
           {totalSessions === 0 && profile && profile.licenses && profile.licenses.length > 0 && (
             <div className="mb-6 bg-white/[0.03] backdrop-blur-xl border border-blue-500/20 rounded p-5">
