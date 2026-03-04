@@ -1,30 +1,48 @@
-# ControlBox Relay Agent
+# Ok, Box Box Relay Agent
 
-Real iRacing telemetry relay that bridges iRacing simulator to ControlBox Server for live race execution.
+Connects iRacing to your Ok, Box Box dashboard for live telemetry, AI race engineer, and session analysis.
 
 ## ⚠️ Requirements
 
-- **Windows PC** with iRacing installed
-- **Python 3.7+**
-- iRacing must be running (live session or replay)
+- **Windows 10+** with iRacing installed
+- **Python 3.10+** ([Download Python](https://www.python.org/downloads/))
+- iRacing must be running (practice, qualifying, or race)
 
-## Installation
+## Quick Start
 
-```powershell
-# Navigate to relay directory
-cd relay_agent
+### 1. Download & Extract
+Download the latest release and extract to any folder.
 
-# Install dependencies
-pip install -r requirements.txt
+### 2. Configure
+Copy `.env.example` to `.env` and add your auth token:
+```
+SERVER_URL=https://octopus-app-qsi3i.ondigitalocean.app
+AUTH_TOKEN=your_token_here
 ```
 
-## Usage
+Get your auth token from: **Ok, Box Box App → Settings → Relay Token**
 
-### Basic Usage
+### 3. Run
+Double-click `START-RELAY.bat` or run manually:
 ```powershell
 python main.py
 ```
-This connects to the local ControlBox Server at http://localhost:3000.
+
+The relay will:
+- Auto-detect when iRacing starts a session
+- Stream telemetry to your dashboard
+- Enable voice commands with your AI engineer
+- Log sessions for post-race analysis
+
+## Features
+
+| Feature | Description |
+|---------|-------------|
+| **Live Telemetry** | 60Hz car data to your dashboard |
+| **AI Engineer** | Voice commands during racing |
+| **Session Logging** | Compressed race logs for analysis |
+| **Auto-Reconnect** | Handles network interruptions |
+| **System Tray** | Runs quietly in background |
 
 ### Custom Server URL
 ```powershell
