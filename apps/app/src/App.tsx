@@ -35,6 +35,7 @@ const DriverIDP        = lazy(() => import('./pages/driver/DriverIDP').then(m =>
 const ReplayViewer     = lazy(() => import('./pages/driver/ReplayViewer').then(m => ({ default: m.ReplayViewer })));
 const DriverHUD        = lazy(() => import('./pages/driver/DriverHUD').then(m => ({ default: m.DriverHUD })));
 const DriverVoice      = lazy(() => import('./pages/driver/DriverVoice').then(m => ({ default: m.DriverVoice })));
+const DriverBlackBox   = lazy(() => import('./pages/driver/DriverBlackBox').then(m => ({ default: m.DriverBlackBox })));
 
 // Shared / hub pages
 const Settings            = lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
@@ -182,6 +183,7 @@ function App() {
           <Route path="replay/:sessionId" element={<ReplayViewer />} />
           <Route path="settings/hud"   element={<DriverHUD />} />
           <Route path="settings/voice" element={<DriverVoice />} />
+          <Route path="blackbox"       element={<DriverBlackBox />} />
         </Route>
 
         {/* Settings & profile creation — inside DriverLayout, any auth'd user */}

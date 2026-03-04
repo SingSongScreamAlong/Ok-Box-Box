@@ -31,6 +31,8 @@ import { useRelay } from '../../hooks/useRelay';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDriverData } from '../../hooks/useDriverData';
 import { Link } from 'react-router-dom';
+import { DriverWelcome } from '../../components/DriverWelcome';
+import { useFirstTimeExperience } from '../../components/PitwallWelcome';
 import {
   WifiOff, Radio, ChevronRight,
   Play, Download, Gauge, Shield,
@@ -1565,6 +1567,9 @@ export function DriverLanding() {
 
   const isLive = status === 'in_session';
 
+  // First-time user experience
+  const { hasSeenWelcome, markAsSeen } = useFirstTimeExperience('driver_landing');
+
   // Background video
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -1714,11 +1719,16 @@ export function DriverLanding() {
         {/* iRATING TREND */}
         {!loading && <IRatingSparkline points={trendPoints} />}
 
-        {/* BUILD IDENTIFIER - Remove when page is finalized */}
+        {/* BUILD IDENTIFIER */}
         <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-          HOME-v3.4
+          v{__APP_VERSION__}.{__GIT_COMMIT__?.slice(0, 7) || 'dev'}
         </div>
       </div>
+
+      {/* First-time user welcome modal */}
+      {!hasSeenWelcome && (
+        <DriverWelcome displayName={displayName} onComplete={markAsSeen} />
+      )}
     </div>
   );
 }

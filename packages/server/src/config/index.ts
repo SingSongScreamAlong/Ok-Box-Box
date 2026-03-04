@@ -57,6 +57,9 @@ export const config = {
     // Admin seeding — override defaults via env in production
     seedAdminEmail: process.env.SEED_ADMIN_EMAIL || 'admin@okboxbox.com',
     seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || '',
+
+    // FP1 Testing Mode — grants all driver capabilities to free tier users
+    fp1TestingMode: process.env.FP1_TESTING_MODE === 'true',
 } as const;
 
 // Validate required production configs

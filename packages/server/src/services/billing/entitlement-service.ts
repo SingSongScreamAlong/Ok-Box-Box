@@ -116,15 +116,21 @@ export function deriveCapabilitiesFromEntitlements(
     entitlements: Entitlement[],
     roles: string[] = []
 ): Capabilities {
+    // Import config for FP1 testing mode
+    const { config } = require('../../config/index.js');
+    
     // FREE TIER: Only relay_auth is granted
     // All other capabilities require a paid subscription
+    // EXCEPTION: FP1_TESTING_MODE grants all driver capabilities to free tier
+    const fp1Mode = config.fp1TestingMode;
+    
     const caps: Capabilities = {
         relay_auth: true,             // Always true for authenticated users
-        driver_hud: false,
-        situational_awareness: false,
-        voice_engineer: false,
-        personal_telemetry: false,
-        livespotter_access: false,    // BlackBox: read-only spotter view
+        driver_hud: fp1Mode,
+        situational_awareness: fp1Mode,
+        voice_engineer: fp1Mode,
+        personal_telemetry: fp1Mode,
+        livespotter_access: fp1Mode,  // BlackBox: read-only spotter view
         pitwall_view: false,          // TeamBox: full pit wall (multi-car)
         multi_car_monitor: false,
         strategy_timeline: false,
