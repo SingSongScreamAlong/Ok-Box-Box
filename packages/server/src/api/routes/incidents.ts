@@ -107,7 +107,7 @@ incidentsRouter.post('/:id/analyze', requireAuth, async (req: Request, res: Resp
 
         // Ignore client-supplied rules; fetch authoritative rules server-side
         // (client-supplied rules are untrusted and could skew AI recommendations)
-        const rules: unknown[] = [];
+        const rules: import('@controlbox/common').Rule[] = [];
         const context = req.body.context || {
             previousIncidents: 0,
             isRepeatOffense: false,
@@ -183,7 +183,7 @@ incidentsRouter.post('/:id/advice', requireAuth, async (req: Request, res: Respo
 
         // Ignore client-supplied rules; fetch authoritative rules server-side
         // (client-supplied rules are untrusted and could skew AI recommendations)
-        const rules: unknown[] = [];
+        const rules: import('@controlbox/common').Rule[] = [];
         const context = req.body.context || {};
 
         const advice = stewardAdvisor.generateAdvice(incident, rules, context);

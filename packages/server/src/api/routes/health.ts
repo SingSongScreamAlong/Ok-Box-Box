@@ -23,8 +23,8 @@ healthRouter.get('/', async (_req: Request, res: Response) => {
         dbStatus = 'error';
     }
 
-    // Check Redis (optional dependency — 'disabled' if not configured)
-    let redisStatus: 'ok' | 'error' | 'disabled' = 'disabled';
+    // Check Redis (optional dependency — treat unconfigured as 'ok' since it's optional)
+    let redisStatus: 'ok' | 'error' = 'ok';
     if (config.redisUrl) {
         try {
             const redis = await getRedisClient();
