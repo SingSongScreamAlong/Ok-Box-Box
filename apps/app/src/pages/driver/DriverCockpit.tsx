@@ -1,17 +1,21 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRelay } from '../../hooks/useRelay';
 import { useEngineer } from '../../hooks/useEngineer';
 import { useVoice } from '../../hooks/useVoice';
 import { useLiveBehavioral, getBehavioralGrade } from '../../hooks/useLiveBehavioral';
-// useRaceSimulation removed - using live data only
-import { 
-  Volume2, VolumeX, Gauge, Fuel, Flag, Clock, 
+import { usePTT } from '../../hooks/usePTT';
+import { useVoiceQuery } from '../../hooks/useVoiceQuery';
+import type { ChatMessage } from '../../lib/crewChatService';
+import {
+  Volume2, VolumeX, Gauge, Fuel, Flag, Clock,
   TrendingUp, TrendingDown, Minus, MapPin,
-  AlertTriangle, CircleDot, Wrench, Activity
+  AlertTriangle, CircleDot, Wrench, Activity,
+  Mic, MicOff, Loader2
 } from 'lucide-react';
 import { TrackMap } from '../../components/TrackMapRive';
 import { getTrackId } from '../../data/tracks';
+import { DriverHUDOverlay } from '../../components/DriverHUDOverlay';
 
 /**
  * DriverCockpit - Glanceable Second Monitor / iPad View
@@ -19,10 +23,6 @@ import { getTrackId } from '../../data/tracks';
  */
 
 export function DriverCockpit() {
-  const shortCommit = __GIT_COMMIT__ && __GIT_COMMIT__ !== 'UNKNOWN'
-    ? __GIT_COMMIT__.slice(0, 7)
-    : 'no-commit';
-  const cockpitBuildTag = `cockpit-${import.meta.env.MODE}-v${__APP_VERSION__}.${shortCommit}`;
   const { status, telemetry: realTelemetry, session } = useRelay();
   const { messages: engineerMessages, criticalMessages } = useEngineer();
   const { isEnabled: voiceEnabled, toggleVoice, speak } = useVoice();
@@ -33,6 +33,29 @@ export function DriverCockpit() {
 
   // LIVE DATA ONLY - No demo fallback
   const isConnected = status === 'connected' || status === 'in_session';
+
+  // Voice query (PTT → Whisper → crew AI → ElevenLabs)
+  const voiceChatHistoryRef = useRef<ChatMessage[]>([]);
+  const getHistory = useCallback(() => voiceChatHistoryRef.current, []);
+  const handleVoiceResponse = useCallback((transcript: string, response: string) => {
+    voiceChatHistoryRef.current = [
+      ...voiceChatHistoryRef.current.slice(-10),
+      { role: 'user', content: transcript },
+      { role: 'engineer', content: response },
+    ];
+  }, []);
+
+  const voiceQuery = useVoiceQuery({
+    role: 'engineer',
+    getHistory,
+    onResponse: handleVoiceResponse,
+  });
+
+  const ptt = usePTT({
+    onPress: () => voiceQuery.startListening(),
+    onRelease: () => voiceQuery.stopListening(),
+    enabled: true,
+  });
 
   // Format lap time helper
   const formatLapTime = (seconds: number | null): string => {
@@ -78,19 +101,9 @@ export function DriverCockpit() {
 
   const DeltaIcon = activeTelemetry.delta < 0 ? TrendingUp : activeTelemetry.delta > 0 ? TrendingDown : Minus;
   const deltaColor = activeTelemetry.delta < 0 ? 'text-emerald-400' : activeTelemetry.delta > 0 ? 'text-red-400' : 'text-white/50';
-  const positionLabel = activeTelemetry.position > 0 ? `P${activeTelemetry.position}` : 'P--';
-  const sortedLiveCars = [...(realTelemetry.otherCars || [])].sort((a, b) => (a.position || 999) - (b.position || 999));
-  const mapCars = sortedLiveCars.filter(o => typeof o.trackPercentage === 'number' && o.trackPercentage >= 0 && o.trackPercentage <= 1);
-  const inPitCount = sortedLiveCars.filter(c => !!c.inPit).length;
-  const unknownPositionCount = sortedLiveCars.filter(c => !c.position || c.position <= 0).length;
 
   return (
     <div className="h-[calc(100vh-9rem)] flex relative bg-[#0a0a0a] overflow-hidden">
-      
-      {/* BUILD IDENTIFIER - Remove when page is finalized */}
-      <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-        {cockpitBuildTag}
-      </div>
       
       {/* Background Video - Left Side of Page */}
       <div className="absolute left-0 top-0 bottom-0 w-64 overflow-hidden pointer-events-none z-[1]">
@@ -146,7 +159,7 @@ export function DriverCockpit() {
           </h3>
           <div className="bg-white/[0.03] rounded p-4 border border-white/[0.08] backdrop-blur-sm">
             <div className="text-5xl font-bold text-white/90 font-mono">
-              {positionLabel}
+              P{activeTelemetry.position}
             </div>
             <div className="flex items-center gap-2 mt-2">
               <DeltaIcon className={`w-4 h-4 ${deltaColor}`} />
@@ -354,14 +367,14 @@ export function DriverCockpit() {
         {/* Top Bar */}
         <div className="h-12 border-b border-white/[0.06] bg-[#0e0e0e]/60 backdrop-blur-xl flex items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <div className={`w-1.5 h-1.5 rounded-full ${status === 'in_session' ? 'bg-emerald-400 animate-pulse' : isConnected ? 'bg-yellow-400' : 'bg-white/20'}`} />
             <span className="text-sm text-white/70">{session?.trackName || 'No Track'}</span>
-            <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border ${isConnected ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : 'text-white/40 bg-white/[0.04] border-white/[0.06]'}`}>
-              {isConnected ? 'Live' : 'Offline'}
+            <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded border ${status === 'in_session' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30' : isConnected ? 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30' : 'text-white/40 bg-white/[0.04] border-white/[0.06]'}`}>
+              {status === 'in_session' ? 'Live' : isConnected ? 'Ready' : 'Offline'}
             </span>
-            {isConnected && (
-              <span className="text-[10px] text-white/45 font-mono">
-                Cars {sortedLiveCars.length} • Pit {inPitCount} • Unknown {unknownPositionCount}
+            {status === 'in_session' && realTelemetry.lapsRemaining != null && (
+              <span className="text-[10px] text-white/40 font-mono">
+                {realTelemetry.lapsRemaining} laps left
               </span>
             )}
           </div>
@@ -394,21 +407,19 @@ export function DriverCockpit() {
           <TrackMap
             trackId={trackId}
             carPosition={activeTelemetry.carPosition}
-            otherCars={mapCars
-              .map(o => ({
-                x: 0,
-                y: 0,
-                trackPercentage: o.trackPercentage,
-                carNumber: o.carNumber,
-                color: o.color,
-                driverName: o.driverName,
-                position: o.position,
-                isPlayer: o.isPlayer,
-                inPit: o.inPit,
-              }))}
+            otherCars={realTelemetry.otherCars?.map(o => ({ x: 0, y: 0, trackPercentage: o.trackPercentage, carNumber: o.carNumber, color: o.color })) || []}
             telemetry={heatmapData}
             className="w-full h-full"
           />
+          {!isConnected && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
+              <div className="bg-[#0e0e0e]/80 backdrop-blur-xl border border-white/[0.08] rounded-lg px-8 py-6 flex flex-col items-center gap-3 text-center">
+                <CircleDot className="w-8 h-8 text-white/20" />
+                <p className="text-sm text-white/60 font-medium">iRacing not connected</p>
+                <p className="text-xs text-white/30 max-w-xs">Launch the Ok Box Box relay app and start an iRacing session to see live data here.</p>
+              </div>
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e0e] via-transparent to-transparent pointer-events-none" />
           
           {/* Speed Overlay */}
@@ -422,28 +433,9 @@ export function DriverCockpit() {
             </div>
           </div>
 
-          {/* Bottom Left Controls */}
+          {/* Bottom Left Controls — PTT */}
           <div className="absolute bottom-4 left-4">
-            <div className="bg-[#0e0e0e]/80 backdrop-blur-xl border border-white/[0.08] rounded-lg p-1.5 flex items-center gap-1">
-              <button
-                onClick={toggleVoice}
-                className={`p-2 rounded transition-all ${
-                  voiceEnabled 
-                    ? 'bg-[#f97316]/20 text-[#f97316]' 
-                    : 'text-white/40 hover:text-white/70 hover:bg-white/[0.06]'
-                }`}
-                title={voiceEnabled ? 'Mute Voice' : 'Enable Voice'}
-              >
-                {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-              </button>
-              <div className="w-px h-5 bg-white/[0.08]" />
-              <button
-                className="p-2 rounded text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-all"
-                title="Settings"
-              >
-                <MapPin className="w-4 h-4" />
-              </button>
-            </div>
+            <PTTButton voiceQuery={voiceQuery} pttBinding={ptt.binding} micDenied={voiceQuery.micDenied} />
           </div>
         </div>
       </div>
@@ -467,24 +459,26 @@ export function DriverCockpit() {
         </div>
 
         {/* Leaderboard List */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 overflow-hidden">
           {/* Show real data from otherCars or placeholder when no data */}
-          {sortedLiveCars.length > 0 ? (
-            sortedLiveCars.map((car, idx) => {
-              const displayPosition = typeof car.position === 'number' && car.position > 0 ? car.position : null;
+          {realTelemetry.otherCars && realTelemetry.otherCars.length > 0 ? (
+            [...realTelemetry.otherCars]
+              .sort((a, b) => (a.position ?? 99) - (b.position ?? 99))
+              .map((car, idx) => {
+              const pos = car.position ?? idx + 1;
               return (
-              <div 
-                key={`${idx}-${car.carNumber || 'car'}`}
+              <div
+                key={`${car.carNumber || idx}-car`}
                 className={`flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.04] ${
                   car.isPlayer ? 'bg-cyan-500/10 border-l-2 border-l-cyan-500' : 'hover:bg-white/[0.02]'
                 }`}
               >
                 <div className={`w-6 text-center font-mono text-sm font-bold ${
-                  displayPosition === 1 ? 'text-yellow-400' : 
-                  displayPosition === 2 ? 'text-gray-300' : 
-                  displayPosition === 3 ? 'text-amber-600' : 'text-white/50'
+                  pos === 1 ? 'text-yellow-400' :
+                  pos === 2 ? 'text-gray-300' :
+                  pos === 3 ? 'text-amber-600' : 'text-white/50'
                 }`}>
-                  {displayPosition ?? '--'}
+                  {pos}
                 </div>
                 <div 
                   className="w-8 h-6 rounded text-[10px] font-mono font-bold flex items-center justify-center text-white"
@@ -501,21 +495,28 @@ export function DriverCockpit() {
                   {car.gap || '--'}
                 </div>
               </div>
-              );
-            })
-          ) : (
+            );
+          })) : (
             <div className="flex items-center justify-center h-full text-white/30 text-xs p-4 text-center">
               {status === 'in_session' ? 'Waiting for standings data...' : 'Start iRacing session for live standings'}
             </div>
           )}
         </div>
 
-        {/* Team Radio Transcripts - F1 Style */}
+        {/* Driver HUD Overlay (fixed, bottom-left, fades when idle) */}
+        <DriverHUDOverlay
+          voiceStatus={voiceQuery.status}
+          voiceTranscript={voiceQuery.transcript}
+          voiceResponse={voiceQuery.lastResponse}
+        />
+
+        {/* Team Radio */}
         <div className="border-t border-white/[0.06] flex flex-col">
           <div className="px-3 py-2 border-b border-white/[0.06] flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${criticalMessages.length > 0 ? 'bg-red-500 animate-pulse' : engineerMessages.length > 0 ? 'bg-green-500' : 'bg-white/20'}`} />
             <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-semibold">Team Radio</span>
           </div>
+
           <div className="p-2 space-y-2 max-h-32 overflow-hidden">
             {engineerMessages.length > 0 ? (
               engineerMessages.slice(-3).reverse().map((msg, i) => {
@@ -543,3 +544,73 @@ export function DriverCockpit() {
     </div>
   );
 }
+
+// ─── PTT Button ───────────────────────────────────────────────────────────────
+
+import type { VoiceQueryStatus } from '../../hooks/useVoiceQuery';
+import type { PTTBinding } from '../../hooks/usePTT';
+
+interface PTTButtonProps {
+  voiceQuery: { status: VoiceQueryStatus; startListening: () => Promise<void>; stopListening: () => void };
+  pttBinding: PTTBinding | null;
+  micDenied: boolean;
+}
+
+function PTTButton({ voiceQuery, pttBinding, micDenied }: PTTButtonProps) {
+  const { status } = voiceQuery;
+
+  const stateMap: Record<VoiceQueryStatus, { label: string; color: string; icon: React.ReactNode; pulse: boolean }> = {
+    idle: {
+      label: pttBinding ? pttBinding.label : 'Hold to Talk',
+      color: pttBinding
+        ? 'border-white/20 text-white/50 hover:text-white/80 hover:border-white/40'
+        : 'border-white/10 text-white/30',
+      icon: <Mic className="w-4 h-4" />,
+      pulse: false,
+    },
+    listening: {
+      label: 'Listening…',
+      color: 'border-[#06b6d4] text-[#06b6d4] bg-[#06b6d4]/10',
+      icon: <Mic className="w-4 h-4" />,
+      pulse: true,
+    },
+    processing: {
+      label: 'Processing…',
+      color: 'border-[#f97316]/60 text-[#f97316]/80',
+      icon: <Loader2 className="w-4 h-4 animate-spin" />,
+      pulse: false,
+    },
+    responding: {
+      label: 'Engineer',
+      color: 'border-emerald-500/60 text-emerald-400',
+      icon: <Volume2 className="w-4 h-4" />,
+      pulse: true,
+    },
+    error: {
+      label: micDenied ? 'Mic denied' : 'Error',
+      color: 'border-red-500/50 text-red-400',
+      icon: <MicOff className="w-4 h-4" />,
+      pulse: false,
+    },
+  };
+
+  const s = stateMap[status];
+
+  return (
+    <div
+      className={`bg-[#0e0e0e]/90 backdrop-blur-xl border rounded-lg px-3 py-2 flex items-center gap-2 transition-all duration-150 select-none ${s.color}`}
+      onMouseDown={() => { if (status === 'idle') voiceQuery.startListening(); }}
+      onMouseUp={() => { if (status === 'listening') voiceQuery.stopListening(); }}
+      onTouchStart={(e) => { e.preventDefault(); if (status === 'idle') voiceQuery.startListening(); }}
+      onTouchEnd={(e) => { e.preventDefault(); if (status === 'listening') voiceQuery.stopListening(); }}
+      style={{ cursor: status === 'idle' ? 'pointer' : 'default' }}
+    >
+      <span className={s.pulse ? 'animate-pulse' : ''}>{s.icon}</span>
+      <span className="text-[10px] uppercase tracking-wider font-semibold">{s.label}</span>
+      {status === 'idle' && !pttBinding && (
+        <span className="text-[9px] text-white/20 ml-1">— bind in settings</span>
+      )}
+    </div>
+  );
+}
+

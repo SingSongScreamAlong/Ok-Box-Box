@@ -4,6 +4,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { EngineerDataPanel } from '../../../components/EngineerDataPanel';
 import { fetchUpcomingRaces, UpcomingRace } from '../../../lib/driverService';
 import { sendCrewMessage } from '../../../lib/crewChatService';
+import { useVoice } from '../../../hooks/useVoice';
 import { 
   Wrench, Send, ArrowLeft, Calendar, Flag,
   Settings2, Clock, ChevronRight, Loader2,
@@ -20,6 +21,7 @@ interface Message {
 
 export function EngineerChat() {
   const { user } = useAuth();
+  const { speakText } = useVoice();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -74,6 +76,7 @@ export function EngineerChat() {
     const engineerResponse: Message = { id: (Date.now() + 1).toString(), role: 'engineer', content: response, timestamp: new Date() };
     setIsTyping(false);
     setMessages(prev => [...prev, engineerResponse]);
+    speakText(response, 'normal');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

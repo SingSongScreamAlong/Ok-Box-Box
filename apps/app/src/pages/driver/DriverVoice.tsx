@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { 
+import {
   Wrench,
   Eye,
   Volume2,
@@ -8,8 +8,14 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle2,
-  Circle
+  Circle,
+  Mic,
+  Radio,
+  Gamepad2,
+  Keyboard,
+  X
 } from 'lucide-react';
+import { usePTT } from '../../hooks/usePTT';
 
 interface CalloutCategory {
   id: string;
@@ -38,6 +44,111 @@ function loadVoiceSettings(): VoiceSettings | null {
 function saveVoiceSettings(settings: VoiceSettings) {
   try { localStorage.setItem(VOICE_STORAGE_KEY, JSON.stringify(settings)); } catch {}
 }
+
+// ─── PTT Configuration component ─────────────────────────────────────────────
+
+function PTTConfig() {
+  const noop = useCallback(() => {}, []);
+  const { binding, isDetecting, startDetect, cancelDetect, clearBinding } = usePTT({
+    onPress: noop,
+    onRelease: noop,
+    enabled: false, // config-only — actual PTT runs in cockpit
+  });
+
+  const bindingLabel = binding
+    ? binding.type === 'key'
+      ? binding.label
+      : binding.label
+    : null;
+
+  const bindingIcon = binding?.type === 'gamepad'
+    ? <Gamepad2 className="w-4 h-4 text-white/50" />
+    : binding?.type === 'key'
+    ? <Keyboard className="w-4 h-4 text-white/50" />
+    : null;
+
+  return (
+    <div className="bg-black/40 backdrop-blur-sm border border-white/10 p-4 space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 bg-[#06b6d4]/20 border border-[#06b6d4]/30 flex items-center justify-center flex-shrink-0">
+          <Radio className="w-6 h-6 text-[#06b6d4]" />
+        </div>
+        <div>
+          <h2
+            className="text-sm font-semibold uppercase tracking-wider"
+            style={{ fontFamily: 'Orbitron, sans-serif' }}
+          >
+            Talk to Crew (Push-to-Talk)
+          </h2>
+          <p className="text-xs text-white/50">
+            Hold your bound key or steering wheel button to speak. Release to send.
+          </p>
+        </div>
+      </div>
+
+      {/* Current binding display */}
+      <div className="flex items-center gap-3">
+        <div className="flex-1 bg-black/60 border border-white/10 px-4 py-3 flex items-center gap-3 min-h-[48px]">
+          {bindingLabel ? (
+            <>
+              {bindingIcon}
+              <span className="font-mono text-sm text-white/80">{bindingLabel}</span>
+              {binding?.type === 'gamepad' && (
+                <span className="text-[10px] uppercase tracking-wider text-[#06b6d4]/60 ml-1">Steering Wheel / Controller</span>
+              )}
+            </>
+          ) : (
+            <span className="text-sm text-white/30 italic">No binding set</span>
+          )}
+        </div>
+
+        {binding && !isDetecting && (
+          <button
+            onClick={clearBinding}
+            title="Clear binding"
+            className="p-3 border border-white/10 text-white/40 hover:text-red-400 hover:border-red-400/30 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
+      {/* Detect / Cancel button */}
+      {isDetecting ? (
+        <div className="space-y-2">
+          <div className="flex items-center gap-3 px-4 py-3 bg-[#06b6d4]/10 border border-[#06b6d4]/40 animate-pulse">
+            <Mic className="w-4 h-4 text-[#06b6d4]" />
+            <span className="text-sm text-[#06b6d4]">
+              Press any key or steering wheel button to bind&hellip;
+            </span>
+          </div>
+          <button
+            onClick={cancelDetect}
+            className="w-full px-4 py-2 border border-white/10 text-xs uppercase tracking-wider text-white/40 hover:text-white/60 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={startDetect}
+          className="w-full px-4 py-2 bg-[#06b6d4]/10 border border-[#06b6d4]/30 text-xs uppercase tracking-wider text-[#06b6d4] hover:bg-[#06b6d4]/20 transition-colors flex items-center justify-center gap-2"
+        >
+          <Mic className="w-4 h-4" />
+          {binding ? 'Change Binding' : 'Bind Key or Button'}
+        </button>
+      )}
+
+      <div className="text-[11px] text-white/30 space-y-1">
+        <p>Works with keyboard, numpad, function keys, and any steering wheel / gamepad button.</p>
+        <p>The cockpit must be open for PTT to activate. The mic indicator on the cockpit shows live status.</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export function DriverVoice() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -368,12 +479,15 @@ export function DriverVoice() {
         )}
       </div>
 
+      {/* Push-to-Talk Binding */}
+      <PTTConfig />
+
       {/* Info Note */}
       <div className="bg-white/5 border border-white/10 p-4 flex items-start gap-3">
         <MessageSquare className="w-5 h-5 text-white/40 flex-shrink-0 mt-0.5" />
         <div>
           <p className="text-sm text-white/60">
-            Your crew learns from your driving style over time. The more you race with Ok, Box Box, 
+            Your crew learns from your driving style over time. The more you race with Ok, Box Box,
             the more personalized their callouts become.
           </p>
         </div>

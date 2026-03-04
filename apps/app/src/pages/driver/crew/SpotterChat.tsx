@@ -6,6 +6,7 @@ import { LiveSpotter } from '../../../components/LiveSpotter';
 import { fetchUpcomingRaces, UpcomingRace } from '../../../lib/driverService';
 import { sendCrewMessage } from '../../../lib/crewChatService';
 import { useRelay } from '../../../hooks/useRelay';
+import { useVoice } from '../../../hooks/useVoice';
 import { 
   Eye, Send, ArrowLeft, Calendar,
   Settings2, ChevronRight, Loader2,
@@ -25,6 +26,7 @@ type ViewMode = 'live' | 'track' | 'chat';
 export function SpotterChat() {
   const { user } = useAuth();
   const { status } = useRelay();
+  const { speakText } = useVoice();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -76,6 +78,7 @@ export function SpotterChat() {
     const spotterResponse: Message = { id: (Date.now() + 1).toString(), role: 'spotter', content: response, timestamp: new Date() };
     setIsTyping(false);
     setMessages(prev => [...prev, spotterResponse]);
+    speakText(response, 'normal');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

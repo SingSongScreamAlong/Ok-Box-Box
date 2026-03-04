@@ -1,7 +1,8 @@
 
-import { useMemo, useCallback } from 'react';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { TrackShape } from '../../hooks/useTrackData';
+import { getPointAtPercentage } from '../../utils/trackMath';
 
 /*
   TrackVisuals: Clean, minimal track rendering matching Crew page aesthetic.
@@ -38,28 +39,6 @@ function getPositionColor(pos: number | undefined, fallback: string): string {
 
 export function TrackVisuals({ shape, carPosition, otherCars, showSectors = true }: TrackVisualsProps) {
 
-    const getCarCoords = useCallback((pos: CarPosition) => {
-        if (!shape.centerline) return null;
-        if (pos.x > 1 && pos.y > 1) return { x: pos.x, y: pos.y };
-        if (pos.trackPercentage !== undefined) {
-            const pct = pos.trackPercentage;
-            const cl = shape.centerline;
-            let idx = cl.findIndex(p => p.distPct >= pct);
-            if (idx === -1) idx = 0;
-            const p2 = cl[idx];
-            const p1 = cl[idx === 0 ? cl.length - 1 : idx - 1];
-            let d1 = p1.distPct;
-            let d2 = p2.distPct;
-            if (d1 > d2) d1 = 0;
-            const ratio = (pct - d1) / (d2 - d1 || 1);
-            return {
-                x: p1.x + (p2.x - p1.x) * ratio,
-                y: p1.y + (p2.y - p1.y) * ratio
-            };
-        }
-        return null;
-    }, [shape.centerline]);
-
     const fullPathData = useMemo(() => {
         if (!shape.centerline) return '';
         return shape.centerline.reduce((acc, point, index) => {
@@ -69,8 +48,10 @@ export function TrackVisuals({ shape, carPosition, otherCars, showSectors = true
 
     const carCoords = useMemo(() => {
         if (!carPosition) return null;
-        return getCarCoords(carPosition);
-    }, [carPosition, getCarCoords]);
+        if (carPosition.x > 1 && carPosition.y > 1) return { x: carPosition.x, y: carPosition.y };
+        if (carPosition.trackPercentage !== undefined) return getPointAtPercentage(shape, carPosition.trackPercentage);
+        return null;
+    }, [carPosition, shape]);
 
     // Sector boundary points at 33% and 66%
     const sectorMarkers = useMemo(() => {
@@ -234,7 +215,11 @@ export function TrackVisuals({ shape, carPosition, otherCars, showSectors = true
 
             {/* Other Cars */}
             {otherCars && otherCars.map((car, idx) => {
-                const coords = getCarCoords(car);
+                const coords = car.x > 1 && car.y > 1
+                    ? { x: car.x, y: car.y }
+                    : car.trackPercentage !== undefined
+                        ? getPointAtPercentage(shape, car.trackPercentage)
+                        : null;
                 if (!coords) return null;
                 if (car.isPlayer) return null;
                 const color = getPositionColor(car.position, car.color || '#64748b');

@@ -1,6 +1,6 @@
 /**
  * Voice Service - ElevenLabs TTS Integration
- * 
+ *
  * Generates voice audio from text using ElevenLabs API.
  * Includes caching for repeated phrases and queue management.
  */
@@ -40,7 +40,7 @@ const ELEVENLABS_API_URL = 'https://api.elevenlabs.io/v1';
 
 // Default voice settings - race engineer voice profile
 const DEFAULT_VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'; // British Football Announcer
-const DEFAULT_MODEL_ID = 'eleven_turbo_v2'; // Fastest model
+const DEFAULT_MODEL_ID = 'eleven_flash_v2_5'; // Fastest model (~75ms TTFB)
 
 // Voice presets for different contexts
 export const VOICE_PRESETS = {
@@ -60,6 +60,18 @@ export const VOICE_PRESETS = {
         similarityBoost: 0.6,
     }
 };
+
+// Acknowledgment phrases played immediately after STT while LLM+TTS process
+const ACK_PHRASES = [
+    'Copy, checking.',
+    'Roger, standby.',
+    'Affirm, one moment.',
+    'Copy that, pulling numbers.',
+    'Understood, checking the data.',
+    'Roger that, give me a second.',
+    'Stand by.',
+    'Copy, we\'ll look into that.',
+];
 
 // ============================================================================
 // CACHE
@@ -103,6 +115,7 @@ function cleanupCache(): void {
 export class VoiceService {
     private apiKey: string;
     private isAvailable: boolean = false;
+    private ackCacheWarmed: boolean = false;
 
     constructor() {
         this.apiKey = config.elevenLabsApiKey || process.env.ELEVENLABS_API_KEY || '';
@@ -199,6 +212,105 @@ export class VoiceService {
                 error: error instanceof Error ? error.message : 'Unknown error'
             };
         }
+    }
+
+    /**
+     * Return a random pre-cached acknowledgment phrase as audio.
+     * Warms the full ack cache in the background after the first call.
+     */
+    async getAckAudio(): Promise<Buffer | null> {
+        if (!this.isAvailable) return null;
+
+        const phrase = ACK_PHRASES[Math.floor(Math.random() * ACK_PHRASES.length)];
+        const result = await this.textToSpeech({
+            text: phrase,
+            ...VOICE_PRESETS.raceEngineer,
+        });
+
+        // After the first successful ack, warm the rest of the phrases in the background
+        if (result.success && !this.ackCacheWarmed) {
+            this.ackCacheWarmed = true;
+            this.warmAckCache().catch(() => {});
+        }
+
+        return result.success ? (result.audioBuffer ?? null) : null;
+    }
+
+    // ── Cache accessors (used by streaming TTS endpoint) ─────────────────────
+
+    /**
+     * Return a cached audio buffer without generating anything.
+     */
+    getCachedAudioBuffer(text: string, voiceId: string): Buffer | null {
+        const key = getCacheKey(text, voiceId);
+        return audioCache.get(key)?.audioBuffer ?? null;
+    }
+
+    /**
+     * Store an audio buffer in the shared cache (used when piping streaming TTS).
+     */
+    cacheAudioBuffer(text: string, voiceId: string, buffer: Buffer): void {
+        const key = getCacheKey(text, voiceId);
+        audioCache.set(key, { audioBuffer: buffer, createdAt: new Date() });
+        cleanupCache();
+    }
+
+    /**
+     * Make a streaming request to ElevenLabs and return the raw Response for piping.
+     * Callers are responsible for caching the accumulated bytes.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async fetchElevenLabsStream(request: VoiceGenerationRequest): Promise<{ ok: boolean; body: any } | null> {
+        if (!this.isAvailable) return null;
+
+        const voiceId = request.voiceId || DEFAULT_VOICE_ID;
+
+        try {
+            const response = await fetch(
+                `${ELEVENLABS_API_URL}/text-to-speech/${voiceId}/stream`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'audio/mpeg',
+                        'Content-Type': 'application/json',
+                        'xi-api-key': this.apiKey,
+                    },
+                    body: JSON.stringify({
+                        text: request.text,
+                        model_id: request.modelId || DEFAULT_MODEL_ID,
+                        voice_settings: {
+                            stability: request.stability ?? 0.5,
+                            similarity_boost: request.similarityBoost ?? 0.75,
+                        },
+                    }),
+                }
+            );
+
+            if (!response.ok) {
+                console.error('ElevenLabs stream error:', response.status);
+                return null;
+            }
+
+            return response;
+        } catch (error) {
+            console.error('ElevenLabs stream fetch error:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Pre-generate all ack phrases so subsequent calls are instant cache hits.
+     */
+    private async warmAckCache(): Promise<void> {
+        for (const phrase of ACK_PHRASES) {
+            const key = getCacheKey(phrase, VOICE_PRESETS.raceEngineer.voiceId);
+            if (!audioCache.has(key)) {
+                await this.textToSpeech({ text: phrase, ...VOICE_PRESETS.raceEngineer });
+                // Small delay between generations to avoid rate-limiting
+                await new Promise(r => setTimeout(r, 200));
+            }
+        }
+        console.log('🎤 Ack phrase cache warmed');
     }
 
     /**

@@ -25,11 +25,14 @@ const shapeModules = import.meta.glob('../../../../packages/dashboard/src/data/t
     eager: false
 });
 
-// Also import slug-named track files (like monza-combinedchicanes.json)
+// Also import slug-named track files (like monza-combinedchicanes.json).
+// NOTE: Vite's *.json glob also matches *.shape.json, so we pre-filter those
+// out here. This avoids ~200 ghost entries polluting the slug lookup.
 const slugModules = import.meta.glob('../../../../packages/dashboard/src/data/trackData/*.json', {
     import: 'default',
     eager: false
 });
+const slugOnlyKeys = Object.keys(slugModules).filter(k => !k.endsWith('.shape.json'));
 
 // Cache for loaded shapes
 const shapeCache: Record<string, TrackShape> = {};
@@ -73,57 +76,38 @@ export function useTrackData(trackId: string | undefined) {
     useEffect(() => {
         if (!trackId) {
             setShape(null);
+            setLoading(false);
+            setError(null);
             return;
         }
 
-        // Try to find the matching module (file)
-        // The keys are relative paths like "../../../../packages/dashboard/src/data/trackData/191.shape.json"
-        // We need to map trackId (which might be a slug or ID) to the file.
-        // Assuming we might need to search by content or have a mapping.
-        // For now, let's assume we load by ID if possible, but the files are named by ID (e.g. 191.shape.json).
-        // The `tracks.ts` lookup logic might be needed here too.
-
-        // HOWEVER, the file names are integers (iRacing Track IDs) like 191.shape.json.
-        // The `trackId` passed prop is usually a slug like 'daytona-road'.
-        // We need a way to map slug -> ID.
-        // Let's import the TRACK_DATA from tracks.ts which might have the ID, or we fetch loosely.
+        // Set loading synchronously before the async work starts.
+        // This prevents a render cycle where loading=false and shape=null
+        // causes components to flash an error state briefly.
+        setLoading(true);
+        setError(null);
 
         const loadShape = async () => {
-            setLoading(true);
-            setError(null);
-
             try {
-                // Strategy: 
-                // 1. Check if we have a direct ID match (if trackId passed is "191")
-                // 2. Iterate all loaded shapes? No, that's too heavy.
-                // 3. We rely on the mapping in tracks.ts or we need to scan the files.
-                // Since we can't scan without loading ensuring, let's try to map generic slugs to known IDs or load all and find match (expensive).
-
-                // BETTER: We will export a map of slug->ID in tracks.ts or here.
-                // For now, let's try to find if any key contains the ID.
-
-                // Temporary: Just load ALL keys, find the one that matches.
-                // Actually, we can loop through the keys (strings) and regex match.
-
-                // But first, let's see if we can find the module.
                 // Normalize trackId: "monza combinedchicanes" -> "monza-combinedchicanes"
                 const normalizedId = trackId.toLowerCase().replace(/\s+/g, '-');
-                
+
                 // Try to find in shape modules first (numeric IDs like 191.shape.json)
                 let moduleKey = Object.keys(shapeModules).find(key => key.includes(`/${trackId}.shape.json`));
                 let modules = shapeModules;
 
-                // If not found, try slug modules (like monza-combinedchicanes.json)
+                // If not found, try slug-named files (like monza-combinedchicanes.json).
+                // Use slugOnlyKeys which excludes the *.shape.json entries.
                 if (!moduleKey) {
-                    moduleKey = Object.keys(slugModules).find(key => 
-                        key.includes(`/${normalizedId}.json`) && !key.includes('.shape.json')
+                    moduleKey = slugOnlyKeys.find(key =>
+                        key.includes(`/${normalizedId}.json`)
                     );
                     modules = slugModules;
                 }
 
-                // Still not found? Try partial match on slug modules
+                // Still not found? Try partial match against slug-only files.
                 if (!moduleKey) {
-                    moduleKey = Object.keys(slugModules).find(key => {
+                    moduleKey = slugOnlyKeys.find(key => {
                         const filename = key.split('/').pop()?.replace('.json', '') || '';
                         return filename === normalizedId || normalizedId.includes(filename) || filename.includes(normalizedId);
                     });
@@ -131,17 +115,13 @@ export function useTrackData(trackId: string | undefined) {
                 }
 
                 if (!moduleKey) {
-                    console.warn(`[useTrackData] Could not find shape file for ${trackId} (normalized: ${normalizedId}), using fallback oval`);
-                    // Generate a fallback oval shape
-                    const fallbackShape: TrackShape = generateFallbackOval(trackId);
-                    setShape(fallbackShape);
-                    setLoading(false);
+                    console.warn(`[useTrackData] No shape file found for "${trackId}" — using fallback oval`);
+                    setShape(generateFallbackOval(trackId));
                     return;
                 }
 
                 if (shapeCache[moduleKey]) {
                     setShape(shapeCache[moduleKey]);
-                    setLoading(false);
                     return;
                 }
 
@@ -151,7 +131,7 @@ export function useTrackData(trackId: string | undefined) {
                 shapeCache[moduleKey] = data;
                 setShape(data);
             } catch (err) {
-                console.error('Failed to load track shape:', err);
+                console.error('[useTrackData] Failed to load track shape:', err);
                 setError('Failed to load track data');
             } finally {
                 setLoading(false);

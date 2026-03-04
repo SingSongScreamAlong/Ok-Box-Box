@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import { useTrackData } from '../hooks/useTrackData';
 import { getTrackId } from '../data/tracks';
+import { getPointAtPercentage } from '../utils/trackMath';
 
 interface TrackMapProps {
     trackId: string;
@@ -54,35 +55,15 @@ export function TrackMap({
 
     // Car Position Calculation
     const carCoords = useMemo(() => {
-        if (!shape || !shape.centerline || !carPosition) return null;
+        if (!shape || !carPosition) return null;
 
-        // If we have direct X/Y that matches track space
+        // If we have direct X/Y in track coordinate space
         if (carPosition.x > 1 && carPosition.y > 1) {
             return { x: carPosition.x, y: carPosition.y };
         }
 
-        // Use normalized 0-1 percentage to find point on track
         if (carPosition.trackPercentage !== undefined) {
-            const pct = carPosition.trackPercentage;
-            const cl = shape.centerline;
-
-            let idx = cl.findIndex(p => p.distPct >= pct);
-            if (idx === -1) idx = 0;
-
-            const p2 = cl[idx];
-            const p1 = cl[idx === 0 ? cl.length - 1 : idx - 1];
-
-            // Interpolate
-            let d1 = p1.distPct;
-            let d2 = p2.distPct;
-            if (d1 > d2) d1 = 0;
-
-            const ratio = (pct - d1) / (d2 - d1 || 1);
-
-            return {
-                x: p1.x + (p2.x - p1.x) * ratio,
-                y: p1.y + (p2.y - p1.y) * ratio
-            };
+            return getPointAtPercentage(shape, carPosition.trackPercentage);
         }
 
         return null;
@@ -109,7 +90,6 @@ export function TrackMap({
             <svg
                 viewBox={viewBox}
                 className="w-full h-full overflow-visible"
-                style={{ transform: 'scale(-1, -1) rotate(180deg)' }} // Rotate to put infield at bottom
             >
                 {/* Track Outline (Shadow) */}
                 <path

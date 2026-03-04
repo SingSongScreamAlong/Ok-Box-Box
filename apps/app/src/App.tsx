@@ -51,9 +51,14 @@ import { StewardConsole } from './pages/league/StewardConsole';
 import { PublicTiming } from './pages/league/PublicTiming';
 import { DriverProgress } from './pages/driver/DriverProgress';
 import { DriverIDP } from './pages/driver/DriverIDP';
+import { DriverPitwall } from './pages/driver/DriverPitwall';
+import { DriverPitwallAdvanced } from './pages/driver/DriverPitwallAdvanced';
+import { DriverSessions } from './pages/driver/DriverSessions';
+import { DriverStats } from './pages/driver/DriverStats';
 import { ReplayViewer } from './pages/driver/ReplayViewer';
 import { DriverHUD } from './pages/driver/DriverHUD';
 import { DriverVoice } from './pages/driver/DriverVoice';
+import { DriverBlackBox } from './pages/driver/DriverBlackBox';
 import { DriverComparison } from './pages/pitwall/DriverComparison';
 import { StintPlanner } from './pages/pitwall/StintPlanner';
 import { RacePlan } from './pages/pitwall/RacePlan';
@@ -128,9 +133,14 @@ function App() {
           <Route path="crew/analyst" element={<AnalystChat />} />
           <Route path="progress" element={<DriverProgress />} />
           <Route path="idp" element={<DriverIDP />} />
+          <Route path="pitwall" element={<DriverPitwall />} />
+          <Route path="pitwall/advanced" element={<DriverPitwallAdvanced />} />
+          <Route path="sessions" element={<DriverSessions />} />
+          <Route path="stats" element={<DriverStats />} />
           <Route path="replay/:sessionId" element={<ReplayViewer />} />
           <Route path="settings/hud" element={<DriverHUD />} />
           <Route path="settings/voice" element={<DriverVoice />} />
+          <Route path="blackbox" element={<DriverBlackBox />} />
         </Route>
 
         {/* Settings & Profile Creation (outside driver layout) */}

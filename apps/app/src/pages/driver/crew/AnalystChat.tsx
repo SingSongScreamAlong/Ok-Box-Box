@@ -4,6 +4,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { AnalystDataPanel } from '../../../components/AnalystDataPanel';
 import { fetchDriverSessions } from '../../../lib/driverService';
 import { sendCrewMessage } from '../../../lib/crewChatService';
+import { useVoice } from '../../../hooks/useVoice';
 import { 
   BarChart3, Send, ArrowLeft, Calendar,
   Settings2, ChevronRight, Loader2,
@@ -35,6 +36,7 @@ interface SessionForPanel {
 
 export function AnalystChat() {
   const { user } = useAuth();
+  const { speakText } = useVoice();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -97,6 +99,7 @@ export function AnalystChat() {
     const analystResponse: Message = { id: (Date.now() + 1).toString(), role: 'analyst', content: response, timestamp: new Date() };
     setIsTyping(false);
     setMessages(prev => [...prev, analystResponse]);
+    speakText(response, 'normal');
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

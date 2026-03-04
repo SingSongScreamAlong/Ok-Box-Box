@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { 
+import {
   Users, Clock, Fuel, Flag, AlertTriangle, ChevronDown, ChevronUp,
   Thermometer, Droplets, Wind, Sun, CloudRain
 } from 'lucide-react';
 import { useRelay } from '../../hooks/useRelay';
 import { getTeam, Team } from '../../lib/teams';
 import { useTeamData } from '../../hooks/useTeamData';
+import { TrackMapPro } from '../../components/TrackMapPro';
 
 // Types for Team Race Viewer
 interface Driver {
@@ -152,7 +153,7 @@ export function TeamRaceViewer() {
   const [session, setSession] = useState<RaceSession | null>(null); // Demo disabled - start null
   const [expandedStint, setExpandedStint] = useState<string | null>(null);
   const [showStintHistory, setShowStintHistory] = useState(true);
-  useRelay(); // Hook for relay connection state
+  const { status: relayStatus, telemetry: relayTelemetry, session: relaySession } = useRelay();
   const videoRef = useRef<HTMLVideoElement>(null);
   
   // Map service drivers to local format
@@ -240,14 +241,112 @@ export function TeamRaceViewer() {
     }
   };
 
-  // Guard against null data — show loading state
-  if (!teamCar || !session) {
+  // Prefer the relay's numeric track ID (maps directly to *.shape.json without slug resolution).
+  // Fall back to name strings only if the numeric ID isn't available yet.
+  const activeTrackName = relaySession.trackId
+    ? String(relaySession.trackId)
+    : session?.trackName || relaySession.trackName || null;
+
+  // Build car position for TrackMapPro from relay telemetry only
+  const relayCarPosition = relayTelemetry.trackPosition !== null ? {
+    x: 0, y: 0,
+    trackPercentage: relayTelemetry.trackPosition,
+    isPlayer: true,
+    inPit: relayTelemetry.inPit,
+  } : undefined;
+
+  // Other cars from relay
+  const relayOtherCars = relayTelemetry.otherCars.length > 0
+    ? relayTelemetry.otherCars.map(c => ({ x: 0, y: 0, ...c }))
+    : undefined;
+
+  // Derive a RaceSession from relay data when one isn't manually set.
+  // This allows the full layout to render as soon as the relay is in session.
+  const derivedSession = useMemo((): RaceSession | null => {
+    if (!relaySession.trackName) return null;
+    const w = relayTelemetry.strategy.weather;
+    return {
+      eventName: relaySession.trackName,
+      trackName: relaySession.trackName,
+      sessionType: relaySession.sessionType || 'race',
+      raceFormat: 'endurance',
+      totalLaps: relaySession.lapsRemaining,
+      totalTime: null,
+      currentLap: relayTelemetry.lap || 0,
+      timeRemaining: relaySession.timeRemaining,
+      timeElapsed: 0,
+      flagStatus: 'green',
+      trackTemp: w?.trackTemp ?? 0,
+      airTemp: w?.airTemp ?? 0,
+      humidity: w?.humidity ?? 0,
+      windSpeed: w?.windSpeed ?? 0,
+      weatherCondition: 'clear',
+    };
+  }, [relaySession, relayTelemetry]);
+
+  // Derive a TeamCar from relay data when one isn't manually set.
+  const derivedTeamCar = useMemo((): TeamCar | null => {
+    if (relayStatus !== 'in_session' || relayTelemetry.position === null) return null;
+    const strat = relayTelemetry.strategy;
+    const placeholder: Driver = localDrivers[0] ?? {
+      id: 'relay',
+      name: relaySession.carName || 'Driver',
+      shortName: 'DRV',
+      color: '#10b981',
+      iRating: 0,
+      safetyRating: '—',
+    };
+    return {
+      carNumber: '—',
+      carClass: relaySession.carName || 'Unknown',
+      currentDriver: placeholder,
+      position: relayTelemetry.position ?? 0,
+      classPosition: relayTelemetry.position ?? 0,
+      lap: relayTelemetry.lap ?? 0,
+      lastLapTime: relayTelemetry.lastLap,
+      bestLapTime: relayTelemetry.bestLap,
+      gapToLeader: strat.gapToLeader > 0 ? `+${strat.gapToLeader.toFixed(1)}s` : '—',
+      gapToClassLeader: '—',
+      gapAhead: strat.gapToCarAhead > 0 ? `-${strat.gapToCarAhead.toFixed(1)}s` : '—',
+      gapBehind: strat.gapFromCarBehind > 0 ? `+${strat.gapFromCarBehind.toFixed(1)}s` : '—',
+      fuel: relayTelemetry.fuel ?? 0,
+      fuelPerLap: strat.fuelPerLap ?? relayTelemetry.fuelPerLap ?? 0,
+      lapsRemaining: strat.fuelLapsRemaining ?? relayTelemetry.lapsRemaining ?? 0,
+      pitStops: strat.pitStops ?? 0,
+      lastPitLap: null,
+      trackPosition: relayTelemetry.trackPosition ?? 0,
+      inPit: relayTelemetry.inPit,
+      incidents: 0,
+      stints: [],
+      currentStint: null,
+    };
+  }, [relayStatus, relayTelemetry, relaySession, localDrivers]);
+
+  // Prefer manually-set data (mock/real); fall back to relay-derived values.
+  const activeTeamCar = teamCar || derivedTeamCar;
+  const activeSession = session || derivedSession;
+
+  // Guard against null data — show waiting state with track map if relay is connected
+  if (!activeTeamCar || !activeSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+      <div className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center gap-6 p-8">
         <div className="text-center">
-          <div className="text-white/40 text-sm uppercase tracking-wider mb-2">Team Race Viewer</div>
-          <div className="text-white/20 text-xs">Waiting for session data...</div>
+          <div className="text-white/40 text-sm uppercase tracking-wider mb-1">Team Race Viewer</div>
+          <div className="text-white/20 text-xs">
+            {relayStatus === 'connected' || relayStatus === 'in_session'
+              ? `Connected — ${activeTrackName || 'No active session'}`
+              : 'Waiting for session data...'}
+          </div>
         </div>
+        {activeTrackName && (
+          <div className="w-full max-w-lg h-64 rounded border border-white/10 overflow-hidden">
+            <TrackMapPro
+              trackId={activeTrackName}
+              carPosition={relayCarPosition}
+              otherCars={relayOtherCars}
+            />
+          </div>
+        )}
       </div>
     );
   }
@@ -279,9 +378,9 @@ export function TeamRaceViewer() {
               Race Timing & Standings
             </div>
             <h1 className="text-2xl font-bold text-white uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-              {session.eventName}
+              {activeSession.eventName}
             </h1>
-            <div className="text-sm text-white/50 mt-1">{session.trackName}</div>
+            <div className="text-sm text-white/50 mt-1">{activeSession.trackName}</div>
           </div>
 
           {/* View Mode Toggle */}
@@ -316,38 +415,38 @@ export function TeamRaceViewer() {
           <div className="flex items-center justify-between">
             {/* Flag & Time */}
             <div className="flex items-center gap-6">
-              <div className={`w-8 h-8 ${getFlagColor(session.flagStatus)}`} />
+              <div className={`w-8 h-8 ${getFlagColor(activeSession.flagStatus)}`} />
               <div>
                 <div className="text-[10px] text-white/40 uppercase tracking-wider">Time Remaining</div>
                 <div className="text-2xl font-bold text-white font-mono">
-                  {session.timeRemaining ? formatTime(session.timeRemaining) : '—'}
+                  {activeSession.timeRemaining ? formatTime(activeSession.timeRemaining) : '—'}
                 </div>
               </div>
               <div>
                 <div className="text-[10px] text-white/40 uppercase tracking-wider">Elapsed</div>
-                <div className="text-lg text-white/70 font-mono">{formatTime(session.timeElapsed)}</div>
+                <div className="text-lg text-white/70 font-mono">{formatTime(activeSession.timeElapsed)}</div>
               </div>
               <div>
                 <div className="text-[10px] text-white/40 uppercase tracking-wider">Lap</div>
-                <div className="text-lg text-white/70 font-mono">{session.currentLap}</div>
+                <div className="text-lg text-white/70 font-mono">{activeSession.currentLap}</div>
               </div>
             </div>
 
             {/* Weather */}
             <div className="flex items-center gap-4">
-              {getWeatherIcon(session.weatherCondition)}
+              {getWeatherIcon(activeSession.weatherCondition)}
               <div className="flex items-center gap-3 text-sm">
                 <div className="flex items-center gap-1">
                   <Thermometer size={14} className="text-red-400" />
-                  <span className="text-white/70">{session.trackTemp}°C</span>
+                  <span className="text-white/70">{activeSession.trackTemp}°C</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Wind size={14} className="text-blue-400" />
-                  <span className="text-white/70">{session.airTemp}°C</span>
+                  <span className="text-white/70">{activeSession.airTemp}°C</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Droplets size={14} className="text-cyan-400" />
-                  <span className="text-white/70">{session.humidity}%</span>
+                  <span className="text-white/70">{activeSession.humidity}%</span>
                 </div>
               </div>
             </div>
@@ -363,16 +462,16 @@ export function TeamRaceViewer() {
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-orange-500/20 border border-orange-500/30 flex items-center justify-center">
                     <span className="text-xl font-bold text-orange-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                      {teamCar.carNumber}
+                      {activeTeamCar.carNumber}
                     </span>
                   </div>
                   <div>
-                    <div className="text-lg font-bold text-white">{teamCar.currentDriver.name}</div>
-                    <div className="text-xs text-white/40">{teamCar.carClass} • {team?.name || 'Team'}</div>
+                    <div className="text-lg font-bold text-white">{activeTeamCar.currentDriver.name}</div>
+                    <div className="text-xs text-white/40">{activeTeamCar.carClass} • {team?.name || 'Team'}</div>
                   </div>
                 </div>
-                <div className={`px-3 py-1 text-xs font-bold ${teamCar.inPit ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}`}>
-                  {teamCar.inPit ? 'IN PIT' : 'ON TRACK'}
+                <div className={`px-3 py-1 text-xs font-bold ${activeTeamCar.inPit ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}`}>
+                  {activeTeamCar.inPit ? 'IN PIT' : 'ON TRACK'}
                 </div>
               </div>
 
@@ -381,13 +480,13 @@ export function TeamRaceViewer() {
                 <div className="bg-white/5 p-3">
                   <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Overall</div>
                   <div className="text-3xl font-bold text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                    P{teamCar.position}
+                    P{activeTeamCar.position}
                   </div>
                 </div>
                 <div className="bg-white/5 p-3">
                   <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1">In Class</div>
                   <div className="text-3xl font-bold text-orange-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                    P{teamCar.classPosition}
+                    P{activeTeamCar.classPosition}
                   </div>
                 </div>
               </div>
@@ -396,19 +495,19 @@ export function TeamRaceViewer() {
               <div className="grid grid-cols-2 gap-2 mb-4">
                 <div className="bg-white/5 p-2">
                   <div className="text-[10px] text-white/40 uppercase">Gap Ahead</div>
-                  <div className="text-sm font-mono text-green-400">{teamCar.gapAhead}</div>
+                  <div className="text-sm font-mono text-green-400">{activeTeamCar.gapAhead}</div>
                 </div>
                 <div className="bg-white/5 p-2">
                   <div className="text-[10px] text-white/40 uppercase">Gap Behind</div>
-                  <div className="text-sm font-mono text-red-400">{teamCar.gapBehind}</div>
+                  <div className="text-sm font-mono text-red-400">{activeTeamCar.gapBehind}</div>
                 </div>
                 <div className="bg-white/5 p-2">
                   <div className="text-[10px] text-white/40 uppercase">To Leader</div>
-                  <div className="text-sm font-mono text-white/70">{teamCar.gapToLeader}</div>
+                  <div className="text-sm font-mono text-white/70">{activeTeamCar.gapToLeader}</div>
                 </div>
                 <div className="bg-white/5 p-2">
                   <div className="text-[10px] text-white/40 uppercase">To Class Leader</div>
-                  <div className="text-sm font-mono text-white/70">{teamCar.gapToClassLeader}</div>
+                  <div className="text-sm font-mono text-white/70">{activeTeamCar.gapToClassLeader}</div>
                 </div>
               </div>
 
@@ -416,11 +515,11 @@ export function TeamRaceViewer() {
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Last Lap</div>
-                  <div className="text-xl font-mono text-white">{formatLapTime(teamCar.lastLapTime)}</div>
+                  <div className="text-xl font-mono text-white">{formatLapTime(activeTeamCar.lastLapTime)}</div>
                 </div>
                 <div>
                   <div className="text-[10px] text-white/40 uppercase tracking-wider mb-1">Best Lap</div>
-                  <div className="text-xl font-mono text-purple-400">{formatLapTime(teamCar.bestLapTime)}</div>
+                  <div className="text-xl font-mono text-purple-400">{formatLapTime(activeTeamCar.bestLapTime)}</div>
                 </div>
               </div>
 
@@ -431,17 +530,17 @@ export function TeamRaceViewer() {
                     <Fuel size={16} className="text-orange-400" />
                     <span className="text-[10px] text-white/40 uppercase tracking-wider">Fuel</span>
                   </div>
-                  <span className="text-sm font-mono text-white">{teamCar.fuel.toFixed(1)}L</span>
+                  <span className="text-sm font-mono text-white">{activeTeamCar.fuel.toFixed(1)}L</span>
                 </div>
                 <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 transition-all"
-                    style={{ width: `${(teamCar.fuel / 100) * 100}%` }}
+                    style={{ width: `${(activeTeamCar.fuel / 100) * 100}%` }}
                   />
                 </div>
                 <div className="flex items-center justify-between mt-2 text-xs text-white/50">
-                  <span>{teamCar.fuelPerLap.toFixed(2)}L/lap</span>
-                  <span>{teamCar.lapsRemaining} laps remaining</span>
+                  <span>{activeTeamCar.fuelPerLap.toFixed(2)}L/lap</span>
+                  <span>{activeTeamCar.lapsRemaining} laps remaining</span>
                 </div>
               </div>
             </div>
@@ -450,10 +549,10 @@ export function TeamRaceViewer() {
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">Pit Stops</div>
-                <div className="text-lg font-bold text-white">{teamCar.pitStops}</div>
+                <div className="text-lg font-bold text-white">{activeTeamCar.pitStops}</div>
               </div>
               <div className="text-xs text-white/50">
-                Last pit: Lap {teamCar.lastPitLap || '—'}
+                Last pit: Lap {activeTeamCar.lastPitLap || '—'}
               </div>
             </div>
           </div>
@@ -476,42 +575,42 @@ export function TeamRaceViewer() {
                 </div>
 
                 {/* Current Stint */}
-                {teamCar.currentStint && (
+                {activeTeamCar.currentStint && (
                   <div className="bg-green-500/10 border border-green-500/30 p-4 mb-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                         <span className="text-xs font-semibold text-green-400 uppercase">Active Stint</span>
                       </div>
-                      <span className="text-xs text-white/40">Stint #{teamCar.currentStint.id.replace('s', '')}</span>
+                      <span className="text-xs text-white/40">Stint #{activeTeamCar.currentStint.id.replace('s', '')}</span>
                     </div>
                     <div className="flex items-center gap-3 mb-3">
                       <div 
                         className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                        style={{ backgroundColor: localDrivers.find(d => d.id === teamCar.currentStint?.driverId)?.color + '30', color: localDrivers.find(d => d.id === teamCar.currentStint?.driverId)?.color }}
+                        style={{ backgroundColor: localDrivers.find(d => d.id === activeTeamCar.currentStint?.driverId)?.color + '30', color: localDrivers.find(d => d.id === activeTeamCar.currentStint?.driverId)?.color }}
                       >
-                        {localDrivers.find(d => d.id === teamCar.currentStint?.driverId)?.shortName}
+                        {localDrivers.find(d => d.id === activeTeamCar.currentStint?.driverId)?.shortName}
                       </div>
                       <div>
-                        <div className="text-white font-semibold">{teamCar.currentStint.driverName}</div>
-                        <div className="text-xs text-white/40">Started Lap {teamCar.currentStint.startLap}</div>
+                        <div className="text-white font-semibold">{activeTeamCar.currentStint.driverName}</div>
+                        <div className="text-xs text-white/40">Started Lap {activeTeamCar.currentStint.startLap}</div>
                       </div>
                     </div>
                     <div className="grid grid-cols-4 gap-2 text-center">
                       <div>
-                        <div className="text-lg font-bold text-white">{teamCar.currentStint.laps}</div>
+                        <div className="text-lg font-bold text-white">{activeTeamCar.currentStint.laps}</div>
                         <div className="text-[10px] text-white/40 uppercase">Laps</div>
                       </div>
                       <div>
-                        <div className="text-lg font-bold text-white">{formatLapTime(teamCar.currentStint.avgLapTime)}</div>
+                        <div className="text-lg font-bold text-white">{formatLapTime(activeTeamCar.currentStint.avgLapTime)}</div>
                         <div className="text-[10px] text-white/40 uppercase">Avg</div>
                       </div>
                       <div>
-                        <div className="text-lg font-bold text-purple-400">{formatLapTime(teamCar.currentStint.bestLapTime)}</div>
+                        <div className="text-lg font-bold text-purple-400">{formatLapTime(activeTeamCar.currentStint.bestLapTime)}</div>
                         <div className="text-[10px] text-white/40 uppercase">Best</div>
                       </div>
                       <div>
-                        <div className="text-lg font-bold text-white">{teamCar.currentStint.tireAge}</div>
+                        <div className="text-lg font-bold text-white">{activeTeamCar.currentStint.tireAge}</div>
                         <div className="text-[10px] text-white/40 uppercase">Tire Age</div>
                       </div>
                     </div>
@@ -521,7 +620,7 @@ export function TeamRaceViewer() {
                 {/* Stint History */}
                 {showStintHistory && (
                   <div className="space-y-2">
-                    {teamCar.stints.filter(s => s.status === 'completed').reverse().map((stint) => (
+                    {activeTeamCar.stints.filter(s => s.status === 'completed').reverse().map((stint) => (
                       <div 
                         key={stint.id}
                         className="bg-white/5 border border-white/10 p-3 cursor-pointer hover:bg-white/10 transition-colors"
@@ -582,8 +681,8 @@ export function TeamRaceViewer() {
                 </div>
                 <div className="space-y-3">
                   {localDrivers.map((driver) => {
-                    const isActive = driver.id === teamCar.currentDriver.id;
-                    const driverStints = teamCar.stints.filter(s => s.driverId === driver.id);
+                    const isActive = driver.id === activeTeamCar.currentDriver.id;
+                    const driverStints = activeTeamCar.stints.filter(s => s.driverId === driver.id);
                     const totalLaps = driverStints.reduce((sum, s) => sum + s.laps, 0);
                     const avgLap = driverStints.length > 0 
                       ? driverStints.reduce((sum, s) => sum + (s.avgLapTime || 0), 0) / driverStints.length 
@@ -637,7 +736,7 @@ export function TeamRaceViewer() {
                           </div>
                           <div>
                             <div className="text-lg font-bold text-white">
-                              {session.currentLap > 0 ? ((totalLaps / session.currentLap) * 100).toFixed(0) : 0}%
+                              {activeSession.currentLap > 0 ? ((totalLaps / activeSession.currentLap) * 100).toFixed(0) : 0}%
                             </div>
                             <div className="text-[10px] text-white/40 uppercase">Drive %</div>
                           </div>
@@ -650,8 +749,20 @@ export function TeamRaceViewer() {
             )}
           </div>
 
-          {/* Right Column - Strategy & Alerts */}
+          {/* Right Column - Track Map, Strategy & Alerts */}
           <div className="col-span-3">
+            {/* Track Map */}
+            {activeTrackName && (
+              <div className="bg-white/5 backdrop-blur-xl border border-white/10 mb-4 overflow-hidden" style={{ height: '220px' }}>
+                <TrackMapPro
+                  trackId={activeTrackName}
+                  carPosition={relayCarPosition}
+                  otherCars={relayOtherCars}
+                  className="w-full h-full bg-transparent"
+                />
+              </div>
+            )}
+
             {/* Next Pit Window */}
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 mb-4">
               <div className="text-[10px] font-semibold text-white/40 uppercase tracking-[0.2em] mb-3">
@@ -659,13 +770,13 @@ export function TeamRaceViewer() {
               </div>
               <div className="text-center mb-3">
                 <div className="text-3xl font-bold text-orange-400" style={{ fontFamily: 'Orbitron, sans-serif' }}>
-                  {teamCar.lapsRemaining}
+                  {activeTeamCar.lapsRemaining}
                 </div>
                 <div className="text-xs text-white/40 uppercase">Laps Until Pit</div>
               </div>
               <div className="bg-white/5 p-2 text-center">
                 <div className="text-sm text-white/70">
-                  Pit Lap: <span className="font-bold text-white">{teamCar.lap + teamCar.lapsRemaining}</span>
+                  Pit Lap: <span className="font-bold text-white">{activeTeamCar.lap + activeTeamCar.lapsRemaining}</span>
                 </div>
               </div>
             </div>
@@ -678,8 +789,8 @@ export function TeamRaceViewer() {
                 </div>
                 <div className="space-y-2">
                   {localDrivers.map((driver, index) => {
-                    const isActive = driver.id === teamCar.currentDriver.id;
-                    const isNext = index === (localDrivers.findIndex(d => d.id === teamCar.currentDriver.id) + 1) % localDrivers.length;
+                    const isActive = driver.id === activeTeamCar.currentDriver.id;
+                    const isNext = index === (localDrivers.findIndex(d => d.id === activeTeamCar.currentDriver.id) + 1) % localDrivers.length;
                     
                     return (
                       <div 
@@ -714,25 +825,25 @@ export function TeamRaceViewer() {
                 Alerts
               </div>
               <div className="space-y-2">
-                {teamCar.fuel < 20 && (
+                {activeTeamCar.fuel < 20 && (
                   <div className="flex items-center gap-2 p-2 bg-yellow-500/10 border border-yellow-500/30">
                     <AlertTriangle size={14} className="text-yellow-400" />
                     <span className="text-xs text-yellow-400">Low fuel warning</span>
                   </div>
                 )}
-                {teamCar.incidents > 0 && (
+                {activeTeamCar.incidents > 0 && (
                   <div className="flex items-center gap-2 p-2 bg-red-500/10 border border-red-500/30">
                     <AlertTriangle size={14} className="text-red-400" />
-                    <span className="text-xs text-red-400">{teamCar.incidents}x incident points</span>
+                    <span className="text-xs text-red-400">{activeTeamCar.incidents}x incident points</span>
                   </div>
                 )}
-                {session.flagStatus === 'yellow' && (
+                {activeSession.flagStatus === 'yellow' && (
                   <div className="flex items-center gap-2 p-2 bg-yellow-500/10 border border-yellow-500/30">
                     <Flag size={14} className="text-yellow-400" />
                     <span className="text-xs text-yellow-400">Yellow flag - Pit opportunity</span>
                   </div>
                 )}
-                {teamCar.fuel >= 20 && teamCar.incidents === 0 && session.flagStatus === 'green' && (
+                {activeTeamCar.fuel >= 20 && activeTeamCar.incidents === 0 && activeSession.flagStatus === 'green' && (
                   <div className="text-xs text-white/30 text-center py-2">No active alerts</div>
                 )}
               </div>

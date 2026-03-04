@@ -32,6 +32,7 @@ import { getCurrentTraits } from '../../db/repositories/driver-traits.repo.js';
 import { getReportsForDriver } from '../../db/repositories/driver-reports.repo.js';
 import { chatCompletion, isLLMConfigured } from '../../services/ai/llm-service.js';
 import { getTelemetryForVoice } from '../../websocket/telemetry-cache.js';
+import { getWhisperService, getVoiceService, VOICE_PRESETS } from '../../services/voice/index.js';
 import { getAnalyzer } from '../../services/ai/live-session-analyzer.js';
 import { getRunState } from '../../services/telemetry/behavioral-worker.js';
 import {
@@ -1992,6 +1993,10 @@ Each should be one sentence. Return as a JSON array of strings.`
  * POST /api/v1/drivers/me/crew-chat
  * AI crew chat endpoint — Engineer, Spotter, or Analyst persona
  */
+// Driver context cache — avoids 3 DB queries per chat message (TTL: 10 min)
+const driverContextCache = new Map<string, { context: string; builtAt: number }>();
+const DRIVER_CONTEXT_CACHE_TTL_MS = 10 * 60 * 1000;
+
 router.post('/me/crew-chat', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
         const profile = await getDriverProfileByUserId(req.user!.id);
@@ -2002,15 +2007,21 @@ router.post('/me/crew-chat', requireAuth, async (req: Request, res: Response): P
             return;
         }
 
-        // Gather driver context (historical stats + live telemetry)
+        // Gather driver context — cached per user for 10 minutes
         let driverContext = '';
         if (profile) {
-            const [aggregate, traits, recentSessions] = await Promise.all([
-                getGlobalAggregate(profile.id, 'all_time'),
-                getCurrentTraits(profile.id),
-                getMetricsForDriver(profile.id, 10, 0),
-            ]);
-            driverContext = buildDriverContextForAI(profile, aggregate, traits, recentSessions);
+            const cached = driverContextCache.get(req.user!.id);
+            if (cached && Date.now() - cached.builtAt < DRIVER_CONTEXT_CACHE_TTL_MS) {
+                driverContext = cached.context;
+            } else {
+                const [aggregate, traits, recentSessions] = await Promise.all([
+                    getGlobalAggregate(profile.id, 'all_time'),
+                    getCurrentTraits(profile.id),
+                    getMetricsForDriver(profile.id, 10, 0),
+                ]);
+                driverContext = buildDriverContextForAI(profile, aggregate, traits, recentSessions);
+                driverContextCache.set(req.user!.id, { context: driverContext, builtAt: Date.now() });
+            }
         }
 
         // Inject live telemetry if driver is in a session
@@ -2126,6 +2137,7 @@ IMPORTANT: Never make up data. Only reference numbers from the data below. If yo
         const result = await chatCompletion(messages, {
             temperature: 0.7,
             maxTokens: 500,
+            model: 'gpt-4o-mini',
         });
 
         if (result.success && result.content) {
@@ -2140,11 +2152,139 @@ IMPORTANT: Never make up data. Only reference numbers from the data below. If yo
     }
 });
 
+/**
+ * POST /api/v1/drivers/me/voice-chat
+ * Voice round-trip: base64 audio → Whisper STT → crew persona AI (full context) → ElevenLabs TTS
+ * Returns transcript, text response, and optional base64 audio for playback.
+ */
+router.post('/me/voice-chat', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { audio, role = 'engineer', history } = req.body;
+
+        if (!audio) {
+            res.status(400).json({ error: 'audio (base64) is required' });
+            return;
+        }
+
+        const whisperService = getWhisperService();
+        if (!whisperService.isServiceAvailable()) {
+            res.status(503).json({ error: 'Speech-to-text service unavailable — check OPENAI_API_KEY' });
+            return;
+        }
+
+        // 1. Transcribe audio
+        const audioBuffer = Buffer.from(audio, 'base64');
+        const transcription = await whisperService.transcribe({ audioBuffer, language: 'en' });
+
+        if (!transcription.success || !transcription.text) {
+            res.status(500).json({ error: 'Failed to transcribe audio' });
+            return;
+        }
+
+        const transcript = transcription.text;
+        apiLogger.info(`[VoiceChat] ${role} ← "${transcript}"`);
+
+        // 2. Build crew context — identical to crew-chat (full telemetry + historical data)
+        const profile = await getDriverProfileByUserId(req.user!.id);
+        let driverContext = '';
+        if (profile) {
+            const [aggregate, traits, recentSessions] = await Promise.all([
+                getGlobalAggregate(profile.id, 'all_time'),
+                getCurrentTraits(profile.id),
+                getMetricsForDriver(profile.id, 10, 0),
+            ]);
+            driverContext = buildDriverContextForAI(profile, aggregate, traits, recentSessions);
+        }
+
+        const liveContext = buildLiveTelemetryContext();
+        const isLive = liveContext.length > 0;
+
+        const liveInstructions = isLive
+            ? `\nThe driver is IN A LIVE SESSION and just spoke this to you over radio. Reply in 1-2 sentences max — they are driving. Be direct, precise, and use radio language naturally.`
+            : `\nThe driver is NOT in a live session. Answer from historical data and general knowledge. Keep it brief and conversational.`;
+
+        const allContext = [
+            driverContext || 'No driver data available yet.',
+            liveContext,
+        ].filter(Boolean).join('\n');
+
+        const systemPrompts: Record<string, string> = {
+            engineer: `You are a professional motorsport race engineer talking to your driver over radio.
+Technical, precise, data-driven. Reference actual numbers from the data when available.
+VOICE MODE — keep responses to 1-2 sentences. The driver is at speed. Be clear and actionable.
+Never make up data. If asked "how's the car?" give fuel, tires, damage in one breath.${liveInstructions}
+\n${allContext}`,
+
+            spotter: `You are a professional motorsport spotter talking to your driver over radio.
+Alert, direct, punchy. Use short spotter language ("Clear left", "Car inside", "Gap to leader 2.1").
+VOICE MODE — 1 sentence unless they ask for detail. They are racing.${liveInstructions}
+\n${allContext}`,
+
+            analyst: `You are a motorsport performance analyst talking to your driver over radio.
+Precise, cite specific numbers when available. Conversational but data-focused.
+VOICE MODE — 1-2 sentences max. Save the full debrief for after the session.${liveInstructions}
+\n${allContext}`,
+        };
+
+        const systemPrompt = systemPrompts[role] || systemPrompts.engineer;
+
+        let responseText = '';
+
+        if (!isLLMConfigured()) {
+            const fallbacks: Record<string, string> = {
+                engineer: 'Copy that. Keep your head in it.',
+                spotter: 'Copy.',
+                analyst: 'Noted. We\'ll debrief after.',
+            };
+            responseText = fallbacks[role] || fallbacks.engineer;
+        } else {
+            const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
+                { role: 'system', content: systemPrompt },
+            ];
+            if (Array.isArray(history)) {
+                history.slice(-6).forEach((h: any) => {
+                    messages.push({
+                        role: h.role === 'user' ? 'user' : 'assistant',
+                        content: h.content,
+                    });
+                });
+            }
+            messages.push({ role: 'user', content: transcript });
+
+            const result = await chatCompletion(messages, { temperature: 0.7, maxTokens: 150 });
+            responseText = result.success && result.content
+                ? result.content
+                : 'Copy, standby.';
+        }
+
+        apiLogger.info(`[VoiceChat] ${role} → "${responseText}"`);
+
+        // 3. Convert response to speech (ElevenLabs)
+        let audioBase64: string | undefined;
+        const voiceService = getVoiceService();
+        if (voiceService.isServiceAvailable()) {
+            const ttsResult = await voiceService.textToSpeech({
+                text: responseText,
+                ...VOICE_PRESETS.raceEngineer,
+            });
+            if (ttsResult.success && ttsResult.audioBuffer) {
+                audioBase64 = ttsResult.audioBuffer.toString('base64');
+            }
+        }
+
+        res.json({ transcript, response: responseText, audioBase64 });
+
+    } catch (error) {
+        apiLogger.error({ err: error }, '[VoiceChat] Error:', error);
+        res.status(500).json({ error: 'Voice chat failed' });
+    }
+});
+
 // ========================
 // AI Helper Functions
 // ========================
 
-function buildDriverContextForAI(profile: any, aggregate: any, traits: any[], recentSessions: any[]): string {
+export function buildDriverContextForAI(profile: any, aggregate: any, traits: any[], recentSessions: any[]): string {
     const lines: string[] = [];
 
     lines.push(`Driver: ${profile.display_name || 'Unknown'}`);
@@ -2212,7 +2352,7 @@ function buildDriverContextForAI(profile: any, aggregate: any, traits: any[], re
     return lines.join('\n');
 }
 
-function buildLiveTelemetryContext(): string {
+export function buildLiveTelemetryContext(): string {
     // Try both 'live' key and any active session
     const snapshot = getTelemetryForVoice('live');
     if (!snapshot || !snapshot.updatedAt) return '';
@@ -2405,6 +2545,42 @@ function buildLiveTelemetryContext(): string {
     }
 
     return lines.join('\n');
+}
+
+// Cache for voice driver context — keyed by driver profile ID, TTL 10 min.
+// Avoids 3 DB round-trips on every voice query once the session is warm.
+const voiceDriverContextCache = new Map<string, { context: string; builtAt: number }>();
+const VOICE_DRIVER_CONTEXT_TTL_MS = 10 * 60 * 1000;
+
+/**
+ * Fetch and cache the full driver context string for voice routes.
+ * Loads profile, aggregate, traits, and recent sessions in parallel.
+ * Returns an empty string if the driverId is not found.
+ */
+export async function fetchDriverContextForVoice(driverId: string): Promise<string> {
+    if (!driverId) return '';
+
+    const cached = voiceDriverContextCache.get(driverId);
+    if (cached && Date.now() - cached.builtAt < VOICE_DRIVER_CONTEXT_TTL_MS) {
+        return cached.context;
+    }
+
+    try {
+        const profile = await getDriverProfileById(driverId);
+        if (!profile) return '';
+
+        const [aggregate, traits, recentSessions] = await Promise.all([
+            getGlobalAggregate(profile.id, 'all_time'),
+            getCurrentTraits(profile.id),
+            getMetricsForDriver(profile.id, 10, 0),
+        ]);
+
+        const context = buildDriverContextForAI(profile, aggregate, traits, recentSessions);
+        voiceDriverContextCache.set(driverId, { context, builtAt: Date.now() });
+        return context;
+    } catch {
+        return '';
+    }
 }
 
 function buildFallbackCoachingInsight(aggregate: any, traits: any[]): string {

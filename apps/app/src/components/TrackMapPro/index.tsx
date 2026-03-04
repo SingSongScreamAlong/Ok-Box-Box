@@ -154,7 +154,7 @@ export function TrackMapPro({
             )}
 
             <div className="absolute bottom-4 left-4 font-mono text-[10px] text-white/30 pointer-events-none">
-                {shape.trackId}
+                {shape.name || shape.trackId}
             </div>
         </div>
     );
