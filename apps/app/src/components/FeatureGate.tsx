@@ -84,8 +84,8 @@ export function FeatureGate({
       <p className="text-xs text-white/30 mb-6">
         You're currently on the {TIER_NAMES[tier]} tier.
       </p>
-      <Link 
-        to="/settings" 
+      <Link
+        to="/pricing"
         className="inline-block bg-[#f97316] text-black px-6 py-2 text-xs font-semibold uppercase tracking-wider hover:bg-[#f97316]/90 transition-colors"
       >
         Upgrade
@@ -131,14 +131,14 @@ export function RequireFeature({
             This page requires a {TIER_NAMES[requiredTier]} subscription to access.
           </p>
           <div className="flex gap-4 justify-center">
-            <Link 
-              to="/dashboard" 
+            <Link
+              to="/driver/home"
               className="px-6 py-2 border border-white/20 text-white/70 text-xs font-semibold uppercase tracking-wider hover:bg-white/5 transition-colors"
             >
               Go Back
             </Link>
-            <Link 
-              to="/settings" 
+            <Link
+              to="/pricing"
               className="px-6 py-2 bg-[#f97316] text-black text-xs font-semibold uppercase tracking-wider hover:bg-[#f97316]/90 transition-colors"
             >
               View Plans

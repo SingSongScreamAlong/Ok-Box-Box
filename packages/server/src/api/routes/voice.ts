@@ -7,6 +7,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { requireAuth, requireCapability } from '../middleware/auth.js';
 import { getWhisperService, getVoiceService, VOICE_PRESETS } from '../../services/voice/index.js';
 import { buildLiveTelemetryContext, fetchDriverContextForVoice } from '../../driverbox/routes/drivers.js';
 
@@ -33,7 +34,7 @@ function sendChunk(res: Response, obj: Record<string, unknown>): void {
 // Streaming pipeline: STT → ack → LLM → TTS → done
 // ============================================================================
 
-router.post('/query', async (req: AudioRequest, res: Response) => {
+router.post('/query', requireAuth, requireCapability('voice_engineer'), async (req: AudioRequest, res: Response) => {
     const { driverId, audio } = req.body;
 
     if (!audio) {
@@ -154,7 +155,7 @@ async function callLLM(systemPrompt: string, userMessage: string): Promise<strin
 // Pipeline: ack + LLM → done  (no audio chunk; client streams via /tts-stream)
 // ============================================================================
 
-router.post('/query-text', async (req: Request, res: Response) => {
+router.post('/query-text', requireAuth, requireCapability('voice_engineer'), async (req: Request, res: Response) => {
     const { transcript, driverId } = req.body as { transcript?: string; driverId?: string };
 
     if (!transcript?.trim()) {
@@ -214,7 +215,7 @@ ${allContext || 'No driver or session data available.'}`;
 // Client plays via <audio src="..."> connected to Web Audio filter chain.
 // ============================================================================
 
-router.get('/tts-stream', async (req: Request, res: Response) => {
+router.get('/tts-stream', requireAuth, requireCapability('voice_engineer'), async (req: Request, res: Response) => {
     const text = typeof req.query.text === 'string' ? req.query.text.trim() : '';
 
     if (!text || text.length > 500) {

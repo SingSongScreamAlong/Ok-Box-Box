@@ -155,9 +155,21 @@ export class ScoringService {
             throw new Error('No results found for event');
         }
 
+        // Pre-compute cross-result bonus context
+        const mostLapsLedId = results.reduce<EventResult | null>(
+            (best, r) => (r.lapsLed > (best?.lapsLed ?? -1) && r.lapsLed > 0) ? r : best,
+            null
+        )?.driverId ?? null;
+
+        const fastestLapId = results.reduce<EventResult | null>((best, r) => {
+            if (!r.fastestLapTime) return best;
+            if (!best?.fastestLapTime) return r;
+            return r.fastestLapTime < best.fastestLapTime ? r : best;
+        }, null)?.driverId ?? null;
+
         // Score each result
         for (const result of results) {
-            const pts = this.calculatePoints(result, pointsTable, bonusConfigs);
+            const pts = this.calculatePoints(result, pointsTable, bonusConfigs, mostLapsLedId, fastestLapId);
 
             await pool.query(
                 `UPDATE event_results SET base_points = $2, bonus_points = $3, penalty_points = $4, total_points = $5
@@ -187,7 +199,9 @@ export class ScoringService {
     private calculatePoints(
         result: EventResult,
         pointsTable: PointsTable,
-        _bonusConfigs: BonusPointsConfig[]
+        bonusConfigs: BonusPointsConfig[],
+        mostLapsLedDriverId: string | null = null,
+        fastestLapDriverId: string | null = null
     ): { base: number; bonus: number; penalty: number; total: number } {
         let base = 0;
         let bonus = 0;
@@ -213,11 +227,42 @@ export class ScoringService {
             base = 0;
         }
 
-        // TODO: Apply bonus points based on configs
-        // - Pole position
-        // - Laps led
-        // - Fastest lap
-        // - Clean race
+        // Apply bonus points from series config
+        for (const config of bonusConfigs) {
+            switch (config.type) {
+                case 'pole':
+                    if (result.startingPosition === 1) {
+                        bonus += config.points;
+                    }
+                    break;
+
+                case 'laps_led':
+                    if (result.lapsLed > 0) {
+                        bonus += config.points; // Flat bonus for leading any laps
+                    }
+                    break;
+
+                case 'most_laps_led':
+                    if (result.driverId === mostLapsLedDriverId) {
+                        bonus += config.points;
+                    }
+                    break;
+
+                case 'fastest_lap':
+                    if (result.driverId === fastestLapDriverId) {
+                        bonus += config.points;
+                    }
+                    break;
+
+                case 'clean_race': {
+                    const maxIncidents = config.conditions?.maxIncidents ?? 0;
+                    if (result.finishStatus === 'finished' && result.incidentCount <= maxIncidents) {
+                        bonus += config.points;
+                    }
+                    break;
+                }
+            }
+        }
 
         const total = base + bonus - penalty;
 

@@ -5,6 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import { pool } from '../../db/client.js';
+import { requireAuth } from '../middleware/auth.js';
 import type {
     Recommendation,
     RecommendationStatus,
@@ -149,7 +150,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  * Take action on a recommendation
  * POST /api/recommendations/:id/action
  */
-router.post('/:id/action', async (req: Request, res: Response) => {
+router.post('/:id/action', requireAuth, async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const { action, notes, modifiedPayload } = req.body as ActionRecommendationRequest;
@@ -184,9 +185,8 @@ router.post('/:id/action', async (req: Request, res: Response) => {
             params.push(JSON.stringify(modifiedPayload));
         }
 
-        // TODO: Add actioned_by when auth is implemented
-        // updateQuery += `, actioned_by = $${paramIndex++}`;
-        // params.push(userId);
+        updateQuery += `, actioned_by = $${paramIndex++}`;
+        params.push(req.user!.id);
 
         updateQuery += ` WHERE id = $${paramIndex} RETURNING *`;
         params.push(id);

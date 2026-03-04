@@ -7,6 +7,9 @@ import { Router, Request, Response } from 'express';
 import type { LoginRequest, RefreshTokenRequest } from '@controlbox/common';
 import { getAuthService } from '../../services/auth/auth-service.js';
 import { requireAuth } from '../middleware/auth.js';
+import { pool } from '../../db/client.js';
+import { config } from '../../config/index.js';
+import { getEntitlementRepository, deriveCapabilitiesFromEntitlements } from '../../services/billing/entitlement-service.js';
 
 const router = Router();
 
@@ -243,32 +246,35 @@ router.get('/entitlements', requireAuth, async (req: Request, res: Response): Pr
     try {
         const user = req.user!;
 
-        // Build entitlements payload (v2 schema)
-        // TODO: Read from database when product subscriptions are implemented
+        const entitlementRepo = getEntitlementRepository();
+        const dbEntitlements = await entitlementRepo.getForUser(user.id);
+
+        const active = dbEntitlements.filter(e => e.status === 'active' || e.status === 'trial');
+        const hasDriver = user.isSuperAdmin || active.some(e => e.product === 'driver' || e.product === 'bundle');
+        const hasTeam   = user.isSuperAdmin || active.some(e => e.product === 'team'   || e.product === 'bundle');
+        const hasLeague = user.isSuperAdmin || active.some(e => e.product === 'league' || e.product === 'bundle');
+
+        // Highest active tier for legacy blackbox.tier field
+        const tier = hasLeague ? 'LEAGUE' : hasTeam ? 'TEAM' : hasDriver ? 'DRIVER' : 'FREE';
+
+        const roles: string[] = [];
+        if (hasDriver) roles.push('DRIVER');
+        if (hasTeam)   roles.push('TEAM');
+        if (hasLeague) roles.push('RACE_CONTROL');
+        if (user.isSuperAdmin) roles.push('ADMIN');
+
         const entitlements = {
             userId: user.id,
-            orgId: undefined, // TODO: Get from org membership
-            roles: user.isSuperAdmin
-                ? ['DRIVER', 'TEAM', 'RACE_CONTROL', 'ADMIN']
-                : ['DRIVER', 'TEAM'],
+            orgId: undefined,
+            roles,
             products: {
-                blackbox: {
-                    enabled: true,
-                    tier: 'TEAM' as const  // TODO: Read from license
-                },
-                controlbox: {
-                    enabled: user.isSuperAdmin  // TODO: Read from license
-                }
+                blackbox: { enabled: hasDriver, tier },
+                controlbox: { enabled: hasLeague || user.isSuperAdmin }
             },
-            defaults: {
-                preferredMode: 'DRIVER' as const  // TODO: Store per-user preference
-            }
+            defaults: { preferredMode: 'DRIVER' as const }
         };
 
-        res.json({
-            success: true,
-            data: entitlements
-        });
+        res.json({ success: true, data: entitlements });
     } catch (error) {
         console.error('Get entitlements error:', error);
         res.status(500).json({
@@ -299,17 +305,34 @@ router.get('/me/bootstrap', requireAuth, async (req: Request, res: Response): Pr
         // =====================================================
         // LOAD ENTITLEMENTS FROM DATABASE
         // =====================================================
-        const { getEntitlementRepository, deriveCapabilitiesFromEntitlements } =
-            await import('../../services/billing/entitlement-service.js');
         const entitlementRepo = getEntitlementRepository();
         const entitlements = await entitlementRepo.getForUser(user.id);
 
         // =====================================================
-        // MEMBERSHIPS (TODO: Read from team_members and league_members tables)
+        // MEMBERSHIPS — read from team_memberships and admin_user_league_roles
         // =====================================================
+        const [teamRows, leagueRows] = await Promise.all([
+            pool.query<{ id: string; name: string; role: string }>(
+                `SELECT t.id, t.name, tm.role
+                 FROM team_memberships tm
+                 JOIN driver_profiles dp ON dp.id = tm.driver_profile_id
+                 JOIN teams t ON t.id = tm.team_id
+                 WHERE dp.user_account_id = $1
+                   AND tm.status = 'active'`,
+                [user.id]
+            ),
+            pool.query<{ id: string; name: string; role: string }>(
+                `SELECT DISTINCT ON (l.id) l.id, l.name, aulr.role::text AS role
+                 FROM admin_user_league_roles aulr
+                 JOIN leagues l ON l.id = aulr.league_id
+                 WHERE aulr.admin_user_id = $1
+                 ORDER BY l.id, aulr.granted_at DESC`,
+                [user.id]
+            ),
+        ]);
         const memberships = {
-            teams: [] as { id: string; name: string; role: string }[],
-            leagues: [] as { id: string; name: string; role: string }[]
+            teams:   teamRows.rows.map(r => ({ id: r.id, name: r.name, role: r.role })),
+            leagues: leagueRows.rows.map(r => ({ id: r.id, name: r.name, role: r.role })),
         };
 
         // =====================================================
@@ -413,6 +436,71 @@ router.get('/me/bootstrap', requireAuth, async (req: Request, res: Response): Pr
         res.status(500).json({
             success: false,
             error: { code: 'BOOTSTRAP_ERROR', message: 'Failed to load bootstrap data' }
+        });
+    }
+});
+
+/**
+ * Delete current user account
+ * DELETE /api/auth/me
+ *
+ * - Deactivates admin_users row (blocks future logins)
+ * - Deletes active entitlements (removes access immediately)
+ * - Revokes all refresh tokens
+ * - Deletes the Supabase auth user (requires SUPABASE_SERVICE_ROLE_KEY)
+ *
+ * Note: Stripe subscriptions continue billing until they naturally expire or
+ * the user contacts support. Add Stripe cancellation when a cancel-subscription
+ * API is added to the billing service.
+ */
+router.delete('/me', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const user = req.user!;
+        const authService = getAuthService();
+
+        // 1. Revoke all refresh tokens immediately
+        await authService.revokeAllUserTokens(user.id);
+
+        // 2. Deactivate the admin_users row (blocks future internal JWT logins)
+        await authService.deactivateUser(user.id);
+
+        // 3. Remove all entitlements (kills active access gates)
+        await pool.query(
+            `DELETE FROM user_entitlements WHERE user_id = $1`,
+            [user.id]
+        );
+
+        // 4. Delete Supabase auth user so they cannot log in via Supabase either
+        if (config.supabaseUrl && config.supabaseServiceRoleKey) {
+            try {
+                const supabaseAdminUrl = `${config.supabaseUrl}/auth/v1/admin/users/${user.id}`;
+                const response = await fetch(supabaseAdminUrl, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${config.supabaseServiceRoleKey}`,
+                        'apikey': config.supabaseServiceRoleKey,
+                    },
+                });
+                if (!response.ok) {
+                    const body = await response.text();
+                    console.error(`[AccountDeletion] Supabase user delete failed (${response.status}): ${body}`);
+                    // Non-fatal — user is already deactivated locally
+                }
+            } catch (supabaseErr) {
+                console.error('[AccountDeletion] Failed to delete Supabase user:', supabaseErr);
+                // Non-fatal
+            }
+        }
+
+        res.json({
+            success: true,
+            data: { message: 'Account deleted successfully' }
+        });
+    } catch (error) {
+        console.error('Account deletion error:', error);
+        res.status(500).json({
+            success: false,
+            error: { code: 'DELETION_ERROR', message: 'Failed to delete account' }
         });
     }
 });

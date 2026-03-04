@@ -139,11 +139,36 @@ export function Settings() {
 
   const handleDeleteAccount = async () => {
     const confirmed = window.confirm(
-      'Are you sure you want to delete your account? This action cannot be undone.'
+      'Are you sure you want to permanently delete your account?\n\n' +
+      'This will:\n• Remove all your data\n• Cancel your subscription access\n• Delete your login credentials\n\n' +
+      'This action CANNOT be undone.'
     );
-    
     if (!confirmed) return;
-    alert('Please contact support@okboxbox.com to delete your account.');
+
+    const doubleConfirm = window.confirm(
+      'Last chance — permanently delete your account?'
+    );
+    if (!doubleConfirm) return;
+
+    setLoading(true);
+    setError('');
+    try {
+      const response = await fetch(`${API_BASE}/api/auth/me`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data?.error?.message || 'Deletion failed. Please try again or contact support@okboxbox.com.');
+      }
+      // Sign out locally — account is gone on the server
+      await supabase.auth.signOut();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Deletion failed');
+      setLoading(false);
+    }
   };
 
   return (

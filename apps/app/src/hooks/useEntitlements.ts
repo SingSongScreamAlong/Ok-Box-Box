@@ -1,40 +1,42 @@
 /**
  * Entitlement Gating Hook
- * 
- * Gates FEATURES, not accounts.
- * - Free: account + basic profile
- * - Driver: telemetry, history, HUD
- * - Team: pitwall, roster, strategy, reports
- * - League: league management tools
+ *
+ * Fetches real entitlements from the server bootstrap endpoint.
+ * Single source of truth: /api/auth/me/bootstrap → capabilities.
+ *
+ * Tier hierarchy (additive):
+ *   free → driver → team → league
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+
 export type EntitlementTier = 'free' | 'driver' | 'team' | 'league' | 'enterprise';
 
 export interface UserEntitlements {
   tier: EntitlementTier;
   features: {
-    // Free (always true)
+    // Free (always true for authenticated users)
     account: boolean;
     basicProfile: boolean;
-    
-    // Driver tier
+
+    // Driver tier ($14/mo — BlackBox)
     driverTelemetry: boolean;
     driverHistory: boolean;
     driverHUD: boolean;
-    
-    // Team tier
+
+    // Team tier ($26/mo — TeamBox, includes driver)
     teamPitwall: boolean;
     teamRoster: boolean;
     teamStrategy: boolean;
     teamReports: boolean;
     teamIncidents: boolean;
     shareLinks: boolean;
-    
-    // League tier
+
+    // League tier ($48/mo — LeagueBox, includes team)
     leagueManagement: boolean;
     leagueEvents: boolean;
     leagueStewards: boolean;
@@ -65,52 +67,34 @@ const FREE_ENTITLEMENTS: UserEntitlements = {
   loading: false,
 };
 
-const DRIVER_ENTITLEMENTS: UserEntitlements = {
-  tier: 'driver',
-  features: {
-    ...FREE_ENTITLEMENTS.features,
-    driverTelemetry: true,
-    driverHistory: true,
-    driverHUD: true,
-  },
-  expiresAt: null,
-  loading: false,
-};
+/**
+ * Derive frontend feature flags from server capabilities.
+ * Maps the server's capability names to the frontend's feature names.
+ */
+function capabilitiesToFeatures(caps: Record<string, boolean>): UserEntitlements['features'] {
+  return {
+    account: true,
+    basicProfile: true,
 
-const TEAM_ENTITLEMENTS: UserEntitlements = {
-  tier: 'team',
-  features: {
-    ...DRIVER_ENTITLEMENTS.features,
-    teamPitwall: true,
-    teamRoster: true,
-    teamStrategy: true,
-    teamReports: true,
-    teamIncidents: true,
-    shareLinks: true,
-  },
-  expiresAt: null,
-  loading: false,
-};
+    // Driver: driver_hud gates history + HUD; personal_telemetry gates raw data
+    driverTelemetry: caps.personal_telemetry ?? false,
+    driverHistory: caps.driver_hud ?? false,
+    driverHUD: caps.driver_hud ?? false,
 
-const LEAGUE_ENTITLEMENTS: UserEntitlements = {
-  tier: 'league',
-  features: {
-    ...TEAM_ENTITLEMENTS.features,
-    leagueManagement: true,
-    leagueEvents: true,
-    leagueStewards: true,
-  },
-  expiresAt: null,
-  loading: false,
-};
+    // Team: pitwall_view is the gate for all team surfaces
+    teamPitwall: caps.pitwall_view ?? false,
+    teamRoster: caps.pitwall_view ?? false,
+    teamStrategy: caps.strategy_timeline ?? false,
+    teamReports: caps.pitwall_view ?? false,
+    teamIncidents: caps.pitwall_view ?? false,
+    shareLinks: caps.livespotter_access ?? false,
 
-const TIER_MAP: Record<EntitlementTier, UserEntitlements> = {
-  free: FREE_ENTITLEMENTS,
-  driver: DRIVER_ENTITLEMENTS,
-  team: TEAM_ENTITLEMENTS,
-  league: LEAGUE_ENTITLEMENTS,
-  enterprise: LEAGUE_ENTITLEMENTS, // Same as league for now
-};
+    // League: incident_review is the base league capability
+    leagueManagement: caps.incident_review ?? false,
+    leagueEvents: caps.incident_review ?? false,
+    leagueStewards: caps.incident_review ?? false,
+  };
+}
 
 export function useEntitlements(): UserEntitlements & {
   hasFeature: (feature: keyof UserEntitlements['features']) => boolean;
@@ -130,19 +114,41 @@ export function useEntitlements(): UserEntitlements & {
     }
 
     try {
-      // TODO: Fetch from subscriptions table when billing is live
-      // For now, check user metadata or default to free
-      const tier = (user.user_metadata?.subscription_tier as EntitlementTier) || 'free';
-      
-      // Winter testing: grant team tier to all authenticated users
-      const effectiveTier = tier === 'free' ? 'team' : tier;
-      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setEntitlements({ ...FREE_ENTITLEMENTS, loading: false });
+        return;
+      }
+
+      const response = await fetch(`${API_BASE}/api/auth/me/bootstrap`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (!response.ok) {
+        setEntitlements({ ...FREE_ENTITLEMENTS, loading: false });
+        return;
+      }
+
+      const { data } = await response.json();
+      const { licenses, capabilities } = data as {
+        licenses: { driver: boolean; team: boolean; league: boolean };
+        capabilities: Record<string, boolean>;
+      };
+
+      // Derive tier — highest wins
+      let tier: EntitlementTier = 'free';
+      if (licenses.league) tier = 'league';
+      else if (licenses.team) tier = 'team';
+      else if (licenses.driver) tier = 'driver';
+
       setEntitlements({
-        ...TIER_MAP[effectiveTier],
+        tier,
+        features: capabilitiesToFeatures(capabilities),
+        expiresAt: null,
         loading: false,
       });
-    } catch (error) {
-      console.error('Error fetching entitlements:', error);
+    } catch (err) {
+      console.error('Error fetching entitlements:', err);
       setEntitlements({ ...FREE_ENTITLEMENTS, loading: false });
     }
   }, [user]);
@@ -175,7 +181,7 @@ export function useEntitlements(): UserEntitlements & {
 }
 
 /**
- * Hook to check if user can access a specific feature
+ * Hook to check if user can access a specific feature.
  */
 export function useFeatureGate(feature: keyof UserEntitlements['features']): {
   allowed: boolean;

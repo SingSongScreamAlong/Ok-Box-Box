@@ -108,11 +108,7 @@ export function StintPlanner() {
     }
   }, [serviceDrivers]);
   const [config, setConfig] = useState<RaceConfig>(defaultConfig);
-  const [stints, setStints] = useState<Stint[]>([
-    { id: 's1', driverId: 'd1', startLap: 1, endLap: 40, fuelLoad: 110, tireCompound: 'medium', estimatedTime: '', notes: 'Opening stint - conservative pace' },
-    { id: 's2', driverId: 'd2', startLap: 41, endLap: 80, fuelLoad: 110, tireCompound: 'medium', estimatedTime: '', notes: 'Middle stint - push if in position' },
-    { id: 's3', driverId: 'd1', startLap: 81, endLap: 120, fuelLoad: 95, tireCompound: 'soft', estimatedTime: '', notes: 'Final stint - full attack' },
-  ]);
+  const [stints, setStints] = useState<Stint[]>([]);
   const [showConfig, setShowConfig] = useState(false);
   const [selectedStint, setSelectedStint] = useState<string | null>(null);
   const [draggedStint, setDraggedStint] = useState<string | null>(null);

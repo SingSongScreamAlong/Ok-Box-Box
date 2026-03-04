@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { Radio, Zap, Fuel, Video, VideoOff, Maximize2, Volume2, VolumeX, Users, Gauge, Thermometer, Clock, Flag, AlertTriangle, ChevronRight, Target, Monitor, MessageSquare, Settings, MapPin } from 'lucide-react';
 import { getTeam, Team } from '../../lib/teams';
@@ -49,95 +49,14 @@ interface TeamDriver {
   };
 }
 
-const mockTeamDrivers: TeamDriver[] = [
-  {
-    id: 'd1',
-    name: 'Alex Rivera',
-    carNumber: '42',
-    isActive: true,
-    position: 3,
-    lap: 47,
-    lastLap: 138.342,
-    bestLap: 137.891,
-    gap: '+2.341',
-    fuel: 42.3,
-    tireWear: { fl: 78, fr: 76, rl: 82, rr: 80 },
-    speed: 187,
-    delta: -0.234,
-    incidents: 0,
-    stintLaps: 12,
-    cameraAvailable: true,
-    behavioral: {
-      bsi: 78,
-      tci: 65,
-      cpi2: 82,
-      rci: 71,
-      status: 'warning',
-      warning: 'Throttle application harsh'
-    }
-  },
-  {
-    id: 'd2',
-    name: 'Jordan Chen',
-    carNumber: '42',
-    isActive: false,
-    position: null,
-    lap: null,
-    lastLap: 137.654,
-    bestLap: 137.234,
-    gap: null,
-    fuel: null,
-    tireWear: null,
-    speed: null,
-    delta: null,
-    incidents: 2,
-    stintLaps: 0,
-    cameraAvailable: false
-  },
-  {
-    id: 'd3',
-    name: 'Sam Williams',
-    carNumber: '42',
-    isActive: false,
-    position: null,
-    lap: null,
-    lastLap: 139.102,
-    bestLap: 138.456,
-    gap: null,
-    fuel: null,
-    tireWear: null,
-    speed: null,
-    delta: null,
-    incidents: 1,
-    stintLaps: 0,
-    cameraAvailable: false
-  },
-  {
-    id: 'd4',
-    name: 'Casey Morgan',
-    carNumber: '42',
-    isActive: false,
-    position: null,
-    lap: null,
-    lastLap: null,
-    bestLap: null,
-    gap: null,
-    fuel: null,
-    tireWear: null,
-    speed: null,
-    delta: null,
-    incidents: 0,
-    stintLaps: 0,
-    cameraAvailable: false
-  }
-];
 
 export function PitwallHome() {
   const { teamId } = useParams<{ teamId: string }>();
   const [team, setTeam] = useState<Team | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const { hasSeenWelcome, markAsSeen } = useFirstTimeExperience('pitwall');
-  const { status, session, connect } = useRelay();
+  const { status, session, telemetry, connect } = useRelay();
+  const [selectedDriver, setSelectedDriver] = useState<string>('');
   const [cameraAudio, setCameraAudio] = useState(false);
   const [expandedCamera, setExpandedCamera] = useState(false);
   const [masterVolume, setMasterVolume] = useState(75);
@@ -145,21 +64,28 @@ export function PitwallHome() {
   const [patchToDiscord, setPatchToDiscord] = useState(false);
   const [activePanel, setActivePanel] = useState<'strategy' | 'drivers' | 'trackmap' | 'setup' | null>(null);
 
-  // Get radio channels and real driver roster from data service
-  const { radioChannels, toggleChannelActive: toggleChannel, drivers: rosterDrivers } = useTeamData();
+  // Get team drivers and radio channels from data service
+  const { drivers: teamDrivers, radioChannels, toggleChannelActive: toggleChannel } = useTeamData();
 
-  // Map real driver profiles to TeamDriver shape (live telemetry fields stay null until relay provides them)
-  const localDrivers: TeamDriver[] = rosterDrivers.length > 0
-    ? rosterDrivers.map(d => ({
+  // Build live driver list from team roster, overlaid with relay standings when in session
+  const localDrivers = useMemo<TeamDriver[]>(() => {
+    const standings = status === 'in_session' ? telemetry.otherCars : [];
+    return teamDrivers.map((d) => {
+      const firstName = d.name.split(' ')[0].toLowerCase();
+      const standing = standings.find(s => {
+        const sName = (s.driverName || '').toLowerCase();
+        return sName.includes(firstName) || firstName.includes(sName.split(' ')[0] || '');
+      });
+      return {
         id: d.id,
         name: d.name,
-        carNumber: d.number,
-        isActive: d.available,
-        position: null,
+        carNumber: d.number || '??',
+        isActive: !!standing,
+        position: standing?.position ?? null,
         lap: null,
-        lastLap: d.avgLapTime > 0 ? d.avgLapTime / 1000 : null, // ms → seconds
+        lastLap: null,
         bestLap: null,
-        gap: null,
+        gap: standing?.gap ?? null,
         fuel: null,
         tireWear: null,
         speed: null,
@@ -167,10 +93,16 @@ export function PitwallHome() {
         incidents: 0,
         stintLaps: 0,
         cameraAvailable: false,
-      }))
-    : mockTeamDrivers; // Fall back to mock data while roster loads
+      };
+    });
+  }, [teamDrivers, telemetry.otherCars, status]);
 
-  const [selectedDriver, setSelectedDriver] = useState<string>('');
+  // Auto-select first driver when roster loads
+  useEffect(() => {
+    if (localDrivers.length > 0 && !localDrivers.find(d => d.id === selectedDriver)) {
+      setSelectedDriver(localDrivers[0].id);
+    }
+  }, [localDrivers, selectedDriver]);
 
   // Derive connection state from relay status
   const isConnected = status === 'connected' || status === 'in_session';
@@ -192,13 +124,6 @@ export function PitwallHome() {
   }, [status, connect]);
 
   // Live clock for temporal presence
-  // Auto-select first driver when roster loads
-  useEffect(() => {
-    if (!selectedDriver && localDrivers.length > 0) {
-      setSelectedDriver(localDrivers[0].id);
-    }
-  }, [localDrivers, selectedDriver]);
-
   useEffect(() => {
     const clockInterval = setInterval(() => {
       setCurrentTime(new Date());
@@ -940,7 +865,7 @@ export function PitwallHome() {
                   <div className="text-[10px] uppercase text-white/40 mb-2 font-semibold">Live Standings</div>
                   <div className="space-y-1.5">
                     {localDrivers.filter((d: TeamDriver) => d.isActive).sort((a: TeamDriver, b: TeamDriver) => (a.position || 99) - (b.position || 99)).slice(0, 8).map((driver: TeamDriver) => {
-                      const isTeamCar = true; // All localDrivers are team drivers
+                      const isTeamCar = driver.id === 'd1' || driver.id === 'd2';
                       return (
                         <div key={driver.id} className={`flex items-center justify-between text-[10px] ${isTeamCar ? 'text-blue-400' : 'text-white/50'}`}>
                           <div className="flex items-center gap-1.5">

@@ -42,7 +42,7 @@ router.post('/checkout', requireAuth, async (req, res) => {
             userId,
             tier as EntitlementTier,
             successUrl || `${process.env.DASHBOARD_URL || 'http://localhost:5173'}/billing/return?success=true`,
-            cancelUrl || `${process.env.DASHBOARD_URL || 'http://localhost:5173'}/my-idp?canceled=true`
+            cancelUrl || `${process.env.DASHBOARD_URL || 'http://localhost:5173'}/pricing?canceled=true`
         );
 
         res.json(session);
@@ -70,7 +70,7 @@ router.post('/portal', requireAuth, async (req, res) => {
 
         const session = await getStripeService().createPortalSession(
             userId,
-            returnUrl || `${process.env.DASHBOARD_URL || 'http://localhost:5173'}/my-idp`
+            returnUrl || `${process.env.DASHBOARD_URL || 'http://localhost:5173'}/subscription`
         );
 
         res.json(session);

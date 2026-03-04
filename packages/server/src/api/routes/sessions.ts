@@ -9,12 +9,13 @@ import type {
     ListSessionsParams
 } from '@controlbox/common';
 import { SessionRepository } from '../../db/repositories/session.repo.js';
+import { requireAuth } from '../middleware/auth.js';
 
 export const sessionsRouter = Router();
 const sessionRepo = new SessionRepository();
 
 // GET /api/sessions - List all sessions
-sessionsRouter.get('/', async (req: Request, res: Response): Promise<void> => {
+sessionsRouter.get('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
         const params: ListSessionsParams = {
             page: parseInt(req.query.page as string) || 1,
@@ -45,7 +46,7 @@ sessionsRouter.get('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 // GET /api/sessions/:id - Get session by ID
-sessionsRouter.get('/:id', async (req: Request, res: Response): Promise<void> => {
+sessionsRouter.get('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
         const session = await sessionRepo.findById(req.params.id);
 
@@ -67,7 +68,7 @@ sessionsRouter.get('/:id', async (req: Request, res: Response): Promise<void> =>
 });
 
 // POST /api/sessions - Create new session
-sessionsRouter.post('/', async (req: Request, res: Response): Promise<void> => {
+sessionsRouter.post('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
         const data: CreateSessionRequest = req.body;
         const session = await sessionRepo.create(data);
@@ -82,7 +83,7 @@ sessionsRouter.post('/', async (req: Request, res: Response): Promise<void> => {
 });
 
 // PATCH /api/sessions/:id - Update session
-sessionsRouter.patch('/:id', async (req: Request, res: Response): Promise<void> => {
+sessionsRouter.patch('/:id', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
         const data: UpdateSessionRequest = req.body;
         const session = await sessionRepo.update(req.params.id, data);
@@ -105,7 +106,7 @@ sessionsRouter.patch('/:id', async (req: Request, res: Response): Promise<void> 
 });
 
 // GET /api/sessions/:id/drivers - Get session drivers
-sessionsRouter.get('/:id/drivers', async (req: Request, res: Response): Promise<void> => {
+sessionsRouter.get('/:id/drivers', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
         const drivers = await sessionRepo.getDrivers(req.params.id);
         res.json({ success: true, data: drivers });

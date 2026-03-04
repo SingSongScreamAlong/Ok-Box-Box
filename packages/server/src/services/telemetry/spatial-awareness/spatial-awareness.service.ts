@@ -23,6 +23,9 @@ export class SpatialAwarenessService extends EventEmitter {
     private snapshots: WorldSnapshot[] = [];
     private readonly MAX_SNAPSHOTS = 1800;
 
+    // Pending events buffer: accumulates events between snapshot captures
+    private pendingSnapshotEvents: any[] = [];
+
     constructor() {
         super();
     }
@@ -78,7 +81,7 @@ export class SpatialAwarenessService extends EventEmitter {
             timestamp: now,
             sessionId,
             cars: carsClone,
-            events: [] // TODO: Collect events emitted during this tick?
+            events: this.pendingSnapshotEvents.splice(0), // drain buffer into this snapshot
         };
 
         this.snapshots.push(snapshot);
@@ -199,13 +202,14 @@ export class SpatialAwarenessService extends EventEmitter {
                             // Sort by lane (left to right)
                             const cars = [carA, carB, carC].sort((a, b) => a.laneOffset - b.laneOffset);
 
-                            // Emit Event (Debouncing would be handled here in a real impl)
-                            this.emit((EVENTS as any).INTELLIGENCE.V1.THREE_WIDE, {
+                            const threeWideEvent = {
                                 type: 'three_wide_detected',
                                 cars: cars.map(c => c.id),
-                                lapDistPct: carA.lapDistPct, // Approximate center
-                                confidence: 0.8
-                            });
+                                lapDistPct: carA.lapDistPct,
+                                confidence: 0.8,
+                            };
+                            this.pendingSnapshotEvents.push(threeWideEvent);
+                            this.emit((EVENTS as any).INTELLIGENCE.V1.THREE_WIDE, threeWideEvent);
                         }
                     }
                 }

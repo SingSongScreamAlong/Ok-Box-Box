@@ -49,6 +49,14 @@ export const config = {
     // External AI Services
     openaiApiKey: process.env.OPENAI_API_KEY || '',
     elevenLabsApiKey: process.env.ELEVENLABS_API_KEY || '',
+
+    // Supabase (server-side only — admin operations like account deletion)
+    supabaseUrl: process.env.SUPABASE_URL || '',
+    supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+
+    // Admin seeding — override defaults via env in production
+    seedAdminEmail: process.env.SEED_ADMIN_EMAIL || 'admin@okboxbox.com',
+    seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || '',
 } as const;
 
 // Validate required production configs
@@ -80,5 +88,10 @@ if (config.nodeEnv === 'production') {
     const localhostOrigins = config.corsOrigins.filter(o => o.includes('localhost') || o.includes('127.0.0.1'));
     if (localhostOrigins.length > 0) {
         console.warn(`⚠️  CORS_ORIGINS contains localhost entries in production: ${localhostOrigins.join(', ')}. Remove them for production security.`);
+    }
+
+    // Warn if admin seed password is not set — a known default will be used as fallback
+    if (!process.env.SEED_ADMIN_PASSWORD) {
+        console.warn('⚠️  SEED_ADMIN_PASSWORD not set — set this env var before first deployment to avoid a predictable admin password.');
     }
 }

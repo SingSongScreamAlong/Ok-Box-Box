@@ -8,6 +8,7 @@ import { getOrCreateAnalyzer } from '../services/ai/live-session-analyzer.js';
 import { generateSpotterCallouts } from '../services/ai/proactive-spotter.js';
 import { wsLogger, logOncePerInterval } from '../observability/logger.js';
 import { pushTelemetryToStream, TelemetryPacket } from '../services/telemetry/telemetry-streams.js';
+import { getClassificationEngine } from '../services/incidents/classification-engine.js';
 
 // Store current session info for late-joining clients
 let currentSessionInfo: { sessionId: string; trackName: string; trackId?: number; sessionType: string; carName?: string; rpmRedline?: number; fuelTankCapacity?: number; trackLength?: string } | null = null;
@@ -84,11 +85,37 @@ export class TelemetryHandler {
         // Incident events from relay
         socket.on('incident', (data: unknown) => {
             const rawData = data as any;
-            // eslint-disable-next-line no-console -- Incident events are rare and important to log
-            console.log('⚠️ INCIDENT:', JSON.stringify(rawData).substring(0, 300));
-            
-            // Broadcast to all connected clients
-            this.io.emit('incident:new', rawData);
+
+            // Route through ClassificationEngine for severity scoring, responsibility
+            // prediction, explanation generation, and DB persistence (non-blocking)
+            const trigger = {
+                type: 'incident_count_increase' as const,
+                timestamp: Date.now(),
+                sessionTimeMs: rawData.sessionTime ? rawData.sessionTime * 1000 : Date.now(),
+                primaryDriverId: String(rawData.carIdx ?? rawData.driverId ?? rawData.primaryDriverId ?? 0),
+                nearbyDriverIds: (rawData.nearbyCarIdxs ?? rawData.nearbyDriverIds ?? []).map(String),
+                triggerData: {
+                    lapNumber: rawData.lap ?? 0,
+                    trackPosition: rawData.lapDistPct ?? rawData.trackPosition ?? 0,
+                    severity: rawData.severity,
+                    cornerName: rawData.cornerName,
+                },
+            };
+            getClassificationEngine()
+                .processTrigger(trigger, rawData.sessionId ?? 'live')
+                .then(classified => {
+                    // Broadcast enriched incident if classification succeeded
+                    if (classified) {
+                        this.io.emit('incident:new', classified);
+                    } else {
+                        // Fallback: broadcast raw relay incident
+                        this.io.emit('incident:new', rawData);
+                    }
+                })
+                .catch(() => {
+                    // Fallback on any classification error
+                    this.io.emit('incident:new', rawData);
+                });
         });
 
         // Race events (flags, safety car, etc.)
@@ -160,6 +187,9 @@ export class TelemetryHandler {
             const telemetrySessionId = rawData?.sessionId || 'live';
             const inferenceEngine = getOrCreateEngine(telemetrySessionId);
             inferenceEngine.processTelemetry(rawData);
+
+            // Feed spatial context to incident classifier for contact analysis
+            getClassificationEngine().updateSpatialContext(rawData);
             const inferred = inferenceEngine.getInferredStrategy(telemetryCar);
             
             // Push to Redis Stream for behavioral analysis (non-blocking)

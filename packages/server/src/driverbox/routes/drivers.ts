@@ -641,7 +641,7 @@ router.get('/:id/summary', allowPublic, async (req: Request, res: Response): Pro
             return;
         }
 
-        // TODO: Fetch aggregates for headline_stats
+        const globalAggregate = await getGlobalAggregate(profile.id);
         const summary: DriverSummary = {
             id: profile.id,
             display_name: profile.display_name,
@@ -650,9 +650,9 @@ router.get('/:id/summary', allowPublic, async (req: Request, res: Response): Pro
             headline_stats: {
                 total_sessions: profile.total_sessions,
                 total_laps: profile.total_laps,
-                avg_pace_percentile: null, // TODO: from driver_aggregates
-                consistency_index: null,
-                risk_index: null,
+                avg_pace_percentile: globalAggregate?.avg_pace_percentile ?? null,
+                consistency_index: globalAggregate?.consistency_index ?? null,
+                risk_index: globalAggregate?.risk_index ?? null,
             },
         };
 

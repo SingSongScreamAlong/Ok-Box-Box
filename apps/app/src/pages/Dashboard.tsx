@@ -1,13 +1,24 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useRelay } from '../hooks/useRelay';
 import { getDriverProfile, DriverProfile } from '../lib/driverProfile';
 import { User, Users, Trophy, Radio, Gauge, Video, Mic, ArrowRight, Loader2 } from 'lucide-react';
 
+const RELAY_STATUS_CONFIG = {
+  disconnected:  { dot: 'bg-red-500',    label: 'Not Connected',   labelColor: 'text-red-400',    pulse: false },
+  connecting:    { dot: 'bg-yellow-500', label: 'Connecting...',   labelColor: 'text-yellow-400', pulse: true  },
+  connected:     { dot: 'bg-green-500',  label: 'Connected',       labelColor: 'text-green-400',  pulse: true  },
+  in_session:    { dot: 'bg-green-500',  label: 'Live Session',    labelColor: 'text-green-400',  pulse: true  },
+  reconnecting:  { dot: 'bg-yellow-500', label: 'Reconnecting...', labelColor: 'text-yellow-400', pulse: true  },
+} as const;
+
 export function Dashboard() {
   const { user } = useAuth();
+  const { status: relayStatus } = useRelay();
   const [driverProfile, setDriverProfile] = useState<DriverProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const relay = RELAY_STATUS_CONFIG[relayStatus];
   const displayName = driverProfile?.display_name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -62,11 +73,10 @@ export function Dashboard() {
         <div className="bg-black/40 backdrop-blur-sm border border-white/10 p-4 mb-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-              <span className="text-xs uppercase tracking-wider text-white/50">System Ready</span>
+              <div className={`w-2 h-2 rounded-full ${relay.dot}${relay.pulse ? ' animate-pulse' : ''}`}></div>
+              <span className="text-xs uppercase tracking-wider text-white/50">Relay:</span>
+              <span className={`text-xs uppercase tracking-wider font-medium ${relay.labelColor}`}>{relay.label}</span>
             </div>
-            <span className="text-white/20">|</span>
-            <span className="text-xs text-white/30">Relay: <span className="text-yellow-500">Not Connected</span></span>
           </div>
           <Link to="/settings" className="text-xs text-[#f97316] hover:text-[#fb923c] transition-colors">
             Configure →

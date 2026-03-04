@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { supabase } from '../lib/supabase';
 
 export type RelayStatus = 'disconnected' | 'connecting' | 'connected' | 'in_session' | 'reconnecting';
 
@@ -245,24 +246,29 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (socketRef.current?.connected) {
       console.log('[Relay] Already connected, skipping reconnect');
       return;
     }
-    
+
     if (socketRef.current) {
       console.log('[Relay] Disconnecting existing socket before reconnect');
       socketRef.current.disconnect();
       socketRef.current = null;
     }
-    
+
     const wsUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
     console.log('[Relay] Connecting to server:', wsUrl);
     setStatus('connecting');
 
+    // Get Supabase auth token for the WebSocket handshake
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+
     const socket = io(wsUrl, {
       transports: ['websocket', 'polling'],
+      auth: token ? { token } : {},
       reconnection: true,
       reconnectionAttempts: Infinity, // Keep trying during races
       reconnectionDelay: 1000,        // Start at 1 second
