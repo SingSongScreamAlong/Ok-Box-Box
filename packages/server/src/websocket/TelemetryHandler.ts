@@ -157,6 +157,9 @@ export class TelemetryHandler {
             this.io.volatile.emit('competitor_data', competitorData);
         });
 
+        // Counter for deterministic intelligence emit throttle (every 10 telemetry ticks ≈ 10s at 1Hz)
+        let intelligenceEmitTick = 0;
+
         // Telemetry snapshot
         socket.on('telemetry', (data: unknown) => {
             const rawData = data as any;
@@ -662,7 +665,8 @@ export class TelemetryHandler {
             }
 
             // Emit intelligence summary to frontend every ~10 seconds (1Hz input, emit every 10th)
-            if (rawCar.lap && rawCar.lap % 1 === 0 && Math.random() < 0.1) {
+            intelligenceEmitTick = (intelligenceEmitTick + 1) % 10;
+            if (intelligenceEmitTick === 0) {
                 const intel = analyzer.getIntelligence({
                     fuelLevel: inferred.fuel.level,
                     fuelPerLap: inferred.fuel.perLap,

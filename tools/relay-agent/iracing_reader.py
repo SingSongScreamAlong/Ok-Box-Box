@@ -254,15 +254,16 @@ class IRacingReader:
                 if car_idx >= len(positions) or positions[car_idx] <= 0:
                     continue  # Skip cars not in session
                 
-                # Get incident count for this car
-                incident_count = 0
-                try:
-                    incident_count = self.ir['CarIdxSessionFlags'][car_idx] if self.ir['CarIdxSessionFlags'] else 0
-                except (IndexError, TypeError):
-                    pass
-                
-                # Populate coordinate data for player car only
+                # Get incident count: iRacing only exposes the player's own count via
+                # PlayerCarMyIncidentCount; other cars have no per-car indexed field.
+                # CarIdxSessionFlags is a session-flags bitfield and must NOT be used here.
                 is_player = car_idx == player_car_idx
+                incident_count = 0
+                if is_player:
+                    try:
+                        incident_count = int(self.ir['PlayerCarMyIncidentCount'] or 0)
+                    except (TypeError, ValueError):
+                        pass
                 
                 car_data = CarData(
                     car_id=car_idx,
