@@ -40,7 +40,7 @@ import {
   Lock, Unlock, Bell, MessageSquare, Users,
   Trophy, AlertTriangle, TrendingDown, Zap,
   Wrench, Eye, BarChart3, Award, TrendingUp,
-  Flame, Sparkles, Activity, Clock
+  Flame, Sparkles, Activity, Clock, Info
 } from 'lucide-react';
 import {
   getLicenseColor,
@@ -170,7 +170,14 @@ function CPIRing({ value, tier, size = 120 }: { value: number; tier: CPITier; si
         <span className={`text-3xl font-bold font-mono ${style.text}`} style={ORBITRON}>
           {value}
         </span>
-        <span className="text-[9px] text-white/40 uppercase tracking-widest mt-0.5" title="Competitive Performance Index - measures consistency, incident discipline, and pace stability">CPI</span>
+        <span className="text-[9px] text-white/40 uppercase tracking-widest mt-0.5 flex items-center gap-1 group cursor-help relative">
+          CPI
+          <Info className="w-2.5 h-2.5 text-white/20 group-hover:text-white/40" />
+          <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-48 p-2 bg-black/95 border border-white/20 text-[10px] text-white/70 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center normal-case tracking-normal">
+            <strong className="text-white block mb-1">Clean Performance Index</strong>
+            Measures consistency, incident discipline, and pace stability across your recent races.
+          </span>
+        </span>
       </div>
     </div>
   );
@@ -409,17 +416,25 @@ function DriverStatusLine({
   }
 
   return (
-    <div className="border-x border-b border-white/10 bg-gradient-to-r from-[#0a0a0a]/90 to-[#0a0a0a]/70 px-5 py-5">
+    <div className="border-x border-b border-white/10 bg-gradient-to-r from-[#0a0a0a]/90 to-[#0a0a0a]/70 px-5 py-6">
+      {/* Section Label */}
+      <div className="flex items-center gap-2 mb-3">
+        <Zap className="w-3.5 h-3.5 text-white/30" />
+        <span className="text-[9px] uppercase tracking-[0.2em] text-white/30" style={ORBITRON}>Primary Performance Constraint</span>
+      </div>
       {/* Primary: Status Narrative (visually dominant) */}
-      <div className="flex items-start gap-3 mb-4">
-        <div className="mt-1">
+      <div className="flex items-start gap-4 mb-4">
+        <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{
+          backgroundColor: statusIcon === 'warning' ? 'rgba(251, 191, 36, 0.1)' : statusIcon === 'positive' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+          border: `1px solid ${statusIcon === 'warning' ? 'rgba(251, 191, 36, 0.2)' : statusIcon === 'positive' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(59, 130, 246, 0.2)'}`
+        }}>
           {statusIcon === 'warning' && <AlertTriangle className="w-6 h-6 text-amber-400" />}
           {statusIcon === 'positive' && <TrendingUp className="w-6 h-6 text-emerald-400" />}
           {statusIcon === 'stable' && <Activity className="w-6 h-6 text-blue-400" />}
         </div>
-        <div>
-          <p className={`text-[17px] font-semibold leading-snug ${statusColor}`}>{statusMessage}</p>
-          <div className="flex items-center gap-2 mt-1.5">
+        <div className="flex-1">
+          <p className={`text-lg font-semibold leading-snug ${statusColor}`} style={ORBITRON}>{statusMessage}</p>
+          <div className="flex items-center gap-2 mt-2">
             <p className="text-[10px] text-white/25">{confidence}% confidence • Last {sampleSize} races</p>
             <span className={`text-[8px] px-1.5 py-0.5 rounded uppercase tracking-wider ${
               modelType === 'telemetry_informed' 
@@ -846,9 +861,15 @@ function PerformanceAttributesCompact({ snapshot, sessions }: { snapshot: Perfor
           <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>CPI Breakdown</h2>
           <p className="text-[9px] text-white/20 mt-0.5">Based on last {Math.min(recentSessions.length, 10)} official races</p>
         </div>
-        <Link to="/driver/ratings" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
-          Full Analysis <ChevronRight className="w-3 h-3" />
-        </Link>
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <div className="text-[9px] text-white/20 uppercase tracking-wider">Analyzed</div>
+            <div className="text-xs font-mono text-blue-400">{(recentSessions.reduce((sum, s) => sum + (s.lapsComplete || 0), 0) * 60).toLocaleString()} pts</div>
+          </div>
+          <Link to="/driver/ratings" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
+            Full Analysis <ChevronRight className="w-3 h-3" />
+          </Link>
+        </div>
       </div>
       <div className="p-5 space-y-4">
         {/* Focus Area - Weakest Component */}
@@ -979,6 +1000,76 @@ function FiveRaceTrendSummary({ sessions, loading }: { sessions: DriverSessionSu
           <div className="text-center">
             <div className={`text-lg font-bold font-mono ${top5s > 0 ? 'text-orange-400' : 'text-white/30'}`} style={ORBITRON}>{top5s}</div>
             <div className="text-[9px] text-white/30 uppercase tracking-wider">Top 5s</div>
+          </div>
+        </div>
+        
+        {/* Mini Trend Sparklines */}
+        <div className="mt-4 pt-4 border-t border-white/[0.06] grid grid-cols-3 gap-4">
+          {/* Finish Position Trend */}
+          <div>
+            <div className="text-[9px] text-white/30 uppercase tracking-wider mb-2">Finish Trend</div>
+            <div className="h-8 flex items-end gap-0.5">
+              {recent.slice().reverse().map((s, i) => {
+                const pos = s.finishPos ?? 20;
+                const height = Math.max(10, 100 - (pos * 3));
+                return (
+                  <div 
+                    key={i} 
+                    className="flex-1 rounded-t transition-all"
+                    style={{ 
+                      height: `${height}%`,
+                      backgroundColor: pos <= 5 ? '#22c55e' : pos <= 10 ? '#3b82f6' : pos <= 15 ? '#eab308' : '#ef4444'
+                    }}
+                    title={`P${pos}`}
+                  />
+                );
+              })}
+            </div>
+          </div>
+          
+          {/* Incident Trend */}
+          <div>
+            <div className="text-[9px] text-white/30 uppercase tracking-wider mb-2">Incident Trend</div>
+            <div className="h-8 flex items-end gap-0.5">
+              {recent.slice().reverse().map((s, i) => {
+                const inc = s.incidents ?? 0;
+                const height = Math.min(100, Math.max(10, inc * 15));
+                return (
+                  <div 
+                    key={i} 
+                    className="flex-1 rounded-t transition-all"
+                    style={{ 
+                      height: `${height}%`,
+                      backgroundColor: inc <= 2 ? '#22c55e' : inc <= 4 ? '#eab308' : '#ef4444'
+                    }}
+                    title={`${inc}x`}
+                  />
+                );
+              })}
+            </div>
+          </div>
+          
+          {/* iRating Change Trend */}
+          <div>
+            <div className="text-[9px] text-white/30 uppercase tracking-wider mb-2">iRating Change</div>
+            <div className="h-8 flex items-end gap-0.5">
+              {recent.slice().reverse().map((s, i) => {
+                const change = s.iRatingChange ?? 0;
+                const isPositive = change >= 0;
+                const height = Math.min(100, Math.max(15, Math.abs(change) / 2 + 15));
+                return (
+                  <div 
+                    key={i} 
+                    className="flex-1 rounded-t transition-all"
+                    style={{ 
+                      height: `${height}%`,
+                      backgroundColor: isPositive ? '#22c55e' : '#ef4444'
+                    }}
+                    title={`${change > 0 ? '+' : ''}${change}`}
+                  />
+                );
+              })}
+            </div>
           </div>
         </div>
         
@@ -1187,35 +1278,46 @@ function NextActionBlock({ direction, snapshot }: { direction: ReturnType<typeof
     : { label: 'View Full CPI Analysis', link: '/driver/ratings' };
 
   return (
-    <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
-      <div className="px-5 py-4 border-b border-white/10">
-        <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Next Action</h2>
+    <div className="border-2 border-[#f97316]/30 bg-gradient-to-br from-[#f97316]/5 to-transparent backdrop-blur-sm relative overflow-hidden">
+      {/* Accent corner */}
+      <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-[#f97316]/10 to-transparent" />
+      
+      <div className="px-5 py-4 border-b border-[#f97316]/20 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[#f97316]/20 border border-[#f97316]/30 flex items-center justify-center">
+            <Target className="w-4 h-4 text-[#f97316]" />
+          </div>
+          <div>
+            <h2 className="text-sm uppercase tracking-[0.15em] text-[#f97316]" style={ORBITRON}>Your Next Steps</h2>
+            <p className="text-[9px] text-white/30">Personalized coaching from your crew</p>
+          </div>
+        </div>
       </div>
       <div className="p-5">
-        <div className="space-y-2 mb-4">
+        <div className="space-y-3 mb-5">
           {actions.map((action, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="w-5 h-5 rounded-full border border-white/20 flex items-center justify-center text-[9px] font-bold text-white/40">
+            <div key={i} className="flex items-start gap-3 group">
+              <div className="w-6 h-6 rounded-full bg-[#f97316]/10 border border-[#f97316]/30 flex items-center justify-center text-[10px] font-bold text-[#f97316] flex-shrink-0 mt-0.5">
                 {i + 1}
               </div>
-              <span className="text-[12px] text-white/60">{action}</span>
+              <span className="text-[13px] text-white/70 leading-relaxed group-hover:text-white/90 transition-colors">{action}</span>
             </div>
           ))}
         </div>
         
         {/* CTA Buttons */}
-        <div className="flex flex-wrap gap-2 pt-3 border-t border-white/[0.06]">
+        <div className="flex flex-wrap gap-3 pt-4 border-t border-white/[0.06]">
           <Link 
             to={primaryCTA.link}
-            className="px-3 py-1.5 bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 text-[10px] uppercase tracking-wider text-white/60 hover:text-white/80 transition-colors flex items-center gap-1.5"
+            className="px-4 py-2 bg-[#f97316] hover:bg-[#ea580c] text-black text-[11px] font-semibold uppercase tracking-wider transition-colors flex items-center gap-2"
           >
-            {primaryCTA.label} <ChevronRight className="w-3 h-3" />
+            {primaryCTA.label} <ChevronRight className="w-3.5 h-3.5" />
           </Link>
           <Link 
             to="/driver/history"
-            className="px-3 py-1.5 hover:bg-white/[0.04] border border-white/[0.06] text-[10px] uppercase tracking-wider text-white/30 hover:text-white/50 transition-colors flex items-center gap-1.5"
+            className="px-4 py-2 hover:bg-white/[0.04] border border-white/10 text-[11px] uppercase tracking-wider text-white/40 hover:text-white/60 transition-colors flex items-center gap-2"
           >
-            Review Last Race <ChevronRight className="w-3 h-3" />
+            Review Last Race <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       </div>
@@ -1392,13 +1494,41 @@ function PerformanceDirectiveCard({ direction, snapshot }: { direction: ReturnTy
           </button>
           
           {expanded && (
-            <div className="px-4 pb-4 space-y-2">
-              {direction.reasons.map((reason, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <div className="w-1 h-1 rounded-full bg-white/20 mt-1.5 shrink-0" />
-                  <p className="text-[11px] text-white/40">{reason}</p>
+            <div className="px-4 pb-4 space-y-3">
+              {/* Reasons */}
+              <div className="space-y-2">
+                {direction.reasons.map((reason, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <div className="w-1 h-1 rounded-full bg-white/20 mt-1.5 shrink-0" />
+                    <p className="text-[11px] text-white/40">{reason}</p>
+                  </div>
+                ))}
+              </div>
+              
+              {/* Incident Distribution Visual */}
+              {snapshot && snapshot.avg_incidents > 0 && (
+                <div className="mt-3 pt-3 border-t border-white/[0.04]">
+                  <div className="text-[9px] text-white/25 uppercase mb-2">Incident Impact Analysis</div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-red-500 to-amber-500 rounded-full transition-all"
+                        style={{ width: `${Math.min(100, snapshot.avg_incidents * 15)}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] font-mono text-amber-400">{snapshot.avg_incidents.toFixed(1)}x avg</span>
+                  </div>
+                  <div className="text-[10px] text-white/30">
+                    {snapshot.avg_incidents > 4 
+                      ? '🔴 High incident rate — focus on controlled driving'
+                      : snapshot.avg_incidents > 2 
+                      ? '🟡 Moderate incidents — room for improvement'
+                      : '🟢 Clean racing — maintain discipline'}
+                  </div>
                 </div>
-              ))}
+              )}
+              
+              {/* Stats Grid */}
               {snapshot && (
                 <div className="mt-3 pt-3 border-t border-white/[0.04] grid grid-cols-4 gap-3">
                   <div>
@@ -1421,6 +1551,16 @@ function PerformanceDirectiveCard({ direction, snapshot }: { direction: ReturnTy
                   </div>
                 </div>
               )}
+              
+              {/* Deep dive link */}
+              <div className="mt-3 pt-3 border-t border-white/[0.04]">
+                <Link 
+                  to="/driver/history" 
+                  className="text-[10px] text-blue-400/70 hover:text-blue-400 uppercase tracking-wider flex items-center gap-1"
+                >
+                  View detailed race-by-race breakdown <ChevronRight className="w-3 h-3" />
+                </Link>
+              </div>
             </div>
           )}
         </div>

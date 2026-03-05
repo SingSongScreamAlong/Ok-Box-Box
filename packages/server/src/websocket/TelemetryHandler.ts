@@ -13,12 +13,182 @@ import { getClassificationEngine } from '../services/incidents/classification-en
 // Store current session info for late-joining clients
 let currentSessionInfo: { sessionId: string; trackName: string; trackId?: number; sessionType: string; carName?: string; rpmRedline?: number; fuelTankCapacity?: number; trackLength?: string } | null = null;
 
+/**
+ * Normalize raw iRacing telemetry from desktop relay into the format expected by the handler.
+ * Desktop relay sends: { sessionId, timestamp, playerCarIdx, activeCarIdx, isSpectating, raw: <iRacing telemetry> }
+ * This extracts and transforms the raw data into our standard format.
+ */
+function normalizeRawTelemetry(data: any): any {
+    // If no raw field, assume it's already in the expected format (Python relay)
+    if (!data?.raw) return data;
+    
+    const raw = data.raw;
+    const playerCarIdx = data.playerCarIdx ?? raw.PlayerCarIdx ?? 0;
+    const activeCarIdx = data.activeCarIdx ?? playerCarIdx;
+    const isSpectating = data.isSpectating ?? false;
+    
+    // Extract session context
+    const sessionFlags = raw.SessionFlags ?? 0;
+    let flagStatus = 'green';
+    if (sessionFlags & 0x0001) flagStatus = 'checkered';
+    else if (sessionFlags & 0x0002) flagStatus = 'white';
+    else if (sessionFlags & 0x0004) flagStatus = 'green';
+    else if (sessionFlags & 0x0008) flagStatus = 'yellow';
+    else if (sessionFlags & 0x0010) flagStatus = 'red';
+    else if (sessionFlags & 0x0020) flagStatus = 'blue';
+    else if (sessionFlags & 0x4000) flagStatus = 'caution';
+    
+    // Build car data for the active car (player or spectated)
+    const activeCar = {
+        carIdx: activeCarIdx,
+        carId: activeCarIdx,
+        driverId: String(activeCarIdx),
+        isPlayer: !isSpectating,
+        isSpectated: isSpectating,
+        
+        // Position & Lap from CarIdx arrays
+        position: raw.CarIdxPosition?.[activeCarIdx] || 0,
+        classPosition: raw.CarIdxClassPosition?.[activeCarIdx] || 0,
+        lap: raw.CarIdxLap?.[activeCarIdx] || raw.Lap || 0,
+        lapDistPct: raw.CarIdxLapDistPct?.[activeCarIdx] || raw.LapDistPct || 0,
+        
+        // Speed & Motion (only for player car, not spectated)
+        speed: isSpectating ? 0 : (raw.Speed || 0),
+        gear: isSpectating ? 0 : (raw.Gear || 0),
+        rpm: isSpectating ? 0 : (raw.RPM || 0),
+        throttle: isSpectating ? 0 : (raw.Throttle || 0),
+        brake: isSpectating ? 0 : (raw.Brake || 0),
+        clutch: isSpectating ? 0 : (raw.Clutch || 0),
+        steeringAngle: isSpectating ? 0 : (raw.SteeringWheelAngle || 0),
+        
+        // Lap Times
+        lastLapTime: raw.CarIdxLastLapTime?.[activeCarIdx] || raw.LapLastLapTime || 0,
+        bestLapTime: raw.CarIdxBestLapTime?.[activeCarIdx] || raw.LapBestLapTime || 0,
+        deltaToSessionBest: isSpectating ? 0 : (raw.LapDeltaToSessionBestLap || 0),
+        deltaToOptimalLap: isSpectating ? 0 : (raw.LapDeltaToOptimalLap || 0),
+        
+        // Fuel
+        fuelLevel: isSpectating ? 0 : (raw.FuelLevel || 0),
+        fuelPct: isSpectating ? 0 : (raw.FuelLevelPct || 0),
+        fuelUsePerHour: isSpectating ? 0 : (raw.FuelUsePerHour || 0),
+        
+        // Tires (raw data for inference engine)
+        tireWearRaw: {
+            LF: [raw.LFwearL, raw.LFwearM, raw.LFwearR],
+            RF: [raw.RFwearL, raw.RFwearM, raw.RFwearR],
+            LR: [raw.LRwearL, raw.LRwearM, raw.LRwearR],
+            RR: [raw.RRwearL, raw.RRwearM, raw.RRwearR],
+        },
+        tireTempsRaw: {
+            LF: [raw.LFtempCL, raw.LFtempCM, raw.LFtempCR],
+            RF: [raw.RFtempCL, raw.RFtempCM, raw.RFtempCR],
+            LR: [raw.LRtempCL, raw.LRtempCM, raw.LRtempCR],
+            RR: [raw.RRtempCL, raw.RRtempCM, raw.RRtempCR],
+        },
+        
+        // Engine
+        oilTemp: raw.OilTemp || 0,
+        oilPress: raw.OilPress || 0,
+        waterTemp: raw.WaterTemp || 0,
+        voltage: raw.Voltage || 0,
+        
+        // Brake bias
+        brakeBias: raw.dcBrakeBias || 55,
+        
+        // Status
+        onPitRoad: raw.CarIdxOnPitRoad?.[activeCarIdx] || raw.OnPitRoad || false,
+        isOnTrack: raw.IsOnTrack || false,
+        incidentCount: isSpectating ? 0 : (raw.PlayerCarMyIncidentCount || 0),
+        
+        // Gap data for inference
+        estTime: raw.CarIdxEstTime?.[activeCarIdx] || 0,
+        f2Time: raw.CarIdxF2Time?.[activeCarIdx] || 0,
+    };
+    
+    // Build all cars array from CarIdx data
+    const cars: any[] = [];
+    const numCars = raw.CarIdxPosition?.length || 0;
+    for (let i = 0; i < numCars; i++) {
+        const pos = raw.CarIdxPosition?.[i];
+        if (pos > 0 || i === playerCarIdx) {
+            cars.push({
+                carIdx: i,
+                carId: i,
+                driverId: String(i),
+                position: pos || 0,
+                classPosition: raw.CarIdxClassPosition?.[i] || 0,
+                lap: raw.CarIdxLap?.[i] || 0,
+                lapDistPct: raw.CarIdxLapDistPct?.[i] || 0,
+                onPitRoad: raw.CarIdxOnPitRoad?.[i] || false,
+                lastLapTime: raw.CarIdxLastLapTime?.[i] || 0,
+                bestLapTime: raw.CarIdxBestLapTime?.[i] || 0,
+                estTime: raw.CarIdxEstTime?.[i] || 0,
+                f2Time: raw.CarIdxF2Time?.[i] || 0,
+                isPlayer: i === playerCarIdx,
+            });
+        }
+    }
+    
+    return {
+        sessionId: data.sessionId,
+        timestamp: data.timestamp,
+        sessionTime: raw.SessionTime || 0,
+        sessionTimeMs: (raw.SessionTime || 0) * 1000,
+        playerCarIdx,
+        activeCarIdx,
+        isSpectating,
+        
+        // Session context
+        flagStatus,
+        trackTemp: raw.TrackTemp || 0,
+        airTemp: raw.AirTemp || 0,
+        humidity: raw.RelativeHumidity || 0,
+        windSpeed: raw.WindVel || 0,
+        windDir: raw.WindDir || 0,
+        skies: raw.Skies || 0,
+        sessionTimeRemain: raw.SessionTimeRemain || 0,
+        sessionLapsRemain: raw.SessionLapsRemain || 0,
+        
+        // Cars
+        car: activeCar,
+        cars,
+        
+        // Pass through raw for inference engine
+        raw,
+    };
+}
+
+/**
+ * Normalize raw session_info from desktop relay.
+ * Desktop relay sends: { sessionId, timestamp, raw: <iRacing sessionInfo> }
+ */
+function normalizeRawSessionInfo(data: any): any {
+    if (!data?.raw) return data;
+    
+    const raw = data.raw;
+    const weekendInfo = raw.WeekendInfo || {};
+    const driverInfo = raw.DriverInfo || {};
+    const sessionInfo = raw.SessionInfo || {};
+    
+    return {
+        sessionId: data.sessionId,
+        timestamp: data.timestamp,
+        trackName: weekendInfo.TrackDisplayName || weekendInfo.TrackName || 'Unknown Track',
+        trackId: weekendInfo.TrackID,
+        trackLength: weekendInfo.TrackLength || '0 km',
+        sessionType: sessionInfo.Sessions?.[0]?.SessionType?.toLowerCase() || 'practice',
+        drivers: driverInfo.Drivers || [],
+        raw,
+    };
+}
+
 export class TelemetryHandler {
     private static firstPacketLogged = false;
     private lastSessionInfoEmit = 0;
     private static readonly SLOW_EMIT_INTERVAL = 1000; // 1Hz for slowly-changing data
     private lastWeather: { trackTemp: number; airTemp: number; humidity: number; windSpeed: number; windDir: number; skyCondition: string } | null = null;
     private cachedStandings: any[] = []; // Full standings from 1Hz standings event (no cap)
+    private cachedDrivers: any[] = []; // Driver info from session_info (desktop relay)
     
     constructor(private io: Server) { }
     
@@ -70,15 +240,22 @@ export class TelemetryHandler {
 
         // Also handle session_info (relay forwards this)
         socket.on('session_info', (data: unknown) => {
-            const rawData = data as any;
+            // Normalize raw format from desktop relay
+            const rawData = normalizeRawSessionInfo(data as any);
             // eslint-disable-next-line no-console -- Low-frequency event, useful for debugging relay connection
-            console.log('📍 SESSION INFO:', JSON.stringify(rawData));
+            console.log('📍 SESSION INFO:', JSON.stringify(rawData).substring(0, 500));
             
             if (rawData && typeof rawData === 'object') {
                 updateTelemetryCache('live', {
                     trackName: rawData.trackName || rawData.track,
                     sessionType: rawData.sessionType || rawData.session
                 });
+                
+                // Update driver names from session info if available
+                if (rawData.drivers && Array.isArray(rawData.drivers)) {
+                    // Cache driver info for use by telemetry handler
+                    this.cachedDrivers = rawData.drivers;
+                }
             }
         });
 
@@ -116,6 +293,30 @@ export class TelemetryHandler {
                     // Fallback on any classification error
                     this.io.emit('incident:new', rawData);
                 });
+        });
+
+        // Session end event from relay
+        socket.on('session_end', (data: unknown) => {
+            const rawData = data as any;
+            // eslint-disable-next-line no-console -- Session end is important for debugging
+            console.log('🏁 SESSION END:', JSON.stringify(rawData));
+            
+            // Clear cached data for this session
+            if (rawData?.sessionId) {
+                this.cachedStandings = [];
+                this.cachedDrivers = [];
+                TelemetryHandler.firstPacketLogged = false;
+                
+                // Remove from active sessions
+                activeSessions.delete(rawData.sessionId);
+                
+                // Broadcast session end to all clients
+                this.io.emit('session:end', {
+                    sessionId: rawData.sessionId,
+                    reason: rawData.reason || 'unknown',
+                    timestamp: rawData.timestamp || Date.now(),
+                });
+            }
         });
 
         // Race events (flags, safety car, etc.)
@@ -163,7 +364,34 @@ export class TelemetryHandler {
 
         // Telemetry snapshot
         socket.on('telemetry', (data: unknown) => {
-            const rawData = data as any;
+            // Normalize raw format from desktop relay (has raw field with iRacing data)
+            const rawData = normalizeRawTelemetry(data as any);
+            
+            // Enrich car data with driver names from cached session info
+            if (this.cachedDrivers.length > 0 && rawData.cars) {
+                for (const car of rawData.cars) {
+                    const driverInfo = this.cachedDrivers[car.carIdx];
+                    if (driverInfo) {
+                        car.driverName = driverInfo.UserName || car.driverName;
+                        car.carName = driverInfo.CarScreenName || car.carName;
+                        car.carClass = driverInfo.CarClassShortName || car.carClass;
+                        car.iRating = driverInfo.IRating || car.iRating;
+                        car.licenseLevel = driverInfo.LicString || car.licenseLevel;
+                    }
+                }
+                // Also enrich the active car
+                if (rawData.car) {
+                    const activeDriverInfo = this.cachedDrivers[rawData.car.carIdx];
+                    if (activeDriverInfo) {
+                        rawData.car.driverName = activeDriverInfo.UserName || rawData.car.driverName;
+                        rawData.car.carName = activeDriverInfo.CarScreenName || rawData.car.carName;
+                        rawData.car.carClass = activeDriverInfo.CarClassShortName || rawData.car.carClass;
+                        rawData.car.iRating = activeDriverInfo.IRating || rawData.car.iRating;
+                        rawData.car.licenseLevel = activeDriverInfo.LicString || rawData.car.licenseLevel;
+                    }
+                }
+            }
+            
             const selectDriverCar = (payload: any) => {
                 const cars = Array.isArray(payload?.cars) ? payload.cars : [];
                 return (

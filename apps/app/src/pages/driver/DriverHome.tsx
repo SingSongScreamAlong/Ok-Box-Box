@@ -32,10 +32,45 @@ export function DriverHome() {
   const isLive = status === 'in_session';
   const isConnected = status === 'connected' || status === 'in_session';
 
+  // Dynamic crew messages based on behavioral metrics and session state
+  const getEngineerMessage = () => {
+    if (isLive && behavioralMetrics) {
+      if (behavioralMetrics.behavioral.bsi < 60) return "Focus on smoother brake release.";
+      if (behavioralMetrics.behavioral.tci < 60) return "Watch your throttle application.";
+      return "Pace looks good, stay consistent.";
+    }
+    if (isLive) return "Monitoring fuel, pace, and strategy.";
+    if (isConnected) return "Standing by for session start.";
+    return "Let's review your setup before the race.";
+  };
+
+  const getSpotterMessage = () => {
+    if (isLive && behavioralMetrics) {
+      if (behavioralMetrics.behavioral.rci < 60) return "Rhythm is off — find your groove.";
+      return "Track is clear, push when ready.";
+    }
+    if (isLive) return "Watching traffic and track conditions.";
+    if (isConnected) return "Ready to call positions.";
+    return "We can review racecraft together.";
+  };
+
+  const getAnalystMessage = () => {
+    if (isLive && behavioralMetrics) {
+      const weakest = ['bsi', 'tci', 'cpi2', 'rci'].reduce((a, b) => 
+        behavioralMetrics.behavioral[a as keyof typeof behavioralMetrics.behavioral] < 
+        behavioralMetrics.behavioral[b as keyof typeof behavioralMetrics.behavioral] ? a : b
+      );
+      const labels: Record<string, string> = { bsi: 'braking', tci: 'throttle', cpi2: 'cornering', rci: 'rhythm' };
+      return `Your ${labels[weakest]} needs attention.`;
+    }
+    if (isLive) return "Recording lap data for debrief.";
+    return "Ready to review your sessions.";
+  };
+
   const crewMembers: CrewMember[] = [
-    { id: 'engineer', name: 'Race Engineer', role: 'Strategy & Setup', icon: <Wrench className="w-6 h-6" />, status: isLive ? 'active' : isConnected ? 'ready' : 'standby', statusMessage: isLive ? 'Monitoring fuel, pace, and strategy' : isConnected ? 'Standing by for session start' : 'Available for race planning', color: '#f97316', link: '/driver/crew/engineer' },
-    { id: 'spotter', name: 'Spotter', role: 'Traffic & Awareness', icon: <Eye className="w-6 h-6" />, status: isLive ? 'active' : isConnected ? 'ready' : 'standby', statusMessage: isLive ? 'Watching traffic and track conditions' : isConnected ? 'Ready to call positions' : 'Available for race briefing', color: '#3b82f6', link: '/driver/crew/spotter' },
-    { id: 'analyst', name: 'Performance Analyst', role: 'Data & Insights', icon: <BarChart3 className="w-6 h-6" />, status: isLive ? 'active' : 'standby', statusMessage: isLive ? 'Recording lap data for debrief' : 'Ready to review your sessions', color: '#8b5cf6', link: '/driver/crew/analyst' },
+    { id: 'engineer', name: 'Race Engineer', role: 'Strategy & Setup', icon: <Wrench className="w-6 h-6" />, status: isLive ? 'active' : isConnected ? 'ready' : 'standby', statusMessage: getEngineerMessage(), color: '#f97316', link: '/driver/crew/engineer' },
+    { id: 'spotter', name: 'Spotter', role: 'Traffic & Awareness', icon: <Eye className="w-6 h-6" />, status: isLive ? 'active' : isConnected ? 'ready' : 'standby', statusMessage: getSpotterMessage(), color: '#3b82f6', link: '/driver/crew/spotter' },
+    { id: 'analyst', name: 'Performance Analyst', role: 'Data & Insights', icon: <BarChart3 className="w-6 h-6" />, status: isLive ? 'active' : 'standby', statusMessage: getAnalystMessage(), color: '#8b5cf6', link: '/driver/crew/analyst' },
   ];
 
   const getStatusIcon = (s: CrewMemberStatus) => {
@@ -61,12 +96,36 @@ export function DriverHome() {
             <div className="w-14 h-14 border border-white/20 flex items-center justify-center bg-black/40">{relayIcon}</div>
             <div>
               <h2 className="text-lg font-semibold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>{relayTitle}</h2>
-              <p className="text-sm text-white/60 mt-1">{status === 'in_session' ? `${session.sessionType?.toUpperCase() || 'LIVE'} at ${session.trackName || 'Track'}` : status === 'connected' ? 'Waiting for session' : 'Your crew is available even without the relay'}</p>
+              <p className="text-sm text-white/60 mt-1">{status === 'in_session' ? `${session.sessionType?.toUpperCase() || 'LIVE'} at ${session.trackName || 'Track'}` : status === 'connected' ? 'Waiting for session start' : 'Your crew is available even without the relay'}</p>
             </div>
           </div>
           {status === 'disconnected' && <Link to="/download" className="px-4 py-2 border border-white/20 text-white/60 font-semibold text-sm uppercase tracking-wider hover:bg-white/5 hover:text-white">Download Relay</Link>}
           {status === 'in_session' && <Link to="/driver/pitwall" className="px-4 py-2 bg-green-500 text-black font-semibold text-sm uppercase tracking-wider hover:bg-green-400 flex items-center gap-2"><Play className="w-4 h-4" />Open Pitwall</Link>}
         </div>
+        {/* Enhanced telemetry status panel when in session */}
+        {status === 'in_session' && (
+          <div className="mt-4 pt-4 border-t border-white/10 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-white/40">Track</div>
+              <div className="text-sm font-medium text-white/80 mt-1">{session.trackName || '—'}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-white/40">Session</div>
+              <div className="text-sm font-medium text-white/80 mt-1 capitalize">{session.sessionType || '—'}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-white/40">Car</div>
+              <div className="text-sm font-medium text-white/80 mt-1">{session.carName || '—'}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-white/40">Telemetry</div>
+              <div className="text-sm font-medium text-green-400 mt-1 flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                60 Hz
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       <div>
         <div className="flex items-center gap-3 mb-4"><Headphones className="w-5 h-5 text-[#f97316]" /><h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={{ fontFamily: 'Orbitron, sans-serif' }}>Your Virtual Crew</h2></div>
@@ -100,7 +159,13 @@ export function DriverHome() {
             </Link>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {profile.licenses.map((license) => (
+            {profile.licenses.map((license) => {
+              const sr = license.safetyRating ?? 0;
+              const promoThreshold = 3.0;
+              const srToPromo = Math.max(0, promoThreshold - sr);
+              const isCloseToPromo = sr >= 2.5 && sr < promoThreshold;
+              const isPromotable = sr >= promoThreshold;
+              return (
               <div key={license.discipline} className="bg-black/40 backdrop-blur-sm border border-white/10 p-4 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-10 h-10 flex items-center justify-center" style={{ backgroundColor: getLicenseColor(license.licenseClass), clipPath: 'polygon(100% 0, 0 0, 100% 100%)' }}>
                   <span className="absolute top-1 right-1.5 text-xs font-bold text-white">{license.licenseClass}</span>
@@ -113,8 +178,25 @@ export function DriverHome() {
                   <span className="text-sm font-mono text-green-400">{license.safetyRating?.toFixed(2) ?? '—'}</span>
                   <span className="text-[10px] text-white/30 ml-1">SR</span>
                 </div>
+                {/* Promotion threshold indicator */}
+                <div className="mt-2 pt-2 border-t border-white/5">
+                  {isPromotable ? (
+                    <div className="text-[10px] text-green-400 flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" />
+                      Ready for promotion
+                    </div>
+                  ) : isCloseToPromo ? (
+                    <div className="text-[10px] text-yellow-400">
+                      +{srToPromo.toFixed(2)} SR to promote
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-white/30">
+                      Promotion at 3.00 SR
+                    </div>
+                  )}
+                </div>
               </div>
-            ))}
+            );})}
           </div>
           {profile.iRatingOverall && (
             <div className="mt-3 flex items-center gap-6 px-1">
