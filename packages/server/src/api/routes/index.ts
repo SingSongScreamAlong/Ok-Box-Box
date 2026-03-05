@@ -174,3 +174,7 @@ apiRouter.use('/teams', teamStrategyRouter);
 import teamPracticeRouter from './team-practice.js';
 apiRouter.use('/teams', teamPracticeRouter);
 
+// Ops Monitoring (admin-only, gated by OPS_UI_ENABLED)
+import opsRouter from './ops.js';
+apiRouter.use('/ops', opsRouter);
+

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import { useEntitlements, EntitlementTier } from './hooks/useEntitlements';
@@ -13,6 +13,14 @@ import { TeamLayout } from './layouts/TeamLayout';
 import { LeagueLayout } from './layouts/LeagueLayout';
 
 // ─── Lazy page chunks ────────────────────────────────────────────────────────
+// Admin monitoring suite
+const AdminLayout       = lazy(() => import('./pages/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
+const AdminOverview     = lazy(() => import('./pages/admin/AdminOverview').then(m => ({ default: m.AdminOverview })));
+const AdminUsers        = lazy(() => import('./pages/admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
+const AdminEntitlements = lazy(() => import('./pages/admin/AdminEntitlements').then(m => ({ default: m.AdminEntitlements })));
+const AdminOps          = lazy(() => import('./pages/admin/AdminOps').then(m => ({ default: m.AdminOps })));
+const AdminTelemetry    = lazy(() => import('./pages/admin/AdminTelemetry').then(m => ({ default: m.AdminTelemetry })));
+
 // Auth
 const Login            = lazy(() => import('./pages/auth/Login').then(m => ({ default: m.Login })));
 const Signup           = lazy(() => import('./pages/auth/Signup').then(m => ({ default: m.Signup })));
@@ -130,6 +138,46 @@ function CapabilityRoute({
   if (loading) return <PageLoader />;
   if (TIER_ORDER[tier] < TIER_ORDER[minTier]) {
     return <Navigate to="/pricing" replace />;
+  }
+  return <>{children}</>;
+}
+
+/**
+ * SuperAdminRoute — verifies isSuperAdmin via /api/auth/me.
+ * Shows a spinner while the check is in flight, and an access-denied
+ * message if the user is not a super admin.
+ */
+function SuperAdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading: authLoading } = useAuth();
+  const [checking, setChecking] = React.useState(true);
+  const [allowed, setAllowed] = React.useState(false);
+
+  React.useEffect(() => {
+    if (authLoading) return;
+    if (!user) { setChecking(false); return; }
+
+    import('./lib/adminService').then(({ fetchCurrentAdminUser }) =>
+      fetchCurrentAdminUser()
+    ).then(result => {
+      setAllowed(result?.isSuperAdmin === true);
+      setChecking(false);
+    }).catch(() => {
+      setAllowed(false);
+      setChecking(false);
+    });
+  }, [user, authLoading]);
+
+  if (authLoading || checking) return <PageLoader />;
+  if (!user) return <Navigate to="/login?redirect=/admin" replace />;
+  if (!allowed) {
+    return (
+      <div className="min-h-screen bg-[#080808] flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-400 text-sm uppercase tracking-widest mb-2">Access Denied</div>
+          <div className="text-white/30 text-xs">Super-admin privileges required.</div>
+        </div>
+      </div>
+    );
   }
   return <>{children}</>;
 }
@@ -264,6 +312,19 @@ function App() {
 
         {/* ── Race control test (protected — dev/admin use only) ───────── */}
         <Route path="/rco" element={<ProtectedRoute><RaceControlTest /></ProtectedRoute>} />
+
+        {/* ── Admin monitoring suite (super-admin only) ────────────────── */}
+        <Route path="/admin" element={
+          <SuperAdminRoute>
+            <AdminLayout />
+          </SuperAdminRoute>
+        }>
+          <Route index                element={<AdminOverview />} />
+          <Route path="users"         element={<AdminUsers />} />
+          <Route path="entitlements"  element={<AdminEntitlements />} />
+          <Route path="ops"           element={<AdminOps />} />
+          <Route path="telemetry"     element={<AdminTelemetry />} />
+        </Route>
 
         {/* ── Redirects ────────────────────────────────────────────────── */}
         <Route path="/dashboard" element={<Navigate to="/driver/home" replace />} />
