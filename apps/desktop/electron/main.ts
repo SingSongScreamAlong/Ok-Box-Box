@@ -1,0 +1,501 @@
+import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, shell, desktopCapturer } from 'electron';
+import * as path from 'path';
+import { IRacingSDK } from 'irsdk-node';
+import { io, Socket } from 'socket.io-client';
+import Store from 'electron-store';
+import { VoiceSystem } from './voice';
+
+let mainWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
+let iracing: any = null;
+let socket: Socket | null = null;
+let videoInterval: NodeJS.Timeout | null = null;
+let sessionId: string | null = null;
+let voiceSystem: VoiceSystem | null = null;
+
+const SERVER_URL = 'https://octopus-app-qsi3i.ondigitalocean.app';
+const SUPABASE_URL = 'https://muypplgzqqtjlwinhunw.supabase.co';
+
+// Persistent storage for auth
+const store = new Store({
+  name: 'okboxbox-config',
+  encryptionKey: 'okboxbox-secure-key-2026',
+});
+
+interface UserSession {
+  accessToken: string;
+  refreshToken: string;
+  userId: string;
+  email: string;
+  expiresAt: number;
+  tier: 'free' | 'driver' | 'team' | 'league';
+}
+
+async function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 320,
+    height: 480,
+    minWidth: 280,
+    minHeight: 400,
+    maxWidth: 400,
+    maxHeight: 600,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+    icon: path.join(__dirname, '../assets/icon.ico'),
+    title: 'Ok,Box Box',
+    frame: false,
+    transparent: false,
+    resizable: true,
+    titleBarStyle: 'hidden',
+  });
+
+  // In development, load from Vite dev server
+  const isDev = !app.isPackaged;
+  if (isDev) {
+    // Try multiple ports in case one is in use
+    const tryPorts = [5177, 5178, 5179];
+    for (const port of tryPorts) {
+      try {
+        await mainWindow.loadURL(`http://localhost:${port}`);
+        mainWindow.webContents.openDevTools();
+        break;
+      } catch {
+        continue;
+      }
+    }
+  } else {
+    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+  }
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+
+  // Minimize to tray instead of closing
+  mainWindow.on('close', (event) => {
+    if ((app as any).isQuitting) return;
+    event.preventDefault();
+    mainWindow?.hide();
+  });
+}
+
+function createTray() {
+  const iconPath = path.join(__dirname, '../assets/icon.png');
+  const icon = nativeImage.createFromPath(iconPath);
+  tray = new Tray(icon.resize({ width: 16, height: 16 }));
+
+  const contextMenu = Menu.buildFromTemplate([
+    { label: 'Show', click: () => mainWindow?.show() },
+    { label: 'Quit', click: () => { (app as any).isQuitting = true; app.quit(); } },
+  ]);
+
+  tray.setToolTip('Ok,Box Box');
+  tray.setContextMenu(contextMenu);
+  tray.on('click', () => mainWindow?.show());
+}
+
+function connectToServer(accessToken: string) {
+  const session = store.get('session') as UserSession | undefined;
+  
+  console.log('🔌 Connecting to server:', SERVER_URL);
+  console.log('   Token:', accessToken ? `${accessToken.substring(0, 20)}...` : 'MISSING');
+  console.log('   RelayId:', `pitbox-relay-desktop-${session?.userId || 'unknown'}`);
+  
+  // Disconnect existing socket if any
+  if (socket) {
+    socket.disconnect();
+  }
+  
+  socket = io(SERVER_URL, {
+    transports: ['websocket', 'polling'], // Allow fallback to polling
+    auth: { 
+      relayId: `pitbox-relay-desktop-${session?.userId || 'unknown'}`,
+    },
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
+  });
+
+  socket.on('connect', () => {
+    console.log('✅ Connected to Ok,Box Box server');
+    console.log('   Socket ID:', socket?.id);
+    mainWindow?.webContents.send('relay:status', 'connected');
+    
+    // Initialize voice system with socket
+    if (voiceSystem) {
+      voiceSystem.setSocket(socket);
+    }
+  });
+
+  socket.on('disconnect', (reason) => {
+    console.log('❌ Disconnected from server:', reason);
+    mainWindow?.webContents.send('relay:status', 'disconnected');
+  });
+
+  socket.on('connect_error', (err) => {
+    console.error('❌ Connection error:', err.message);
+    mainWindow?.webContents.send('relay:status', 'error');
+  });
+  
+  socket.io.on('reconnect_attempt', (attempt) => {
+    console.log(`🔄 Reconnection attempt ${attempt}...`);
+  });
+}
+
+function startIRacingRelay() {
+  // Initialize iRacing SDK
+  iracing = new IRacingSDK();
+  
+  let isConnected = false;
+  let sessionMetadataSent = false;
+  let lastSessionInfoTime = 0;
+  let lastIncidentCount = 0;
+
+  // Poll for connection and data
+  setInterval(async () => {
+    try {
+      const connected = iracing.isConnected();
+      
+      if (connected && !isConnected) {
+        isConnected = true;
+        sessionMetadataSent = false;
+        lastIncidentCount = 0;
+        console.log('✅ Connected to iRacing');
+        mainWindow?.webContents.send('iracing:status', 'connected');
+        startVideoCapture();
+      } else if (!connected && isConnected) {
+        isConnected = false;
+        sessionMetadataSent = false;
+        console.log('❌ Disconnected from iRacing');
+        mainWindow?.webContents.send('iracing:status', 'disconnected');
+        stopVideoCapture();
+        
+        // Emit session_end before clearing sessionId
+        if (socket?.connected && sessionId) {
+          socket.emit('session_end', {
+            sessionId,
+            timestamp: Date.now(),
+            reason: 'disconnected',
+          });
+          console.log('📤 Session end sent');
+        }
+        sessionId = null;
+      }
+
+      if (!connected) return;
+
+      const telemetry = iracing.getTelemetry();
+      const sessionInfo = iracing.getSessionInfo();
+      if (!telemetry) return;
+
+      const now = Date.now();
+      const playerCarIdx = telemetry.PlayerCarIdx || 0;
+      const camCarIdx = telemetry.CamCarIdx ?? playerCarIdx;
+      const playerPosition = telemetry.CarIdxPosition?.[playerCarIdx] || 0;
+      
+      // Detect spectator mode: player position is 0 (not on track) and camera is on different car
+      const isSpectating = playerPosition === 0 && camCarIdx !== playerCarIdx;
+      const activeCarIdx = isSpectating ? camCarIdx : playerCarIdx;
+
+      // Session ID for all events - detect session changes
+      const newSessionId = telemetry.SessionUniqueID ? `live_${telemetry.SessionUniqueID}` : null;
+      if (newSessionId && newSessionId !== sessionId) {
+        // Session changed - emit session_end for old session
+        if (sessionId && socket?.connected) {
+          socket.emit('session_end', {
+            sessionId,
+            timestamp: now,
+            reason: 'session_change',
+          });
+          console.log('📤 Session end (session change)');
+        }
+        sessionId = newSessionId;
+        sessionMetadataSent = false; // Force re-send metadata for new session
+        lastIncidentCount = 0;
+        voiceSystem?.setSessionId(sessionId);
+      }
+
+      // Send session_metadata once per session (like Python relay)
+      if (!sessionMetadataSent && sessionInfo && socket?.connected) {
+        const weekendInfo = sessionInfo.WeekendInfo || {};
+        const activeDriverInfo = sessionInfo.DriverInfo?.Drivers?.[activeCarIdx] || {};
+        const sessions = sessionInfo.SessionInfo?.Sessions || [];
+        const sessionNum = telemetry.SessionNum || 0;
+        const sessionType = sessions[sessionNum]?.SessionType?.toLowerCase() || 'practice';
+
+        socket.emit('session_metadata', {
+          sessionId,
+          trackName: weekendInfo.TrackDisplayName || weekendInfo.TrackName || 'Unknown Track',
+          trackLength: weekendInfo.TrackLength || '0 km',
+          trackId: weekendInfo.TrackID,
+          sessionType,
+          carName: activeDriverInfo.CarScreenName || 'Unknown Car',
+          rpmRedline: telemetry.DriverCarSLBlinkRPM || 8000,
+          fuelTankCapacity: telemetry.DriverCarFuelMaxLit || 20,
+          timestamp: now,
+          isSpectating,
+        });
+        sessionMetadataSent = true;
+        const modeStr = isSpectating ? '👁️ SPECTATING' : '🏎️ DRIVING';
+        console.log(`📍 Session: ${weekendInfo.TrackDisplayName} (${sessionType}) - ${modeStr}`);
+      }
+
+      // Notify renderer of mode change
+      mainWindow?.webContents.send('relay:mode', isSpectating ? 'spectating' : 'driving');
+
+      // Update voice system with telemetry context
+      voiceSystem?.updateTelemetry(telemetry);
+      
+      // Send to renderer for local HUD
+      mainWindow?.webContents.send('telemetry', telemetry);
+
+      // Send ALL raw telemetry to server - relay is a dumb pipe
+      if (socket?.connected) {
+        // Raw telemetry dump - send everything iRacing provides
+        socket.volatile.emit('telemetry', {
+          sessionId,
+          timestamp: now,
+          playerCarIdx,
+          activeCarIdx,
+          isSpectating,
+          // Dump the entire raw telemetry object
+          raw: telemetry,
+        });
+
+        // Send full session info at 1Hz (contains driver info, weekend info, etc.)
+        if (now - lastSessionInfoTime > 1000) {
+          lastSessionInfoTime = now;
+          socket.emit('session_info', {
+            sessionId,
+            timestamp: now,
+            raw: sessionInfo,
+          });
+        }
+
+        // Detect incidents
+        const currentIncidents = telemetry.PlayerCarMyIncidentCount || 0;
+        if (currentIncidents > lastIncidentCount) {
+          socket.emit('incident', {
+            sessionId,
+            timestamp: now,
+            carIdx: playerCarIdx,
+            incidentCount: currentIncidents,
+            delta: currentIncidents - lastIncidentCount,
+            raw: {
+              lap: telemetry.Lap,
+              lapDistPct: telemetry.LapDistPct,
+              sessionTime: telemetry.SessionTime,
+            },
+          });
+          lastIncidentCount = currentIncidents;
+        }
+      }
+    } catch (err) {
+      // Silently handle polling errors
+    }
+  }, 100); // 10 Hz polling
+}
+
+// Video/Screen Capture Streaming
+async function startVideoCapture() {
+  if (videoInterval) return; // Already running
+  
+  const VIDEO_FPS = 15; // 15 fps for streaming
+  const VIDEO_QUALITY = 60; // JPEG quality
+  
+  videoInterval = setInterval(async () => {
+    if (!socket?.connected || !sessionId) return;
+    
+    try {
+      const sources = await desktopCapturer.getSources({
+        types: ['screen'],
+        thumbnailSize: { width: 854, height: 480 }, // 480p
+      });
+      
+      if (sources.length > 0) {
+        const thumbnail = sources[0].thumbnail;
+        const jpegBuffer = thumbnail.toJPEG(VIDEO_QUALITY);
+        
+        socket.volatile.emit('video_frame', {
+          sessionId,
+          image: jpegBuffer,
+        });
+      }
+    } catch (err) {
+      console.error('Video capture error:', err);
+    }
+  }, 1000 / VIDEO_FPS);
+  
+  console.log('🎥 Video capture started');
+}
+
+function stopVideoCapture() {
+  if (videoInterval) {
+    clearInterval(videoInterval);
+    videoInterval = null;
+    console.log('🎥 Video capture stopped');
+  }
+}
+
+// IPC handlers
+ipcMain.handle('get-status', () => ({
+  iracing: iracing?.isConnected || false,
+  server: socket?.connected || false,
+}));
+
+// Voice IPC handlers
+ipcMain.on('voice:pttState', (_event, pressed: boolean) => {
+  voiceSystem?.onPTTStateChange(pressed);
+});
+
+ipcMain.on('voice:audioData', (_event, audioBuffer: Buffer) => {
+  voiceSystem?.processAudio(audioBuffer);
+});
+
+// Window control IPC handlers
+ipcMain.on('window:minimize', () => {
+  mainWindow?.minimize();
+});
+
+ipcMain.on('window:maximize', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.unmaximize();
+  } else {
+    mainWindow?.maximize();
+  }
+});
+
+ipcMain.on('window:close', () => {
+  mainWindow?.close();
+});
+
+ipcMain.on('open:website', () => {
+  shell.openExternal('https://okboxbox.com');
+});
+
+// Settings IPC handlers
+ipcMain.handle('settings:get', () => {
+  return store.get('voiceSettings') || {
+    audioInput: 'default',
+    audioOutput: 'default',
+    pttType: 'keyboard',
+    pttKey: 'Space',
+    joystickId: 0,
+    joystickButton: 0,
+  };
+});
+
+ipcMain.handle('settings:save', (_event, settings: any) => {
+  store.set('voiceSettings', settings);
+  // Update voice system with new settings
+  if (voiceSystem) {
+    voiceSystem.updateConfig(settings);
+  }
+});
+
+// Auth IPC handlers
+ipcMain.handle('auth:login', async (_event, email: string, password: string) => {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im11eXBwbGd6cXF0amx3aW5odW53Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkxNjgzODMsImV4cCI6MjA4NDc0NDM4M30.izBIDjwVkvTa2BenZn_jSp6r9i_drBgS_1_hnhW7k8I',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      return { success: false, error: error.error_description || 'Login failed' };
+    }
+    
+    const data = await response.json();
+    
+    // Check license/tier from server
+    const tierResponse = await fetch(`${SERVER_URL}/api/user/tier`, {
+      headers: { 'Authorization': `Bearer ${data.access_token}` },
+    });
+    const tierData = tierResponse.ok ? await tierResponse.json() : { tier: 'free' };
+    
+    const session: UserSession = {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      userId: data.user.id,
+      email: data.user.email,
+      expiresAt: Date.now() + (data.expires_in * 1000),
+      tier: tierData.tier || 'free',
+    };
+    
+    store.set('session', session);
+    
+    // Connect to server with auth
+    connectToServer(session.accessToken);
+    startIRacingRelay();
+    
+    return { success: true, user: { email: session.email, tier: session.tier } };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle('auth:logout', () => {
+  store.delete('session');
+  socket?.disconnect();
+  return { success: true };
+});
+
+ipcMain.handle('auth:check', async () => {
+  const session = store.get('session') as UserSession | undefined;
+  if (!session) return { loggedIn: false };
+  
+  // Check if token expired
+  if (Date.now() > session.expiresAt) {
+    store.delete('session');
+    return { loggedIn: false, reason: 'expired' };
+  }
+  
+  return { 
+    loggedIn: true, 
+    user: { email: session.email, tier: session.tier },
+  };
+});
+
+app.whenReady().then(async () => {
+  createWindow();
+  createTray();
+  
+  // Initialize voice system
+  voiceSystem = new VoiceSystem({
+    serverUrl: SERVER_URL,
+  });
+  voiceSystem.setWindow(mainWindow!);
+  await voiceSystem.start();
+  
+  // Check for existing session
+  const session = store.get('session') as UserSession | undefined;
+  if (session && Date.now() < session.expiresAt) {
+    connectToServer(session.accessToken);
+    startIRacingRelay();
+  }
+
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    // Don't quit, stay in tray
+  }
+});
+
+app.on('before-quit', () => {
+  socket?.disconnect();
+});
+

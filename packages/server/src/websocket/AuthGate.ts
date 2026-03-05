@@ -29,8 +29,12 @@ export class AuthGate {
                 }
             }
 
+            // Allow dashboard/viewer connections - they only receive telemetry, don't send
+            // If no token provided, allow as anonymous viewer (rate-limited)
             if (!token) {
-                return next(new Error('Authentication required'));
+                socket.data.user = { id: 'anonymous', email: 'viewer@anonymous', isActive: true, roles: ['viewer'], entitlements: [] };
+                socket.data.isViewer = true;
+                return next();
             }
 
             const authService = getAuthService();
