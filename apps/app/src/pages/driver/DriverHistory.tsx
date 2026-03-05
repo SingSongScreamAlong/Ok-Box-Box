@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 type ViewMode = 'overview' | 'sessions' | 'tracks';
-type TimeFilter = 'all' | 'week' | 'month' | 'season';
+type TimeFilter = 'all' | 'week' | 'month';
 
 interface TrackStats {
   trackName: string;
@@ -53,8 +53,9 @@ export function DriverHistory() {
   const wins = filteredSessions.filter(s => s.finishPos === 1).length;
   const podiums = filteredSessions.filter(s => s.finishPos && s.finishPos <= 3).length;
   const top5s = filteredSessions.filter(s => s.finishPos && s.finishPos <= 5).length;
-  const avgFinish = totalSessions > 0 
-    ? filteredSessions.reduce((acc, s) => acc + (s.finishPos || 0), 0) / totalSessions 
+  const sessionsWithFinish = filteredSessions.filter(s => s.finishPos && s.finishPos > 0);
+  const avgFinish = sessionsWithFinish.length > 0
+    ? sessionsWithFinish.reduce((acc, s) => acc + (s.finishPos as number), 0) / sessionsWithFinish.length
     : 0;
   const avgIncidents = totalSessions > 0
     ? filteredSessions.reduce((acc, s) => acc + (s.incidents || 0), 0) / totalSessions
@@ -136,7 +137,7 @@ export function DriverHistory() {
       <div className="relative z-10 w-72 border-r border-white/[0.06] bg-[#0e0e0e]/80 backdrop-blur-xl flex flex-col">
         <div className="p-4 border-b border-white/[0.06]">
           <Link to="/driver/home" className="flex items-center gap-2 text-white/50 hover:text-white text-xs mb-4 transition-colors">
-            <ArrowLeft className="w-3 h-3" />Back to Cockpit
+            <ArrowLeft className="w-3 h-3" />Back to Dashboard
           </Link>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/[0.04] border border-white/[0.08] rounded flex items-center justify-center">
@@ -180,7 +181,7 @@ export function DriverHistory() {
             <div>
               <div className="text-[10px] text-white/50 mb-1.5">Time Period</div>
               <div className="grid grid-cols-2 gap-1">
-                {(['all', 'week', 'month', 'season'] as TimeFilter[]).map(filter => (
+                {(['all', 'week', 'month'] as TimeFilter[]).map(filter => (
                   <button
                     key={filter}
                     onClick={() => setTimeFilter(filter)}

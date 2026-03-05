@@ -40,11 +40,13 @@ export function SpotterChat() {
   const driverName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
 
   useEffect(() => {
-    fetchUpcomingRaces().then(races => {
-      setUpcomingRaces(races);
-      if (races.length > 0) setSelectedRace(races[0]);
-      setLoading(false);
-    });
+    fetchUpcomingRaces()
+      .then(races => {
+        setUpcomingRaces(races);
+        if (races.length > 0) setSelectedRace(races[0]);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   useEffect(() => {

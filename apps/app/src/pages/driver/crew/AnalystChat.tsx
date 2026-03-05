@@ -27,8 +27,8 @@ interface SessionForPanel {
   weather?: string;
   position: number;
   started: number;
-  bestLap: string;
-  consistency: number;
+  bestLap?: string;
+  consistency?: number;
   incidents: number;
 }
 
@@ -48,24 +48,24 @@ export function AnalystChat() {
   const driverName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
 
   useEffect(() => {
-    fetchDriverSessions().then(rawSessions => {
-      const mapped: SessionForPanel[] = rawSessions.slice(0, 5).map((s, i) => ({
-        id: s.sessionId || String(i),
-        track: s.trackName,
-        series: s.seriesName,
-        date: new Date(s.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        time: new Date(s.startedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-        laps: s.lapsComplete || 0,
-        position: s.finishPos || 0,
-        started: s.startPos || 0,
-        bestLap: '--:--.---',
-        consistency: 0,
-        incidents: s.incidents || 0,
-      }));
-      setSessions(mapped);
-      if (mapped.length > 0) setSelectedSession(mapped[0]);
-      setLoading(false);
-    });
+    fetchDriverSessions()
+      .then(rawSessions => {
+        const mapped: SessionForPanel[] = rawSessions.slice(0, 5).map((s, i) => ({
+          id: s.sessionId || String(i),
+          track: s.trackName,
+          series: s.seriesName,
+          date: new Date(s.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          time: new Date(s.startedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+          laps: s.lapsComplete || 0,
+          position: s.finishPos || 0,
+          started: s.startPos || 0,
+          incidents: s.incidents || 0,
+        }));
+        setSessions(mapped);
+        if (mapped.length > 0) setSelectedSession(mapped[0]);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   useEffect(() => {

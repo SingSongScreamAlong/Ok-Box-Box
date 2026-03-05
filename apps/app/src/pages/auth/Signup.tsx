@@ -105,6 +105,8 @@ export function Signup() {
               onChange={(e) => setDisplayName(e.target.value)}
               className="input pl-11"
               placeholder="Your racing name"
+              required
+              minLength={2}
             />
           </div>
         </div>

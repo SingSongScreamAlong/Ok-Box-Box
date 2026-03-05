@@ -616,11 +616,12 @@ function CareerProgressionPanel({ consistency, snapshot, sessionCount }: {
   const bars = computeProgressBars(snapshot);
   // Calculate XP within current level
   const thresholds = [0, 300, 800, 1500, 2500, 4000, 6000, 9000, 13000, 18000];
+  const isMaxLevel = driverLevel.level >= thresholds.length;
   const currentThreshold = thresholds[driverLevel.level - 1] || 0;
-  const nextThreshold = thresholds[driverLevel.level] || currentThreshold + 5000;
+  const nextThreshold = thresholds[driverLevel.level] ?? null;
   const xpInLevel = driverLevel.xp - currentThreshold;
-  const xpNeeded = nextThreshold - currentThreshold;
-  const xpPct = Math.min(100, Math.round((xpInLevel / xpNeeded) * 100));
+  const xpNeeded = nextThreshold !== null ? nextThreshold - currentThreshold : 0;
+  const xpPct = isMaxLevel ? 100 : Math.min(100, Math.round((xpInLevel / xpNeeded) * 100));
 
   return (
     <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
@@ -690,8 +691,11 @@ function CareerProgressionPanel({ consistency, snapshot, sessionCount }: {
           </div>
           <div className="flex items-center justify-between mt-1">
             <span className="text-[9px] text-white/20">Lvl {driverLevel.level}</span>
-            <span className="text-[9px] text-white/20">{xpInLevel} / {xpNeeded} XP</span>
-            <span className="text-[9px] text-white/20">Lvl {driverLevel.level + 1}</span>
+            {isMaxLevel
+              ? <span className="text-[9px] text-amber-400/60">MAX</span>
+              : <span className="text-[9px] text-white/20">{xpInLevel} / {xpNeeded} XP</span>
+            }
+            <span className="text-[9px] text-white/20">{isMaxLevel ? 'Legend' : `Lvl ${driverLevel.level + 1}`}</span>
           </div>
         </div>
 
@@ -1227,8 +1231,11 @@ function NextActionBlock({ direction, snapshot }: { direction: ReturnType<typeof
 
 function NextSessionPrompt({ sessionCount, driverLevel }: { sessionCount: number; driverLevel: { level: number; title: string; xp: number; xpToNext: number } }) {
   const thresholds = [0, 300, 800, 1500, 2500, 4000, 6000, 9000, 13000, 18000];
-  const nextThreshold = thresholds[driverLevel.level] || thresholds[thresholds.length - 1] + 5000;
-  const sessionsToNextLevel = Math.max(1, Math.ceil((nextThreshold - driverLevel.xp) / 100));
+  const isMaxLevel = driverLevel.level >= thresholds.length;
+  const nextThreshold = thresholds[driverLevel.level] ?? null;
+  const sessionsToNextLevel = nextThreshold !== null
+    ? Math.max(1, Math.ceil((nextThreshold - driverLevel.xp) / 100))
+    : 0;
 
   // Determine unlock milestones
   let unlockMessage: string | null = null;
@@ -1248,7 +1255,10 @@ function NextSessionPrompt({ sessionCount, driverLevel }: { sessionCount: number
           </div>
           <div className="mt-1.5 space-y-1">
             <p className="text-[11px] text-white/50">
-              <span className="text-white/70 font-medium">+100 XP</span> — {sessionsToNextLevel} session{sessionsToNextLevel !== 1 ? 's' : ''} to Level {driverLevel.level + 1}
+              {isMaxLevel
+                ? <><span className="text-amber-400 font-medium">Legend</span> — Maximum level reached</>
+                : <><span className="text-white/70 font-medium">+100 XP</span> — {sessionsToNextLevel} session{sessionsToNextLevel !== 1 ? 's' : ''} to Level {driverLevel.level + 1}</>
+              }
             </p>
             {unlockMessage && (
               <p className="text-[11px] text-amber-400/60">

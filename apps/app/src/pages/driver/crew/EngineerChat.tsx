@@ -34,13 +34,15 @@ export function EngineerChat() {
 
   // Fetch upcoming races on mount
   useEffect(() => {
-    fetchUpcomingRaces().then(races => {
-      setUpcomingRaces(races);
-      if (races.length > 0) {
-        setSelectedRace(races[0]);
-      }
-      setLoading(false);
-    });
+    fetchUpcomingRaces()
+      .then(races => {
+        setUpcomingRaces(races);
+        if (races.length > 0) {
+          setSelectedRace(races[0]);
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   // Initial greeting

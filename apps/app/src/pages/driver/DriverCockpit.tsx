@@ -78,11 +78,6 @@ export function DriverCockpit() {
   return (
     <div className="h-[calc(100vh-9rem)] flex relative bg-[#0a0a0a] overflow-hidden">
       
-      {/* BUILD IDENTIFIER - Remove when page is finalized */}
-      <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
-        COCKPIT-v1.0
-      </div>
-      
       {/* Background Video - Left Side of Page */}
       <div className="absolute left-0 top-0 bottom-0 w-64 overflow-hidden pointer-events-none z-[1]">
         <video
@@ -137,7 +132,7 @@ export function DriverCockpit() {
           </h3>
           <div className="bg-white/[0.03] rounded p-4 border border-white/[0.08] backdrop-blur-sm">
             <div className="text-5xl font-bold text-white/90 font-mono">
-              P{activeTelemetry.position}
+              {isConnected && activeTelemetry.position > 0 ? `P${activeTelemetry.position}` : '--'}
             </div>
             <div className="flex items-center gap-2 mt-2">
               <DeltaIcon className={`w-4 h-4 ${deltaColor}`} />
@@ -412,12 +407,13 @@ export function DriverCockpit() {
                 {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
               </button>
               <div className="w-px h-5 bg-white/[0.08]" />
-              <button
+              <a
+                href="/driver/settings/hud"
                 className="p-2 rounded text-white/40 hover:text-white/70 hover:bg-white/[0.06] transition-all"
-                title="Settings"
+                title="HUD Settings"
               >
-                <MapPin className="w-4 h-4" />
-              </button>
+                <Wrench className="w-4 h-4" />
+              </a>
             </div>
           </div>
         </div>

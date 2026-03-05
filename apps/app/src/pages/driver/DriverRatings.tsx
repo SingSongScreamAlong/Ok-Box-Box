@@ -150,16 +150,16 @@ export function DriverRatings() {
                   {/* SR Progress Bar */}
                   <div className="relative">
                     <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className={`h-full ${srColor} rounded-full transition-all duration-300`}
-                        style={{ width: `${(sr / 4) * 100}%` }}
+                        style={{ width: `${Math.min((sr / 4.99) * 100, 100)}%` }}
                       />
                     </div>
-                    {/* Promotion threshold marker at 4.0 */}
-                    <div className="absolute right-0 top-0 w-px h-1.5 bg-white/30" title="Promotion: 4.00" />
+                    {/* Promotion threshold marker at 4.99 */}
+                    <div className="absolute right-0 top-0 w-px h-1.5 bg-white/30" title="Max: 4.99" />
                     <div className="flex justify-between text-[9px] text-white/30 mt-0.5">
                       <span>{sr.toFixed(2)}</span>
-                      <span>4.00</span>
+                      <span>4.99</span>
                     </div>
                   </div>
                 </div>

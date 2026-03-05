@@ -1,14 +1,18 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Mail, Lock, Loader2 } from 'lucide-react';
 
 export function Login() {
   const { signIn, signInWithGoogle, signInWithDiscord } = useAuth();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const redirect = searchParams.get('redirect') || '/driver/home';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,10 +20,12 @@ export function Login() {
     setLoading(true);
 
     const { error } = await signIn(email, password);
-    
+
     if (error) {
       setError(error.message);
       setLoading(false);
+    } else {
+      navigate(redirect, { replace: true });
     }
   };
 
@@ -95,13 +101,9 @@ export function Login() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" className="w-4 h-4 rounded border-white/20 bg-white/5 text-[#f97316] focus:ring-[#f97316] focus:ring-offset-0" />
-            <span className="text-xs text-white/50">Remember me</span>
-          </label>
-          <Link 
-            to="/forgot-password" 
+        <div className="flex items-center justify-end">
+          <Link
+            to="/forgot-password"
             className="text-xs text-[#f97316] hover:text-[#fb923c] transition-colors font-medium"
           >
             Forgot password?

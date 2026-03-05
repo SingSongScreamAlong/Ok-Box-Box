@@ -1,17 +1,26 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 
 export function AuthCallback() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Supabase handles the OAuth callback automatically
-    // Just redirect to dashboard after a brief moment
-    const timer = setTimeout(() => {
-      navigate('/dashboard', { replace: true });
-    }, 1000);
+    // If the session is already established by the time we mount, redirect immediately.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate('/driver/home', { replace: true });
+      }
+    });
 
-    return () => clearTimeout(timer);
+    // Otherwise wait for Supabase to fire SIGNED_IN after completing the OAuth exchange.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        navigate('/driver/home', { replace: true });
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   return (
