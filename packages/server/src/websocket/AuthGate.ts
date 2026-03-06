@@ -12,6 +12,46 @@ export class AuthGate {
         this.io.use(async (socket, next) => {
             const token = socket.handshake.auth.token || socket.handshake.headers['authorization']?.split(' ')[1];
             const relayId = socket.handshake.auth.relayId || socket.handshake.query.relayId;
+            const authService = getAuthService();
+
+            const resolveUserFromToken = async () => {
+                let user: any = null;
+
+                const payload = token ? authService.verifyAccessToken(token) : null;
+                if (payload) {
+                    user = await authService.getUserById(payload.sub);
+                }
+
+                if (!user && token) {
+                    const supabasePayload = await authService.verifySupabaseToken(token);
+                    if (supabasePayload) {
+                        user = await authService.findOrCreateSupabaseUser(
+                            supabasePayload.sub,
+                            supabasePayload.email,
+                            supabasePayload.displayName || supabasePayload.email.split('@')[0]
+                        );
+                    }
+                }
+
+                return user;
+            };
+
+            if (relayId && token) {
+                const user = await resolveUserFromToken();
+                if (user && user.isActive) {
+                    let entitlements: any[] = [];
+                    try {
+                        entitlements = await getEntitlementRepository().getForUser(user.id);
+                    } catch {
+                    }
+
+                    socket.data.user = { ...user, entitlements };
+                    socket.data.isRelay = true;
+                    socket.data.relayId = relayId;
+                    console.log(`🔌 Linked relay connected: ${relayId} (${user.email})`);
+                    return next();
+                }
+            }
 
             // Allow relay connections with relayId
             // In development: any relayId works
@@ -37,26 +77,7 @@ export class AuthGate {
                 return next();
             }
 
-            const authService = getAuthService();
-            let user: any = null;
-
-            // 1. Try internal JWT first
-            const payload = authService.verifyAccessToken(token);
-            if (payload) {
-                user = await authService.getUserById(payload.sub);
-            }
-
-            // 2. Fallback: Try Supabase JWT (from apps/app frontend)
-            if (!user) {
-                const supabasePayload = await authService.verifySupabaseToken(token);
-                if (supabasePayload) {
-                    user = await authService.findOrCreateSupabaseUser(
-                        supabasePayload.sub,
-                        supabasePayload.email,
-                        supabasePayload.displayName || supabasePayload.email.split('@')[0]
-                    );
-                }
-            }
+            const user = await resolveUserFromToken();
 
             // If token verification failed, allow as anonymous viewer instead of rejecting
             // This enables dashboard connections even if Supabase JWT verification fails

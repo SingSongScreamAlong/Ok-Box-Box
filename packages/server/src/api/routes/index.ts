@@ -13,6 +13,7 @@ import profilesRouter from './profiles.js';
 import recommendationsRouter from './recommendations.js';
 import authRouter from './auth.js';
 import adminRouter from './admin.js';
+import opsRouter from './ops.js';
 import leaguesRouter from './leagues.js';
 import eventsRouter from './events.js';
 import artifactsRouter from './artifacts.js';
@@ -25,11 +26,6 @@ export const apiRouter = Router();
 // Health check (no auth required)
 apiRouter.use('/health', healthRouter);
 
-// Track Intelligence (Public)
-import trackIntelRouter from '../../track-intel/routes.js';
-apiRouter.use('/v1/tracks', trackIntelRouter);
-
-// Relay version (for auto-update checks)
 import relayVersionRouter from './relay-version.js';
 apiRouter.use('/relay', relayVersionRouter);
 
@@ -38,6 +34,9 @@ apiRouter.use('/auth', authRouter);
 
 // Admin routes (super admin only)
 apiRouter.use('/admin', adminRouter);
+
+// Ops monitoring routes
+apiRouter.use('/ops', opsRouter);
 
 // League/series/season routes
 apiRouter.use('/leagues', leaguesRouter);

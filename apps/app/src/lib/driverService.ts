@@ -30,18 +30,25 @@ export interface DriverSessionSummary {
   trackConfig?: string;
   seriesName: string;
   discipline: DriverDiscipline;
-  startPos?: number;
-  finishPos?: number;
-  incidents?: number;
-  iRatingChange?: number;
-  newIRating?: number;
-  oldIRating?: number;
-  strengthOfField?: number;
-  fieldSize?: number;
+  seasonId?: number | null;
+  startPos?: number | null;
+  finishPos?: number | null;
+  posDelta?: number | null;
+  incidents?: number | null;
+  sof?: number | null;
+  iRatingChange?: number | null;
+  irDelta?: number | null;
+  srDelta?: number | null;
+  newIRating?: number | null;
+  oldIRating?: number | null;
+  strengthOfField?: number | null;
+  fieldSize?: number | null;
   carName?: string;
   lapsComplete?: number;
   lapsLead?: number;
   eventType?: string;
+  sessionType?: string | null;
+  official?: boolean | null;
 }
 
 export interface DriverStatsSnapshot {
@@ -130,18 +137,27 @@ export async function fetchDriverSessions(): Promise<DriverSessionSummary[]> {
       trackConfig: s.track_config || undefined,
       seriesName: String(s.series_name || ''),
       discipline: (s.discipline || 'sportsCar') as DriverDiscipline,
-      startPos: s.start_pos ?? s.starting_position,
-      finishPos: s.finish_pos ?? s.finishing_position,
-      incidents: s.incidents ?? s.incident_count,
-      iRatingChange: s.irating_change ?? undefined,
-      newIRating: s.new_irating ?? undefined,
-      oldIRating: s.old_irating ?? undefined,
-      strengthOfField: s.strength_of_field ?? undefined,
-      fieldSize: s.field_size ?? undefined,
+      seasonId: s.season_id ?? null,
+      startPos: s.start_pos ?? s.starting_position ?? null,
+      finishPos: s.finish_pos ?? s.finishing_position ?? null,
+      posDelta: s.pos_delta ?? ((s.start_pos ?? s.starting_position) != null && (s.finish_pos ?? s.finishing_position) != null
+        ? (s.start_pos ?? s.starting_position) - (s.finish_pos ?? s.finishing_position)
+        : null),
+      incidents: s.incidents ?? s.incident_count ?? null,
+      sof: s.sof ?? s.strength_of_field ?? null,
+      iRatingChange: s.irating_change ?? null,
+      irDelta: s.ir_delta ?? s.irating_change ?? null,
+      srDelta: s.sr_delta ?? null,
+      newIRating: s.new_irating ?? null,
+      oldIRating: s.old_irating ?? null,
+      strengthOfField: s.strength_of_field ?? s.sof ?? null,
+      fieldSize: s.field_size ?? null,
       carName: s.car_name || undefined,
       lapsComplete: s.laps_complete ?? undefined,
       lapsLead: s.laps_lead ?? undefined,
       eventType: s.event_type || undefined,
+      sessionType: s.session_type ?? null,
+      official: s.official_session ?? null,
     }));
   } catch (error) {
     console.error('[IDP] Error fetching sessions:', error instanceof Error ? error.message : error);

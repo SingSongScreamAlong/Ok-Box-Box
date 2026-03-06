@@ -21,7 +21,7 @@ interface CrewMember {
 
 export function DriverHome() {
   const { user } = useAuth();
-  const { status, session } = useRelay();
+  const { status, session, connect } = useRelay();
   const { profile } = useDriverData();
   const { metrics: behavioralMetrics } = useLiveBehavioral({ 
     runId: 'live',
@@ -99,7 +99,17 @@ export function DriverHome() {
               <p className="text-sm text-white/60 mt-1">{status === 'in_session' ? `${session.sessionType?.toUpperCase() || 'LIVE'} at ${session.trackName || 'Track'}` : status === 'connected' ? 'Waiting for session start' : 'Your crew is available even without the relay'}</p>
             </div>
           </div>
-          {status === 'disconnected' && <Link to="/download" className="px-4 py-2 border border-white/20 text-white/60 font-semibold text-sm uppercase tracking-wider hover:bg-white/5 hover:text-white">Download Relay</Link>}
+          {status === 'disconnected' && (
+            <div className="flex items-center gap-2">
+              <button onClick={() => connect()} className="px-4 py-2 border border-white/20 text-white/60 font-semibold text-sm uppercase tracking-wider hover:bg-white/5 hover:text-white">Reconnect</button>
+              <Link to="/download" className="px-4 py-2 border border-white/20 text-white/60 font-semibold text-sm uppercase tracking-wider hover:bg-white/5 hover:text-white">Download Relay</Link>
+            </div>
+          )}
+          {(status === 'connected' || status === 'connecting') && (
+            <button onClick={() => connect()} className="px-4 py-2 border border-white/20 text-white/60 font-semibold text-sm uppercase tracking-wider hover:bg-white/5 hover:text-white flex items-center gap-2">
+              <Radio className="w-4 h-4" /> Refresh
+            </button>
+          )}
           {status === 'in_session' && <Link to="/driver/pitwall" className="px-4 py-2 bg-green-500 text-black font-semibold text-sm uppercase tracking-wider hover:bg-green-400 flex items-center gap-2"><Play className="w-4 h-4" />Open Pitwall</Link>}
         </div>
         {/* Enhanced telemetry status panel when in session */}
@@ -154,7 +164,7 @@ export function DriverHome() {
               <Award className="w-5 h-5 text-blue-400" />
               <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={{ fontFamily: 'Orbitron, sans-serif' }}>iRacing Stats</h2>
             </div>
-            <Link to="/driver/ratings" className="text-xs text-white/40 hover:text-white/60 uppercase tracking-wider flex items-center gap-1">
+            <Link to="/driver/idp" className="text-xs text-white/40 hover:text-white/60 uppercase tracking-wider flex items-center gap-1">
               View All <ChevronRight className="w-3 h-3" />
             </Link>
           </div>

@@ -9,8 +9,8 @@ import { Router, Request, Response } from 'express';
 const router = Router();
 
 // Current relay version
-const RELAY_VERSION = '1.0.0-rc1';
-const DOWNLOAD_URL = 'https://okboxbox.com/download-relay';
+const RELAY_VERSION = '1.0.0-alpha';
+const DOWNLOAD_URL = process.env.RELAY_DOWNLOAD_URL || 'https://github.com/SingSongScreamAlong/Ok-Box-Box/releases/latest/download/okboxbox-relay-1.0.0-alpha.exe';
 
 interface VersionResponse {
     version: string;
@@ -27,8 +27,8 @@ router.get('/version', (_req: Request, res: Response) => {
     const response: VersionResponse = {
         version: RELAY_VERSION,
         download_url: DOWNLOAD_URL,
-        release_notes: 'v1.0.0 - Initial release with Ok, Box Box branding',
-        min_supported_version: '0.9.0'
+        release_notes: 'Standalone embedded-runtime relay installer with protocol launch handoff and desktop auto-update checks.',
+        min_supported_version: '1.0.0-alpha'
     };
     res.json(response);
 });

@@ -224,6 +224,13 @@ router.get('/me/sessions', requireAuth, async (req: Request, res: Response): Pro
         const sessions = results.map((r: any) => {
             // Map license_category to discipline
             const catMap: Record<string, string> = { 'oval': 'oval', 'road': 'sportsCar', 'dirt_oval': 'dirtOval', 'dirt_road': 'dirtRoad' };
+            const startPos = r.start_position ?? null;
+            const finishPos = r.finish_position ?? null;
+            const irDelta = r.irating_change ?? null;
+            const srDelta = r.new_sub_level != null && r.old_sub_level != null
+                ? (r.new_sub_level - r.old_sub_level) / 100
+                : null;
+
             return {
                 session_id: String(r.subsession_id),
                 started_at: r.session_start_time,
@@ -231,13 +238,18 @@ router.get('/me/sessions', requireAuth, async (req: Request, res: Response): Pro
                 track_config: r.track_config || '',
                 series_name: r.series_name || '',
                 discipline: catMap[r.license_category] || 'sportsCar',
-                start_pos: r.start_position,
-                finish_pos: r.finish_position,
+                season_id: r.season_id ?? null,
+                start_pos: startPos,
+                finish_pos: finishPos,
+                pos_delta: startPos != null && finishPos != null ? startPos - finishPos : null,
                 finish_pos_class: r.finish_position_in_class,
                 incidents: r.incidents,
                 laps_complete: r.laps_complete,
                 laps_lead: r.laps_lead,
-                irating_change: r.irating_change,
+                sof: r.strength_of_field,
+                irating_change: irDelta,
+                ir_delta: irDelta,
+                sr_delta: srDelta,
                 new_irating: r.newi_rating,
                 old_irating: r.oldi_rating,
                 new_sub_level: r.new_sub_level,
@@ -246,6 +258,8 @@ router.get('/me/sessions', requireAuth, async (req: Request, res: Response): Pro
                 field_size: r.field_size,
                 car_name: r.car_name || '',
                 event_type: r.event_type || 'race',
+                official_session: r.official_session ?? null,
+                session_type: r.session_type ?? null,
             };
         });
 

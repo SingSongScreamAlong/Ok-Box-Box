@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDriverData } from '../../hooks/useDriverData';
 import { fetchTelemetryMetrics, TelemetryMetricsResponse } from '../../lib/driverService';
 import { 
   ArrowLeft, Brain, Target, TrendingUp, TrendingDown, Minus,
   Zap, AlertTriangle, CheckCircle, Clock, Activity,
   ChevronRight, Info, Loader2, RefreshCw, User, Sparkles,
-  MessageSquare, Flag, Star, Gauge
+  MessageSquare, Flag, Star, Gauge, Shield, Award
 } from 'lucide-react';
+import { getDisciplineLabel, getLicenseColor } from '../../lib/driverService';
 
 // Types matching the IDP system
 interface DriverMemory {
@@ -194,8 +196,86 @@ function ConfidenceMeter({ value, label }: { value: number | null | undefined; l
   );
 }
 
+function LicenseBreakdownModule({ profile }: { profile: ReturnType<typeof useDriverData>['profile'] }) {
+  const licenses = profile?.licenses || [];
+
+  if (!profile || licenses.length === 0) return null;
+
+  return (
+    <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg overflow-hidden">
+      <div className="px-6 py-4 border-b border-white/[0.06] flex items-center gap-3">
+        <Award className="w-5 h-5 text-blue-400" />
+        <div>
+          <h3 className="text-sm font-medium text-white">License Breakdown</h3>
+          <p className="text-[10px] text-white/40">Safety Rating and iRating across your active disciplines</p>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Shield className="w-4 h-4 text-green-400" />
+              <span className="text-[10px] uppercase tracking-[0.15em] text-green-400">Safety Rating</span>
+            </div>
+            <div className="text-3xl font-mono font-bold text-green-400">
+              {profile.safetyRatingOverall?.toFixed(2) ?? '—'}
+            </div>
+            <div className="mt-1 text-[10px] text-white/40">Across all active disciplines</div>
+          </div>
+
+          <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-4 h-4 text-blue-400" />
+              <span className="text-[10px] uppercase tracking-[0.15em] text-blue-400">iRating</span>
+            </div>
+            <div className="text-3xl font-mono font-bold text-blue-400">
+              {profile.iRatingOverall ?? '—'}
+            </div>
+            <div className="mt-1 text-[10px] text-white/40">Highest active discipline</div>
+          </div>
+        </div>
+
+        <div className="border border-white/[0.08] rounded-lg overflow-hidden">
+          <div className="grid grid-cols-[1.5fr,0.9fr,0.8fr,0.8fr] gap-3 px-4 py-3 bg-white/[0.03] border-b border-white/[0.06] text-[10px] uppercase tracking-wider text-white/40">
+            <span>Discipline</span>
+            <span>License</span>
+            <span>SR</span>
+            <span>iR</span>
+          </div>
+
+          <div className="divide-y divide-white/[0.06]">
+            {licenses.map((license) => {
+              const disciplineLabel = license.discipline === 'sportsCar' ? 'Road' : getDisciplineLabel(license.discipline);
+              const licenseLabel = license.licenseClass === 'R' ? 'Rookie' : `Class ${license.licenseClass}`;
+
+              return (
+                <div key={license.discipline} className="grid grid-cols-[1.5fr,0.9fr,0.8fr,0.8fr] gap-3 px-4 py-3 items-center text-sm">
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="w-6 h-6 rounded flex items-center justify-center text-[10px] font-bold text-white"
+                      style={{ backgroundColor: getLicenseColor(license.licenseClass) }}
+                    >
+                      {license.licenseClass}
+                    </div>
+                    <span className="text-white/85">{disciplineLabel}</span>
+                  </div>
+                  <span className="text-white/60">{licenseLabel}</span>
+                  <span className="font-mono text-green-400">{license.safetyRating?.toFixed(2) ?? '—'}</span>
+                  <span className="font-mono text-blue-400">{license.iRating ?? '—'}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function DriverIDP() {
   const { session } = useAuth();
+  const { profile } = useDriverData();
   const [data, setData] = useState<IDPData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -438,26 +518,29 @@ export function DriverIDP() {
         )}
 
         {!hasData ? (
-          /* Empty State */
-          <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg p-12 text-center">
-            <User className="w-16 h-16 text-white/10 mx-auto mb-4" />
-            <h2 className="text-lg text-white/60 mb-2">No Profile Data Yet</h2>
-            <p className="text-sm text-white/40 max-w-md mx-auto mb-6">
-              Complete sessions with the relay running to build your driver profile. 
-              The AI learns your tendencies, strengths, and areas for improvement over time.
-            </p>
-            <div className="flex items-center justify-center gap-6 text-xs text-white/30">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center">
-                  <span className="font-mono">3+</span>
+          <div className="space-y-6">
+            <LicenseBreakdownModule profile={profile} />
+
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-lg p-12 text-center">
+              <User className="w-16 h-16 text-white/10 mx-auto mb-4" />
+              <h2 className="text-lg text-white/60 mb-2">No Profile Data Yet</h2>
+              <p className="text-sm text-white/40 max-w-md mx-auto mb-6">
+                Complete sessions with the relay running to build your driver profile. 
+                The AI learns your tendencies, strengths, and areas for improvement over time.
+              </p>
+              <div className="flex items-center justify-center gap-6 text-xs text-white/30">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center">
+                    <span className="font-mono">3+</span>
+                  </div>
+                  <span>Sessions needed</span>
                 </div>
-                <span>Sessions needed</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center">
-                  <span className="font-mono">3+</span>
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center">
+                    <span className="font-mono">3+</span>
+                  </div>
+                  <span>Laps per session</span>
                 </div>
-                <span>Laps per session</span>
               </div>
             </div>
           </div>
@@ -686,6 +769,8 @@ export function DriverIDP() {
                 </div>
               )}
             </div>
+
+            <LicenseBreakdownModule profile={profile} />
 
             {/* Engineer Opinions */}
             {data.opinions.length > 0 && (

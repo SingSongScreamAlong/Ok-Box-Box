@@ -29,7 +29,7 @@ export const PAGE_CODES: Record<string, { tier: string; code: string; name: stri
   '/driver/home': { tier: 'D', code: 'HOM', name: 'Driver Home' },
   '/driver/cockpit': { tier: 'D', code: 'COK', name: 'Driver Cockpit' },
   '/driver/history': { tier: 'D', code: 'HIS', name: 'Driver History' },
-  '/driver/ratings': { tier: 'D', code: 'RAT', name: 'Driver Ratings' },
+  '/driver/idp': { tier: 'D', code: 'IDP', name: 'Driver Profile' },
   '/driver/profile': { tier: 'D', code: 'PRO', name: 'Driver Profile' },
   '/driver/progress': { tier: 'D', code: 'PRG', name: 'Driver Progress' },
   '/driver/crew/engineer': { tier: 'D', code: 'ENG', name: 'Engineer Chat' },

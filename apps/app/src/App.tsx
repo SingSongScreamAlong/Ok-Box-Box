@@ -25,7 +25,6 @@ const IRacingCallback  = lazy(() => import('./pages/auth/IRacingCallback').then(
 const DriverLanding    = lazy(() => import('./pages/driver/DriverLanding').then(m => ({ default: m.DriverLanding })));
 const DriverCockpit    = lazy(() => import('./pages/driver/DriverCockpit').then(m => ({ default: m.DriverCockpit })));
 const DriverHistory    = lazy(() => import('./pages/driver/DriverHistory').then(m => ({ default: m.DriverHistory })));
-const DriverRatings    = lazy(() => import('./pages/driver/DriverRatings').then(m => ({ default: m.DriverRatings })));
 const DriverProfilePage = lazy(() => import('./pages/driver/DriverProfilePage').then(m => ({ default: m.DriverProfilePage })));
 const EngineerChat     = lazy(() => import('./pages/driver/crew/EngineerChat').then(m => ({ default: m.EngineerChat })));
 const SpotterChat      = lazy(() => import('./pages/driver/crew/SpotterChat').then(m => ({ default: m.SpotterChat })));
@@ -46,9 +45,11 @@ const Pricing             = lazy(() => import('./pages/Pricing').then(m => ({ de
 const SubscriptionManagement = lazy(() => import('./pages/SubscriptionManagement').then(m => ({ default: m.SubscriptionManagement })));
 const BillingReturn       = lazy(() => import('./pages/BillingReturn').then(m => ({ default: m.BillingReturn })));
 const DownloadPage        = lazy(() => import('./pages/Download').then(m => ({ default: m.DownloadPage })));
+const LaunchRelay         = lazy(() => import('./pages/LaunchRelay').then(m => ({ default: m.LaunchRelay })));
 const TrackSelectorPage   = lazy(() => import('./pages/track-intel/TrackSelectorPage').then(m => ({ default: m.TrackSelectorPage })));
 const TrackMapPage        = lazy(() => import('./pages/track-intel/TrackMapPage').then(m => ({ default: m.TrackMapPage })));
 const EventView           = lazy(() => import('./pages/EventView').then(m => ({ default: m.EventView })));
+const AdminOps            = lazy(() => import('./pages/AdminOps').then(m => ({ default: m.AdminOps })));
 
 // Team tier
 const TeamDashboard   = lazy(() => import('./pages/TeamDashboard').then(m => ({ default: m.TeamDashboard })));
@@ -158,6 +159,7 @@ function App() {
         <Route path="/pricing"             element={<Pricing />} />
         <Route path="/billing/return"      element={<BillingReturn />} />
         <Route path="/download"            element={<DownloadPage />} />
+        <Route path="/launch"              element={<LaunchRelay />} />
         <Route path="/league/:leagueId/timing" element={<PublicTiming />} />
         <Route path="/oauth/iracing/callback"  element={<IRacingCallback />} />
 
@@ -173,7 +175,7 @@ function App() {
           <Route path="home"         element={<DriverLanding />} />
           <Route path="cockpit"      element={<DriverCockpit />} />
           <Route path="history"      element={<DriverHistory />} />
-          <Route path="ratings"      element={<DriverRatings />} />
+          <Route path="ratings"      element={<Navigate to="/driver/idp" replace />} />
           <Route path="profile"      element={<DriverProfilePage />} />
           <Route path="crew/engineer" element={<EngineerChat />} />
           <Route path="crew/spotter"  element={<SpotterChat />} />
@@ -201,6 +203,7 @@ function App() {
         <Route path="/create-league" element={<ProtectedRoute><CreateLeague /></ProtectedRoute>} />
         <Route path="/subscription"  element={<ProtectedRoute><SubscriptionManagement /></ProtectedRoute>} />
         <Route path="/event/:eventId" element={<ProtectedRoute><EventView /></ProtectedRoute>} />
+        <Route path="/admin/ops" element={<ProtectedRoute><AdminOps /></ProtectedRoute>} />
 
         <Route path="/track-intel" element={
           <ProtectedRoute>

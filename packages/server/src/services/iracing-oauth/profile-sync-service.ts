@@ -536,7 +536,7 @@ export class IRacingProfileSyncService {
             licenseCategory = catMap[categoryId] || null;
         }
 
-        const startPos = result.start_position ?? result.starting_position ?? result.newi_rating != null ? result.start_position : null;
+        const startPos = result.start_position ?? result.starting_position ?? null;
         const finishPos = result.finish_position ?? result.finishing_position ?? null;
         const finishPosClass = result.finish_position_in_class ?? null;
         const lapsComplete = result.laps_complete ?? result.laps_comp ?? null;
@@ -587,11 +587,19 @@ export class IRacingProfileSyncService {
                 $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31
             )
             ON CONFLICT (admin_user_id, subsession_id) DO UPDATE SET
+                start_position = EXCLUDED.start_position,
                 finish_position = EXCLUDED.finish_position,
+                finish_position_in_class = EXCLUDED.finish_position_in_class,
+                laps_complete = EXCLUDED.laps_complete,
+                laps_lead = EXCLUDED.laps_lead,
                 incidents = EXCLUDED.incidents,
+                oldi_rating = EXCLUDED.oldi_rating,
                 newi_rating = EXCLUDED.newi_rating,
                 irating_change = EXCLUDED.irating_change,
+                old_sub_level = EXCLUDED.old_sub_level,
                 new_sub_level = EXCLUDED.new_sub_level,
+                strength_of_field = EXCLUDED.strength_of_field,
+                field_size = EXCLUDED.field_size,
                 official_session = EXCLUDED.official_session,
                 session_type = EXCLUDED.session_type,
                 raw_result = EXCLUDED.raw_result,

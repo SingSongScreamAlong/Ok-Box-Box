@@ -866,7 +866,7 @@ function PerformanceAttributesCompact({ snapshot, sessions }: { snapshot: Perfor
             <div className="text-[9px] text-white/20 uppercase tracking-wider">Analyzed</div>
             <div className="text-xs font-mono text-blue-400">{(recentSessions.reduce((sum, s) => sum + (s.lapsComplete || 0), 0) * 60).toLocaleString()} pts</div>
           </div>
-          <Link to="/driver/ratings" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
+          <Link to="/driver/idp" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
             Full Analysis <ChevronRight className="w-3 h-3" />
           </Link>
         </div>
@@ -1204,7 +1204,7 @@ function LicensesCompactPanel({ profile }: { profile: ReturnType<typeof useDrive
     <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
       <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
         <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Licenses</h2>
-        <Link to="/driver/ratings" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
+        <Link to="/driver/idp" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
           Details <ChevronRight className="w-3 h-3" />
         </Link>
       </div>
@@ -1275,7 +1275,7 @@ function NextActionBlock({ direction, snapshot }: { direction: ReturnType<typeof
     ? { label: 'Open Engineer Brief', link: '/driver/crew/engineer' }
     : direction.primaryFocus === 'racecraft_traffic'
     ? { label: 'Open Spotter Brief', link: '/driver/crew/spotter' }
-    : { label: 'View Full CPI Analysis', link: '/driver/ratings' };
+    : { label: 'View Full CPI Analysis', link: '/driver/idp' };
 
   return (
     <div className="border-2 border-[#f97316]/30 bg-gradient-to-br from-[#f97316]/5 to-transparent backdrop-blur-sm relative overflow-hidden">

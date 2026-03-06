@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useDriverData } from '../../hooks/useDriverData';
-import { getDisciplineLabel, getLicenseColor, DriverDiscipline, fetchCrewBrief, CrewBrief } from '../../lib/driverService';
+import { getDisciplineLabel, getLicenseColor, DriverDiscipline, DriverSessionSummary, fetchCrewBrief, CrewBrief } from '../../lib/driverService';
 import { 
   Calendar, MapPin, Flag, Trophy, AlertTriangle, Loader2,
   TrendingUp, TrendingDown, Minus, Filter, ChevronRight,
-  BarChart3, Target, Clock, ArrowLeft, Medal, Award, Shield
+  BarChart3, Target, Clock, ArrowLeft, Medal, Award, Shield, X
 } from 'lucide-react';
 
 type ViewMode = 'overview' | 'sessions' | 'tracks';
@@ -20,12 +20,104 @@ interface TrackStats {
   lastRaced: string;
 }
 
+interface DisciplineBreakdown {
+  discipline: DriverDiscipline;
+  starts: number;
+  wins: number;
+  top5s: number;
+  avgFinish: number | null;
+}
+
+interface FormMetrics {
+  avgFinish: number | null;
+  avgIncidents: number | null;
+  avgSof: number | null;
+  avgStart: number | null;
+  avgFinishGap: number | null;
+  sessionCount: number;
+}
+
+function formatSignedNumber(value: number | null | undefined, digits = 0): string {
+  if (value == null || Number.isNaN(value)) return '—';
+  if (value === 0) return digits > 0 ? value.toFixed(digits) : '0';
+  const absValue = digits > 0 ? Math.abs(value).toFixed(digits) : Math.abs(Math.round(value)).toString();
+  return `${value > 0 ? '+' : '-'}${absValue}`;
+}
+
+function formatPosition(value: number | null | undefined): string {
+  return value != null ? `P${value}` : 'P—';
+}
+
+function formatDecimal(value: number | null | undefined, digits = 1): string {
+  return value != null && !Number.isNaN(value) ? value.toFixed(digits) : '—';
+}
+
+function formatInteger(value: number | null | undefined): string {
+  return value != null && !Number.isNaN(value) ? `${Math.round(value)}` : '—';
+}
+
+function getSessionPosDelta(session: DriverSessionSummary): number | null {
+  if (session.posDelta != null) return session.posDelta;
+  if (session.startPos != null && session.finishPos != null) return session.startPos - session.finishPos;
+  return null;
+}
+
+function calculateWindowMetrics(windowSessions: DriverSessionSummary[]): FormMetrics {
+  const finishValues = windowSessions.filter((session) => session.finishPos != null).map((session) => session.finishPos as number);
+  const incidentValues = windowSessions.filter((session) => session.incidents != null).map((session) => session.incidents as number);
+  const sofValues = windowSessions.filter((session) => session.sof != null).map((session) => session.sof as number);
+  const startValues = windowSessions.filter((session) => session.startPos != null).map((session) => session.startPos as number);
+  const finishGapValues = windowSessions
+    .map((session) => getSessionPosDelta(session))
+    .filter((delta): delta is number => delta != null);
+
+  const average = (values: number[]): number | null => values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+
+  return {
+    avgFinish: average(finishValues),
+    avgIncidents: average(incidentValues),
+    avgSof: average(sofValues),
+    avgStart: average(startValues),
+    avgFinishGap: average(finishGapValues),
+    sessionCount: windowSessions.length,
+  };
+}
+
+function SessionContextSummary({ session }: { session: DriverSessionSummary }) {
+  const posDelta = getSessionPosDelta(session);
+
+  return (
+    <>
+      <div className={`text-xs font-mono ${
+        posDelta != null && posDelta > 0 ? 'text-green-400' :
+        posDelta != null && posDelta < 0 ? 'text-red-400' : 'text-white/50'
+      }`}>
+        {`${formatPosition(session.startPos)} → ${formatPosition(session.finishPos)} (${formatSignedNumber(posDelta)})`}
+      </div>
+      <div className="text-[10px] text-white/40">
+        {`SOF ${formatInteger(session.sof)} • iRΔ ${formatSignedNumber(session.irDelta ?? session.iRatingChange)} • SRΔ ${formatSignedNumber(session.srDelta, 2)}`}
+      </div>
+    </>
+  );
+}
+
+function FormMetricRow({ label, recent, baseline, formatter }: { label: string; recent: number | null; baseline: number | null; formatter: (value: number | null) => string }) {
+  return (
+    <div className="grid grid-cols-[1.2fr,1fr,1fr] gap-3 text-xs items-center">
+      <div className="text-white/50 uppercase tracking-wider">{label}</div>
+      <div className="text-white/90 font-mono">{formatter(recent)}</div>
+      <div className="text-white/65 font-mono">{formatter(baseline)}</div>
+    </div>
+  );
+}
+
 export function DriverHistory() {
-  const { sessions, stats, profile, loading } = useDriverData();
+  const { sessions, profile, loading } = useDriverData();
   const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
   const [disciplineFilter, setDisciplineFilter] = useState<DriverDiscipline | 'all'>('all');
   const [crewBriefs, setCrewBriefs] = useState<CrewBrief[]>([]);
+  const [isFormDrawerOpen, setIsFormDrawerOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Load crew briefs (session debriefs from AI)
@@ -45,73 +137,149 @@ export function DriverHistory() {
   }, []);
 
   // Calculate derived stats
-  const filteredSessions = sessions.filter(s => {
-    if (disciplineFilter !== 'all' && s.discipline !== disciplineFilter) return false;
-    if (timeFilter === 'week') {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return new Date(s.startedAt) >= weekAgo;
-    }
-    if (timeFilter === 'month') {
-      const monthAgo = new Date();
-      monthAgo.setMonth(monthAgo.getMonth() - 1);
-      return new Date(s.startedAt) >= monthAgo;
-    }
-    return true;
-  });
+  const sortedSessions = useMemo(
+    () => [...sessions].sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()),
+    [sessions]
+  );
+
+  const disciplineScopedSessions = useMemo(
+    () => disciplineFilter === 'all' ? sortedSessions : sortedSessions.filter((session) => session.discipline === disciplineFilter),
+    [sortedSessions, disciplineFilter]
+  );
+
+  const activeSeasonId = useMemo(
+    () => disciplineScopedSessions.find((session) => session.seasonId != null)?.seasonId ?? null,
+    [disciplineScopedSessions]
+  );
+
+  const filteredSessions = useMemo(() => {
+    const now = new Date();
+    const weekAgo = new Date(now);
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const monthAgo = new Date(now);
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+
+    return disciplineScopedSessions.filter((session) => {
+      const sessionDate = new Date(session.startedAt);
+
+      if (timeFilter === 'week') return sessionDate >= weekAgo;
+      if (timeFilter === 'month') return sessionDate >= monthAgo;
+      if (timeFilter === 'season') {
+        if (activeSeasonId != null) return session.seasonId === activeSeasonId;
+        return false;
+      }
+
+      return true;
+    });
+  }, [disciplineScopedSessions, timeFilter, activeSeasonId]);
 
   const totalSessions = filteredSessions.length;
-  const wins = filteredSessions.filter(s => s.finishPos === 1).length;
-  const podiums = filteredSessions.filter(s => s.finishPos && s.finishPos <= 3).length;
-  const top5s = filteredSessions.filter(s => s.finishPos && s.finishPos <= 5).length;
-  const avgFinish = totalSessions > 0 
-    ? filteredSessions.reduce((acc, s) => acc + (s.finishPos || 0), 0) / totalSessions 
-    : 0;
-  const avgIncidents = totalSessions > 0
-    ? filteredSessions.reduce((acc, s) => acc + (s.incidents || 0), 0) / totalSessions
-    : 0;
-  const positionsGained = filteredSessions.reduce((acc, s) => {
-    if (s.startPos && s.finishPos) return acc + (s.startPos - s.finishPos);
-    return acc;
-  }, 0);
 
-  // Calculate track stats
-  const trackStats: TrackStats[] = Object.values(
-    filteredSessions.reduce((acc, s) => {
-      if (!acc[s.trackName]) {
-        acc[s.trackName] = {
-          trackName: s.trackName,
+  const metricSummary = useMemo(() => {
+    const finishes = filteredSessions.filter((session) => session.finishPos != null).map((session) => session.finishPos as number);
+    const incidents = filteredSessions.filter((session) => session.incidents != null).map((session) => session.incidents as number);
+    const deltas = filteredSessions.map((session) => getSessionPosDelta(session)).filter((delta): delta is number => delta != null);
+
+    return {
+      wins: filteredSessions.filter((session) => session.finishPos === 1).length,
+      podiums: filteredSessions.filter((session) => session.finishPos != null && session.finishPos <= 3).length,
+      top5s: filteredSessions.filter((session) => session.finishPos != null && session.finishPos <= 5).length,
+      avgFinish: finishes.length > 0 ? finishes.reduce((sum, value) => sum + value, 0) / finishes.length : null,
+      avgIncidents: incidents.length > 0 ? incidents.reduce((sum, value) => sum + value, 0) / incidents.length : null,
+      positionsGained: deltas.reduce((sum, value) => sum + value, 0),
+    };
+  }, [filteredSessions]);
+
+  const trackStats: TrackStats[] = useMemo(() => Object.values(
+    filteredSessions.reduce((acc, session) => {
+      if (!acc[session.trackName]) {
+        acc[session.trackName] = {
+          trackName: session.trackName,
           sessions: 0,
           bestFinish: 99,
           avgFinish: 0,
           totalIncidents: 0,
-          lastRaced: s.startedAt,
-          _finishes: [] as number[]
+          lastRaced: session.startedAt,
+          _finishes: [] as number[],
         };
       }
-      acc[s.trackName].sessions++;
-      if (s.finishPos && s.finishPos < acc[s.trackName].bestFinish) {
-        acc[s.trackName].bestFinish = s.finishPos;
+
+      acc[session.trackName].sessions++;
+
+      if (session.finishPos != null && session.finishPos < acc[session.trackName].bestFinish) {
+        acc[session.trackName].bestFinish = session.finishPos;
+        acc[session.trackName]._finishes.push(session.finishPos);
+      } else if (session.finishPos != null) {
+        acc[session.trackName]._finishes.push(session.finishPos);
       }
-      if (s.finishPos) acc[s.trackName]._finishes.push(s.finishPos);
-      acc[s.trackName].totalIncidents += s.incidents || 0;
-      if (new Date(s.startedAt) > new Date(acc[s.trackName].lastRaced)) {
-        acc[s.trackName].lastRaced = s.startedAt;
+
+      acc[session.trackName].totalIncidents += session.incidents ?? 0;
+
+      if (new Date(session.startedAt) > new Date(acc[session.trackName].lastRaced)) {
+        acc[session.trackName].lastRaced = session.startedAt;
       }
+
       return acc;
     }, {} as Record<string, TrackStats & { _finishes: number[] }>)
-  ).map(t => ({
-    ...t,
-    avgFinish: t._finishes.length > 0 ? t._finishes.reduce((a, b) => a + b, 0) / t._finishes.length : 0,
-    bestFinish: t.bestFinish === 99 ? 0 : t.bestFinish
-  })).sort((a, b) => b.sessions - a.sessions);
+  ).map((track) => ({
+    ...track,
+    avgFinish: track._finishes.length > 0 ? track._finishes.reduce((sum, value) => sum + value, 0) / track._finishes.length : 0,
+    bestFinish: track.bestFinish === 99 ? 0 : track.bestFinish,
+  })).sort((a, b) => b.sessions - a.sessions), [filteredSessions]);
 
-  // Recent form (last 5 races)
-  const recentSessions = filteredSessions.slice(0, 5);
-  const recentAvgFinish = recentSessions.length > 0
-    ? recentSessions.reduce((acc, s) => acc + (s.finishPos || 0), 0) / recentSessions.length
-    : 0;
-  const formTrend = recentAvgFinish < avgFinish ? 'improving' : recentAvgFinish > avgFinish ? 'declining' : 'stable';
+  const recentSessions = useMemo(() => filteredSessions.slice(0, 5), [filteredSessions]);
+  const recentMetrics = useMemo(() => calculateWindowMetrics(recentSessions), [recentSessions]);
+  const baselineSessions = useMemo(() => {
+    const previousSessions = filteredSessions.slice(5, 25);
+    if (previousSessions.length > 0) return previousSessions;
+    return filteredSessions.slice(0, Math.min(filteredSessions.length, 20));
+  }, [filteredSessions]);
+  const baselineMetrics = useMemo(() => calculateWindowMetrics(baselineSessions), [baselineSessions]);
+
+  const formTrend = useMemo(() => {
+    if (recentMetrics.avgFinish == null || baselineMetrics.avgFinish == null) return 'stable';
+    if (recentMetrics.avgFinish < baselineMetrics.avgFinish) return 'improving';
+    if (recentMetrics.avgFinish > baselineMetrics.avgFinish) return 'declining';
+    return 'stable';
+  }, [recentMetrics.avgFinish, baselineMetrics.avgFinish]);
+
+  const disciplineBreakdown = useMemo((): DisciplineBreakdown[] => {
+    const grouped = filteredSessions.reduce((acc, session) => {
+      if (!acc[session.discipline]) {
+        acc[session.discipline] = {
+          discipline: session.discipline,
+          starts: 0,
+          wins: 0,
+          top5s: 0,
+          finishes: [] as number[],
+        };
+      }
+
+      const bucket = acc[session.discipline];
+      bucket.starts += 1;
+      if (session.finishPos === 1) bucket.wins += 1;
+      if (session.finishPos != null && session.finishPos <= 5) bucket.top5s += 1;
+      if (session.finishPos != null) bucket.finishes.push(session.finishPos);
+
+      return acc;
+    }, {} as Record<DriverDiscipline, { discipline: DriverDiscipline; starts: number; wins: number; top5s: number; finishes: number[] }>);
+
+    return Object.values(grouped)
+      .map((bucket) => ({
+        discipline: bucket.discipline,
+        starts: bucket.starts,
+        wins: bucket.wins,
+        top5s: bucket.top5s,
+        avgFinish: bucket.finishes.length > 0 ? bucket.finishes.reduce((sum, value) => sum + value, 0) / bucket.finishes.length : null,
+      }))
+      .sort((a, b) => b.starts - a.starts);
+  }, [filteredSessions]);
+
+  const filterLabel = timeFilter === 'all'
+    ? 'All time'
+    : timeFilter === 'season'
+      ? 'Current season'
+      : `Last ${timeFilter}`;
 
   if (loading) {
     return (
@@ -238,20 +406,20 @@ export function DriverHistory() {
                 </div>
                 <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded border border-white/[0.06]">
                   <span className="text-[10px] text-white/50">Wins</span>
-                  <span className="text-sm font-mono text-[#f97316]">{wins}</span>
+                  <span className="text-sm font-mono text-[#f97316]">{metricSummary.wins}</span>
                 </div>
                 <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded border border-white/[0.06]">
                   <span className="text-[10px] text-white/50">Podiums</span>
-                  <span className="text-sm font-mono text-white/90">{podiums}</span>
+                  <span className="text-sm font-mono text-white/90">{metricSummary.podiums}</span>
                 </div>
                 <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded border border-white/[0.06]">
                   <span className="text-[10px] text-white/50">Avg Finish</span>
-                  <span className="text-sm font-mono text-white/90">{avgFinish.toFixed(1)}</span>
+                  <span className="text-sm font-mono text-white/90">{formatDecimal(metricSummary.avgFinish)}</span>
                 </div>
                 <div className="flex items-center justify-between p-2 bg-white/[0.02] rounded border border-white/[0.06]">
                   <span className="text-[10px] text-white/50">Positions Gained</span>
-                  <span className={`text-sm font-mono ${positionsGained > 0 ? 'text-green-400' : positionsGained < 0 ? 'text-red-400' : 'text-white/50'}`}>
-                    {positionsGained > 0 ? '+' : ''}{positionsGained}
+                  <span className={`text-sm font-mono ${metricSummary.positionsGained > 0 ? 'text-green-400' : metricSummary.positionsGained < 0 ? 'text-red-400' : 'text-white/50'}`}>
+                    {metricSummary.positionsGained > 0 ? '+' : ''}{metricSummary.positionsGained}
                   </span>
                 </div>
               </div>
@@ -298,23 +466,26 @@ export function DriverHistory() {
                 {viewMode === 'tracks' && 'Track Performance'}
               </h1>
               <p className="text-xs text-white/40 mt-1">
-                {timeFilter === 'all' ? 'All time' : `Last ${timeFilter}`} • {disciplineFilter === 'all' ? 'All disciplines' : getDisciplineLabel(disciplineFilter)}
+                {filterLabel} • {disciplineFilter === 'all' ? 'All disciplines' : getDisciplineLabel(disciplineFilter)}
               </p>
             </div>
             
             {/* Form Indicator */}
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded border ${
-              formTrend === 'improving' ? 'bg-green-500/10 border-green-500/30 text-green-400' :
-              formTrend === 'declining' ? 'bg-red-500/10 border-red-500/30 text-red-400' :
-              'bg-white/5 border-white/10 text-white/50'
-            }`}>
+            <button
+              onClick={() => setIsFormDrawerOpen(true)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded border transition-colors ${
+                formTrend === 'improving' ? 'bg-green-500/10 border-green-500/30 text-green-400 hover:bg-green-500/15' :
+                formTrend === 'declining' ? 'bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/15' :
+                'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'
+              }`}
+            >
               {formTrend === 'improving' && <TrendingUp className="w-3 h-3" />}
               {formTrend === 'declining' && <TrendingDown className="w-3 h-3" />}
               {formTrend === 'stable' && <Minus className="w-3 h-3" />}
               <span className="text-[10px] uppercase tracking-wider">
                 Form: {formTrend}
               </span>
-            </div>
+            </button>
           </div>
         </div>
 
@@ -400,9 +571,9 @@ export function DriverHistory() {
                     <span className="text-[10px] uppercase tracking-[0.15em] text-[#f97316]">Wins</span>
                     <Trophy className="w-4 h-4 text-[#f97316]" />
                   </div>
-                  <div className="text-3xl font-mono font-bold text-[#f97316]">{wins}</div>
+                  <div className="text-3xl font-mono font-bold text-[#f97316]">{metricSummary.wins}</div>
                   <div className="text-[10px] text-white/40 mt-1">
-                    {totalSessions > 0 ? ((wins / totalSessions) * 100).toFixed(1) : 0}% win rate
+                    {totalSessions > 0 ? ((metricSummary.wins / totalSessions) * 100).toFixed(1) : 0}% win rate
                   </div>
                 </div>
                 
@@ -411,9 +582,9 @@ export function DriverHistory() {
                     <span className="text-[10px] uppercase tracking-[0.15em] text-white/50">Top 5s</span>
                     <Medal className="w-4 h-4 text-white/30" />
                   </div>
-                  <div className="text-3xl font-mono font-bold">{top5s}</div>
+                  <div className="text-3xl font-mono font-bold">{metricSummary.top5s}</div>
                   <div className="text-[10px] text-white/40 mt-1">
-                    {totalSessions > 0 ? ((top5s / totalSessions) * 100).toFixed(1) : 0}% top 5 rate
+                    {totalSessions > 0 ? ((metricSummary.top5s / totalSessions) * 100).toFixed(1) : 0}% top 5 rate
                   </div>
                 </div>
                 
@@ -422,9 +593,9 @@ export function DriverHistory() {
                     <span className="text-[10px] uppercase tracking-[0.15em] text-white/50">Avg Finish</span>
                     <Target className="w-4 h-4 text-white/30" />
                   </div>
-                  <div className="text-3xl font-mono font-bold">P{avgFinish.toFixed(1)}</div>
+                  <div className="text-3xl font-mono font-bold">P{formatDecimal(metricSummary.avgFinish)}</div>
                   <div className="text-[10px] text-white/40 mt-1">
-                    Recent: P{recentAvgFinish.toFixed(1)}
+                    Recent: P{formatDecimal(recentMetrics.avgFinish)}
                   </div>
                 </div>
                 
@@ -433,7 +604,7 @@ export function DriverHistory() {
                     <span className="text-[10px] uppercase tracking-[0.15em] text-white/50">Avg Incidents</span>
                     <AlertTriangle className="w-4 h-4 text-white/30" />
                   </div>
-                  <div className="text-3xl font-mono font-bold">{avgIncidents.toFixed(1)}</div>
+                  <div className="text-3xl font-mono font-bold">{formatDecimal(metricSummary.avgIncidents)}</div>
                   <div className="text-[10px] text-white/40 mt-1">per session</div>
                 </div>
               </div>
@@ -452,54 +623,48 @@ export function DriverHistory() {
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {recentSessions.map((session) => {
-                    const posChange = (session.startPos ?? 0) - (session.finishPos ?? 0);
-                    return (
-                      <div 
-                        key={session.sessionId}
-                        className="flex items-center justify-between p-3 bg-white/[0.02] rounded border border-white/[0.06] hover:border-white/10 transition-colors"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded flex items-center justify-center font-mono font-bold ${
-                            session.finishPos === 1 ? 'bg-[#f97316]/20 text-[#f97316]' :
-                            session.finishPos && session.finishPos <= 3 ? 'bg-yellow-500/20 text-yellow-400' :
-                            session.finishPos && session.finishPos <= 5 ? 'bg-green-500/20 text-green-400' :
-                            'bg-white/5 text-white/60'
-                          }`}>
-                            P{session.finishPos || '-'}
-                          </div>
-                          <div>
-                            <div className="text-sm text-white/90">{session.trackName}</div>
-                            <div className="text-[10px] text-white/40">{session.seriesName}</div>
-                          </div>
+                  {recentSessions.map((session) => (
+                    <div 
+                      key={session.sessionId}
+                      className="flex items-center justify-between p-3 bg-white/[0.02] rounded border border-white/[0.06] hover:border-white/10 transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded flex items-center justify-center font-mono font-bold ${
+                          session.finishPos === 1 ? 'bg-[#f97316]/20 text-[#f97316]' :
+                          session.finishPos != null && session.finishPos <= 3 ? 'bg-yellow-500/20 text-yellow-400' :
+                          session.finishPos != null && session.finishPos <= 5 ? 'bg-green-500/20 text-green-400' :
+                          'bg-white/5 text-white/60'
+                        }`}>
+                          {formatPosition(session.finishPos)}
                         </div>
-                        <div className="flex items-center gap-4">
-                          <div className="text-right">
-                            <div className={`text-xs font-mono ${
-                              posChange > 0 ? 'text-green-400' : posChange < 0 ? 'text-red-400' : 'text-white/50'
-                            }`}>
-                              {posChange > 0 ? '+' : ''}{posChange} pos
-                            </div>
-                            <div className="text-[10px] text-white/40">{session.incidents || 0}x inc</div>
-                          </div>
-                          <div className="text-[10px] text-white/30">
-                            {new Date(session.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </div>
+                        <div>
+                          <div className="text-sm text-white/90">{session.trackName}</div>
+                          <div className="text-[10px] text-white/40">{session.seriesName}</div>
                         </div>
                       </div>
-                    );
-                  })}
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <SessionContextSummary session={session} />
+                          <div className="text-[10px] text-white/35 mt-1">Inc {formatInteger(session.incidents)}</div>
+                        </div>
+                        <div className="text-[10px] text-white/30">
+                          {new Date(session.startedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
 
               {/* Discipline Breakdown */}
-              {stats.length > 0 && (
+              {disciplineBreakdown.length > 0 && (
                 <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.10] rounded p-4">
                   <h3 className="text-xs uppercase tracking-[0.15em] text-white/60 flex items-center gap-2 mb-4" style={{ fontFamily: 'Orbitron, sans-serif' }}>
                     <Award className="w-4 h-4" />By Discipline
                   </h3>
+                  <div className="text-[10px] text-white/35 uppercase tracking-wider mb-3">{filterLabel}</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {stats.map((stat) => (
+                    {disciplineBreakdown.map((stat) => (
                       <div 
                         key={stat.discipline}
                         className="p-3 bg-white/[0.02] rounded border border-white/[0.06] hover:border-white/10 transition-colors"
@@ -520,8 +685,8 @@ export function DriverHistory() {
                             <div className="text-[9px] text-white/40 uppercase">Top 5</div>
                           </div>
                           <div>
-                            <div className="text-lg font-mono font-bold">{stat.avgFinish.toFixed(1)}</div>
-                            <div className="text-[9px] text-white/40 uppercase">Avg</div>
+                            <div className="text-lg font-mono font-bold">{formatDecimal(stat.avgFinish)}</div>
+                            <div className="text-[9px] text-white/40 uppercase">Avg Finish</div>
                           </div>
                         </div>
                       </div>
@@ -577,70 +742,101 @@ export function DriverHistory() {
                         <Flag className="w-3 h-3" />Discipline
                       </div>
                     </th>
-                    <th className="px-4 py-3 text-center text-[10px] uppercase tracking-wider text-white/40">Start</th>
-                    <th className="px-4 py-3 text-center text-[10px] uppercase tracking-wider text-white/40">Finish</th>
-                    <th className="px-4 py-3 text-center text-[10px] uppercase tracking-wider text-white/40">+/-</th>
+                    <th className="px-4 py-3 text-left text-[10px] uppercase tracking-wider text-white/40">Result</th>
                     <th className="px-4 py-3 text-center text-[10px] uppercase tracking-wider text-white/40">
                       <div className="flex items-center justify-center gap-1">
                         <AlertTriangle className="w-3 h-3" />Inc
                       </div>
                     </th>
+                    <th className="px-4 py-3 text-center text-[10px] uppercase tracking-wider text-white/40">SOF</th>
+                    <th className="px-4 py-3 text-center text-[10px] uppercase tracking-wider text-white/40">iRΔ</th>
+                    <th className="px-4 py-3 text-center text-[10px] uppercase tracking-wider text-white/40">SRΔ</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredSessions.map((session) => {
-                    const posChange = (session.startPos ?? 0) - (session.finishPos ?? 0);
-                    return (
-                      <tr 
-                        key={session.sessionId} 
-                        className="border-b border-white/5 hover:bg-white/5 transition-colors"
-                      >
-                        <td className="px-4 py-3 text-xs font-mono text-white/60">
-                          {new Date(session.startedAt).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </td>
-                        <td className="px-4 py-3 text-sm font-medium">{session.seriesName}</td>
-                        <td className="px-4 py-3 text-sm text-white/80">{session.trackName}</td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs uppercase tracking-wider px-2 py-1 bg-white/5 border border-white/10 rounded">
-                            {getDisciplineLabel(session.discipline)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center font-mono text-sm text-white/60">
-                          {session.startPos ?? '—'}
-                        </td>
-                        <td className="px-4 py-3 text-center font-mono text-sm">
-                          <span className={
-                            session.finishPos === 1 ? 'text-[#f97316] font-bold' :
-                            session.finishPos && session.finishPos <= 3 ? 'text-yellow-400' :
-                            session.finishPos && session.finishPos <= 5 ? 'text-green-400' : ''
-                          }>
-                            {session.finishPos ?? '—'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center font-mono text-sm">
-                          <span className={
-                            posChange > 0 ? 'text-green-400' : 
-                            posChange < 0 ? 'text-red-400' : 'text-white/30'
-                          }>
-                            {posChange > 0 ? '+' : ''}{posChange}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-center font-mono text-sm">
-                          <span className={session.incidents && session.incidents > 4 ? 'text-red-400' : 'text-white/60'}>
-                            {session.incidents ?? '—'}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {filteredSessions.map((session) => (
+                    <tr 
+                      key={session.sessionId} 
+                      className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                    >
+                      <td className="px-4 py-3 text-xs font-mono text-white/60 align-top">
+                        {new Date(session.startedAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium align-top">{session.seriesName}</td>
+                      <td className="px-4 py-3 text-sm text-white/80 align-top">{session.trackName}</td>
+                      <td className="px-4 py-3 align-top">
+                        <span className="text-xs uppercase tracking-wider px-2 py-1 bg-white/5 border border-white/10 rounded">
+                          {getDisciplineLabel(session.discipline)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <SessionContextSummary session={session} />
+                      </td>
+                      <td className="px-4 py-3 text-center font-mono text-sm align-top">
+                        <span className={session.incidents != null && session.incidents > 4 ? 'text-red-400' : 'text-white/60'}>
+                          {formatInteger(session.incidents)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center font-mono text-sm text-white/60 align-top">{formatInteger(session.sof)}</td>
+                      <td className={`px-4 py-3 text-center font-mono text-sm align-top ${(session.irDelta ?? session.iRatingChange ?? 0) > 0 ? 'text-green-400' : (session.irDelta ?? session.iRatingChange ?? 0) < 0 ? 'text-red-400' : 'text-white/50'}`}>
+                        {formatSignedNumber(session.irDelta ?? session.iRatingChange)}
+                      </td>
+                      <td className={`px-4 py-3 text-center font-mono text-sm align-top ${(session.srDelta ?? 0) > 0 ? 'text-green-400' : (session.srDelta ?? 0) < 0 ? 'text-red-400' : 'text-white/50'}`}>
+                        {formatSignedNumber(session.srDelta, 2)}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
+          )}
+
+          {isFormDrawerOpen && (
+            <>
+              <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setIsFormDrawerOpen(false)} />
+              <div className="fixed top-0 right-0 h-full w-full max-w-md bg-[#111111] border-l border-white/10 shadow-2xl z-50 p-6 overflow-y-auto">
+                <div className="flex items-start justify-between mb-6">
+                  <div>
+                    <h3 className="text-sm uppercase tracking-[0.15em] text-white/80" style={{ fontFamily: 'Orbitron, sans-serif' }}>Form Breakdown</h3>
+                    <p className="text-[10px] text-white/35 mt-1">{filterLabel} • {disciplineFilter === 'all' ? 'All disciplines' : getDisciplineLabel(disciplineFilter)}</p>
+                  </div>
+                  <button onClick={() => setIsFormDrawerOpen(false)} className="p-2 text-white/40 hover:text-white transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <div className="mb-4 grid grid-cols-[1.2fr,1fr,1fr] gap-3 text-[10px] uppercase tracking-wider text-white/35 border-b border-white/10 pb-2">
+                  <div>Metric</div>
+                  <div>Recent</div>
+                  <div>Baseline</div>
+                </div>
+
+                <div className="space-y-3">
+                  <FormMetricRow label="Avg Finish" recent={recentMetrics.avgFinish} baseline={baselineMetrics.avgFinish} formatter={(value) => value == null ? '—' : `P${formatDecimal(value)}`} />
+                  <FormMetricRow label="Incidents" recent={recentMetrics.avgIncidents} baseline={baselineMetrics.avgIncidents} formatter={(value) => formatDecimal(value)} />
+                  <FormMetricRow label="SOF" recent={recentMetrics.avgSof} baseline={baselineMetrics.avgSof} formatter={(value) => formatInteger(value)} />
+                  <FormMetricRow label="Pos Δ" recent={recentMetrics.avgFinishGap} baseline={baselineMetrics.avgFinishGap} formatter={(value) => formatSignedNumber(value)} />
+                </div>
+
+                <div className="mt-6 grid grid-cols-2 gap-3">
+                  <div className="p-3 bg-white/[0.03] border border-white/[0.08] rounded">
+                    <div className="text-[10px] uppercase tracking-wider text-white/35 mb-1">Recent Window</div>
+                    <div className="text-xl font-mono text-white/90">{recentMetrics.sessionCount}</div>
+                    <div className="text-[10px] text-white/35 mt-1">sessions</div>
+                  </div>
+                  <div className="p-3 bg-white/[0.03] border border-white/[0.08] rounded">
+                    <div className="text-[10px] uppercase tracking-wider text-white/35 mb-1">Baseline Window</div>
+                    <div className="text-xl font-mono text-white/90">{baselineMetrics.sessionCount}</div>
+                    <div className="text-[10px] text-white/35 mt-1">sessions</div>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
 
           {viewMode === 'tracks' && trackStats.length === 0 && (
