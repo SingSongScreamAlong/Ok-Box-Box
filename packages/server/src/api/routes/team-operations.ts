@@ -8,6 +8,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { pool } from '../../db/client.js';
+import { getIO } from '../../websocket/index.js';
 
 const router = Router();
 
@@ -300,6 +301,10 @@ router.post('/:teamId/race-plans', async (req: Request, res: Response) => {
             [teamId, eventId || null, name, description, fuelStrategy, tireStrategy, targetLapTimeMs, fuelPerLap, notes, userId]
         );
 
+        try {
+            getIO().to(`team:${teamId}`).emit('team:plan_update', { type: 'plan_created', teamId, plan: result.rows[0] });
+        } catch (_) { /* WebSocket not available in tests */ }
+
         res.status(201).json(result.rows[0]);
     } catch (error) {
         console.error('[Team API] Error creating race plan:', error);
@@ -348,6 +353,10 @@ router.patch('/:teamId/race-plans/:planId/activate', async (req: Request, res: R
             `UPDATE race_plans SET is_active = true, status = 'active' WHERE id = $1`,
             [planId]
         );
+
+        try {
+            getIO().to(`team:${teamId}`).emit('team:plan_update', { type: 'plan_activated', teamId, planId });
+        } catch (_) { /* WebSocket not available in tests */ }
 
         res.json({ success: true });
     } catch (error) {
@@ -447,6 +456,10 @@ router.post('/:teamId/race-plans/:planId/stints', async (req: Request, res: Resp
             [planId]
         );
 
+        try {
+            getIO().to(`team:${teamId}`).emit('team:plan_update', { type: 'stint_created', teamId, planId, stint: result.rows[0] });
+        } catch (_) { /* WebSocket not available in tests */ }
+
         res.status(201).json(result.rows[0]);
     } catch (error) {
         console.error('[Team API] Error creating stint:', error);
@@ -509,6 +522,10 @@ router.patch('/:teamId/stints/:stintId', async (req: Request, res: Response) => 
             values
         );
 
+        try {
+            getIO().to(`team:${teamId}`).emit('team:plan_update', { type: 'stint_updated', teamId, stintId });
+        } catch (_) { /* WebSocket not available in tests */ }
+
         res.json({ success: true });
     } catch (error) {
         console.error('[Team API] Error updating stint:', error);
@@ -553,6 +570,10 @@ router.delete('/:teamId/stints/:stintId', async (req: Request, res: Response) =>
             `UPDATE race_plans SET total_pit_stops = GREATEST(0, (SELECT COUNT(*) - 1 FROM stints WHERE race_plan_id = $1)) WHERE id = $1`,
             [planId]
         );
+
+        try {
+            getIO().to(`team:${teamId}`).emit('team:plan_update', { type: 'stint_deleted', teamId, stintId, planId });
+        } catch (_) { /* WebSocket not available in tests */ }
 
         res.status(204).send();
     } catch (error) {

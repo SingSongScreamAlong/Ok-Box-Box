@@ -66,14 +66,19 @@ export function PitwallHome() {
   const [activePanel, setActivePanel] = useState<'strategy' | 'drivers' | 'trackmap' | 'setup' | null>(null);
 
   // Get team drivers and radio channels from data service
-  const { drivers: teamDrivers, radioChannels, toggleChannelActive: toggleChannel } = useTeamData();
+  const { drivers: teamDrivers, radioChannels, toggleChannelActive: toggleChannel, refreshRacePlans } = useTeamData();
 
   // Live team radio — real driver voice ↔ engineer comms via relay
   const {
     messages: radioMessages,
     isJoined: radioJoined,
     latestMessage: latestRadioMessage,
-  } = useTeamRadio(teamId, { autoPlay: true, volume: masterVolume / 100 });
+  } = useTeamRadio(teamId, {
+    autoPlay: true,
+    volume: masterVolume / 100,
+    // When any team member triggers a plan mutation, refresh local plan state
+    onPlanUpdate: refreshRacePlans,
+  });
 
   // Build live driver list from team roster, overlaid with relay standings when in session
   const localDrivers = useMemo<TeamDriver[]>(() => {

@@ -73,7 +73,10 @@ interface TeamDataContextValue {
   
   // Roster Data
   roster: TeamRoster | null;
-  
+
+  // Refresh helpers
+  refreshRacePlans: () => void;
+
   // Loading state
   loading: boolean;
 }
@@ -87,6 +90,7 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
   const [tracks, setTracks] = useState<Track[]>([]);
   const [events, setEvents] = useState<RaceEvent[]>([]);
   const [racePlans, setRacePlans] = useState<RacePlan[]>([]);
+  const [racePlansVersion, setRacePlansVersion] = useState(0);
   const [radioChannels, setRadioChannels] = useState<RadioChannel[]>([]);
   const [pendingChanges, setPendingChanges] = useState<PlanChange[]>([]);
   const [runPlans, setRunPlans] = useState<RunPlan[]>([]);
@@ -223,6 +227,45 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
     
     loadData();
   }, [teamId]);
+
+  // Targeted race plan reload (triggered by refreshRacePlans or WebSocket plan updates)
+  useEffect(() => {
+    if (racePlansVersion === 0) return; // skip initial render — handled by main loadData
+    fetchRacePlans(teamId).then(async (apiPlans) => {
+      const transformedPlans: RacePlan[] = await Promise.all(
+        apiPlans.map(async (p) => {
+          const stints = await fetchStints(teamId, p.id);
+          return {
+            id: p.id,
+            eventId: p.eventId || '',
+            name: p.name,
+            variant: 'A' as const,
+            isActive: p.isActive,
+            stints: stints.map(s => ({
+              id: s.id,
+              driverId: s.driverId || '',
+              startLap: s.startLap || 0,
+              endLap: s.endLap || 0,
+              laps: (s.endLap || 0) - (s.startLap || 0),
+              fuelLoad: s.fuelLoad || 0,
+              tireCompound: (s.tireCompound || 'medium') as 'soft' | 'medium' | 'hard' | 'wet' | 'inter',
+              estimatedTime: s.estimatedDurationMinutes ? s.estimatedDurationMinutes * 60000 : 0,
+              notes: s.notes || '',
+            })),
+            totalLaps: p.totalPitStops ? (p.totalPitStops + 1) * 30 : 100,
+            estimatedTime: 0,
+            fuelUsed: 0,
+            pitStops: p.totalPitStops,
+          };
+        })
+      );
+      setRacePlans(transformedPlans);
+    }).catch(err => console.warn('[TeamData] Failed to refresh race plans:', err));
+  }, [teamId, racePlansVersion]);
+
+  const refreshRacePlans = useCallback(() => {
+    setRacePlansVersion(v => v + 1);
+  }, []);
 
   // Driver helpers
   const getDriver = useCallback((id: string) => {
@@ -391,6 +434,7 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
     updateRunPlan,
     strategyPlan,
     roster,
+    refreshRacePlans,
     loading,
   };
 

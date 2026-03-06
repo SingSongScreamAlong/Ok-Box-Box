@@ -86,10 +86,13 @@ export function PitwallPlanning() {
             Race Plan
             <ChevronRight size={14} />
           </Link>
-          <button className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] text-white px-4 py-2 text-xs font-semibold uppercase tracking-wider hover:bg-white/[0.06] transition-colors">
+          <Link
+            to={`/team/${teamId}/pitwall/events`}
+            className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] text-white px-4 py-2 text-xs font-semibold uppercase tracking-wider hover:bg-white/[0.06] transition-colors"
+          >
             <Plus size={14} />
             Add Event
-          </button>
+          </Link>
         </div>
       </div>
 

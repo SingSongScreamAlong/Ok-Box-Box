@@ -29,6 +29,7 @@ import {
     hasTeamPermission,
     getPendingInvitations,
     getMembershipsForDriver,
+    updateMemberRole,
 } from '../../db/repositories/team-membership.repo.js';
 import { getTeamRosterView } from '../services/teams/team-views.service.js';
 import { getDriverProfileById, getDriverProfileByUserId } from '../../db/repositories/driver-profile.repo.js';
@@ -354,6 +355,44 @@ router.post('/:id/leave', requireAuth, async (req: Request, res: Response): Prom
     } catch (error) {
         console.error('[Team] Error leaving team:', error);
         res.status(500).json({ error: 'Failed to leave team' });
+    }
+});
+
+/**
+ * PATCH /api/v1/teams/:id/members/:driverId/role
+ * Update a member's role (owner only)
+ */
+router.patch('/:id/members/:driverId/role', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const isOwner = await isTeamOwner(req.params.id, req.user!.id);
+        if (!isOwner) {
+            res.status(403).json({ error: 'Only team owner can change member roles' });
+            return;
+        }
+
+        const { role } = req.body;
+        const validRoles = ['driver', 'engineer', 'manager'];
+        if (!role || !validRoles.includes(role)) {
+            res.status(400).json({ error: `role must be one of: ${validRoles.join(', ')}` });
+            return;
+        }
+
+        const membership = await getActiveMembership(req.params.id, req.params.driverId);
+        if (!membership) {
+            res.status(404).json({ error: 'Member not found' });
+            return;
+        }
+
+        const updated = await updateMemberRole(membership.id, role);
+        if (!updated) {
+            res.status(500).json({ error: 'Failed to update role' });
+            return;
+        }
+
+        res.json(updated);
+    } catch (error) {
+        console.error('[Team] Error updating member role:', error);
+        res.status(500).json({ error: 'Failed to update member role' });
     }
 });
 

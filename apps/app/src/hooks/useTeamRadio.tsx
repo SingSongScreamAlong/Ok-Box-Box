@@ -32,11 +32,22 @@ export interface TeamRadioMessage {
   isPlaying?: boolean;
 }
 
+export interface TeamPlanUpdateEvent {
+  type: 'plan_created' | 'plan_activated' | 'stint_created' | 'stint_updated' | 'stint_deleted';
+  teamId: string;
+  planId?: string;
+  stintId?: string;
+  plan?: Record<string, unknown>;
+  stint?: Record<string, unknown>;
+}
+
 interface UseTeamRadioOptions {
   /** Auto-play engineer audio responses when they arrive */
   autoPlay?: boolean;
   /** Master volume 0-1 */
   volume?: number;
+  /** Called when the server broadcasts a race plan or stint mutation to the team room */
+  onPlanUpdate?: (event: TeamPlanUpdateEvent) => void;
 }
 
 interface UseTeamRadioReturn {
@@ -52,7 +63,9 @@ export function useTeamRadio(
   teamId: string | undefined,
   options: UseTeamRadioOptions = {}
 ): UseTeamRadioReturn {
-  const { autoPlay = true, volume = 0.9 } = options;
+  const { autoPlay = true, volume = 0.9, onPlanUpdate } = options;
+  const onPlanUpdateRef = useRef(onPlanUpdate);
+  onPlanUpdateRef.current = onPlanUpdate;
 
   const [messages, setMessages] = useState<TeamRadioMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -164,6 +177,11 @@ export function useTeamRadio(
         if (autoPlay && data.audioBase64) {
           playAudioBase64(data.audioBase64, message.id);
         }
+      });
+
+      socket.on('team:plan_update', (data: TeamPlanUpdateEvent) => {
+        if (!mounted) return;
+        onPlanUpdateRef.current?.(data);
       });
 
       socket.on('disconnect', () => {
