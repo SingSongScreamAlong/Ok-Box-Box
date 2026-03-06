@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { Radio, Zap, Fuel, Video, VideoOff, Maximize2, Volume2, VolumeX, Users, Gauge, Thermometer, Clock, Flag, AlertTriangle, ChevronRight, Target, Monitor, MessageSquare, Settings, MapPin } from 'lucide-react';
+import { Radio, Zap, Fuel, Video, VideoOff, Maximize2, Volume2, VolumeX, Users, Gauge, Thermometer, Clock, Flag, AlertTriangle, ChevronRight, Target, Monitor, MessageSquare, Settings, MapPin, Mic } from 'lucide-react';
 import { getTeam, Team } from '../../lib/teams';
 import { PitwallWelcome, useFirstTimeExperience } from '../../components/PitwallWelcome';
 import { useRelay } from '../../hooks/useRelay';
 import { TrackMap } from '../../components/TrackMap';
 import { useTeamData } from '../../hooks/useTeamData';
+import { useTeamRadio } from '../../hooks/useTeamRadio';
 
 // Radio channel interface for F1-style comms panel
 interface RadioChannel {
@@ -66,6 +67,13 @@ export function PitwallHome() {
 
   // Get team drivers and radio channels from data service
   const { drivers: teamDrivers, radioChannels, toggleChannelActive: toggleChannel } = useTeamData();
+
+  // Live team radio — real driver voice ↔ engineer comms via relay
+  const {
+    messages: radioMessages,
+    isJoined: radioJoined,
+    latestMessage: latestRadioMessage,
+  } = useTeamRadio(teamId, { autoPlay: true, volume: masterVolume / 100 });
 
   // Build live driver list from team roster, overlaid with relay standings when in session
   const localDrivers = useMemo<TeamDriver[]>(() => {
@@ -214,7 +222,17 @@ export function PitwallHome() {
               <div className="flex items-center gap-2">
                 <Radio size={14} className="text-amber-500/70" />
                 <span className="text-[10px] uppercase tracking-[0.15em] text-white/50 font-semibold">Team Radio</span>
-                <span className="text-[9px] px-2 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded font-medium">LIVE</span>
+                {radioJoined ? (
+                  <span className="text-[9px] px-2 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30 rounded font-medium">LIVE</span>
+                ) : (
+                  <span className="text-[9px] px-2 py-0.5 bg-white/5 text-white/30 border border-white/10 rounded font-medium">CONNECTING</span>
+                )}
+                {latestRadioMessage && (
+                  <span className="flex items-center gap-1 text-[9px] text-amber-400/80 animate-pulse">
+                    <Mic size={10} />
+                    {latestRadioMessage.driverName}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-4">
                 {/* Patch Controls */}
@@ -420,8 +438,47 @@ export function PitwallHome() {
                   })()}
                 </div>
               </div>
-              
+
             </div>
+
+            {/* Radio Transcript Log — real driver↔engineer comms */}
+            {radioMessages.length > 0 && (
+              <div className="border-t border-[#333] max-h-40 overflow-y-auto">
+                {radioMessages.slice(0, 10).map(msg => (
+                  <div
+                    key={msg.id}
+                    className={`px-3 py-2 border-b border-[#222] transition-colors ${msg.isPlaying ? 'bg-amber-500/5' : ''}`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <Mic size={10} className={msg.isPlaying ? 'text-amber-400 animate-pulse' : 'text-white/20'} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wide">{msg.driverName}</span>
+                          <span className="text-[9px] text-white/20 font-mono">
+                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-white/60 leading-relaxed truncate" title={msg.query}>
+                          &ldquo;{msg.query}&rdquo;
+                        </p>
+                        <p className="text-[10px] text-green-400/70 leading-relaxed truncate mt-0.5" title={msg.response}>
+                          <span className="text-white/20 mr-1">ENG:</span>{msg.response}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Empty state when joined but no messages yet */}
+            {radioJoined && radioMessages.length === 0 && (
+              <div className="px-3 py-2 border-t border-[#333]">
+                <p className="text-[10px] text-white/20 italic">Monitoring driver comms — waiting for radio traffic...</p>
+              </div>
+            )}
           </div>
 
           {/* Quick Access Tools Row - Toggle Buttons */}

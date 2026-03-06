@@ -28,6 +28,7 @@ import {
     getActiveMembership,
     hasTeamPermission,
     getPendingInvitations,
+    getMembershipsForDriver,
 } from '../../db/repositories/team-membership.repo.js';
 import { getTeamRosterView } from '../services/teams/team-views.service.js';
 import { getDriverProfileById, getDriverProfileByUserId } from '../../db/repositories/driver-profile.repo.js';
@@ -62,12 +63,28 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
 
 /**
  * GET /api/v1/teams
- * List teams for current user (owned or member of)
+ * List teams for current user (owned or member of), with role info
  */
 router.get('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
-        const teams = await getTeamsForUser(req.user!.id);
-        res.json({ teams, count: teams.length });
+        const userId = req.user!.id;
+        const teams = await getTeamsForUser(userId);
+
+        // Fetch driver profile and all memberships in parallel to avoid N+1
+        const driverProfile = await getDriverProfileByUserId(userId);
+        const memberships = driverProfile
+            ? await getMembershipsForDriver(driverProfile.id)
+            : [];
+        const membershipMap = new Map(memberships.map(m => [m.team_id, m]));
+
+        const teamsWithRole = teams.map(team => {
+            const isOwner = team.owner_user_id === userId;
+            const membership = membershipMap.get(team.id);
+            const role = isOwner ? 'owner' : (membership?.role || 'member');
+            return { ...team, role };
+        });
+
+        res.json({ teams: teamsWithRole, count: teams.length });
     } catch (error) {
         console.error('[Team] Error listing teams:', error);
         res.status(500).json({ error: 'Failed to list teams' });

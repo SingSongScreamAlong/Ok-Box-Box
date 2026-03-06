@@ -18,6 +18,9 @@ import { BehavioralGateway } from './BehavioralGateway.js';
 import { getWhisperService, getVoiceService, VOICE_PRESETS } from '../services/voice/index.js';
 import { getTelemetryForVoice } from './telemetry-cache.js';
 import { getCachedDriverContext, formatDriverContextForAI } from '../services/voice/driver-context.service.js';
+import { getTeamById } from '../db/repositories/team.repo.js';
+import { getActiveMembership, getMembershipsForDriver } from '../db/repositories/team-membership.repo.js';
+import { getDriverProfileByUserId } from '../db/repositories/driver-profile.repo.js';
 
 let io: Server;
 
@@ -63,7 +66,44 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
         broadcastHandler.setup(socket);
         behavioralGateway.setup(socket);
 
-        // 4. Voice Query Handler
+        // 4. Team Radio Room Handlers
+        socket.on('team:join', async (data: { teamId: string }) => {
+            try {
+                const userId = socket.data.user?.id;
+                if (!userId || !data?.teamId) return;
+
+                const team = await getTeamById(data.teamId);
+                if (!team) return;
+
+                const isOwner = team.owner_user_id === userId;
+                let allowed = isOwner;
+
+                if (!allowed) {
+                    const driverProfile = await getDriverProfileByUserId(userId);
+                    if (driverProfile) {
+                        const membership = await getActiveMembership(data.teamId, driverProfile.id);
+                        allowed = membership !== null;
+                    }
+                }
+
+                if (!allowed) {
+                    socket.emit('team:error', { error: 'Not a member of this team' });
+                    return;
+                }
+
+                socket.join(`team:${data.teamId}`);
+                socket.emit('team:joined', { teamId: data.teamId });
+                console.log(`[TeamRadio] ${socket.id} joined team:${data.teamId}`);
+            } catch (err) {
+                console.error('[TeamRadio] Error joining team room:', err);
+            }
+        });
+
+        socket.on('team:leave', (data: { teamId: string }) => {
+            if (data?.teamId) socket.leave(`team:${data.teamId}`);
+        });
+
+        // 5. Voice Query Handler
         socket.on('voice:query', async (data: { audio: string; format?: string }) => {
             try {
                 // Check voice_engineer capability
@@ -148,6 +188,37 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
                     response: conversation.response,
                     audioBase64
                 });
+
+                // Broadcast driver query + engineer response to all team rooms this driver belongs to
+                const userId = socket.data.user?.id;
+                if (userId) {
+                    try {
+                        const driverProfile = await getDriverProfileByUserId(userId);
+                        if (driverProfile) {
+                            const memberships = await getMembershipsForDriver(driverProfile.id);
+                            const activeTeamIds = memberships
+                                .filter(m => m.status === 'active')
+                                .map(m => m.team_id);
+
+                            if (activeTeamIds.length > 0) {
+                                const radioEvent = {
+                                    driverId: driverProfile.id,
+                                    driverName: (driverProfile as any).display_name || (driverProfile as any).name || 'Driver',
+                                    query: conversation.query,
+                                    response: conversation.response,
+                                    audioBase64, // engineer TTS audio for pitwall to play
+                                    timestamp: Date.now(),
+                                };
+                                for (const teamId of activeTeamIds) {
+                                    io.to(`team:${teamId}`).emit('team:radio', radioEvent);
+                                }
+                                console.log(`[TeamRadio] Broadcast to ${activeTeamIds.length} team(s) for driver ${driverProfile.id}`);
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('[TeamRadio] Could not broadcast to team rooms:', err);
+                    }
+                }
 
             } catch (error) {
                 console.error('Voice query error:', error);

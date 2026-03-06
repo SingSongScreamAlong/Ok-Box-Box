@@ -3,7 +3,12 @@ import { supabase } from './supabase';
 export interface Team {
   id: string;
   name: string;
-  owner_id: string;
+  owner_id: string;       // alias for owner_user_id for backwards compat
+  owner_user_id: string;
+  status?: string;
+  short_name?: string | null;
+  logo_url?: string | null;
+  primary_color?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -11,6 +16,8 @@ export interface Team {
 export interface TeamMembership {
   id: string;
   team_id: string;
+  // user_id holds driver_profile_id when sourced from v1 API roster —
+  // kept as-is for backwards compat with TeamSettings/TeamDashboard
   user_id: string;
   role: 'owner' | 'manager' | 'member';
   joined_at: string;
@@ -36,150 +43,180 @@ export interface TeamInvitation {
   created_at: string;
 }
 
-// Get all teams the user is a member of
-export async function getUserTeams(userId: string): Promise<TeamWithRole[]> {
-  const { data: memberships, error: membershipError } = await supabase
-    .from('team_memberships')
-    .select('team_id, role')
-    .eq('user_id', userId);
+// ========================
+// API helpers
+// ========================
 
-  if (membershipError || !memberships?.length) {
-    return [];
+const API_BASE = import.meta.env.VITE_API_URL || '';
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
   }
-
-  const teamIds = memberships.map(m => m.team_id);
-  
-  const { data: teams, error: teamsError } = await supabase
-    .from('teams')
-    .select('*')
-    .in('id', teamIds);
-
-  if (teamsError || !teams) {
-    return [];
-  }
-
-  return teams.map(team => ({
-    ...team,
-    role: memberships.find(m => m.team_id === team.id)?.role || 'member'
-  }));
+  return headers;
 }
 
-// Get a single team by ID
+async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const headers = await getAuthHeaders();
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: { ...headers, ...(init?.headers as Record<string, string> || {}) },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(body.error || `Request failed: ${res.status}`);
+  }
+  if (res.status === 204) return undefined as T;
+  return res.json();
+}
+
+function mapRole(role: string): 'owner' | 'manager' | 'member' {
+  if (role === 'owner') return 'owner';
+  if (role === 'manager') return 'manager';
+  return 'member'; // driver, engineer → member for UI purposes
+}
+
+function mapTeam(t: any): Team {
+  return {
+    id: t.id,
+    name: t.name,
+    owner_id: t.owner_user_id,
+    owner_user_id: t.owner_user_id,
+    status: t.status,
+    short_name: t.short_name ?? null,
+    logo_url: t.logo_url ?? null,
+    primary_color: t.primary_color ?? null,
+    created_at: t.created_at,
+    updated_at: t.updated_at,
+  };
+}
+
+// ========================
+// Teams
+// ========================
+
+export async function getUserTeams(_userId: string): Promise<TeamWithRole[]> {
+  try {
+    const data = await apiFetch<{ teams: any[] }>('/api/v1/teams');
+    return (data.teams || []).map(t => ({
+      ...mapTeam(t),
+      role: mapRole(t.role),
+    }));
+  } catch (err) {
+    console.error('Error fetching user teams:', err);
+    return [];
+  }
+}
+
 export async function getTeam(teamId: string): Promise<Team | null> {
-  const { data, error } = await supabase
-    .from('teams')
-    .select('*')
-    .eq('id', teamId)
-    .single();
-
-  if (error) {
-    console.error('Error fetching team:', error);
+  try {
+    const t = await apiFetch<any>(`/api/v1/teams/${teamId}`);
+    return mapTeam(t);
+  } catch (err) {
+    console.error('Error fetching team:', err);
     return null;
   }
-
-  return data;
 }
 
-// Get user's role in a team
-export async function getUserTeamRole(teamId: string, userId: string): Promise<'owner' | 'manager' | 'member' | null> {
-  const { data, error } = await supabase
-    .from('team_memberships')
-    .select('role')
-    .eq('team_id', teamId)
-    .eq('user_id', userId)
-    .single();
-
-  if (error) {
+export async function getUserTeamRole(teamId: string, _userId: string): Promise<'owner' | 'manager' | 'member' | null> {
+  try {
+    const data = await apiFetch<{ teams: any[] }>('/api/v1/teams');
+    const team = (data.teams || []).find((t: any) => t.id === teamId);
+    return team ? mapRole(team.role) : null;
+  } catch {
     return null;
   }
-
-  return data?.role || null;
 }
 
-// Create a new team
 export async function createTeam(
   name: string,
-  ownerId: string
+  _ownerId: string
 ): Promise<{ data: Team | null; error: string | null }> {
-  // Create the team
-  const { data: team, error: teamError } = await supabase
-    .from('teams')
-    .insert({ name, owner_id: ownerId })
-    .select()
-    .single();
-
-  if (teamError) {
-    console.error('Error creating team:', teamError);
-    return { data: null, error: teamError.message };
-  }
-
-  // Add owner as a member with 'owner' role
-  const { error: memberError } = await supabase
-    .from('team_memberships')
-    .insert({
-      team_id: team.id,
-      user_id: ownerId,
-      role: 'owner'
+  try {
+    const t = await apiFetch<any>('/api/v1/teams', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
     });
-
-  if (memberError) {
-    console.error('Error adding owner membership:', memberError);
-    // Team was created but membership failed - still return team
+    return { data: mapTeam(t), error: null };
+  } catch (err) {
+    return { data: null, error: err instanceof Error ? err.message : 'Failed to create team' };
   }
-
-  return { data: team, error: null };
 }
 
-// Update team
 export async function updateTeam(
   teamId: string,
   updates: { name?: string }
 ): Promise<{ data: Team | null; error: string | null }> {
-  const { data, error } = await supabase
-    .from('teams')
-    .update(updates)
-    .eq('id', teamId)
-    .select()
-    .single();
-
-  if (error) {
-    return { data: null, error: error.message };
+  try {
+    const t = await apiFetch<any>(`/api/v1/teams/${teamId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+    return { data: mapTeam(t), error: null };
+  } catch (err) {
+    return { data: null, error: err instanceof Error ? err.message : 'Failed to update team' };
   }
-
-  return { data, error: null };
 }
 
-// Delete team
 export async function deleteTeam(teamId: string): Promise<{ error: string | null }> {
-  const { error } = await supabase
-    .from('teams')
-    .delete()
-    .eq('id', teamId);
-
-  if (error) {
-    return { error: error.message };
+  try {
+    await apiFetch(`/api/v1/teams/${teamId}`, { method: 'DELETE' });
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to delete team' };
   }
-
-  return { error: null };
 }
 
-// Get team members
-export async function getTeamMembers(teamId: string): Promise<TeamMembership[]> {
-  const { data, error } = await supabase
-    .from('team_memberships')
-    .select('*')
-    .eq('team_id', teamId)
-    .order('joined_at', { ascending: true });
+// ========================
+// Members
+// ========================
 
-  if (error) {
-    console.error('Error fetching team members:', error);
+export async function getTeamMembers(teamId: string): Promise<TeamMembership[]> {
+  try {
+    // Roster endpoint returns TeamRosterView: { team_id, team_name, member_count, members[] }
+    const data = await apiFetch<{ members: any[] }>(`/api/v1/teams/${teamId}/roster`);
+    return (data.members || []).map(m => ({
+      id: m.membership_id,
+      team_id: teamId,
+      // user_id field holds driver_profile_id — kept for backwards compat with UI
+      user_id: m.driver_profile_id,
+      role: mapRole(m.role),
+      joined_at: m.joined_at || new Date().toISOString(),
+    }));
+  } catch (err) {
+    console.error('Error fetching team members:', err);
     return [];
   }
-
-  return data || [];
 }
 
-// Update member role
+export async function removeMember(
+  teamId: string,
+  driverProfileId: string
+): Promise<{ error: string | null }> {
+  try {
+    await apiFetch(`/api/v1/teams/${teamId}/members/${driverProfileId}`, { method: 'DELETE' });
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to remove member' };
+  }
+}
+
+export async function leaveTeam(
+  teamId: string,
+  _userId: string
+): Promise<{ error: string | null }> {
+  try {
+    await apiFetch(`/api/v1/teams/${teamId}/leave`, { method: 'POST' });
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to leave team' };
+  }
+}
+
+// updateMemberRole — v1 API does not yet have a role-update endpoint.
+// Falls back to direct Supabase update for now.
 export async function updateMemberRole(
   teamId: string,
   userId: string,
@@ -191,40 +228,15 @@ export async function updateMemberRole(
     .eq('team_id', teamId)
     .eq('user_id', userId);
 
-  if (error) {
-    return { error: error.message };
-  }
-
-  return { error: null };
+  return { error: error?.message ?? null };
 }
 
-// Remove member from team
-export async function removeMember(
-  teamId: string,
-  userId: string
-): Promise<{ error: string | null }> {
-  const { error } = await supabase
-    .from('team_memberships')
-    .delete()
-    .eq('team_id', teamId)
-    .eq('user_id', userId);
+// ========================
+// Invitations
+// ========================
+// Email-based invitations use the legacy team_invitations table.
+// The v1 API uses driver_profile_id-based invites (different model).
 
-  if (error) {
-    return { error: error.message };
-  }
-
-  return { error: null };
-}
-
-// Leave team
-export async function leaveTeam(
-  teamId: string,
-  userId: string
-): Promise<{ error: string | null }> {
-  return removeMember(teamId, userId);
-}
-
-// Create invitation
 export async function createInvitation(
   teamId: string,
   email: string,
@@ -232,7 +244,7 @@ export async function createInvitation(
 ): Promise<{ data: TeamInvitation | null; error: string | null }> {
   const token = crypto.randomUUID();
   const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7); // 7 days expiry
+  expiresAt.setDate(expiresAt.getDate() + 7);
 
   const { data, error } = await supabase
     .from('team_invitations')
@@ -246,14 +258,10 @@ export async function createInvitation(
     .select()
     .single();
 
-  if (error) {
-    return { data: null, error: error.message };
-  }
-
+  if (error) return { data: null, error: error.message };
   return { data, error: null };
 }
 
-// Get pending invitations for a team
 export async function getTeamInvitations(teamId: string): Promise<TeamInvitation[]> {
   const { data, error } = await supabase
     .from('team_invitations')
@@ -266,16 +274,13 @@ export async function getTeamInvitations(teamId: string): Promise<TeamInvitation
     console.error('Error fetching invitations:', error);
     return [];
   }
-
   return data || [];
 }
 
-// Accept invitation
 export async function acceptInvitation(
   token: string,
   userId: string
 ): Promise<{ error: string | null }> {
-  // Get the invitation
   const { data: invitation, error: fetchError } = await supabase
     .from('team_invitations')
     .select('*')
@@ -283,42 +288,23 @@ export async function acceptInvitation(
     .eq('status', 'pending')
     .single();
 
-  if (fetchError || !invitation) {
-    return { error: 'Invalid or expired invitation' };
-  }
+  if (fetchError || !invitation) return { error: 'Invalid or expired invitation' };
 
-  // Check if expired
   if (new Date(invitation.expires_at) < new Date()) {
-    await supabase
-      .from('team_invitations')
-      .update({ status: 'expired' })
-      .eq('id', invitation.id);
+    await supabase.from('team_invitations').update({ status: 'expired' }).eq('id', invitation.id);
     return { error: 'Invitation has expired' };
   }
 
-  // Add user to team
   const { error: memberError } = await supabase
     .from('team_memberships')
-    .insert({
-      team_id: invitation.team_id,
-      user_id: userId,
-      role: 'member'
-    });
+    .insert({ team_id: invitation.team_id, user_id: userId, role: 'member' });
 
-  if (memberError) {
-    return { error: memberError.message };
-  }
+  if (memberError) return { error: memberError.message };
 
-  // Update invitation status
-  await supabase
-    .from('team_invitations')
-    .update({ status: 'accepted' })
-    .eq('id', invitation.id);
-
+  await supabase.from('team_invitations').update({ status: 'accepted' }).eq('id', invitation.id);
   return { error: null };
 }
 
-// Get user's pending invitations
 export async function getUserInvitations(email: string): Promise<(TeamInvitation & { team_name?: string })[]> {
   const { data, error } = await supabase
     .from('team_invitations')
@@ -330,7 +316,6 @@ export async function getUserInvitations(email: string): Promise<(TeamInvitation
     console.error('Error fetching user invitations:', error);
     return [];
   }
-
   return (data || []).map(inv => ({
     ...inv,
     team_name: (inv.teams as any)?.name
