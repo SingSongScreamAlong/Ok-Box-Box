@@ -112,7 +112,8 @@ function connectToServer(accessToken: string) {
   socket = io(SERVER_URL, {
     transports: ['websocket', 'polling'], // Allow fallback to polling
     auth: { 
-      relayId: `pitbox-relay-desktop-${session?.userId || 'unknown'}`,
+      relayId: process.env.RELAY_SECRET || `pitbox-relay-desktop-${session?.userId || 'unknown'}`,
+      token: accessToken,
     },
     reconnection: true,
     reconnectionAttempts: Infinity,
@@ -147,17 +148,31 @@ function connectToServer(accessToken: string) {
 
 function startIRacingRelay() {
   // Initialize iRacing SDK
-  iracing = new IRacingSDK();
+  console.log('🏎️ Initializing iRacing SDK...');
+  try {
+    iracing = new IRacingSDK();
+    iracing.startSDK(); // Must call startSDK() to begin polling shared memory
+    console.log('✅ iRacing SDK initialized and started');
+  } catch (err: any) {
+    console.error('❌ Failed to initialize iRacing SDK:', err.message);
+    return;
+  }
   
   let isConnected = false;
   let sessionMetadataSent = false;
   let lastSessionInfoTime = 0;
   let lastIncidentCount = 0;
+  let pollCount = 0;
 
   // Poll for connection and data
   setInterval(async () => {
     try {
-      const connected = iracing.isConnected();
+      pollCount++;
+      if (pollCount % 50 === 1) {
+        console.log(`🔍 Polling iRacing... (poll #${pollCount})`);
+      }
+      // irsdk-node uses ready() which returns a Promise<boolean>
+      const connected = await iracing.ready();
       
       if (connected && !isConnected) {
         isConnected = true;
@@ -187,9 +202,26 @@ function startIRacingRelay() {
 
       if (!connected) return;
 
-      const telemetry = iracing.getTelemetry();
-      const sessionInfo = iracing.getSessionInfo();
-      if (!telemetry) return;
+      // Must call waitForData before getTelemetry (irsdk-node requirement)
+      const hasData = iracing.waitForData(16); // 16ms = ~60Hz
+      if (!hasData) return;
+
+      const rawTelemetry = iracing.getTelemetry();
+      const sessionInfo = iracing.getSessionData(); // Note: getSessionData not getSessionInfo
+      if (!rawTelemetry) return;
+
+      // irsdk-node wraps values in objects with a 'value' array - extract them
+      const telemetry: Record<string, any> = {};
+      for (const [key, val] of Object.entries(rawTelemetry)) {
+        if (val && typeof val === 'object' && 'value' in val) {
+          // Single value or array
+          telemetry[key] = Array.isArray(val.value) && val.value.length === 1 
+            ? val.value[0] 
+            : val.value;
+        } else {
+          telemetry[key] = val;
+        }
+      }
 
       const now = Date.now();
       const playerCarIdx = telemetry.PlayerCarIdx || 0;
@@ -341,10 +373,14 @@ function stopVideoCapture() {
 }
 
 // IPC handlers
-ipcMain.handle('get-status', () => ({
-  iracing: iracing?.isConnected || false,
-  server: socket?.connected || false,
-}));
+ipcMain.handle('get-status', async () => {
+  // irsdk-node uses ready() which returns Promise<boolean>
+  const iracingConnected = iracing ? await iracing.ready() : false;
+  return {
+    iracing: iracingConnected,
+    server: socket?.connected || false,
+  };
+});
 
 // Voice IPC handlers
 ipcMain.on('voice:pttState', (_event, pressed: boolean) => {
@@ -471,6 +507,7 @@ app.whenReady().then(async () => {
   // Initialize voice system
   voiceSystem = new VoiceSystem({
     serverUrl: SERVER_URL,
+    openaiKey: (store.get('openaiKey') as string) || process.env.OPENAI_API_KEY || '',
   });
   voiceSystem.setWindow(mainWindow!);
   await voiceSystem.start();
