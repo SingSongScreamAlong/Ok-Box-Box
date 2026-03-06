@@ -236,6 +236,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   const [raceIntelligence, setRaceIntelligence] = useState<RaceIntelligence | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const socketRef = useRef<Socket | null>(null);
+  const anonymousFallbackAttemptedRef = useRef(false);
 
   // Helper to convert track position to x,y coordinates for map
   const getCarMapPosition = useCallback((trackPos: number): { x: number; y: number } => {
@@ -262,106 +263,120 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     console.log('[Relay] Connecting to server:', wsUrl);
     setStatus('connecting');
 
-    // Get Supabase auth token for the WebSocket handshake
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
 
-    const socket = io(wsUrl, {
-      transports: ['websocket', 'polling'],
-      auth: token ? { token } : {},
-      reconnection: true,
-      reconnectionAttempts: Infinity, // Keep trying during races
-      reconnectionDelay: 1000,        // Start at 1 second
-      reconnectionDelayMax: 30000,    // Cap at 30 seconds
-      randomizationFactor: 0.5,       // Add jitter (±50%) to prevent thundering herd
-    });
+    const createSocket = (authToken?: string) => {
+      const socket = io(wsUrl, {
+        transports: ['websocket', 'polling'],
+        auth: authToken ? { token: authToken } : {},
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 30000,
+        randomizationFactor: 0.5,
+      });
 
-    socketRef.current = socket;
+      socketRef.current = socket;
 
-    socket.on('connect', () => {
-      console.log('[Relay] Connected to server');
-      setStatus('connected');
-      socket.emit('dashboard:join', { type: 'driver' });
-    });
+      socket.on('connect', () => {
+        console.log('[Relay] Connected to server');
+        anonymousFallbackAttemptedRef.current = false;
+        setStatus('connected');
+        socket.emit('dashboard:join', { type: 'driver' });
+      });
 
-    socket.on('disconnect', (reason) => {
-      console.log('[Relay] Disconnected from server, reason:', reason);
-      // If server closed connection or transport error, Socket.IO will auto-reconnect
-      // Only set 'disconnected' for intentional disconnects
-      if (reason === 'io client disconnect' || reason === 'io server disconnect') {
-        setStatus('disconnected');
-      } else {
+      socket.on('disconnect', (reason) => {
+        console.log('[Relay] Disconnected from server, reason:', reason);
+        if (reason === 'io client disconnect' || reason === 'io server disconnect') {
+          setStatus('disconnected');
+        } else {
+          setStatus('reconnecting');
+        }
+      });
+
+      socket.on('connect_error', (error) => {
+        console.error('[Relay] Connection error:', error);
+        const message = error instanceof Error
+          ? error.message
+          : String((error as { message?: string } | undefined)?.message ?? error ?? '');
+
+        if (
+          authToken &&
+          !anonymousFallbackAttemptedRef.current &&
+          /auth/i.test(message) &&
+          /token/i.test(message)
+        ) {
+          anonymousFallbackAttemptedRef.current = true;
+          if (socketRef.current === socket) {
+            socket.removeAllListeners();
+            socket.disconnect();
+            socketRef.current = null;
+          }
+          createSocket();
+        }
+      });
+
+      socket.io.on('reconnect_attempt', (attempt) => {
+        console.log(`[Relay] Reconnection attempt ${attempt}`);
+        setReconnectAttempts(attempt);
         setStatus('reconnecting');
-      }
-    });
+      });
 
-    socket.on('connect_error', (error) => {
-      console.error('[Relay] Connection error:', error);
-      // Don't set to disconnected here - let reconnection logic handle it
-    });
+      socket.io.on('reconnect', (attempt) => {
+        console.log(`[Relay] Reconnected after ${attempt} attempts`);
+        setReconnectAttempts(0);
+        setStatus('connected');
+        socket.emit('dashboard:join', { type: 'driver' });
+      });
 
-    // Reconnection event handlers for exponential backoff feedback
-    socket.io.on('reconnect_attempt', (attempt) => {
-      console.log(`[Relay] Reconnection attempt ${attempt}`);
-      setReconnectAttempts(attempt);
-      setStatus('reconnecting');
-    });
+      socket.io.on('reconnect_error', (error) => {
+        console.error('[Relay] Reconnection error:', error);
+      });
 
-    socket.io.on('reconnect', (attempt) => {
-      console.log(`[Relay] Reconnected after ${attempt} attempts`);
-      setReconnectAttempts(0);
-      setStatus('connected');
-      socket.emit('dashboard:join', { type: 'driver' });
-    });
+      socket.io.on('reconnect_failed', () => {
+        console.error('[Relay] Reconnection failed after all attempts');
+        setStatus('disconnected');
+      });
 
-    socket.io.on('reconnect_error', (error) => {
-      console.error('[Relay] Reconnection error:', error);
-    });
+      socket.on('session_info', (data: any) => {
+        console.log('[Relay] Session info:', data);
+        setStatus('in_session');
+        const nextTrackName = normalizeTrackName(data.track ?? data.trackName);
+        setSession(prev => ({
+          ...prev,
+          trackName: nextTrackName ?? prev.trackName,
+          sessionType: (data.session || data.sessionType || prev.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
+          timeRemaining: data.remainingTime || prev.timeRemaining,
+          lapsRemaining: data.totalLaps || prev.lapsRemaining,
+        }));
+      });
 
-    socket.io.on('reconnect_failed', () => {
-      console.error('[Relay] Reconnection failed after all attempts');
-      setStatus('disconnected');
-    });
+      socket.on('session:active', (data: any) => {
+        console.log('[Relay] Session active:', data);
+        setStatus('in_session');
+        const nextTrackName = normalizeTrackName(data.trackName);
+        setSession(prev => ({
+          ...prev,
+          trackName: nextTrackName ?? prev.trackName,
+          trackId: data.trackId || prev.trackId,
+          sessionType: (data.sessionType || prev.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
+          rpmRedline: data.rpmRedline || prev.rpmRedline,
+          fuelTankCapacity: data.fuelTankCapacity || prev.fuelTankCapacity,
+          carName: data.carName || prev.carName,
+        }));
+      });
 
-    // Session info from server
-    socket.on('session_info', (data: any) => {
-      console.log('[Relay] Session info:', data);
-      setStatus('in_session');
-      const nextTrackName = normalizeTrackName(data.track ?? data.trackName);
-      setSession(prev => ({
-        ...prev,
-        trackName: nextTrackName ?? prev.trackName,
-        sessionType: (data.session || data.sessionType || prev.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
-        timeRemaining: data.remainingTime || prev.timeRemaining,
-        lapsRemaining: data.totalLaps || prev.lapsRemaining,
-      }));
-    });
-
-    socket.on('session:active', (data: any) => {
-      console.log('[Relay] Session active:', data);
-      setStatus('in_session');
-      const nextTrackName = normalizeTrackName(data.trackName);
-      setSession(prev => ({
-        ...prev,
-        trackName: nextTrackName ?? prev.trackName,
-        trackId: data.trackId || prev.trackId,  // iRacing track ID for shape file loading
-        sessionType: (data.sessionType || prev.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
-        rpmRedline: data.rpmRedline || prev.rpmRedline,
-        fuelTankCapacity: data.fuelTankCapacity || prev.fuelTankCapacity,
-        carName: data.carName || prev.carName,
-      }));
-    });
-
-    socket.on('session:metadata', (data: any) => {
-      console.log('[Relay] Session metadata:', data);
-      setStatus('in_session');
-      const nextTrackName = normalizeTrackName(data.trackName);
-      setSession(prev => ({
-        ...prev,
-        trackName: nextTrackName ?? prev.trackName,
-        sessionType: (data.sessionType || prev.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
-      }));
-    });
+      socket.on('session:metadata', (data: any) => {
+        console.log('[Relay] Session metadata:', data);
+        setStatus('in_session');
+        const nextTrackName = normalizeTrackName(data.trackName);
+        setSession(prev => ({
+          ...prev,
+          trackName: nextTrackName ?? prev.trackName,
+          sessionType: (data.sessionType || prev.sessionType || 'practice').toLowerCase() as 'practice' | 'qualifying' | 'race',
+        }));
+      });
 
     // Handler for processing telemetry data
     const isValidTrackPct = (value: unknown): value is number =>
@@ -420,7 +435,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       }));
     };
 
-    socket.on('telemetry_update', (data: any) => {
+      socket.on('telemetry_update', (data: any) => {
       handleTelemetryData(data);
 
       const standings = Array.isArray(data?.standings) ? data.standings : [];
@@ -474,9 +489,9 @@ export function RelayProvider({ children }: { children: ReactNode }) {
           }),
         }));
       }
-    });
+      });
 
-    socket.on('telemetry:driver', (data: any) => {
+      socket.on('telemetry:driver', (data: any) => {
       console.log('[Relay] telemetry:driver received, cars:', data?.cars?.length, 'standings:', data?.standings?.length, 'keys:', Object.keys(data || {}));
       if (data?.standings?.[0]) {
         console.log('[Relay] First standing entry:', JSON.stringify(data.standings[0]));
@@ -548,9 +563,9 @@ export function RelayProvider({ children }: { children: ReactNode }) {
           }),
         }));
       }
-    });
+      });
 
-    socket.on('competitor_data', (data: any[]) => {
+      socket.on('competitor_data', (data: any[]) => {
       if (data && Array.isArray(data)) {
         const totalDrivers = Math.max(data.length, 1);
         const playerCompetitor = data.find((car: any) => !!car?.isPlayer);
@@ -579,10 +594,9 @@ export function RelayProvider({ children }: { children: ReactNode }) {
           })),
         }));
       }
-    });
+      });
 
-    // car:status from strategy_update (1Hz) — tire wear, damage, engine, pits
-    socket.on('car:status', (data: any) => {
+      socket.on('car:status', (data: any) => {
       if (!data) return;
       setTelemetry(prev => ({
         ...prev,
@@ -606,26 +620,23 @@ export function RelayProvider({ children }: { children: ReactNode }) {
         fuel: data.fuel?.level ?? prev.fuel,
         inPit: data.pit?.inLane ?? prev.inPit,
       }));
-    });
+      });
 
-    // Server-side AI race engineer updates (from SituationalAwarenessService)
-    socket.on('engineer:update', (data: any) => {
+      socket.on('engineer:update', (data: any) => {
       if (!data?.updates) return;
       const newUpdates: EngineerUpdate[] = data.updates.map((u: any) => ({
         ...u,
         timestamp: Date.now(),
       }));
       setEngineerUpdates(prev => [...prev, ...newUpdates].slice(-20));
-    });
+      });
 
-    // Live accumulated race intelligence (from LiveSessionAnalyzer)
-    socket.on('race:intelligence', (data: any) => {
+      socket.on('race:intelligence', (data: any) => {
       if (!data?.intelligence) return;
       setRaceIntelligence(data.intelligence);
-    });
+      });
 
-    // Proactive spotter callouts (from ProactiveSpotter)
-    socket.on('spotter:callout', (data: any) => {
+      socket.on('spotter:callout', (data: any) => {
       if (!data?.callouts) return;
       const newUpdates: EngineerUpdate[] = data.callouts.map((c: any) => ({
         type: c.type === 'overtake_opportunity' || c.type === 'gap_closing' ? 'opportunity' as const
@@ -639,9 +650,9 @@ export function RelayProvider({ children }: { children: ReactNode }) {
         timestamp: c.timestamp || Date.now(),
       }));
       setEngineerUpdates(prev => [...prev, ...newUpdates].slice(-20));
-    });
+      });
 
-    socket.on('session:end', () => {
+      socket.on('session:end', () => {
       console.log('[Relay] Session ended');
       setStatus('connected');
       setSession(defaultSession);
@@ -649,9 +660,9 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       setIncidents([]);
       setEngineerUpdates([]);
       setRaceIntelligence(null);
-    });
+      });
 
-    socket.on('incident:new', (data: any) => {
+      socket.on('incident:new', (data: any) => {
       console.log('[Relay] Incident received:', data);
       const incident: LiveIncident = {
         id: data.id || `inc-${Date.now()}`,
@@ -667,7 +678,10 @@ export function RelayProvider({ children }: { children: ReactNode }) {
         status: 'new',
       };
       setIncidents(prev => [incident, ...prev].slice(0, 50));
-    });
+      });
+    };
+
+    createSocket(token);
   }, []);
 
   const disconnect = useCallback(() => {

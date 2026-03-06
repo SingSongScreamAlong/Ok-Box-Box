@@ -168,6 +168,10 @@ function generateDemoChampionship(leagueId: string): Championship {
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 export async function fetchChampionship(leagueId: string): Promise<Championship | null> {
+  if (leagueId === 'demo') {
+    return generateDemoChampionship(leagueId);
+  }
+
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error('Not authenticated');
@@ -185,6 +189,10 @@ export async function fetchChampionship(leagueId: string): Promise<Championship 
 }
 
 export async function fetchChampionshipStandings(leagueId: string): Promise<ChampionshipStanding[]> {
+  if (leagueId === 'demo') {
+    return generateDemoStandings();
+  }
+
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error('Not authenticated');
@@ -202,6 +210,10 @@ export async function fetchChampionshipStandings(leagueId: string): Promise<Cham
 }
 
 export async function fetchChampionshipEvents(leagueId: string): Promise<ChampionshipEvent[]> {
+  if (leagueId === 'demo') {
+    return generateDemoEvents(`champ_${leagueId}`);
+  }
+
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error('Not authenticated');
@@ -222,6 +234,10 @@ export async function fetchDriverResults(
   leagueId: string,
   driverId: string
 ): Promise<RaceResult[]> {
+  if (leagueId === 'demo') {
+    return generateDemoDriverResults();
+  }
+
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.access_token) throw new Error('Not authenticated');

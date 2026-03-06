@@ -151,7 +151,24 @@ export function PitwallHome() {
     return `${mins}:${secs.toFixed(3).padStart(6, '0')}`;
   };
 
-  const activeDriver = localDrivers.find(d => d.id === selectedDriver) || localDrivers[0];
+  const activeDriver = localDrivers.find(d => d.id === selectedDriver) || localDrivers[0] || {
+    id: 'no-driver',
+    name: 'No drivers available',
+    carNumber: '—',
+    isActive: false,
+    position: null,
+    lap: null,
+    lastLap: null,
+    bestLap: null,
+    gap: null,
+    fuel: null,
+    tireWear: null,
+    speed: null,
+    delta: null,
+    incidents: 0,
+    stintLaps: 0,
+    cameraAvailable: false,
+  };
   const currentDriver = localDrivers.find(d => d.isActive);
 
   return (
