@@ -50,6 +50,8 @@ const TrackSelectorPage   = lazy(() => import('./pages/track-intel/TrackSelector
 const TrackMapPage        = lazy(() => import('./pages/track-intel/TrackMapPage').then(m => ({ default: m.TrackMapPage })));
 const EventView           = lazy(() => import('./pages/EventView').then(m => ({ default: m.EventView })));
 const AdminOps            = lazy(() => import('./pages/AdminOps').then(m => ({ default: m.AdminOps })));
+const AdminUserList       = lazy(() => import('./pages/AdminUsers').then(m => ({ default: m.AdminUserList })));
+const AdminUserDetail     = lazy(() => import('./pages/AdminUsers').then(m => ({ default: m.AdminUserDetail })));
 
 // Team tier
 const TeamDashboard   = lazy(() => import('./pages/TeamDashboard').then(m => ({ default: m.TeamDashboard })));
@@ -204,6 +206,8 @@ function App() {
         <Route path="/subscription"  element={<ProtectedRoute><SubscriptionManagement /></ProtectedRoute>} />
         <Route path="/event/:eventId" element={<ProtectedRoute><EventView /></ProtectedRoute>} />
         <Route path="/admin/ops" element={<ProtectedRoute><AdminOps /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute><AdminUserList /></ProtectedRoute>} />
+        <Route path="/admin/users/:userId" element={<ProtectedRoute><AdminUserDetail /></ProtectedRoute>} />
 
         <Route path="/track-intel" element={
           <ProtectedRoute>

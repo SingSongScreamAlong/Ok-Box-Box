@@ -504,4 +504,187 @@ router.get('/telemetry/streams/:runId', requireSuperAdmin, async (req: Request, 
     }
 });
 
+// ========================
+// View As User (Admin Impersonation - Read Only)
+// ========================
+
+/**
+ * Get comprehensive user snapshot for admin review
+ * GET /api/admin/users/:userId/view
+ * 
+ * Returns: account info, driver profile, entitlements, linked accounts,
+ * behavioral metrics, recent sessions, teams, and goals.
+ */
+router.get('/users/:userId/view', requireSuperAdmin, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { userId } = req.params;
+
+        // 1. Account info
+        const userResult = await pool.query(
+            `SELECT id, email, display_name, is_super_admin, is_active, email_verified, last_login_at, created_at, updated_at
+             FROM admin_users WHERE id = $1`, [userId]
+        );
+        if (userResult.rows.length === 0) {
+            res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
+            return;
+        }
+        const account = userResult.rows[0];
+
+        // 2. Driver profile
+        const profileResult = await pool.query(
+            `SELECT * FROM driver_profiles WHERE user_account_id = $1`, [userId]
+        );
+        const driverProfile = profileResult.rows[0] || null;
+
+        // 3. Entitlements
+        const entitlementResult = await pool.query(
+            `SELECT id, product, status, source, starts_at, expires_at, created_at
+             FROM entitlements WHERE user_id = $1 ORDER BY created_at DESC`, [userId]
+        );
+
+        // 4. Linked iRacing account
+        const iracingResult = await pool.query(
+            `SELECT iracing_customer_id, iracing_display_name, is_valid, last_used_at, created_at
+             FROM iracing_oauth_tokens WHERE admin_user_id = $1`, [userId]
+        );
+
+        // 5. Linked racing identities (from driver profile)
+        let linkedIdentities: any[] = [];
+        if (driverProfile) {
+            const identResult = await pool.query(
+                `SELECT platform, platform_user_id, platform_display_name, verified_at, sync_status, created_at
+                 FROM linked_racing_identities WHERE driver_profile_id = $1`, [driverProfile.id]
+            );
+            linkedIdentities = identResult.rows;
+        }
+
+        // 6. Behavioral aggregates
+        let behavioralAggregates: any[] = [];
+        if (driverProfile) {
+            const behavResult = await pool.query(
+                `SELECT time_window, avg_bsi, avg_tci, avg_cpi2, avg_rci, avg_behavioral_stability,
+                        bsi_trend, tci_trend, cpi2_trend, rci_trend,
+                        session_count, total_laps_analyzed, avg_telemetry_confidence, computed_at
+                 FROM driver_behavioral_aggregates
+                 WHERE driver_profile_id = $1 AND car_name IS NULL AND track_name IS NULL
+                 ORDER BY time_window`, [driverProfile.id]
+            );
+            behavioralAggregates = behavResult.rows;
+        }
+
+        // 7. Recent sessions
+        let recentSessions: any[] = [];
+        if (driverProfile) {
+            const sessResult = await pool.query(
+                `SELECT s.id, s.track_name, s.car_name, s.session_type, s.created_at,
+                        sm.finish_position, sm.best_lap_time_ms, sm.incident_count, sm.irating_change
+                 FROM sessions s
+                 LEFT JOIN session_metrics sm ON sm.session_id = s.id AND sm.driver_profile_id = $1
+                 WHERE s.id IN (
+                     SELECT DISTINCT session_id FROM session_metrics WHERE driver_profile_id = $1
+                 )
+                 ORDER BY s.created_at DESC LIMIT 10`, [driverProfile.id]
+            );
+            recentSessions = sessResult.rows;
+        }
+
+        // 8. Teams
+        let teams: any[] = [];
+        if (driverProfile) {
+            const teamResult = await pool.query(
+                `SELECT t.id as team_id, t.name as team_name, tm.role, tm.status, tm.joined_at
+                 FROM team_members tm
+                 JOIN teams t ON tm.team_id = t.id
+                 WHERE tm.driver_profile_id = $1
+                 ORDER BY tm.joined_at DESC`, [driverProfile.id]
+            );
+            teams = teamResult.rows;
+        }
+
+        // 9. Development goals
+        let goals: any[] = [];
+        if (driverProfile) {
+            const goalsResult = await pool.query(
+                `SELECT id, title, category, status, priority, target_value, current_value, created_at
+                 FROM development_goals
+                 WHERE driver_profile_id = $1
+                 ORDER BY status ASC, priority ASC, created_at DESC LIMIT 10`, [driverProfile.id]
+            );
+            goals = goalsResult.rows;
+        }
+
+        // 10. Traits
+        let traits: any[] = [];
+        if (driverProfile) {
+            const traitsResult = await pool.query(
+                `SELECT trait_key, trait_label, trait_category, confidence, evidence_summary
+                 FROM driver_traits
+                 WHERE driver_profile_id = $1 AND (valid_until IS NULL OR valid_until > NOW())
+                 ORDER BY confidence DESC LIMIT 10`, [driverProfile.id]
+            );
+            traits = traitsResult.rows;
+        }
+
+        // 11. League roles
+        const rolesResult = await pool.query(
+            `SELECT r.role, r.league_id, l.name as league_name, r.created_at
+             FROM admin_user_league_roles r
+             LEFT JOIN leagues l ON r.league_id = l.id
+             WHERE r.admin_user_id = $1
+             ORDER BY r.created_at DESC`, [userId]
+        );
+
+        // 12. Audit log (last 20 actions by this user)
+        const auditResult = await pool.query(
+            `SELECT action, entity_type, entity_id, description, created_at
+             FROM audit_log WHERE actor_id = $1
+             ORDER BY created_at DESC LIMIT 20`, [userId]
+        );
+
+        res.json({
+            success: true,
+            data: {
+                account: {
+                    id: account.id,
+                    email: account.email,
+                    displayName: account.display_name,
+                    isSuperAdmin: account.is_super_admin,
+                    isActive: account.is_active,
+                    emailVerified: account.email_verified,
+                    lastLoginAt: account.last_login_at,
+                    createdAt: account.created_at,
+                    updatedAt: account.updated_at,
+                },
+                driverProfile: driverProfile ? {
+                    id: driverProfile.id,
+                    displayName: driverProfile.display_name,
+                    bio: driverProfile.bio,
+                    primaryDiscipline: driverProfile.primary_discipline,
+                    privacyLevel: driverProfile.privacy_level,
+                    totalSessions: driverProfile.total_sessions,
+                    totalLaps: driverProfile.total_laps,
+                    totalIncidents: driverProfile.total_incidents,
+                    createdAt: driverProfile.created_at,
+                } : null,
+                entitlements: entitlementResult.rows,
+                iracingAccount: iracingResult.rows[0] || null,
+                linkedIdentities,
+                behavioralAggregates,
+                recentSessions,
+                teams,
+                goals,
+                traits,
+                leagueRoles: rolesResult.rows,
+                recentAuditLog: auditResult.rows,
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching user view:', error);
+        res.status(500).json({
+            success: false,
+            error: { code: 'FETCH_ERROR', message: 'Failed to fetch user data' }
+        });
+    }
+});
+
 export default router;
