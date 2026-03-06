@@ -507,7 +507,6 @@ app.whenReady().then(async () => {
   // Initialize voice system
   voiceSystem = new VoiceSystem({
     serverUrl: SERVER_URL,
-    openaiKey: (store.get('openaiKey') as string) || process.env.OPENAI_API_KEY || '',
   });
   voiceSystem.setWindow(mainWindow!);
   await voiceSystem.start();
