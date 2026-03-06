@@ -18,8 +18,10 @@ if (import.meta.env.VITE_SENTRY_DSN) {
         blockAllMedia: false,
       }),
     ],
-    tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
-    replaysSessionSampleRate: 0.1,
+    tracesSampleRate: import.meta.env.PROD ? 0.2 : 1.0,
+    // FP1 testing: record ALL sessions so we can watch tester experience
+    // Reduce to 0.1 after FP1 to save quota
+    replaysSessionSampleRate: 1.0,
     replaysOnErrorSampleRate: 1.0,
   });
 }
