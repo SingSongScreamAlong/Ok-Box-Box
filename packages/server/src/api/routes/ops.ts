@@ -42,13 +42,11 @@ const activeTraces = new Map<string, {
 // =====================================================================
 
 function requireOpsAccess(req: Request, res: Response, next: NextFunction): void {
-    // Check env flag first
-    if (!config.opsUiEnabled) {
-        res.status(404).json({
-            success: false,
-            error: 'Ops UI not enabled'
-        });
-        return;
+    const user = (req as any).user;
+
+    // Super admins always bypass all ops gates
+    if (user?.isSuperAdmin === true) {
+        return next();
     }
 
     // Allow localhost bypass in development
@@ -58,21 +56,26 @@ function requireOpsAccess(req: Request, res: Response, next: NextFunction): void
         return next();
     }
 
-    // Check for admin:ops capability
-    const user = (req as any).user;
+    // For non-super-admins, require OPS_UI_ENABLED env flag
+    if (!config.opsUiEnabled) {
+        res.status(404).json({
+            success: false,
+            error: 'Ops UI not enabled'
+        });
+        return;
+    }
+
     if (!user) {
         res.status(401).json({ success: false, error: 'Authentication required' });
         return;
     }
 
-    const capabilities = user.capabilities || [];
-    const isAdmin = user.role === 'admin' || user.isSuperAdmin === true;
-    const hasOpsCap = capabilities.includes('admin:ops');
+    const isAdmin = user.role === 'admin';
 
-    if (!isAdmin || !hasOpsCap) {
+    if (!isAdmin) {
         res.status(403).json({
             success: false,
-            error: 'Requires admin role and admin:ops capability'
+            error: 'Requires admin role'
         });
         return;
     }

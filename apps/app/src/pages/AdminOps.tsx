@@ -277,11 +277,13 @@ export function AdminOps() {
   }, [loadData]);
 
   useEffect(() => {
+    // Only auto-refresh if initial load succeeded (no error state)
+    if (error) return;
     const timer = window.setInterval(() => {
       void loadData(false);
-    }, 5000);
+    }, 10000);
     return () => window.clearInterval(timer);
-  }, [loadData]);
+  }, [loadData, error]);
 
   useEffect(() => {
     if (!traceSessionId && summary?.sessions?.details?.[0]?.sessionId) {
