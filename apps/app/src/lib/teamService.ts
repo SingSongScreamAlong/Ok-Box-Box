@@ -537,3 +537,151 @@ export async function fetchTeamRoster(teamId: string): Promise<any> {
     return null;
   }
 }
+
+// =====================================================================
+// v1 Team Events (server model: session-linked events)
+// =====================================================================
+
+export interface TeamEventV1 {
+  id: string;
+  team_id: string;
+  session_id: string;
+  event_name: string | null;
+  event_type: 'practice' | 'qualifying' | 'race' | 'endurance' | 'other' | null;
+  participating_driver_ids: string[];
+  created_at: string;
+}
+
+export interface TeamDebriefV1 {
+  event_id: string;
+  event_name: string | null;
+  session_id: string;
+  driver_summaries: Array<{
+    driver_profile_id: string;
+    display_name: string;
+    headline: string;
+    primary_limiter: string;
+  }>;
+  team_summary: {
+    overall_observation: string;
+    common_patterns: string[];
+    priority_focus: string;
+  } | null;
+  status: 'draft' | 'published';
+}
+
+/**
+ * Fetch team events via v1 API
+ * GET /api/v1/teams/:id/events
+ */
+export async function fetchTeamEventsV1(teamId: string): Promise<TeamEventV1[]> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) return [];
+
+    const response = await fetch(`${API_BASE}/api/v1/teams/${teamId}/events`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    return data.events || [];
+  } catch (error) {
+    console.error('[Team] Error fetching v1 events:', error);
+    return [];
+  }
+}
+
+/**
+ * Create a team event via v1 API
+ * POST /api/v1/teams/:id/events
+ */
+export async function createTeamEventV1(
+  teamId: string,
+  body: {
+    session_id: string;
+    event_name?: string;
+    event_type?: TeamEventV1['event_type'];
+    participating_driver_ids?: string[];
+  }
+): Promise<TeamEventV1 | null> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) return null;
+
+    const response = await fetch(`${API_BASE}/api/v1/teams/${teamId}/events`, {
+      method: 'POST',
+      headers: { ...auth, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || `Request failed: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('[Team] Error creating v1 event:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch debrief for a team event
+ * GET /api/v1/teams/:id/events/:eventId/debrief
+ */
+export async function fetchTeamDebrief(
+  teamId: string,
+  eventId: string
+): Promise<TeamDebriefV1 | null> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) return null;
+
+    const response = await fetch(
+      `${API_BASE}/api/v1/teams/${teamId}/events/${eventId}/debrief`,
+      { headers: { ...auth, 'Content-Type': 'application/json' } }
+    );
+
+    if (!response.ok) return null;
+
+    return await response.json();
+  } catch (error) {
+    console.error('[Team] Error fetching debrief:', error);
+    return null;
+  }
+}
+
+/**
+ * Trigger AI generation of a team debrief
+ * POST /api/v1/teams/:id/events/:eventId/debrief/generate
+ */
+export async function generateTeamDebriefV1(
+  teamId: string,
+  eventId: string
+): Promise<TeamDebriefV1 | null> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) return null;
+
+    const response = await fetch(
+      `${API_BASE}/api/v1/teams/${teamId}/events/${eventId}/debrief/generate`,
+      {
+        method: 'POST',
+        headers: { ...auth, 'Content-Type': 'application/json' },
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || `Failed to generate debrief: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('[Team] Error generating debrief:', error);
+    throw error;
+  }
+}

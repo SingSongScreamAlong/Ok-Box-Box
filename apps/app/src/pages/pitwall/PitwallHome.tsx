@@ -569,73 +569,106 @@ export function PitwallHome() {
                   <Target size={20} className="text-purple-400" />
                   <h3 className="text-lg font-semibold text-white">Strategy Analytics</h3>
                 </div>
-                <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
+                <div className="flex items-center gap-3">
+                  {status !== 'in_session' && (
+                    <span className="text-[10px] text-white/30 italic">Live when in session</span>
+                  )}
+                  <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
+                </div>
               </div>
               <div className="grid grid-cols-4 gap-4">
-                {/* Undercut/Overcut Analysis */}
+                {/* Gap / Undercut Window */}
                 <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Undercut Window</div>
-                  <div className="text-xl font-mono text-green-400">3.2s</div>
-                  <div className="text-[10px] text-white/30 mt-1">Pit now gains vs P2</div>
-                  <div className="mt-2 h-1 bg-white/10 rounded overflow-hidden">
-                    <div className="h-full bg-green-500" style={{ width: '75%' }} />
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Gap Ahead</div>
+                  <div className={`text-xl font-mono ${raceIntelligence?.gapAheadTrend === 'closing' ? 'text-green-400' : raceIntelligence?.gapAheadTrend === 'opening' ? 'text-red-400' : 'text-white/70'}`}>
+                    {raceIntelligence ? `${raceIntelligence.gapAhead.toFixed(1)}s` : '—'}
                   </div>
-                  <div className="text-[9px] text-green-400/70 mt-1">75% confidence</div>
+                  <div className="text-[10px] text-white/30 mt-1">
+                    {raceIntelligence?.gapAheadTrend === 'closing' ? '↓ Closing in' : raceIntelligence?.gapAheadTrend === 'opening' ? '↑ Pulling away' : 'Stable gap'}
+                  </div>
+                  <div className="mt-2 text-[10px] text-white/40">
+                    Behind: <span className="text-white/70">{raceIntelligence ? `+${raceIntelligence.gapBehind.toFixed(1)}s` : '—'}</span>
+                    {raceIntelligence?.underThreat && <span className="ml-2 text-amber-400">⚠ Under threat</span>}
+                  </div>
+                  {raceIntelligence?.overtakeOpportunity && (
+                    <div className="text-[9px] text-green-400/80 mt-1">★ Overtake opportunity</div>
+                  )}
                 </div>
-                
-                {/* Tire Degradation Projection */}
+
+                {/* Tire Degradation */}
                 <div className="bg-black/40 rounded p-4">
                   <div className="text-[10px] uppercase text-white/40 mb-2">Tire Cliff ETA</div>
-                  <div className="text-xl font-mono text-amber-400">~6 laps</div>
-                  <div className="text-[10px] text-white/30 mt-1">Based on deg rate: 0.12s/lap</div>
-                  <div className="mt-2 flex gap-1">
-                    {[1,2,3,4,5,6,7,8].map(i => (
-                      <div key={i} className={`flex-1 h-3 rounded-sm ${i <= 6 ? 'bg-amber-500/60' : 'bg-white/10'}`} />
-                    ))}
+                  <div className={`text-xl font-mono ${raceIntelligence?.tireCliff ? 'text-red-400' : 'text-amber-400'}`}>
+                    {raceIntelligence ? `~${raceIntelligence.estimatedTireLapsLeft} laps` : '—'}
                   </div>
-                  <div className="text-[9px] text-amber-400/70 mt-1">Grip loss accelerating</div>
+                  <div className="text-[10px] text-white/30 mt-1">
+                    Deg rate: {raceIntelligence ? `${raceIntelligence.tireDegRate.toFixed(3)}s/lap` : '—'}
+                  </div>
+                  <div className="mt-2 flex gap-1">
+                    {Array.from({ length: 8 }, (_, i) => i + 1).map(i => {
+                      const cliff = raceIntelligence?.estimatedTireLapsLeft ?? 6;
+                      return (
+                        <div
+                          key={i}
+                          className={`flex-1 h-3 rounded-sm ${i <= cliff ? (raceIntelligence?.tireCliff ? 'bg-red-500/60' : 'bg-amber-500/60') : 'bg-white/10'}`}
+                        />
+                      );
+                    })}
+                  </div>
+                  {raceIntelligence?.tireCliff && (
+                    <div className="text-[9px] text-red-400 mt-1">⚠ Cliff approaching</div>
+                  )}
                 </div>
-                
-                {/* Optimal Pit Lap Calculator */}
+
+                {/* Optimal Pit Lap */}
                 <div className="bg-black/40 rounded p-4">
                   <div className="text-[10px] uppercase text-white/40 mb-2">Optimal Pit Lap</div>
-                  <div className="text-xl font-mono text-purple-400">Lap 19</div>
+                  <div className="text-xl font-mono text-purple-400">
+                    {raceIntelligence?.optimalPitLap != null ? `Lap ${raceIntelligence.optimalPitLap}` : '—'}
+                  </div>
                   <div className="text-[10px] text-white/30 mt-1">Balances tire life + track pos</div>
                   <div className="mt-2 space-y-1">
                     <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 18</span>
-                      <span className="text-yellow-400">-0.8s net</span>
+                      <span className="text-white/40">Current lap</span>
+                      <span className="text-white/70">{telemetry.lap ?? '—'}</span>
                     </div>
                     <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 19</span>
-                      <span className="text-green-400">+1.2s net ★</span>
+                      <span className="text-white/40">Pit stops so far</span>
+                      <span className="text-white/70">{telemetry.strategy.pitStops}</span>
                     </div>
                     <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 20</span>
-                      <span className="text-yellow-400">+0.4s net</span>
+                      <span className="text-white/40">Fuel laps left</span>
+                      <span className={`${(telemetry.strategy.fuelLapsRemaining ?? 99) < 5 ? 'text-red-400' : 'text-white/70'}`}>
+                        {telemetry.strategy.fuelLapsRemaining?.toFixed(1) ?? '—'}
+                      </span>
                     </div>
                   </div>
                 </div>
-                
-                {/* Traffic Analysis */}
+
+                {/* Recommended Action */}
                 <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Pit Exit Traffic</div>
-                  <div className="text-xl font-mono text-green-400">CLEAR</div>
-                  <div className="text-[10px] text-white/30 mt-1">No cars in pit window</div>
-                  <div className="mt-2 space-y-1">
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Behind you</span>
-                      <span className="text-white/70">P4 @ +8.3s</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Pit delta</span>
-                      <span className="text-white/70">~22s</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Exit pos</span>
-                      <span className="text-green-400">P3 (hold)</span>
-                    </div>
-                  </div>
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Engineer Rec.</div>
+                  {raceIntelligence ? (
+                    <>
+                      <p className="text-xs text-white/80 leading-relaxed">
+                        {raceIntelligence.recommendedAction}
+                      </p>
+                      <div className="mt-3 space-y-1">
+                        <div className="flex justify-between text-[9px]">
+                          <span className="text-white/40">Fuel to finish</span>
+                          <span className={raceIntelligence.fuelToFinish ? 'text-green-400' : 'text-red-400'}>
+                            {raceIntelligence.fuelToFinish ? 'Yes' : 'No — pit'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-[9px]">
+                          <span className="text-white/40">Fuel/lap</span>
+                          <span className="text-white/70">{raceIntelligence.actualFuelPerLap.toFixed(2)}L</span>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-white/30 italic">Waiting for session data…</p>
+                  )}
                 </div>
               </div>
             </div>
@@ -648,162 +681,172 @@ export function PitwallHome() {
                   <Users size={20} className="text-cyan-400" />
                   <h3 className="text-lg font-semibold text-white">Driver Performance Analytics</h3>
                 </div>
-                <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
+                <div className="flex items-center gap-3">
+                  {status !== 'in_session' && (
+                    <span className="text-[10px] text-white/30 italic">Live when in session</span>
+                  )}
+                  <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
+                </div>
               </div>
               <div className="grid grid-cols-4 gap-4">
-                {/* Sector Comparison */}
+                {/* Live Position */}
                 <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Sector Comparison</div>
-                  <div className="text-[10px] text-white/50 mb-2">Alex vs Team Best</div>
-                  <div className="space-y-2">
-                    <div>
-                      <div className="flex justify-between text-[9px] mb-1">
-                        <span className="text-white/40">S1</span>
-                        <span className="text-green-400">-0.12s</span>
-                      </div>
-                      <div className="h-1.5 bg-white/10 rounded overflow-hidden">
-                        <div className="h-full bg-green-500" style={{ width: '95%' }} />
-                      </div>
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Live Position</div>
+                  <div className="text-xl font-mono text-cyan-400">
+                    {telemetry.position != null ? `P${telemetry.position}` : '—'}
+                  </div>
+                  <div className="text-[10px] text-white/30 mt-1">
+                    Lap {telemetry.lap ?? '—'} / {session.lapsRemaining != null ? `${session.lapsRemaining} rem.` : '—'}
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Last lap</span>
+                      <span className="text-white/70">{telemetry.lastLap != null ? formatLapTime(telemetry.lastLap) : '—'}</span>
                     </div>
-                    <div>
-                      <div className="flex justify-between text-[9px] mb-1">
-                        <span className="text-white/40">S2</span>
-                        <span className="text-red-400">+0.24s</span>
-                      </div>
-                      <div className="h-1.5 bg-white/10 rounded overflow-hidden">
-                        <div className="h-full bg-red-500" style={{ width: '78%' }} />
-                      </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Best lap</span>
+                      <span className="text-cyan-400">{telemetry.bestLap != null ? formatLapTime(telemetry.bestLap) : '—'}</span>
                     </div>
-                    <div>
-                      <div className="flex justify-between text-[9px] mb-1">
-                        <span className="text-white/40">S3</span>
-                        <span className="text-green-400">-0.08s</span>
-                      </div>
-                      <div className="h-1.5 bg-white/10 rounded overflow-hidden">
-                        <div className="h-full bg-green-500" style={{ width: '92%' }} />
-                      </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Delta</span>
+                      <span className={`${(telemetry.delta ?? 0) < 0 ? 'text-green-400' : 'text-red-400'}`}>
+                        {telemetry.delta != null ? `${telemetry.delta > 0 ? '+' : ''}${telemetry.delta.toFixed(3)}s` : '—'}
+                      </span>
                     </div>
                   </div>
-                  <div className="text-[9px] text-cyan-400/70 mt-2">Focus: T5-T7 braking</div>
                 </div>
-                
-                {/* Consistency Analysis */}
+
+                {/* Consistency Score */}
                 <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Consistency Score</div>
-                  <div className="text-xl font-mono text-cyan-400">94.2%</div>
-                  <div className="text-[10px] text-white/30 mt-1">Last 10 laps σ: ±0.18s</div>
-                  <div className="mt-2 flex items-end gap-0.5 h-8">
-                    {[0.2, 0.1, 0.15, 0.08, 0.12, 0.1, 0.18, 0.14, 0.09, 0.11].map((v, i) => (
-                      <div key={i} className="flex-1 bg-cyan-500/60 rounded-t" style={{ height: `${v * 200}%` }} />
-                    ))}
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Consistency</div>
+                  <div className="text-xl font-mono text-cyan-400">
+                    {raceIntelligence ? `${(raceIntelligence.consistencyRating * 100).toFixed(0)}%` : '—'}
                   </div>
-                  <div className="text-[9px] text-white/40 mt-1">Lap variance (lower = better)</div>
+                  <div className="text-[10px] text-white/30 mt-1">
+                    σ ±{raceIntelligence?.paceStdDev.toFixed(3) ?? '—'}s lap variance
+                  </div>
+                  <div className="mt-2 h-2 bg-white/10 rounded overflow-hidden">
+                    <div
+                      className="h-full bg-cyan-500"
+                      style={{ width: `${(raceIntelligence?.consistencyRating ?? 0) * 100}%` }}
+                    />
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Avg pace</span>
+                      <span className="text-white/70">{raceIntelligence ? formatLapTime(raceIntelligence.overallAvgPace) : '—'}</span>
+                    </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Recent avg</span>
+                      <span className="text-white/70">{raceIntelligence ? formatLapTime(raceIntelligence.recentAvgPace) : '—'}</span>
+                    </div>
+                  </div>
                 </div>
-                
+
                 {/* Pace Trend */}
                 <div className="bg-black/40 rounded p-4">
                   <div className="text-[10px] uppercase text-white/40 mb-2">Pace Trend</div>
-                  <div className="text-xl font-mono text-green-400">↑ Improving</div>
-                  <div className="text-[10px] text-white/30 mt-1">-0.3s over last 5 laps</div>
+                  <div className={`text-xl font-mono ${
+                    raceIntelligence?.paceTrend === 'improving' ? 'text-green-400' :
+                    raceIntelligence?.paceTrend === 'degrading' ? 'text-red-400' :
+                    raceIntelligence?.paceTrend === 'erratic' ? 'text-amber-400' : 'text-white/60'
+                  }`}>
+                    {raceIntelligence?.paceTrend === 'improving' ? '↑ Improving'
+                      : raceIntelligence?.paceTrend === 'degrading' ? '↓ Degrading'
+                      : raceIntelligence?.paceTrend === 'erratic' ? '⚡ Erratic'
+                      : raceIntelligence ? '— Stable'
+                      : '—'}
+                  </div>
+                  <div className="text-[10px] text-white/30 mt-1">
+                    {raceIntelligence
+                      ? `${raceIntelligence.positionsGainedTotal >= 0 ? '+' : ''}${raceIntelligence.positionsGainedTotal} pos. this session`
+                      : 'Waiting for session data'}
+                  </div>
                   <div className="mt-2 space-y-1">
                     <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 43</span>
-                      <span className="text-white/70">1:38.42</span>
+                      <span className="text-white/40">Incidents</span>
+                      <span className={`${(raceIntelligence?.totalIncidents ?? 0) > 2 ? 'text-amber-400' : 'text-white/70'}`}>
+                        {raceIntelligence?.totalIncidents ?? '—'}
+                      </span>
                     </div>
                     <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 44</span>
-                      <span className="text-white/70">1:38.31</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 45</span>
-                      <span className="text-white/70">1:38.24</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 46</span>
-                      <span className="text-white/70">1:38.18</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 47</span>
-                      <span className="text-green-400">1:38.12 ★</span>
+                      <span className="text-white/40">Inc/lap rate</span>
+                      <span className="text-white/70">
+                        {raceIntelligence ? `${raceIntelligence.incidentRate.toFixed(2)}x` : '—'}
+                      </span>
                     </div>
                   </div>
                 </div>
-                
-                {/* Driver Fatigue / Stint Analysis */}
+
+                {/* Mental State / Fatigue */}
                 <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Stint Fatigue Index</div>
-                  <div className="text-xl font-mono text-amber-400">72%</div>
-                  <div className="text-[10px] text-white/30 mt-1">Reaction time +4ms avg</div>
-                  <div className="mt-2 h-2 bg-white/10 rounded overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-green-500 via-amber-500 to-red-500" style={{ width: '72%' }} />
+                  <div className="text-[10px] uppercase text-white/40 mb-2">Mental State</div>
+                  <div className={`text-xl font-mono capitalize ${
+                    raceIntelligence?.mentalFatigue === 'fresh' ? 'text-green-400' :
+                    raceIntelligence?.mentalFatigue === 'normal' ? 'text-cyan-400' :
+                    raceIntelligence?.mentalFatigue === 'fatigued' ? 'text-amber-400' :
+                    raceIntelligence?.mentalFatigue === 'tilted' ? 'text-red-400' : 'text-white/40'
+                  }`}>
+                    {raceIntelligence?.mentalFatigue ?? '—'}
                   </div>
+                  <div className="text-[10px] text-white/30 mt-1">AI-assessed driver state</div>
                   <div className="mt-2 space-y-1">
                     <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Stint length</span>
-                      <span className="text-white/70">1h 42m</span>
+                      <span className="text-white/40">Inc. clustering</span>
+                      <span className={raceIntelligence?.incidentClustering ? 'text-red-400' : 'text-white/50'}>
+                        {raceIntelligence?.incidentClustering ? 'Yes ⚠' : 'No'}
+                      </span>
                     </div>
                     <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Rec. swap</span>
-                      <span className="text-amber-400">~25 min</span>
+                      <span className="text-white/40">Stint laps</span>
+                      <span className="text-white/70">{raceIntelligence?.currentStintLaps ?? '—'}</span>
+                    </div>
+                    <div className="flex justify-between text-[9px]">
+                      <span className="text-white/40">Pit stops</span>
+                      <span className="text-white/70">{raceIntelligence?.pitStops ?? telemetry.strategy.pitStops}</span>
                     </div>
                   </div>
                 </div>
               </div>
-              
-              {/* Per-Driver Behavioral Health */}
-              <div className="mt-4">
-                <div className="text-[10px] uppercase text-white/40 mb-3">Live Technique Health</div>
-                <div className="grid grid-cols-4 gap-3">
-                  {localDrivers.filter(d => d.isActive).map(driver => {
-                    const b = driver.behavioral;
-                    const statusColor = b?.status === 'excellent' ? 'border-emerald-500/40 bg-emerald-500/10' 
-                      : b?.status === 'good' ? 'border-cyan-500/40 bg-cyan-500/10'
-                      : b?.status === 'warning' ? 'border-amber-500/40 bg-amber-500/10'
-                      : 'border-red-500/40 bg-red-500/10';
-                    const statusText = b?.status === 'excellent' ? 'text-emerald-400' 
-                      : b?.status === 'good' ? 'text-cyan-400'
-                      : b?.status === 'warning' ? 'text-amber-400'
-                      : 'text-red-400';
-                    return (
-                      <div key={driver.id} className={`rounded p-3 border ${statusColor}`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-white">{driver.name}</span>
-                          <span className={`text-[9px] uppercase font-semibold ${statusText}`}>
-                            {b?.status || 'N/A'}
-                          </span>
+
+              {/* Live Driver Grid from standings */}
+              {localDrivers.length > 0 && (
+                <div className="mt-4">
+                  <div className="text-[10px] uppercase text-white/40 mb-3">Team Drivers — Live Standings</div>
+                  <div className="grid grid-cols-4 gap-3">
+                    {localDrivers.map(driver => (
+                      <div
+                        key={driver.id}
+                        className={`rounded p-3 border ${driver.isActive ? 'border-cyan-500/30 bg-cyan-500/5' : 'border-white/10 bg-white/[0.02]'}`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="text-xs font-medium text-white truncate">{driver.name}</span>
+                          {driver.position != null && (
+                            <span className="text-[10px] font-mono text-cyan-400 ml-1">P{driver.position}</span>
+                          )}
                         </div>
-                        {b && (
-                          <>
-                            <div className="grid grid-cols-4 gap-1 mb-2">
-                              {[
-                                { label: 'BSI', value: b.bsi },
-                                { label: 'TCI', value: b.tci },
-                                { label: 'CPI', value: b.cpi2 },
-                                { label: 'RCI', value: b.rci },
-                              ].map(({ label, value }) => (
-                                <div key={label} className="text-center">
-                                  <div className="text-[8px] text-white/40">{label}</div>
-                                  <div className={`text-[10px] font-mono ${value >= 70 ? 'text-emerald-400' : value >= 50 ? 'text-cyan-400' : 'text-amber-400'}`}>
-                                    {value}
-                                  </div>
-                                </div>
-                              ))}
+                        <div className="space-y-0.5">
+                          {driver.gap != null && (
+                            <div className="flex justify-between text-[9px]">
+                              <span className="text-white/40">Gap</span>
+                              <span className="text-white/60">{driver.gap}</span>
                             </div>
-                            {b.warning && (
-                              <div className="text-[9px] text-amber-400/80 bg-amber-500/10 rounded px-2 py-1">
-                                ⚠ {b.warning}
-                              </div>
-                            )}
-                          </>
-                        )}
-                        {!b && (
-                          <div className="text-[9px] text-white/30 italic">No telemetry data</div>
-                        )}
+                          )}
+                          {driver.fuel != null && (
+                            <div className="flex justify-between text-[9px]">
+                              <span className="text-white/40">Fuel</span>
+                              <span className={`${driver.fuel < 20 ? 'text-amber-400' : 'text-white/60'}`}>{driver.fuel.toFixed(1)}L</span>
+                            </div>
+                          )}
+                          {!driver.isActive && (
+                            <div className="text-[9px] text-white/20 italic">Not in session</div>
+                          )}
+                        </div>
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
