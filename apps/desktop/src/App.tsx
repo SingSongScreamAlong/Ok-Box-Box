@@ -77,27 +77,30 @@ function App() {
       return;
     }
 
-    window.electronAPI.checkAuth().then((result) => {
+    window.electronAPI.checkAuth().then(async (result) => {
       if (result.loggedIn && result.user) {
         setUser(result.user);
         window.electronAPI.getStatus().then((s) => setStatus({ ...s, mode: 'waiting' }));
-        setupListeners();
-        loadSettings();
+        // Load settings first, then setup listeners with loaded settings
+        const loadedSettings = await loadSettings();
+        setupListeners(loadedSettings);
       }
       setLoading(false);
     });
   }, []);
 
-  const loadSettings = async () => {
+  const loadSettings = async (): Promise<Settings> => {
     // Load saved settings from main process
     const saved = await window.electronAPI.getSettings?.();
     if (saved) {
       setSettings(saved);
+      return saved;
     }
     // Load audio devices
     loadAudioDevices();
     // Load gamepads
     loadGamepads();
+    return settings; // Return current defaults if no saved settings
   };
 
   const loadAudioDevices = async () => {
@@ -137,7 +140,7 @@ function App() {
     await window.electronAPI.saveSettings?.(newSettings);
   };
 
-  const setupListeners = () => {
+  const setupListeners = (currentSettings: Settings = settings) => {
     window.electronAPI.onRelayStatus((s: string) => {
       setStatus((prev) => ({ ...prev, server: s === 'connected' }));
     });
@@ -177,12 +180,14 @@ function App() {
 
     // Keyboard PTT listener (uses configured key from settings)
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === settings.pttKey && !e.repeat) {
+      if (e.code === currentSettings.pttKey && !e.repeat) {
+        console.log(`Keyboard PTT: ${currentSettings.pttKey} PRESSED`);
         window.electronAPI.sendPTTState(true);
       }
     };
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === settings.pttKey) {
+      if (e.code === currentSettings.pttKey) {
+        console.log(`Keyboard PTT: ${currentSettings.pttKey} RELEASED`);
         window.electronAPI.sendPTTState(false);
       }
     };
@@ -190,12 +195,27 @@ function App() {
     window.addEventListener('keyup', handleKeyUp);
 
     // Gamepad PTT polling (uses configured joystick/button from settings)
+    let lastGamepadPTTState = false;
+    let gamepadLoggedOnce = false;
     const gamepadInterval = setInterval(() => {
       const gps = navigator.getGamepads();
-      const gp = gps[settings.joystickId];
+      const gp = gps[currentSettings.joystickId];
+      
+      // Log gamepad detection once
+      if (!gamepadLoggedOnce && gp) {
+        console.log(`Gamepad detected: ${gp.id}, buttons: ${gp.buttons.length}`);
+        gamepadLoggedOnce = true;
+      }
+      
       if (gp) {
-        const btn = gp.buttons[settings.joystickButton];
-        window.electronAPI.sendPTTState(btn?.pressed || false);
+        const btn = gp.buttons[currentSettings.joystickButton];
+        const pressed = btn?.pressed || false;
+        // Only send on state change to avoid flooding
+        if (pressed !== lastGamepadPTTState) {
+          console.log(`Gamepad PTT button ${currentSettings.joystickButton}: ${pressed ? 'PRESSED' : 'RELEASED'}`);
+          window.electronAPI.sendPTTState(pressed);
+          lastGamepadPTTState = pressed;
+        }
       }
     }, 50);
 
@@ -229,20 +249,31 @@ function App() {
   const stopRecording = async () => {
     if (!mediaRecorderRef.current) return;
 
-    mediaRecorderRef.current.stop();
+    const recorder = mediaRecorderRef.current;
     setIsRecording(false);
 
-    // Wait for final data
-    await new Promise(resolve => setTimeout(resolve, 200));
+    // Use onstop event to ensure all data is collected
+    recorder.onstop = async () => {
+      console.log('MediaRecorder stopped, chunks:', audioChunksRef.current.length);
+      
+      if (audioChunksRef.current.length === 0) {
+        console.error('No audio chunks recorded');
+        return;
+      }
 
-    const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-    const arrayBuffer = await audioBlob.arrayBuffer();
-    
-    // Send to main process for transcription
-    window.electronAPI.sendAudioData(arrayBuffer);
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      console.log('Audio blob size:', audioBlob.size);
+      
+      const arrayBuffer = await audioBlob.arrayBuffer();
+      
+      // Send to main process for transcription
+      window.electronAPI.sendAudioData(arrayBuffer);
 
-    // Stop all tracks
-    mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      // Stop all tracks
+      recorder.stream.getTracks().forEach(track => track.stop());
+    };
+
+    recorder.stop();
     mediaRecorderRef.current = null;
   };
 

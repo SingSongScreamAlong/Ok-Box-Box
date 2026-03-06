@@ -476,6 +476,7 @@ ipcMain.on('voice:pttState', (_event, pressed: boolean) => {
 });
 
 ipcMain.on('voice:audioData', (_event, audioBuffer: Buffer) => {
+  console.log(`🎤 Received audio data from renderer: ${audioBuffer?.length || 0} bytes`);
   voiceSystem?.processAudio(audioBuffer);
 });
 
@@ -647,12 +648,18 @@ app.whenReady().then(async () => {
   createWindow();
   createTray();
   
-  // Initialize voice system
+  // Initialize voice system with saved settings
+  const savedVoiceSettings = store.get('voiceSettings') as any;
   voiceSystem = new VoiceSystem({
     serverUrl: SERVER_URL,
+    ...savedVoiceSettings,
   });
   voiceSystem.setWindow(mainWindow!);
   await voiceSystem.start();
+  
+  if (savedVoiceSettings) {
+    console.log('🎙️ Loaded saved voice settings:', savedVoiceSettings);
+  }
   
   // Check for existing session
   const session = store.get('session') as UserSession | undefined;

@@ -6,6 +6,7 @@
  */
 
 import { config } from '../../config/index.js';
+import OpenAI, { toFile } from 'openai';
 
 // ============================================================================
 // TYPES
@@ -52,7 +53,6 @@ export interface ConversationContext {
 // CONFIGURATION
 // ============================================================================
 
-const OPENAI_API_URL = 'https://api.openai.com/v1';
 const WHISPER_MODEL = 'whisper-1';
 
 // Racing-specific prompt to improve transcription accuracy
@@ -68,6 +68,7 @@ P1-P20, sector, DRS, tyre, fuel, mode, copy, affirm, negative, standby.
 export class WhisperService {
     private apiKey: string;
     private isAvailable: boolean = false;
+    private openai: OpenAI | null = null;
 
     constructor() {
         this.apiKey = config.openaiApiKey || process.env.OPENAI_API_KEY || '';
@@ -75,6 +76,8 @@ export class WhisperService {
 
         if (!this.isAvailable) {
             console.warn('⚠️ WhisperService: OPENAI_API_KEY not configured');
+        } else {
+            this.openai = new OpenAI({ apiKey: this.apiKey });
         }
     }
 
@@ -98,7 +101,7 @@ export class WhisperService {
      * Transcribe audio buffer to text
      */
     async transcribe(request: TranscriptionRequest): Promise<TranscriptionResult> {
-        if (!this.isAvailable) {
+        if (!this.isAvailable || !this.openai) {
             return {
                 success: false,
                 error: 'Whisper service not configured (missing API key)'
@@ -106,50 +109,30 @@ export class WhisperService {
         }
 
         try {
-            // Create form data with audio file
-            const formData = new FormData();
-            const blob = new Blob([request.audioBuffer], { type: 'audio/webm' });
-            formData.append('file', blob, 'audio.webm');
-            formData.append('model', WHISPER_MODEL);
-
-            if (request.language) {
-                formData.append('language', request.language);
-            }
-
             // Use racing prompt for better accuracy
             const prompt = request.prompt
                 ? `${RACING_PROMPT} ${request.prompt}`
                 : RACING_PROMPT;
-            formData.append('prompt', prompt);
 
             const startTime = Date.now();
 
-            const response = await fetch(`${OPENAI_API_URL}/audio/transcriptions`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.apiKey}`
-                },
-                body: formData
+            // Use OpenAI SDK with toFile helper for proper file handling
+            const file = await toFile(request.audioBuffer, 'audio.webm', { type: 'audio/webm' });
+            
+            const transcription = await this.openai.audio.transcriptions.create({
+                file,
+                model: WHISPER_MODEL,
+                language: request.language,
+                prompt
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Whisper API error:', response.status, errorText);
-                return {
-                    success: false,
-                    error: `Whisper API error: ${response.status}`
-                };
-            }
-
-            const data = await response.json() as { text: string; language?: string };
             const durationMs = Date.now() - startTime;
 
-            console.log(`🎙️ Transcribed: "${data.text}" (${durationMs}ms)`);
+            console.log(`🎙️ Transcribed: "${transcription.text}" (${durationMs}ms)`);
 
             return {
                 success: true,
-                text: data.text,
-                language: data.language,
+                text: transcription.text,
                 durationMs
             };
 
@@ -269,18 +252,12 @@ ${standingsInfo}
             // Include driver context (IDP profile, traits, goals) if available
             const driverKnowledge = context.driverContext || '';
 
-            const response = await fetch(`${OPENAI_API_URL}/chat/completions`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${this.apiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    model: 'gpt-4o-mini',
-                    messages: [
-                        {
-                            role: 'system',
-                            content: `You are a professional race engineer providing real-time radio communication to YOUR driver in iRacing.
+            const completion = await this.openai!.chat.completions.create({
+                model: 'gpt-4o-mini',
+                messages: [
+                    {
+                        role: 'system',
+                        content: `You are a professional race engineer providing real-time radio communication to YOUR driver in iRacing.
 You know this driver personally - their strengths, weaknesses, goals, and history. Use this knowledge to give personalized advice.
 Keep responses brief (1-2 sentences max), clear, and actionable.
 Use racing terminology naturally. Stay calm and focused.
@@ -288,24 +265,18 @@ IMPORTANT: Use the ACTUAL telemetry and driver data provided below. Do NOT make 
 
 ${driverKnowledge}
 ${telemetryInfo}`
-                        },
-                        ...context.recentMessages.map((msg, i) => ({
-                            role: i % 2 === 0 ? 'user' as const : 'assistant' as const,
-                            content: msg
-                        })),
-                        { role: 'user', content: query }
-                    ],
-                    max_tokens: 100,
-                    temperature: 0.7
-                })
+                    },
+                    ...context.recentMessages.map((msg, i) => ({
+                        role: i % 2 === 0 ? 'user' as const : 'assistant' as const,
+                        content: msg
+                    })),
+                    { role: 'user', content: query }
+                ],
+                max_tokens: 100,
+                temperature: 0.7
             });
 
-            if (!response.ok) {
-                throw new Error(`OpenAI API error: ${response.status}`);
-            }
-
-            const data = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
-            const aiResponse = data.choices?.[0]?.message?.content || 'Copy that.';
+            const aiResponse = completion.choices?.[0]?.message?.content || 'Copy that.';
 
             console.log(`🗣️ Driver: "${query}"`);
             console.log(`🎧 Engineer: "${aiResponse}"`);

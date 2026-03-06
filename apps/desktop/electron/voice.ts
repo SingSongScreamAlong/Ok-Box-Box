@@ -72,11 +72,19 @@ export class VoiceSystem {
     if (!this.socket) return;
 
     // Listen for TTS audio from server
-    this.socket.on('voice:response', (data: { text: string; audio?: string }) => {
-      this.sendToRenderer({ text: data.text, type: 'received' });
+    this.socket.on('voice:response', (data: { success: boolean; query?: string; response?: string; audioBase64?: string; error?: string }) => {
+      if (!data.success) {
+        console.error('Voice response error:', data.error);
+        this.sendToRenderer({ text: `Error: ${data.error || 'Unknown error'}`, type: 'received' });
+        return;
+      }
       
-      if (data.audio) {
-        this.playAudioBase64(data.audio);
+      if (data.response) {
+        this.sendToRenderer({ text: data.response, type: 'received' });
+      }
+      
+      if (data.audioBase64) {
+        this.playAudioBase64(data.audioBase64);
       }
     });
 
