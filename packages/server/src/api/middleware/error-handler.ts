@@ -3,6 +3,7 @@
 // =====================================================================
 
 import type { Request, Response, NextFunction } from 'express';
+import * as Sentry from '@sentry/node';
 
 export interface AppError extends Error {
     statusCode?: number;
@@ -11,21 +12,37 @@ export interface AppError extends Error {
 
 export function errorHandler(
     err: AppError,
-    _req: Request,
+    req: Request,
     res: Response,
     _next: NextFunction
 ) {
-    console.error('Error:', err);
-
     const statusCode = err.statusCode || 500;
     const code = err.code || 'INTERNAL_ERROR';
     const message = err.message || 'An unexpected error occurred';
+
+    // Only log 5xx errors fully; 4xx are expected client errors
+    if (statusCode >= 500) {
+        console.error('Error:', err);
+
+        // Capture to Sentry with user context
+        if (process.env.SENTRY_DSN) {
+            Sentry.withScope((scope) => {
+                if (req.user) {
+                    scope.setUser({ id: req.user.id, email: req.user.email });
+                }
+                scope.setTag('error_code', code);
+                scope.setExtra('url', req.originalUrl);
+                scope.setExtra('method', req.method);
+                Sentry.captureException(err);
+            });
+        }
+    }
 
     res.status(statusCode).json({
         success: false,
         error: {
             code,
-            message,
+            message: statusCode >= 500 ? 'An unexpected error occurred' : message,
         },
     });
 }

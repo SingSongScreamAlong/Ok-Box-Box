@@ -12,18 +12,29 @@ import { runMigrations, seedAdminUser } from './db/migrations.js';
 import { config } from './config/index.js';
 import { startSyncScheduler, stopSyncScheduler } from './services/iracing-oauth/index.js';
 
-// Initialize Sentry for error tracking (production only)
+// Initialize Sentry for error tracking
 if (process.env.SENTRY_DSN) {
     Sentry.init({
         dsn: process.env.SENTRY_DSN,
         environment: config.nodeEnv,
+        release: `controlbox-server@${process.env.BUILD_VERSION || 'dev'}`,
+        serverName: process.env.HOSTNAME || 'controlbox-api',
         tracesSampleRate: config.nodeEnv === 'production' ? 0.1 : 1.0,
+        profilesSampleRate: config.nodeEnv === 'production' ? 0.05 : 0,
         integrations: [
             Sentry.httpIntegration(),
             Sentry.expressIntegration(),
         ],
+        // Don't send expected client errors (4xx) to Sentry
+        beforeSend(event) {
+            const status = event.contexts?.response?.status_code as number | undefined;
+            if (status && status >= 400 && status < 500) return null;
+            return event;
+        },
     });
     console.log('✅ Sentry error tracking initialized');
+} else if (config.nodeEnv === 'production') {
+    console.warn('⚠️  SENTRY_DSN not set — error tracking disabled in production');
 }
 
 async function main() {
