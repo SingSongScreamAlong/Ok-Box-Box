@@ -17,25 +17,42 @@ if local_env.exists():
     load_dotenv(local_env, override=True)
 
 # PitBox Server Connection (local or cloud)
+# Production API: https://octopus-app-qsi3i.ondigitalocean.app
+# Local dev: http://localhost:3001
 CLOUD_URL = os.getenv('BLACKBOX_SERVER_URL', 'https://octopus-app-qsi3i.ondigitalocean.app')
 AI_AGENT_URL = os.getenv('AI_AGENT_URL', 'http://localhost:3001')
 
 # Relay Identification
-RELAY_ID = os.getenv('RELAY_ID', 'pitbox-relay-1')
+# In production: set RELAY_ID to the RELAY_SECRET from the server env vars
+# In development: any value works (e.g. 'pitbox-relay-dev')
+RELAY_ID = os.getenv('RELAY_ID', os.getenv('RELAY_SECRET', 'pitbox-relay-dev'))
 RELAY_VERSION = '1.0.0'
 
 # User ID (for iRacing profile sync on session end)
 # This should be set to the Ok,Box Box user ID when launching the relay
 USER_ID = os.getenv('OKBOXBOX_USER_ID', None)
 
+# Auth token for production server connection
+# Preferred auth method — links relay to your account for IDP pipeline
+# Get this from your browser after logging into app.okboxbox.com:
+#   DevTools → Application → Local Storage → sb-*-auth-token → access_token
+AUTH_TOKEN = os.getenv('OKBOXBOX_AUTH_TOKEN', None)
+
 # Telemetry
 TELEMETRY_RATE_HZ = int(os.getenv('TELEMETRY_RATE_HZ', '10'))
 
-# PTT Defaults (used by main.py if not using settings_manager directly)
-PTT_TYPE = 'keyboard'
-PTT_KEY = 'space'
-JOYSTICK_ID = 0
-JOYSTICK_BUTTON = 0
+# Voice System API Keys
+OPENAI_API_KEY = os.getenv('OPENAI_API_KEY', '')
+ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY', '')
+
+# PTT Settings
+PTT_TYPE = os.getenv('PTT_TYPE', 'keyboard')
+PTT_KEY = os.getenv('PTT_KEY', 'space')
+JOYSTICK_ID = int(os.getenv('JOYSTICK_ID', '0'))
+JOYSTICK_BUTTON = int(os.getenv('JOYSTICK_BUTTON', '0'))
+
+# Microphone
+MICROPHONE_INDEX = int(os.getenv('MICROPHONE_INDEX', '0'))
 
 # Polling Configuration
 POLL_RATE_HZ = int(os.getenv('POLL_RATE_HZ', '10'))  # Telemetry updates per second

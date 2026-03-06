@@ -6,12 +6,14 @@
 
 const { io } = require('socket.io-client');
 
-const PYTHON_URL = 'http://127.0.0.1:9999';
-const SERVER_URL = 'https://octopus-app-qsi3i.ondigitalocean.app';
+const PYTHON_URL = process.env.PYTHON_RELAY_URL || 'http://127.0.0.1:9999';
+const SERVER_URL = process.env.BLACKBOX_SERVER_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+const RELAY_SECRET = process.env.RELAY_SECRET || process.env.RELAY_ID || 'pitbox-relay-dev';
 
 console.log('🔌 Relay Bridge Starting...');
 console.log(`   Python relay: ${PYTHON_URL}`);
 console.log(`   Server: ${SERVER_URL}`);
+console.log(`   Relay ID: ${RELAY_SECRET.substring(0, 8)}...`);
 
 // Connect to Python relay
 const pythonSocket = io(PYTHON_URL, {
@@ -20,12 +22,13 @@ const pythonSocket = io(PYTHON_URL, {
     timeout: 5000
 });
 
-// Connect to DO server
+// Connect to DO server (with relay auth)
 const serverSocket = io(SERVER_URL, {
     reconnection: true,
     reconnectionDelay: 1000,
     timeout: 10000,
-    transports: ['websocket', 'polling']
+    transports: ['websocket', 'polling'],
+    auth: { relayId: RELAY_SECRET }
 });
 
 let telemetryCount = 0;
