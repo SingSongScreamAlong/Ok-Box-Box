@@ -15,8 +15,9 @@ const useSSL = process.env.NODE_ENV === 'production' || isExternalDb;
 let connString = config.databaseUrl;
 if (useSSL) {
     connString = connString.replace(/[?&]sslmode=[^&]*/g, '').replace(/\?$/, '');
-    // Also tell Node's TLS to accept self-signed certs as a safety net
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+    // NOTE: We no longer set NODE_TLS_REJECT_UNAUTHORIZED='0' globally.
+    // The pool's ssl.rejectUnauthorized=false handles the DB's self-signed cert
+    // without disabling TLS verification for Stripe, OpenAI, iRacing, etc.
 }
 
 const poolConfig: PoolConfig = {

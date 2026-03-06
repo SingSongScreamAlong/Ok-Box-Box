@@ -55,17 +55,20 @@ export class AuthGate {
 
             // Allow relay connections with relayId
             // In development: any relayId works
-            // In production: relayId must match RELAY_SECRET env var or be a known relay
+            // In production: relayId must match RELAY_SECRET env var exactly
             if (relayId) {
                 const isDevMode = config.nodeEnv === 'development';
-                const relaySecret = process.env.RELAY_SECRET || 'pitbox-relay-dev';
-                const isAuthorizedRelay = isDevMode || relayId === relaySecret || relayId.startsWith('pitbox-relay-');
+                const relaySecret = process.env.RELAY_SECRET;
+                const isAuthorizedRelay = isDevMode || (relaySecret && relayId === relaySecret);
                 
                 if (isAuthorizedRelay) {
                     socket.data.user = { id: 'relay', email: 'relay@local', isActive: true, roles: ['relay'], entitlements: [] };
                     socket.data.isRelay = true;
-                    console.log(`🔌 Relay connected: ${relayId}`);
+                    console.log(`🔌 Relay connected: ${relayId.substring(0, 8)}...`);
                     return next();
+                } else if (!isDevMode) {
+                    console.warn(`🔌 Connection rejected: Invalid relay secret (${socket.id})`);
+                    return next(new Error('Invalid relay credentials'));
                 }
             }
 

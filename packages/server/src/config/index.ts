@@ -37,9 +37,9 @@ export const config = {
     iracingRelayHost: process.env.IRACING_RELAY_HOST || 'localhost',
     iracingRelayPort: parseInt(process.env.IRACING_RELAY_PORT || '3002', 10),
 
-    // Logging
-    logLevel: process.env.LOG_LEVEL || 'debug',
-    logFormat: process.env.LOG_FORMAT || 'dev',
+    // Logging — default to 'info' in production, 'debug' in dev
+    logLevel: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
+    logFormat: process.env.LOG_FORMAT || (process.env.NODE_ENV === 'production' ? 'combined' : 'dev'),
 
     // Observability (DEV features)
     metricsEnabled: process.env.METRICS_ENABLED === 'true',

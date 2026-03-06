@@ -149,9 +149,13 @@ export async function seedAdminUser(): Promise<void> {
             return; // Admin already exists
         }
 
-        // Create default admin — credentials come from env vars to avoid hardcoded secrets
+        // Create default admin — credentials MUST come from env vars in production
         const email = config.seedAdminEmail;
-        const password = config.seedAdminPassword || 'ControlBox2024!'; // fallback only if env not set
+        const password = config.seedAdminPassword;
+        if (!password) {
+            console.warn('   ⚠️  SEED_ADMIN_PASSWORD not set — skipping admin seed. Set this env var to create the default admin.');
+            return;
+        }
         const displayName = 'Admin User';
         const passwordHash = await hash(password, 12);
 
