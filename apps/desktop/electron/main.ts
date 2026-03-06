@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, shell, desktopCapturer } from 'electron';
+import { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, shell, desktopCapturer, dialog } from 'electron';
 import * as path from 'path';
 import { IRacingSDK } from 'irsdk-node';
 import { io, Socket } from 'socket.io-client';
@@ -12,9 +12,97 @@ let socket: Socket | null = null;
 let videoInterval: NodeJS.Timeout | null = null;
 let sessionId: string | null = null;
 let voiceSystem: VoiceSystem | null = null;
+let updateCheckInterval: NodeJS.Timeout | null = null;
 
 const SERVER_URL = 'https://octopus-app-qsi3i.ondigitalocean.app';
 const SUPABASE_URL = 'https://muypplgzqqtjlwinhunw.supabase.co';
+const APP_VERSION = '1.0.0';
+
+// ── Protocol Handler (okboxbox:// deep links) ──
+function registerProtocol() {
+  app.setAsDefaultProtocolClient('okboxbox');
+}
+
+function parseProtocolUrl(url: string): { action: string; token: string } | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'okboxbox:') return null;
+    const action = parsed.hostname || parsed.pathname.replace(/^\//, '');
+    const token = parsed.searchParams.get('token');
+    if (!action || !token) return null;
+    return { action, token };
+  } catch { return null; }
+}
+
+function extractProtocolUrl(argv: string[]): string | null {
+  return argv.find((arg) => arg.startsWith('okboxbox://')) || null;
+}
+
+// ── Auto-Start on Windows Boot ──
+function setupAutoStart() {
+  if (process.platform !== 'win32' || !app.isPackaged) return;
+  try {
+    const AutoLaunch = require('auto-launch');
+    const autoLauncher = new AutoLaunch({
+      name: 'Ok,Box Box',
+      path: app.getPath('exe'),
+    });
+    autoLauncher.isEnabled().then((enabled: boolean) => {
+      if (!enabled) {
+        autoLauncher.enable();
+        console.log('✅ Auto-start enabled');
+      }
+    }).catch((err: Error) => {
+      console.log('⚠️ Could not setup auto-start:', err.message);
+    });
+  } catch (err) {
+    console.log('⚠️ auto-launch not available:', err);
+  }
+}
+
+// ── Auto-Updater ──
+async function checkForUpdates(silent = true) {
+  try {
+    const response = await fetch(`${SERVER_URL}/api/relay/version`);
+    if (!response.ok) return null;
+    const info = await response.json() as { version: string; download_url: string; release_notes: string };
+    
+    const current = APP_VERSION.split(/[-.]/).map(p => parseInt(p, 10) || 0);
+    const remote = info.version.split(/[-.]/).map(p => parseInt(p, 10) || 0);
+    const isNewer = remote.some((v, i) => v > (current[i] || 0)) && !remote.every((v, i) => v === (current[i] || 0));
+    
+    if (!isNewer) {
+      if (!silent) await dialog.showMessageBox({ type: 'info', title: 'Ok, Box Box', message: 'Relay is up to date.' });
+      return null;
+    }
+    
+    const skipped = store.get('skippedVersion') as string | undefined;
+    if (silent && skipped === info.version) return null;
+    
+    const result = await dialog.showMessageBox({
+      type: 'info',
+      buttons: ['Download Update', 'Skip', 'Later'],
+      defaultId: 0, cancelId: 2,
+      title: `Update Available — v${info.version}`,
+      message: `Version ${info.version} is available.`,
+      detail: info.release_notes || 'A new version is ready to install.',
+    });
+    
+    if (result.response === 0) await shell.openExternal(info.download_url);
+    if (result.response === 1) store.set('skippedVersion', info.version);
+  } catch (err) {
+    if (!silent) console.error('Update check failed:', err);
+  }
+}
+
+function startUpdateChecker() {
+  if (updateCheckInterval) return;
+  updateCheckInterval = setInterval(() => checkForUpdates(true), 1000 * 60 * 60 * 6); // every 6 hours
+}
+
+function stopUpdateChecker() {
+  if (updateCheckInterval) { clearInterval(updateCheckInterval); updateCheckInterval = null; }
+}
 
 // Persistent storage for auth
 const store = new Store({
@@ -500,7 +588,62 @@ ipcMain.handle('auth:check', async () => {
   };
 });
 
+// ── Single Instance Lock ──
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+}
+
+app.on('second-instance', (_event, argv) => {
+  const url = extractProtocolUrl(argv);
+  if (url) handleProtocolUrl(url);
+  mainWindow?.show();
+});
+
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  handleProtocolUrl(url);
+});
+
+async function handleProtocolUrl(url: string) {
+  const parsed = parseProtocolUrl(url);
+  if (!parsed || parsed.action !== 'launch') return;
+  
+  try {
+    // Exchange launch token for access token
+    const response = await fetch(`${SERVER_URL}/api/launch-token/exchange`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: parsed.token }),
+    });
+    
+    if (!response.ok) return;
+    const data = await response.json() as any;
+    const result = data?.data || data;
+    
+    if (result.accessToken) {
+      const session: UserSession = {
+        accessToken: result.accessToken,
+        refreshToken: '',
+        userId: result.user?.id || '',
+        email: result.user?.email || '',
+        expiresAt: result.expiresAt || (Date.now() + 3600000),
+        tier: 'driver',
+      };
+      store.set('session', session);
+      connectToServer(session.accessToken);
+      startIRacingRelay();
+      mainWindow?.webContents.send('auth:updated', { loggedIn: true, user: { email: session.email, tier: session.tier } });
+      console.log(`🔗 Relay linked to ${session.email} via protocol`);
+    }
+  } catch (err) {
+    console.error('Protocol link failed:', err);
+  }
+}
+
 app.whenReady().then(async () => {
+  registerProtocol();
+  setupAutoStart();
   createWindow();
   createTray();
   
@@ -518,6 +661,14 @@ app.whenReady().then(async () => {
     startIRacingRelay();
   }
 
+  // Check for updates
+  await checkForUpdates(true);
+  startUpdateChecker();
+
+  // Handle protocol URL from cold launch
+  const pendingUrl = extractProtocolUrl(process.argv);
+  if (pendingUrl) handleProtocolUrl(pendingUrl);
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
@@ -532,6 +683,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  stopUpdateChecker();
   socket?.disconnect();
 });
 
