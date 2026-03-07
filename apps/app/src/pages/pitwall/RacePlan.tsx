@@ -76,63 +76,22 @@ const tireColors: Record<string, string> = {
 export function RacePlan() {
   const { teamId } = useParams<{ teamId: string }>();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const { drivers } = useTeamData();
-  
+  const { drivers, racePlans, loading, sendPlanToDrivers: broadcastPlan } = useTeamData();
+
   const [config] = useState<RaceConfig>(defaultConfig);
-  const [selectedDrivers, setSelectedDrivers] = useState<string[]>(['d1', 'd2', 'd3']);
-  const [activePlan, setActivePlan] = useState<'A' | 'B' | 'C'>('A');
+  const [activePlanIndex, setActivePlanIndex] = useState(0);
+  const [selectedDrivers, setSelectedDrivers] = useState<string[]>([]);
   const [showConfig, setShowConfig] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<LocalPlanChange[]>([]);
-  
-  // Plans A, B, C
-  const [plans, setPlans] = useState<Record<'A' | 'B' | 'C', RacePlanData>>({
-    A: {
-      id: 'plan-a',
-      name: 'Plan A - Standard',
-      isActive: true,
-      stints: [
-        { id: 's1', driverId: 'd1', startLap: 1, endLap: 30, laps: 30, fuelLoad: 95, tireCompound: 'medium', estimatedTime: 3510000, notes: 'Opening stint - conservative' },
-        { id: 's2', driverId: 'd2', startLap: 31, endLap: 60, laps: 30, fuelLoad: 95, tireCompound: 'medium', estimatedTime: 3525000, notes: 'Build gap if possible' },
-        { id: 's3', driverId: 'd3', startLap: 61, endLap: 90, laps: 30, fuelLoad: 95, tireCompound: 'hard', estimatedTime: 3540000, notes: 'Night stint - tire save' },
-        { id: 's4', driverId: 'd1', startLap: 91, endLap: 120, laps: 30, fuelLoad: 95, tireCompound: 'medium', estimatedTime: 3510000, notes: 'Final push to finish' },
-      ],
-      totalLaps: 120,
-      estimatedTime: 14085000,
-      fuelUsed: 380,
-      pitStops: 3,
-    },
-    B: {
-      id: 'plan-b',
-      name: 'Plan B - Aggressive',
-      isActive: false,
-      stints: [
-        { id: 's1b', driverId: 'd1', startLap: 1, endLap: 25, laps: 25, fuelLoad: 80, tireCompound: 'soft', estimatedTime: 2875000, notes: 'Fast start - build lead' },
-        { id: 's2b', driverId: 'd2', startLap: 26, endLap: 50, laps: 25, fuelLoad: 80, tireCompound: 'soft', estimatedTime: 2937500, notes: 'Maintain pace' },
-        { id: 's3b', driverId: 'd3', startLap: 51, endLap: 75, laps: 25, fuelLoad: 80, tireCompound: 'medium', estimatedTime: 2950000, notes: 'Transition stint' },
-        { id: 's4b', driverId: 'd1', startLap: 76, endLap: 100, laps: 25, fuelLoad: 80, tireCompound: 'medium', estimatedTime: 2925000, notes: 'Push for position' },
-        { id: 's5b', driverId: 'd2', startLap: 101, endLap: 120, laps: 20, fuelLoad: 65, tireCompound: 'soft', estimatedTime: 2350000, notes: 'Sprint finish' },
-      ],
-      totalLaps: 120,
-      estimatedTime: 14037500,
-      fuelUsed: 385,
-      pitStops: 4,
-    },
-    C: {
-      id: 'plan-c',
-      name: 'Plan C - Safety Car',
-      isActive: false,
-      stints: [
-        { id: 's1c', driverId: 'd1', startLap: 1, endLap: 35, laps: 35, fuelLoad: 110, tireCompound: 'hard', estimatedTime: 4095000, notes: 'Extended opening - wait for SC' },
-        { id: 's2c', driverId: 'd2', startLap: 36, endLap: 70, laps: 35, fuelLoad: 110, tireCompound: 'hard', estimatedTime: 4112500, notes: 'Long stint - fuel save' },
-        { id: 's3c', driverId: 'd3', startLap: 71, endLap: 105, laps: 35, fuelLoad: 110, tireCompound: 'medium', estimatedTime: 4130000, notes: 'Night running' },
-        { id: 's4c', driverId: 'd1', startLap: 106, endLap: 120, laps: 15, fuelLoad: 50, tireCompound: 'soft', estimatedTime: 1755000, notes: 'Sprint to end' },
-      ],
-      totalLaps: 120,
-      estimatedTime: 14092500,
-      fuelUsed: 380,
-      pitStops: 3,
-    },
-  });
+
+  // Keep selectedDrivers in sync with the active plan's assigned drivers
+  useEffect(() => {
+    if (racePlans.length === 0) return;
+    const plan = racePlans[Math.min(activePlanIndex, racePlans.length - 1)];
+    if (!plan) return;
+    const ids = [...new Set(plan.stints.map(s => s.driverId).filter(Boolean))];
+    setSelectedDrivers(ids.length > 0 ? ids : drivers.map(d => d.id));
+  }, [racePlans, activePlanIndex, drivers]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -140,17 +99,19 @@ export function RacePlan() {
     }
   }, []);
 
-  const currentPlan = plans[activePlan];
+  const currentPlan = racePlans[Math.min(activePlanIndex, Math.max(0, racePlans.length - 1))];
 
   const toggleDriver = (driverId: string) => {
-    setSelectedDrivers(prev => 
-      prev.includes(driverId) 
+    setSelectedDrivers(prev =>
+      prev.includes(driverId)
         ? prev.filter(id => id !== driverId)
         : [...prev, driverId]
     );
   };
 
   const sendPlanToDrivers = () => {
+    if (!currentPlan) return;
+    broadcastPlan(currentPlan.id, selectedDrivers);
     const change: LocalPlanChange = {
       id: `change-${Date.now()}`,
       timestamp: new Date(),
@@ -177,6 +138,17 @@ export function RacePlan() {
   };
 
   const getDriverById = (id: string) => drivers.find(d => d.id === id);
+
+  if (loading) {
+    return (
+      <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Flag className="w-8 h-8 text-[#f97316]/50" />
+          <span className="text-white/50 text-sm">Loading race plans...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-8rem)] relative">
@@ -304,25 +276,35 @@ export function RacePlan() {
 
         {/* Plan Tabs */}
         <div className="flex items-center gap-2 mb-4">
-          {(['A', 'B', 'C'] as const).map(plan => (
-            <button
-              key={plan}
-              onClick={() => setActivePlan(plan)}
-              className={`px-4 py-2 rounded font-mono text-sm font-bold transition-all ${
-                activePlan === plan
-                  ? plan === 'A' 
-                    ? 'bg-green-500/20 border-2 border-green-500/60 text-green-400'
-                    : plan === 'B'
-                      ? 'bg-yellow-500/20 border-2 border-yellow-500/60 text-yellow-400'
-                      : 'bg-red-500/20 border-2 border-red-500/60 text-red-400'
-                  : 'bg-white/[0.03] border border-white/10 text-white/50 hover:bg-white/[0.06]'
-              }`}
-            >
-              Plan {plan}
-            </button>
-          ))}
+          {racePlans.length === 0 ? (
+            <span className="text-xs text-white/30">No race plans yet — create one via the Planning page</span>
+          ) : (
+            racePlans.slice(0, 3).map((plan, idx) => {
+              const colors = [
+                'bg-green-500/20 border-green-500/60 text-green-400',
+                'bg-yellow-500/20 border-yellow-500/60 text-yellow-400',
+                'bg-red-500/20 border-red-500/60 text-red-400',
+              ];
+              const active = activePlanIndex === idx;
+              return (
+                <button
+                  key={plan.id}
+                  onClick={() => setActivePlanIndex(idx)}
+                  className={`px-4 py-2 rounded font-mono text-sm font-bold transition-all border-2 ${
+                    active
+                      ? colors[idx]
+                      : 'bg-white/[0.03] border-white/10 text-white/50 hover:bg-white/[0.06]'
+                  }`}
+                >
+                  {plan.isActive ? '★ ' : ''}{plan.name}
+                </button>
+              );
+            })
+          )}
           <div className="flex-1" />
-          <span className="text-xs text-white/40">{currentPlan.name}</span>
+          {currentPlan && (
+            <span className="text-xs text-white/40">{currentPlan.pitStops} pit stops</span>
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

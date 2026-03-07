@@ -215,20 +215,25 @@ export async function leaveTeam(
   }
 }
 
-// updateMemberRole — v1 API does not yet have a role-update endpoint.
-// Falls back to direct Supabase update for now.
+// updateMemberRole — uses v1 PATCH endpoint.
+// userId here is driver_profile_id (mapped for backwards compat in getTeamMembers).
 export async function updateMemberRole(
   teamId: string,
   userId: string,
   role: 'manager' | 'member'
 ): Promise<{ error: string | null }> {
-  const { error } = await supabase
-    .from('team_memberships')
-    .update({ role })
-    .eq('team_id', teamId)
-    .eq('user_id', userId);
-
-  return { error: error?.message ?? null };
+  try {
+    // Map UI role names to v1 role names
+    const v1Role = role === 'manager' ? 'manager' : 'driver';
+    await apiFetch(`/api/v1/teams/${teamId}/members/${userId}/role`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: v1Role }),
+    });
+    return { error: null };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Failed to update role' };
+  }
 }
 
 // ========================
