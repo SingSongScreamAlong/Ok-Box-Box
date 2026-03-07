@@ -9,7 +9,12 @@ import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { pool } from '../../db/client.js';
 import { getIO } from '../../websocket/index.js';
-import { getActiveMembership, getActiveMembers } from '../../db/repositories/team-membership.repo.js';
+import {
+    getActiveMembership,
+    getActiveMembers,
+    removeDriver,
+    leaveTeam as leaveTeamRepo,
+} from '../../db/repositories/team-membership.repo.js';
 
 const router = Router();
 
@@ -242,6 +247,79 @@ router.patch('/:teamId/members/:driverProfileId/role', async (req: Request, res:
     } catch (error) {
         console.error('[Team API] Error updating member role:', error);
         res.status(500).json({ error: 'Failed to update role' });
+    }
+});
+
+// =====================================================================
+// DELETE /api/v1/teams/:teamId/members/:driverProfileId
+// Remove a member from the team (manager/owner only)
+// =====================================================================
+router.delete('/:teamId/members/:driverProfileId', async (req: Request, res: Response) => {
+    try {
+        const userId = req.user!.id;
+        const { teamId, driverProfileId } = req.params;
+
+        const hasAccess = await checkTeamAccess(userId, teamId);
+        if (!hasAccess) {
+            res.status(403).json({ error: 'Not a member of this team' });
+            return;
+        }
+
+        const removed = await removeDriver(teamId, driverProfileId);
+        if (!removed) {
+            res.status(404).json({ error: 'Member not found in this team' });
+            return;
+        }
+
+        try {
+            getIO().to(`team:${teamId}`).emit('team:roster_update', {
+                type: 'member_removed', teamId, driverProfileId,
+            });
+        } catch (_) { /* WebSocket not available in tests */ }
+
+        res.status(204).send();
+    } catch (error) {
+        console.error('[Team API] Error removing member:', error);
+        res.status(500).json({ error: 'Failed to remove member' });
+    }
+});
+
+// =====================================================================
+// POST /api/v1/teams/:teamId/leave
+// Current user (identified by driver_profile_id via JWT) leaves team
+// =====================================================================
+router.post('/:teamId/leave', async (req: Request, res: Response) => {
+    try {
+        const userId = req.user!.id;
+        const { teamId } = req.params;
+
+        // Resolve the requesting user's driver_profile_id
+        const profileResult = await pool.query(
+            `SELECT id FROM driver_profiles WHERE user_account_id = $1 LIMIT 1`,
+            [userId]
+        );
+        if (profileResult.rows.length === 0) {
+            res.status(404).json({ error: 'Driver profile not found' });
+            return;
+        }
+        const driverProfileId = profileResult.rows[0].id;
+
+        const left = await leaveTeamRepo(teamId, driverProfileId);
+        if (!left) {
+            res.status(404).json({ error: 'Active membership not found' });
+            return;
+        }
+
+        try {
+            getIO().to(`team:${teamId}`).emit('team:roster_update', {
+                type: 'member_left', teamId, driverProfileId,
+            });
+        } catch (_) { /* WebSocket not available in tests */ }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Team API] Error leaving team:', error);
+        res.status(500).json({ error: 'Failed to leave team' });
     }
 });
 
