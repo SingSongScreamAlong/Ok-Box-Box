@@ -194,35 +194,12 @@ function App() {
     window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('keyup', handleKeyUp);
 
-    // Gamepad PTT polling (uses configured joystick/button from settings)
-    let lastGamepadPTTState = false;
-    let gamepadLoggedOnce = false;
-    const gamepadInterval = setInterval(() => {
-      const gps = navigator.getGamepads();
-      const gp = gps[currentSettings.joystickId];
-      
-      // Log gamepad detection once
-      if (!gamepadLoggedOnce && gp) {
-        console.log(`Gamepad detected: ${gp.id}, buttons: ${gp.buttons.length}`);
-        gamepadLoggedOnce = true;
-      }
-      
-      if (gp) {
-        const btn = gp.buttons[currentSettings.joystickButton];
-        const pressed = btn?.pressed || false;
-        // Only send on state change to avoid flooding
-        if (pressed !== lastGamepadPTTState) {
-          console.log(`Gamepad PTT button ${currentSettings.joystickButton}: ${pressed ? 'PRESSED' : 'RELEASED'}`);
-          window.electronAPI.sendPTTState(pressed);
-          lastGamepadPTTState = pressed;
-        }
-      }
-    }, 50);
+    // NOTE: Gamepad PTT is now handled via HID in main process (works without window focus)
+    // The renderer no longer polls gamepad - main process sends PTT state via onStartRecording/onStopRecording
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
-      clearInterval(gamepadInterval);
     };
   };
 

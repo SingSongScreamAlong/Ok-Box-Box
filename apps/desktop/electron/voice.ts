@@ -205,31 +205,69 @@ export class VoiceSystem {
   private startHIDButtonDetection() {
     if (!this.hidDevice) return;
     
-    // Track previous report to detect changes
+    // Track state for calibration
     let prevReport: Buffer | null = null;
     let calibrated = false;
     let buttonByteIndex = -1;
     let buttonBitMask = 0;
     
+    // For calibration: track candidate buttons that toggled on, waiting for toggle off
+    let candidateByte = -1;
+    let candidateMask = 0;
+    let candidateOnTime = 0;
+    
+    // Skip first N reports to let axes settle
+    let reportCount = 0;
+    const SETTLE_REPORTS = 20;
+    
     console.log(`🎮 HID button detection started for button ${this.config.joystickButton}`);
-    console.log('🎮 Press the PTT button once to calibrate...');
+    console.log('🎮 Waiting for input to settle, then press PTT button...');
     
     this.hidDevice.on('data', (data: Buffer) => {
+      reportCount++;
+      
+      // Let the device settle before calibrating
+      if (reportCount < SETTLE_REPORTS) {
+        prevReport = Buffer.from(data);
+        return;
+      }
+      
+      if (reportCount === SETTLE_REPORTS) {
+        console.log('🎮 Ready! Press and RELEASE the PTT button to calibrate...');
+      }
+      
       if (!calibrated && prevReport) {
-        // Find which byte changed - this is likely the button byte
+        // Look for single-bit changes (buttons, not axes)
         for (let i = 0; i < Math.min(data.length, prevReport.length); i++) {
           const diff = data[i] ^ prevReport[i];
-          if (diff !== 0) {
-            // Found a changed byte - check if it's a single bit change (button press)
-            const bitCount = this.countBits(diff);
-            if (bitCount === 1) {
-              buttonByteIndex = i;
-              buttonBitMask = diff;
-              calibrated = true;
-              console.log(`🎮 Calibrated! Button ${this.config.joystickButton} = byte ${i}, mask 0x${diff.toString(16)}`);
-              break;
+          if (diff !== 0 && this.countBits(diff) === 1) {
+            const bitNowOn = (data[i] & diff) !== 0;
+            
+            if (bitNowOn && candidateByte < 0) {
+              // Button pressed - record as candidate
+              candidateByte = i;
+              candidateMask = diff;
+              candidateOnTime = Date.now();
+            } else if (!bitNowOn && candidateByte === i && candidateMask === diff) {
+              // Same bit released - this is a real button!
+              const holdTime = Date.now() - candidateOnTime;
+              if (holdTime > 50 && holdTime < 5000) {
+                // Valid button press/release cycle
+                buttonByteIndex = i;
+                buttonBitMask = diff;
+                calibrated = true;
+                console.log(`🎮 Calibrated! PTT = byte ${i}, mask 0x${diff.toString(16)} (held ${holdTime}ms)`);
+              }
+              candidateByte = -1;
+              candidateMask = 0;
             }
           }
+        }
+        
+        // Reset candidate if held too long (probably not a button)
+        if (candidateByte >= 0 && Date.now() - candidateOnTime > 5000) {
+          candidateByte = -1;
+          candidateMask = 0;
         }
       }
       
