@@ -3,11 +3,11 @@
  * Handles PTT (Push-to-Talk), audio recording, transcription, and TTS playback
  */
 
-import { BrowserWindow } from 'electron';
-import HID from 'node-hid';
+import { BrowserWindow, globalShortcut } from 'electron';
+import { uIOhook, UiohookKey } from 'uiohook-napi';
 
 // We'll use the Web Audio API via the renderer process for recording
-// and node-hid for background joystick input (works without window focus)
+// and uiohook-napi for global keyboard detection (works without window focus)
 
 interface VoiceConfig {
   pttType: 'keyboard' | 'joystick';
@@ -30,7 +30,7 @@ export class VoiceSystem {
   private pttPressed = false;
   private pollInterval: NodeJS.Timeout | null = null;
   private joystick: any = null;
-  private hidDevice: HID.HID | null = null;
+  private uiohookStarted = false;
   private socket: any = null;
   private sessionId: string | null = null;
   private telemetryContext: any = {};
@@ -63,11 +63,29 @@ export class VoiceSystem {
   }
 
   updateConfig(settings: Partial<VoiceConfig>) {
+    const oldPttType = this.config.pttType;
+    
     if (settings.pttType) this.config.pttType = settings.pttType;
     if (settings.pttKey) this.config.pttKey = settings.pttKey;
     if (settings.joystickId !== undefined) this.config.joystickId = settings.joystickId;
     if (settings.joystickButton !== undefined) this.config.joystickButton = settings.joystickButton;
     console.log('🎙️ Voice config updated:', this.config);
+    
+    // Reinitialize PTT if type changed
+    if (settings.pttType && settings.pttType !== oldPttType) {
+      // Stop existing hooks
+      if (this.uiohookStarted) {
+        uIOhook.stop();
+        this.uiohookStarted = false;
+      }
+      
+      // Start new PTT based on type
+      if (this.config.pttType === 'keyboard') {
+        this.initKeyboardPTT();
+      } else if (this.config.pttType === 'joystick') {
+        this.initJoystick();
+      }
+    }
   }
 
   private setupSocketListeners() {
@@ -103,11 +121,10 @@ export class VoiceSystem {
   async start() {
     console.log('🎙️ Voice system starting...');
     
-    // Start PTT polling
-    this.pollInterval = setInterval(() => this.pollPTT(), 10);
-    
-    // Initialize joystick if needed
-    if (this.config.pttType === 'joystick') {
+    // Initialize PTT based on type
+    if (this.config.pttType === 'keyboard') {
+      this.initKeyboardPTT();
+    } else if (this.config.pttType === 'joystick') {
       await this.initJoystick();
     }
 
@@ -119,73 +136,54 @@ export class VoiceSystem {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
     }
-    if (this.hidDevice) {
-      this.hidDevice.close();
-      this.hidDevice = null;
+    if (this.uiohookStarted) {
+      uIOhook.stop();
+      this.uiohookStarted = false;
     }
     console.log('🎙️ Voice system stopped');
   }
 
   private async initJoystick() {
-    // Use node-hid for background joystick detection (works without window focus)
-    console.log(`🎮 Initializing joystick PTT: Device ${this.config.joystickId}, Button ${this.config.joystickButton}`);
-    
-    try {
-      const devices = HID.devices();
-      const gamepads = devices.filter(d => 
-        d.usagePage === 1 && (d.usage === 4 || d.usage === 5) // Joystick or Gamepad
-      );
-      
-      console.log(`🎮 Found ${gamepads.length} HID gamepad(s):`);
-      gamepads.forEach((gp, i) => {
-        console.log(`   ${i}: ${gp.product} (VID:${gp.vendorId} PID:${gp.productId})`);
-      });
-      
-      if (gamepads.length > this.config.joystickId) {
-        const target = gamepads[this.config.joystickId];
-        console.log(`🎮 Opening: ${target.product}`);
-        this.hidDevice = new HID.HID(target.path!);
-        
-        // Start polling HID device for button state
-        this.startHIDPolling();
-      } else {
-        console.log('🎮 No matching gamepad found, falling back to renderer gamepad API');
-      }
-    } catch (err) {
-      console.error('🎮 HID init error:', err);
-    }
+    // For joystick PTT, we rely on the renderer's Gamepad API
+    // This requires the window to have focus, so we also support keyboard PTT as fallback
+    console.log(`🎮 Joystick PTT configured: Device ${this.config.joystickId}, Button ${this.config.joystickButton}`);
+    console.log('🎮 Note: Joystick PTT requires window focus. Consider using keyboard PTT for background operation.');
   }
 
-  private startHIDPolling() {
-    if (!this.hidDevice) return;
-    
-    // Read HID data asynchronously
-    this.hidDevice.on('data', (data: Buffer) => {
-      // HID button data varies by device - typically buttons are in bytes 5-6
-      // For SIMAGIC, we need to find the right byte/bit for button 9
-      // Button 9 would be bit 1 of byte 2 (0-indexed) for many devices
-      const buttonByte = Math.floor(this.config.joystickButton / 8);
-      const buttonBit = this.config.joystickButton % 8;
-      
-      // Offset by typical header bytes (varies by device)
-      const dataOffset = 5; // Common offset for button data
-      const byteIndex = dataOffset + buttonByte;
-      
-      if (byteIndex < data.length) {
-        const pressed = (data[byteIndex] & (1 << buttonBit)) !== 0;
-        
-        if (pressed !== this.pttPressed) {
-          console.log(`🎮 HID PTT Button ${this.config.joystickButton}: ${pressed ? 'PRESSED' : 'RELEASED'}`);
-          this.onPTTStateChange(pressed);
-        }
+  private initKeyboardPTT() {
+    // Use uiohook for global keyboard detection (works without window focus)
+    const keyMap: Record<string, number> = {
+      'Space': UiohookKey.Space,
+      'F1': UiohookKey.F1,
+      'F2': UiohookKey.F2,
+      'F3': UiohookKey.F3,
+      'F4': UiohookKey.F4,
+      'F5': UiohookKey.F5,
+      'CapsLock': UiohookKey.CapsLock,
+      'Tab': UiohookKey.Tab,
+      'Backquote': UiohookKey.Backquote,
+    };
+
+    const targetKey = keyMap[this.config.pttKey] || UiohookKey.Space;
+    console.log(`🎤 Keyboard PTT: ${this.config.pttKey} (global, works without focus)`);
+
+    uIOhook.on('keydown', (e) => {
+      if (e.keycode === targetKey && !this.pttPressed) {
+        console.log(`🎤 PTT Key DOWN: ${this.config.pttKey}`);
+        this.onPTTStateChange(true);
       }
     });
-    
-    this.hidDevice.on('error', (err: Error) => {
-      console.error('🎮 HID error:', err);
+
+    uIOhook.on('keyup', (e) => {
+      if (e.keycode === targetKey && this.pttPressed) {
+        console.log(`🎤 PTT Key UP: ${this.config.pttKey}`);
+        this.onPTTStateChange(false);
+      }
     });
-    
-    console.log('🎮 HID polling started');
+
+    uIOhook.start();
+    this.uiohookStarted = true;
+    console.log('🎤 Global keyboard hook started');
   }
 
   private pollPTT() {
