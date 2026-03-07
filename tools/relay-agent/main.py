@@ -19,6 +19,15 @@ import time
 from typing import Optional
 
 import config
+import threading
+import io
+import wave
+import base64
+try:
+    import pyaudio
+except ImportError:
+    pyaudio = None
+
 from iracing_reader import IRacingReader
 from pitbox_client import PitBoxClient
 from video_encoder import VideoEncoder
@@ -72,6 +81,18 @@ class RelayAgent:
             joystick_button=config.JOYSTICK_BUTTON
         )
         self.overlay = PTTOverlay()
+        
+        # Voice recording
+        self.audio = pyaudio.PyAudio() if pyaudio else None
+        self.audio_format = pyaudio.paInt16 if pyaudio else 8
+        self.audio_channels = 1
+        self.audio_rate = 16000
+        self.audio_chunk = 1024
+        self.audio_frames = []
+        self.audio_recording = False
+        self.audio_stream = None
+        self.ptt_was_pressed = False
+        self.voice_thread = None
         
         # MoTeC Exporter
         self.motec_exporter = MoTeCLDExporter()
@@ -132,6 +153,13 @@ class RelayAgent:
         print(f"Connecting to: {self.cloud_client.url}")
         
         self.cloud_client.connect()
+        self._setup_voice_response_handler()
+        
+        # Start voice thread (runs independently of iRacing)
+        self.voice_thread = threading.Thread(target=self._voice_loop, daemon=True)
+        self.voice_thread.start()
+        logger.info("🎙️ Voice system ready (PTT active)")
+        
         self._main_loop()
     
     def stop(self):
@@ -171,7 +199,10 @@ class RelayAgent:
         session_sent = False
         
         while self.running:
-            # Check PTT for Overlay
+            # Check PTT for voice recording
+            self._check_voice_ptt()
+            
+            # Update overlay
             if hasattr(self, 'vr') and hasattr(self, 'overlay'):
                 self.overlay.set_talking(self.vr.is_pressed())
                 
@@ -567,6 +598,131 @@ class RelayAgent:
         
         logger.info(f"📍 Track shape saved: {output_file} ({len(shape_points)} points)")
         self.track_shape_saved = True
+
+    def _voice_loop(self):
+        """Dedicated voice loop running in separate thread"""
+        logger.info("Voice thread started")
+        debug_counter = 0
+        while self.running:
+            self._check_voice_ptt()
+            debug_counter += 1
+            # Log every 5 seconds to confirm thread is running
+            if debug_counter % 250 == 0:
+                is_pressed = self.vr.is_pressed() if hasattr(self, 'vr') else False
+                logger.debug(f"Voice thread alive, PTT={is_pressed}")
+            time.sleep(0.02)  # 50Hz polling
+
+    def _check_voice_ptt(self):
+        """Check PTT state and handle voice recording"""
+        if not self.audio or not hasattr(self, 'vr'):
+            return
+            
+        is_pressed = self.vr.is_pressed()
+        
+        # PTT pressed - start recording
+        if is_pressed and not self.ptt_was_pressed:
+            logger.info("🎤 Recording started...")
+            self.audio_recording = True
+            self.audio_frames = []
+            try:
+                self.audio_stream = self.audio.open(
+                    format=self.audio_format,
+                    channels=self.audio_channels,
+                    rate=self.audio_rate,
+                    input=True,
+                    frames_per_buffer=self.audio_chunk
+                )
+            except Exception as e:
+                logger.error(f"Failed to open audio stream: {e}")
+                self.audio_recording = False
+        
+        # PTT held - continue recording
+        elif is_pressed and self.audio_recording and self.audio_stream:
+            try:
+                data = self.audio_stream.read(self.audio_chunk, exception_on_overflow=False)
+                self.audio_frames.append(data)
+            except Exception:
+                pass
+        
+        # PTT released - stop recording and send
+        elif not is_pressed and self.ptt_was_pressed and self.audio_recording:
+            logger.info("🎤 Recording stopped, processing...")
+            self.audio_recording = False
+            if self.audio_stream:
+                self.audio_stream.stop_stream()
+                self.audio_stream.close()
+                self.audio_stream = None
+            
+            # Check minimum length (avoid tiny clicks)
+            if len(self.audio_frames) > 10:
+                self._send_voice_query()
+            else:
+                logger.debug("Recording too short, ignored")
+            
+            self.audio_frames = []
+        
+        self.ptt_was_pressed = is_pressed
+
+    def _send_voice_query(self):
+        """Convert recorded audio to base64 and send to server"""
+        if not self.audio_frames:
+            return
+            
+        try:
+            # Convert to WAV in memory
+            wav_buffer = io.BytesIO()
+            wf = wave.open(wav_buffer, 'wb')
+            wf.setnchannels(self.audio_channels)
+            wf.setsampwidth(self.audio.get_sample_size(self.audio_format))
+            wf.setframerate(self.audio_rate)
+            wf.writeframes(b''.join(self.audio_frames))
+            wf.close()
+            wav_buffer.seek(0)
+            
+            # Encode as base64
+            audio_b64 = base64.b64encode(wav_buffer.read()).decode('utf-8')
+            
+            logger.info(f"🎤 Sending {len(audio_b64)} bytes to server...")
+            
+            # Send via Socket.IO (same format as Electron relay)
+            self.cloud_client.emit('voice:query', {
+                'audio': audio_b64,
+                'format': 'wav'
+            })
+            
+        except Exception as e:
+            logger.error(f"Failed to send voice query: {e}")
+
+    def _setup_voice_response_handler(self):
+        """Setup handler for voice responses from server"""
+        @self.cloud_client.sio.on('voice:response')
+        def on_voice_response(data):
+            if not data.get('success'):
+                logger.error(f"Voice response error: {data.get('error')}")
+                return
+            
+            if data.get('response'):
+                logger.info(f"🎧 Engineer: {data.get('response')}")
+            
+            if data.get('audioBase64'):
+                self._play_audio_response(data.get('audioBase64'))
+
+    def _play_audio_response(self, audio_b64):
+        """Play base64 encoded audio response"""
+        try:
+            import sounddevice as sd
+            import soundfile as sf
+            
+            audio_bytes = base64.b64decode(audio_b64)
+            audio_buffer = io.BytesIO(audio_bytes)
+            
+            data, fs = sf.read(audio_buffer)
+            sd.play(data, fs)
+            sd.wait()
+        except ImportError:
+            logger.warning("sounddevice/soundfile not installed, cannot play audio")
+        except Exception as e:
+            logger.error(f"Playback error: {e}")
 
 
 # ========================

@@ -57,7 +57,11 @@ class PTTOverlay:
         
         # Always on top
         self.root.wm_attributes("-topmost", True)
-        self.root.wm_attributes("-transparent", True) # Windows-specific usually
+        # Windows transparency - use transparentcolor with a specific color
+        try:
+            self.root.wm_attributes("-transparentcolor", "#000001")
+        except:
+            pass  # Skip if not supported
         # Mac transparency might need different handling, but let's try standard
         try:
              self.root.wait_visibility(self.root)
