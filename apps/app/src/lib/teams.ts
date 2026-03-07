@@ -173,7 +173,7 @@ export async function deleteTeam(teamId: string): Promise<{ error: string | null
 // Members
 // ========================
 
-export async function getTeamMembers(teamId: string): Promise<TeamMembership[]> {
+export async function getTeamMembers(teamId: string): Promise<TeamMemberWithProfile[]> {
   try {
     // Roster endpoint returns TeamRosterView: { team_id, team_name, member_count, members[] }
     const data = await apiFetch<{ members: any[] }>(`/api/v1/teams/${teamId}/roster`);
@@ -184,6 +184,7 @@ export async function getTeamMembers(teamId: string): Promise<TeamMembership[]> 
       user_id: m.driver_profile_id,
       role: mapRole(m.role),
       joined_at: m.joined_at || new Date().toISOString(),
+      display_name: m.display_name || null,
     }));
   } catch (err) {
     console.error('Error fetching team members:', err);

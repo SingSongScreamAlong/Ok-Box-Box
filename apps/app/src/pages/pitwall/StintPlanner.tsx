@@ -136,12 +136,12 @@ export function StintPlanner() {
               Authorization: `Bearer ${session.access_token}`,
             },
             body: JSON.stringify({
-              stint_number: i + 1,
-              driver_id: stint.driverId || null,
-              start_lap: stint.startLap,
-              end_lap: stint.endLap,
-              fuel_load: stint.fuelLoad,
-              tire_compound: stint.tireCompound,
+              stintNumber: i + 1,
+              driverId: stint.driverId || null,
+              startLap: stint.startLap,
+              endLap: stint.endLap,
+              fuelLoad: stint.fuelLoad,
+              tireCompound: stint.tireCompound,
               notes: stint.notes || null,
             }),
           }

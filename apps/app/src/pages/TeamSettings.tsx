@@ -2,17 +2,17 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { 
-  getTeam, 
-  getUserTeamRole, 
-  getTeamMembers, 
+  getTeam,
+  getUserTeamRole,
+  getTeamMembers,
   getTeamInvitations,
   updateTeam,
   deleteTeam,
   removeMember,
   updateMemberRole,
   createInvitation,
-  Team, 
-  TeamMembership,
+  Team,
+  TeamMemberWithProfile,
   TeamInvitation
 } from '../lib/teams';
 import { ArrowLeft, Trash2, UserPlus, Mail } from 'lucide-react';
@@ -23,7 +23,7 @@ export function TeamSettings() {
   const navigate = useNavigate();
   const [team, setTeam] = useState<Team | null>(null);
   const [role, setRole] = useState<'owner' | 'manager' | 'member' | null>(null);
-  const [members, setMembers] = useState<TeamMembership[]>([]);
+  const [members, setMembers] = useState<TeamMemberWithProfile[]>([]);
   const [invitations, setInvitations] = useState<TeamInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [teamName, setTeamName] = useState('');
@@ -314,10 +314,10 @@ export function TeamSettings() {
                 <div key={member.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs text-white/50">
-                      {member.user_id.slice(0, 2).toUpperCase()}
+                      {(member.display_name || member.user_id).slice(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm text-white">{member.user_id.slice(0, 8)}...</p>
+                      <p className="text-sm text-white">{member.display_name || `${member.user_id.slice(0, 8)}…`}</p>
                       <p className="text-[10px] text-white/40">
                         {member.user_id === user?.id ? 'You' : ''}
                       </p>
