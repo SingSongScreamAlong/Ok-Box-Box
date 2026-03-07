@@ -158,6 +158,35 @@ router.put('/:id', requireAuth, async (req: Request, res: Response) => {
     }
 });
 
+// PATCH alias for PUT — used by the web client's updateTeam()
+router.patch('/:id', requireAuth, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { name, shortName, color, logoUrl, isActive } = req.body;
+
+        const result = await pool.query(`
+            UPDATE teams SET
+                name = COALESCE($1, name),
+                short_name = COALESCE($2, short_name),
+                color = COALESCE($3, color),
+                logo_url = COALESCE($4, logo_url),
+                is_active = COALESCE($5, is_active),
+                updated_at = NOW()
+            WHERE id = $6
+            RETURNING *
+        `, [name, shortName, color, logoUrl, isActive, id]);
+
+        if (result.rows.length === 0) {
+            return void res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Team not found' } });
+        }
+
+        res.json({ success: true, data: result.rows[0] });
+    } catch (error) {
+        console.error('Error updating team:', error);
+        return void res.status(500).json({ success: false, error: { code: 'UPDATE_ERROR', message: 'Failed to update team' } });
+    }
+});
+
 // Delete team
 router.delete('/:id', requireAuth, async (req: Request, res: Response) => {
     try {
