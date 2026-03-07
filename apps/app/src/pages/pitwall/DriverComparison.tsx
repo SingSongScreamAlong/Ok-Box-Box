@@ -1,11 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft, ChevronDown, TrendingUp, TrendingDown, Minus, RefreshCw, Users
 } from 'lucide-react';
-// Service imports for future API integration
-// import { fetchDriverComparison, type DriverComparisonData } from '../../lib/telemetryService';
-// import { fetchTeamDrivers, type Driver } from '../../lib/stintService';
+import { useTeamData } from '../../hooks/useTeamData';
 
 // Types
 interface LapData {
@@ -206,9 +204,28 @@ function formatDelta(ms: number): string {
 
 export function DriverComparison() {
   const { teamId } = useParams<{ teamId: string }>();
-  const [drivers] = useState<DriverData[]>([]); // Demo disabled - start empty
-  const [driver1, setDriver1] = useState<DriverData | null>(null); // Demo disabled
-  const [driver2, setDriver2] = useState<DriverData | null>(null); // Demo disabled
+  const { drivers: teamDrivers } = useTeamData();
+
+  // Map service Driver → local DriverData (lap-by-lap telemetry not available from API)
+  const drivers = useMemo<DriverData[]>(() =>
+    teamDrivers.map(d => ({
+      id: d.id,
+      name: d.name,
+      number: d.number,
+      color: d.color,
+      iRating: d.iRatingRoad,
+      car: '',
+      laps: [],
+      bestLap: null,
+      avgLapTime: formatLapTime(d.avgLapTime),
+      consistency: 0,
+      telemetryTrace: [],
+    })),
+    [teamDrivers]
+  );
+
+  const [driver1, setDriver1] = useState<DriverData | null>(null);
+  const [driver2, setDriver2] = useState<DriverData | null>(null);
   const [viewMode, setViewMode] = useState<'laps' | 'telemetry' | 'sectors'>('laps');
   const [showDropdown1, setShowDropdown1] = useState(false);
   const [showDropdown2, setShowDropdown2] = useState(false);
