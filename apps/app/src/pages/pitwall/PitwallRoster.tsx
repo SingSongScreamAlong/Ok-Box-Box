@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { UserPlus, Search, Filter, Users, Crown, Wrench, User, LinkIcon, Target, Loader2 } from 'lucide-react';
 import { useTeamData } from '../../hooks/useTeamData';
+import { PitwallBackground } from '../../components/PitwallBackground';
 import { InviteBuilder } from '../../components/InviteBuilder';
 
 // Types from legacy
@@ -56,7 +57,6 @@ export function PitwallRoster() {
   const [roster, setRoster] = useState<TeamRosterView | null>(null);
   const [filter, setFilter] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
   
   // Map service data to local format
   useEffect(() => {
@@ -96,12 +96,6 @@ export function PitwallRoster() {
     }
   }, [dataLoading, serviceRoster]);
 
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
-    }
-  }, []);
-
   const filteredMembers = roster?.members.filter(m =>
     m.display_name.toLowerCase().includes(filter.toLowerCase()) ||
     m.role.toLowerCase().includes(filter.toLowerCase())
@@ -129,22 +123,7 @@ export function PitwallRoster() {
 
   return (
     <div className="min-h-[calc(100vh-8rem)] relative">
-      {/* Background video */}
-      <div className="fixed inset-0 z-0">
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="w-full h-full object-cover opacity-50"
-        >
-          <source src="/videos/team-bg.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/95 via-[#0e0e0e]/80 to-[#0e0e0e]/70" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/95" />
-      </div>
+      <PitwallBackground />
 
       <div className="relative z-10 p-6 max-w-7xl mx-auto">
         {/* Header */}

@@ -338,89 +338,48 @@ export function PitwallHome() {
                 </div>
               </div>
               
-              {/* Row 2: Engineer | Spotter for each driver */}
+              {/* Row 2: Race Control + utility channels */}
               <div className="flex gap-2">
-                {['alex', 'jordan', 'sam', 'casey'].map(driverKey => {
-                  const engChannel = radioChannels.find(ch => ch.id === `${driverKey}-eng`);
-                  const spotChannel = radioChannels.find(ch => ch.id === `${driverKey}-spot`);
-                  if (!engChannel || !spotChannel) return null;
+                {/* One ENG/SPOT pair per driver channel */}
+                {radioChannels.filter(ch => ch.type === 'driver').map(driverChannel => (
+                  <div key={`${driverChannel.id}-crew`} className="flex-1 flex gap-1">
+                    <div
+                      className="flex-1 h-7 rounded border bg-[#181818] border-[#3a3a3a] text-white/20 font-mono text-[9px] font-semibold tracking-wide flex items-center justify-center"
+                      title={`${driverChannel.name} Engineer (coming soon)`}
+                    >
+                      ENG
+                    </div>
+                    <div
+                      className="flex-1 h-7 rounded border bg-[#181818] border-[#3a3a3a] text-white/20 font-mono text-[9px] font-semibold tracking-wide flex items-center justify-center"
+                      title={`${driverChannel.name} Spotter (coming soon)`}
+                    >
+                      SPOT
+                    </div>
+                  </div>
+                ))}
+                
+                {/* Race Control channel */}
+                {(() => {
+                  const ch = radioChannels.find(c => c.id === 'race-control');
+                  if (!ch) return null;
                   return (
-                    <div key={driverKey} className="flex-1 flex gap-1">
-                      {/* Engineer */}
+                    <div className="flex-1">
                       <button
-                        onClick={() => toggleChannel(engChannel.id)}
-                        className={`flex-1 h-7 rounded border transition-all font-mono text-[9px] font-semibold tracking-wide ${
-                          engChannel.speaking
-                            ? 'bg-green-500/20 border-green-500 text-green-400 shadow-[0_0_8px_rgba(34,197,94,0.3)]'
-                            : engChannel.active
-                              ? 'bg-[#252525] border-amber-500/40 text-amber-400/80'
-                              : engChannel.muted
-                                ? 'bg-[#181818] border-red-500/30 text-red-500/40'
-                                : 'bg-[#181818] border-[#3a3a3a] text-white/30 hover:border-[#4a4a4a] hover:text-white/50'
+                        onClick={() => toggleChannel(ch.id)}
+                        className={`w-full h-7 rounded border transition-all font-mono text-[9px] font-semibold tracking-wide ${
+                          ch.active
+                            ? 'bg-[#252525] border-yellow-500/40 text-yellow-400/80'
+                            : 'bg-[#181818] border-[#3a3a3a] text-white/30 hover:border-[#4a4a4a] hover:text-white/50'
                         }`}
-                        style={{ textShadow: engChannel.active || engChannel.speaking ? '0 0 6px currentColor' : 'none' }}
+                        style={{ textShadow: ch.active ? '0 0 6px currentColor' : 'none' }}
                       >
-                        ENG
-                      </button>
-                      {/* Spotter */}
-                      <button
-                        onClick={() => toggleChannel(spotChannel.id)}
-                        className={`flex-1 h-7 rounded border transition-all font-mono text-[9px] font-semibold tracking-wide ${
-                          spotChannel.speaking
-                            ? 'bg-green-500/20 border-green-500 text-green-400 shadow-[0_0_8px_rgba(34,197,94,0.3)]'
-                            : spotChannel.active
-                              ? 'bg-[#252525] border-amber-500/40 text-amber-400/80'
-                              : spotChannel.muted
-                                ? 'bg-[#181818] border-red-500/30 text-red-500/40'
-                                : 'bg-[#181818] border-[#3a3a3a] text-white/30 hover:border-[#4a4a4a] hover:text-white/50'
-                        }`}
-                        style={{ textShadow: spotChannel.active || spotChannel.speaking ? '0 0 6px currentColor' : 'none' }}
-                      >
-                        SPOT
+                        RC
                       </button>
                     </div>
                   );
-                })}
-                
-                {/* Strategy & Pit buttons */}
-                <div className="flex-1">
-                  {(() => {
-                    const ch = radioChannels.find(c => c.id === 'strategy');
-                    if (!ch) return null;
-                    return (
-                      <button
-                        onClick={() => toggleChannel(ch.id)}
-                        className={`w-full h-7 rounded border transition-all font-mono text-[9px] font-semibold tracking-wide ${
-                          ch.active
-                            ? 'bg-[#252525] border-purple-500/40 text-purple-400/80'
-                            : 'bg-[#181818] border-[#3a3a3a] text-white/30 hover:border-[#4a4a4a] hover:text-white/50'
-                        }`}
-                        style={{ textShadow: ch.active ? '0 0 6px currentColor' : 'none' }}
-                      >
-                        STRAT
-                      </button>
-                    );
-                  })()}
-                </div>
-                <div className="flex-1">
-                  {(() => {
-                    const ch = radioChannels.find(c => c.id === 'pitcrew');
-                    if (!ch) return null;
-                    return (
-                      <button
-                        onClick={() => toggleChannel(ch.id)}
-                        className={`w-full h-7 rounded border transition-all font-mono text-[9px] font-semibold tracking-wide ${
-                          ch.active
-                            ? 'bg-[#252525] border-blue-500/40 text-blue-400/80'
-                            : 'bg-[#181818] border-[#3a3a3a] text-white/30 hover:border-[#4a4a4a] hover:text-white/50'
-                        }`}
-                        style={{ textShadow: ch.active ? '0 0 6px currentColor' : 'none' }}
-                      >
-                        PIT
-                      </button>
-                    );
-                  })()}
-                </div>
+                })()}
+                {/* Spacer for alignment */}
+                <div className="flex-1" />
               </div>
               
             </div>

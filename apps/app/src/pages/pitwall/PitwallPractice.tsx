@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Timer, Clock, CheckCircle, Plus, TrendingUp, TrendingDown, Zap, BarChart3, Activity, AlertTriangle, Target, Layers, Loader2 } from 'lucide-react';
 import { useTeamData } from '../../hooks/useTeamData';
+import { PitwallBackground } from '../../components/PitwallBackground';
 
 // Types - comprehensive practice/telemetry modeling
 interface RunPlan {
@@ -54,97 +55,6 @@ interface DriverStint {
   lap_history: LapData[];
 }
 
-interface TelemetrySnapshot {
-  speed: number;
-  throttle: number;
-  brake: number;
-  gear: number;
-  rpm: number;
-  steering: number;
-  fuel_remaining: number;
-  tire_temps: { fl: number; fr: number; rl: number; rr: number };
-  tire_wear: { fl: number; fr: number; rl: number; rr: number };
-}
-
-// Mock data - professional depth
-const mockRunPlans: RunPlan[] = [
-  {
-    id: 'rp1',
-    name: 'Long Run Simulation',
-    target_laps: 30,
-    completed_laps: 30,
-    target_time: '1:48.000',
-    focus: ['Tire degradation curve', 'Fuel consumption mapping', 'Consistency under load'],
-    status: 'completed',
-    notes: 'Completed. Tire deg 0.08s/lap on mediums. Fuel 2.78L/lap avg.'
-  },
-  {
-    id: 'rp2',
-    name: 'Qualifying Simulation',
-    target_laps: 5,
-    completed_laps: 3,
-    target_time: '1:46.500',
-    focus: ['Single lap pace', 'Optimal tire prep', 'Track position'],
-    status: 'in_progress',
-    notes: 'Current best 1:46.892. Gap to target: +0.392s'
-  },
-  {
-    id: 'rp3',
-    name: 'Race Start Practice',
-    target_laps: 10,
-    completed_laps: 0,
-    focus: ['Launch technique', 'Turn 1 positioning', 'First lap survival'],
-    status: 'planned'
-  },
-  {
-    id: 'rp4',
-    name: 'Traffic Management',
-    target_laps: 20,
-    completed_laps: 0,
-    focus: ['Overtaking zones', 'Defensive lines', 'Dirty air management'],
-    status: 'planned'
-  }
-];
-
-const mockStints: DriverStint[] = [
-  { 
-    driver_id: 'd1', driver_name: 'Alex Rivera', laps: 45, 
-    best_lap: '1:47.342', best_lap_ms: 107342, avg_lap: '1:48.012', avg_lap_ms: 108012,
-    consistency: 94, incidents: 0, fuel_per_lap: 2.78, tire_deg_per_lap: 0.08,
-    sectors: { s1_best: '32.456', s2_best: '42.123', s3_best: '32.612' },
-    theoretical_best: '1:47.191', gap_to_leader: '-',
-    lap_history: [
-      { lap_number: 43, lap_time: '1:47.892', lap_time_ms: 107892, sectors: [{ sector: 1, time: 32567, delta_to_best: 111, color: 'green' }, { sector: 2, time: 42234, delta_to_best: 111, color: 'yellow' }, { sector: 3, time: 33091, delta_to_best: 479, color: 'yellow' }], fuel_used: 2.81, tire_wear: 0.09, is_valid: true, is_personal_best: false, is_session_best: false, track_temp: 38, conditions: 'dry' },
-      { lap_number: 44, lap_time: '1:47.456', lap_time_ms: 107456, sectors: [{ sector: 1, time: 32489, delta_to_best: 33, color: 'green' }, { sector: 2, time: 42156, delta_to_best: 33, color: 'green' }, { sector: 3, time: 32811, delta_to_best: 199, color: 'yellow' }], fuel_used: 2.76, tire_wear: 0.07, is_valid: true, is_personal_best: false, is_session_best: false, track_temp: 37, conditions: 'dry' },
-      { lap_number: 45, lap_time: '1:47.342', lap_time_ms: 107342, sectors: [{ sector: 1, time: 32456, delta_to_best: 0, color: 'purple' }, { sector: 2, time: 42123, delta_to_best: 0, color: 'purple' }, { sector: 3, time: 32763, delta_to_best: 151, color: 'yellow' }], fuel_used: 2.74, tire_wear: 0.06, is_valid: true, is_personal_best: true, is_session_best: false, track_temp: 36, conditions: 'dry' },
-    ]
-  },
-  { 
-    driver_id: 'd2', driver_name: 'Jordan Chen', laps: 38, 
-    best_lap: '1:47.156', best_lap_ms: 107156, avg_lap: '1:48.445', avg_lap_ms: 108445,
-    consistency: 86, incidents: 1, fuel_per_lap: 2.82, tire_deg_per_lap: 0.11,
-    sectors: { s1_best: '32.234', s2_best: '42.089', s3_best: '32.678' },
-    theoretical_best: '1:47.001', gap_to_leader: '-0.186',
-    lap_history: []
-  },
-  { 
-    driver_id: 'd3', driver_name: 'Sam Williams', laps: 28, 
-    best_lap: '1:48.102', best_lap_ms: 108102, avg_lap: '1:48.890', avg_lap_ms: 108890,
-    consistency: 91, incidents: 0, fuel_per_lap: 2.71, tire_deg_per_lap: 0.06,
-    sectors: { s1_best: '32.678', s2_best: '42.456', s3_best: '32.812' },
-    theoretical_best: '1:47.946', gap_to_leader: '+0.946',
-    lap_history: []
-  },
-  { 
-    driver_id: 'd4', driver_name: 'Casey Morgan', laps: 15, 
-    best_lap: '1:49.234', best_lap_ms: 109234, avg_lap: '1:50.678', avg_lap_ms: 110678,
-    consistency: 72, incidents: 2, fuel_per_lap: 2.95, tire_deg_per_lap: 0.14,
-    sectors: { s1_best: '33.456', s2_best: '43.234', s3_best: '32.544' },
-    theoretical_best: '1:49.234', gap_to_leader: '+2.078',
-    lap_history: []
-  }
-];
-
 const statusStyles: Record<string, { bg: string; text: string; icon: any }> = {
   planned: { bg: 'bg-white/10', text: 'text-white/40', icon: Clock },
   in_progress: { bg: 'bg-[#f97316]/20', text: 'text-[#f97316]', icon: Timer },
@@ -152,13 +62,12 @@ const statusStyles: Record<string, { bg: string; text: string; icon: any }> = {
 };
 
 export function PitwallPractice() {
-  const { teamId } = useParams<{ teamId: string }>();
+  useParams<{ teamId: string }>();
   const { runPlans: serviceRunPlans, driverStints: serviceStints, loading: dataLoading } = useTeamData();
   const [runPlans, setRunPlans] = useState<RunPlan[]>([]);
   const [stints, setStints] = useState<DriverStint[]>([]);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'sectors' | 'telemetry'>('overview');
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Map service data to local format (camelCase -> snake_case for compatibility)
   useEffect(() => {
@@ -195,12 +104,6 @@ export function PitwallPractice() {
     }
   }, [dataLoading, serviceRunPlans, serviceStints]);
 
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
-    }
-  }, []);
-
   // Find best lap and theoretical best across all drivers
   const bestOverall = stints.reduce((best, s) => (!best || s.best_lap_ms < best.ms) ? { time: s.best_lap, ms: s.best_lap_ms, driver: s.driver_name } : best, { time: '', ms: Infinity, driver: '' });
   const theoreticalBest = stints.reduce((best, s) => (!best || s.theoretical_best < best) ? s.theoretical_best : best, '');
@@ -223,22 +126,7 @@ export function PitwallPractice() {
 
   return (
     <div className="min-h-[calc(100vh-8rem)] relative">
-      {/* Background video */}
-      <div className="fixed inset-0 z-0">
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="w-full h-full object-cover opacity-50"
-        >
-          <source src="/videos/bg-3.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/95 via-[#0e0e0e]/80 to-[#0e0e0e]/70" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/95" />
-      </div>
+      <PitwallBackground />
 
       <div className="relative z-10 p-6">
       {/* Header */}
@@ -247,12 +135,14 @@ export function PitwallPractice() {
           <h1 className="text-xl font-bold tracking-wide uppercase text-white" style={{ fontFamily: 'Orbitron, sans-serif' }}>
             Practice Analysis
           </h1>
-          <p className="text-sm mt-1 text-white/50">Daytona International Speedway • GT3 • Dry Conditions</p>
+          <p className="text-sm mt-1 text-white/50">
+            {stints.length > 0 ? `${stints.length} drivers • ${totalLaps} laps completed` : 'No practice data yet — connect relay to begin'}
+          </p>
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
-            <div className="text-[10px] text-white/40 uppercase">Session Time</div>
-            <div className="text-lg font-mono text-white">1:24:32</div>
+            <div className="text-[10px] text-white/40 uppercase">Drivers</div>
+            <div className="text-lg font-mono text-white">{stints.length}</div>
           </div>
         </div>
       </div>

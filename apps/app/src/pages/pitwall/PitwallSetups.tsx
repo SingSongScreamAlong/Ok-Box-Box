@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Settings, Download, Upload, Star, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { PitwallBackground } from '../../components/PitwallBackground';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
 
@@ -21,7 +22,6 @@ export function PitwallSetups() {
   const { session } = useAuth();
   const [setups, setSetups] = useState<Setup[]>([]);
   const [loading, setLoading] = useState(true);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     async function loadSetups() {
@@ -56,12 +56,6 @@ export function PitwallSetups() {
     loadSetups();
   }, [teamId, session?.access_token]);
 
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
-    }
-  }, []);
-
   if (loading) {
     return (
       <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
@@ -75,22 +69,7 @@ export function PitwallSetups() {
 
   return (
     <div className="min-h-[calc(100vh-8rem)] relative">
-      {/* Background video */}
-      <div className="fixed inset-0 z-0">
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="w-full h-full object-cover opacity-50"
-        >
-          <source src="/videos/bg-3.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/95 via-[#0e0e0e]/80 to-[#0e0e0e]/70" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/95" />
-      </div>
+      <PitwallBackground />
 
       <div className="relative z-10 p-6">
       <div className="flex items-center justify-between mb-6">
@@ -110,6 +89,13 @@ export function PitwallSetups() {
       </div>
 
       <div className="grid gap-3">
+        {setups.length === 0 && (
+          <div className="bg-white/[0.03] border border-white/[0.06] rounded p-12 text-center">
+            <Settings size={32} className="mx-auto text-white/15 mb-3" />
+            <p className="text-white/40 text-sm">No setups uploaded yet</p>
+            <p className="text-white/20 text-xs mt-1">Upload car setups to share with your team</p>
+          </div>
+        )}
         {setups.map((setup) => (
           <div 
             key={setup.id}

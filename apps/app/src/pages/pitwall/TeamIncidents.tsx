@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getTeam, Team } from '../../lib/teams';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   ArrowLeft, AlertTriangle, ChevronRight, Search, Eye, TrendingDown
 } from 'lucide-react';
+import { PitwallBackground } from '../../components/PitwallBackground';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
 
@@ -41,14 +42,6 @@ export function TeamIncidents() {
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIncident, setSelectedIncident] = useState<TeamIncident | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
-    }
-  }, []);
-
   useEffect(() => {
     async function loadData() {
       if (!teamId) return;
@@ -106,21 +99,7 @@ export function TeamIncidents() {
 
   return (
     <div className="min-h-screen relative">
-      {/* Background video */}
-      <div className="fixed inset-0 z-0">
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="w-full h-full object-cover opacity-40"
-        >
-          <source src="/videos/bg-3.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/70 via-[#0a0a0a]/50 to-[#0a0a0a]/90" />
-      </div>
+      <PitwallBackground />
 
       <div className="relative z-10">
         {/* Header */}

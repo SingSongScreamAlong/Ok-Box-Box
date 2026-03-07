@@ -1,11 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft, ChevronDown, TrendingUp, TrendingDown, Minus, RefreshCw, Users
 } from 'lucide-react';
-// Service imports for future API integration
-// import { fetchDriverComparison, type DriverComparisonData } from '../../lib/telemetryService';
-// import { fetchTeamDrivers, type Driver } from '../../lib/stintService';
+import { useTeamData } from '../../hooks/useTeamData';
+import { PitwallBackground } from '../../components/PitwallBackground';
 
 // Types
 interface LapData {
@@ -56,73 +55,11 @@ interface ComparisonMetric {
   unit?: string;
 }
 
-// Mock data generators
-function _generateLaps(driverSeed: number, lapCount: number): LapData[] {
-  const baseLapTime = 87000 + (driverSeed * 500); // ~1:27.000 base
-  const laps: LapData[] = [];
-  
-  for (let i = 1; i <= lapCount; i++) {
-    const variation = (Math.random() - 0.5) * 2000; // ±1s variation
-    const lapTimeMs = baseLapTime + variation + (i > 15 ? (i - 15) * 50 : 0); // tire deg
-    const s1 = lapTimeMs * 0.32 + (Math.random() - 0.5) * 300;
-    const s2 = lapTimeMs * 0.38 + (Math.random() - 0.5) * 400;
-    const s3 = lapTimeMs - s1 - s2;
-    
-    laps.push({
-      lapNumber: i,
-      lapTime: formatLapTime(lapTimeMs),
-      lapTimeMs,
-      sector1: formatSectorTime(s1),
-      sector2: formatSectorTime(s2),
-      sector3: formatSectorTime(s3),
-      sector1Ms: s1,
-      sector2Ms: s2,
-      sector3Ms: s3,
-      fuel: 45 - (i * 1.8),
-      tireWear: Math.min(100, i * 4),
-      incidents: Math.random() > 0.95 ? 1 : 0,
-      position: Math.max(1, Math.min(20, 5 + Math.floor((Math.random() - 0.5) * 6)))
-    });
-  }
-  
-  return laps;
-}
-
-function _generateTelemetryTrace(driverSeed: number): TelemetryTrace[] {
-  const trace: TelemetryTrace[] = [];
-  const brakePoints = [15, 35, 55, 75, 92]; // Track percentage where braking occurs
-  
-  for (let d = 0; d <= 100; d += 1) {
-    const nearBrake = brakePoints.some(bp => Math.abs(d - bp) < 5);
-    const inCorner = brakePoints.some(bp => d > bp && d < bp + 10);
-    const onStraight = !nearBrake && !inCorner;
-    
-    trace.push({
-      distance: d,
-      speed: onStraight ? 165 + driverSeed * 2 + Math.random() * 5 : 
-             inCorner ? 75 + driverSeed + Math.random() * 10 : 
-             120 + Math.random() * 20,
-      throttle: onStraight ? 100 : inCorner ? 40 + driverSeed * 5 : 60,
-      brake: nearBrake ? 80 - driverSeed * 3 : 0,
-      gear: onStraight ? 6 : inCorner ? 2 + Math.floor(driverSeed / 2) : 4,
-      steering: inCorner ? 15 - driverSeed * 2 : Math.random() * 3
-    });
-  }
-  
-  return trace;
-}
-
 function formatLapTime(ms: number): string {
   const mins = Math.floor(ms / 60000);
   const secs = Math.floor((ms % 60000) / 1000);
   const millis = Math.floor(ms % 1000);
   return `${mins}:${secs.toString().padStart(2, '0')}.${millis.toString().padStart(3, '0')}`;
-}
-
-function formatSectorTime(ms: number): string {
-  const secs = Math.floor(ms / 1000);
-  const millis = Math.floor(ms % 1000);
-  return `${secs}.${millis.toString().padStart(3, '0')}`;
 }
 
 function formatDelta(ms: number): string {
@@ -131,84 +68,28 @@ function formatDelta(ms: number): string {
   return `${sign}${(abs / 1000).toFixed(3)}`;
 }
 
-// Mock drivers - DISABLED
-// const mockDrivers: DriverData[] = [
-//   {
-//     id: 'd1',
-//     name: 'Alex Thompson',
-//     number: '42',
-//     team: 'Velocity Racing',
-//     car: 'Porsche 911 GT3 R',
-//     iRating: 4250,
-//     color: '#3b82f6',
-//     laps: generateLaps(0, 25),
-//     bestLap: null,
-//     avgLapTime: '',
-//     consistency: 0,
-//     telemetryTrace: generateTelemetryTrace(0)
-//   },
-//   {
-//     id: 'd2',
-//     name: 'Jordan Mitchell',
-//     number: '17',
-//     team: 'Velocity Racing',
-//     car: 'Porsche 911 GT3 R',
-//     iRating: 3890,
-//     color: '#f97316',
-//     laps: generateLaps(1, 25),
-//     bestLap: null,
-//     avgLapTime: '',
-//     consistency: 0,
-//     telemetryTrace: generateTelemetryTrace(1)
-//   },
-//   {
-//     id: 'd3',
-//     name: 'Sam Rodriguez',
-//     number: '88',
-//     team: 'Velocity Racing',
-//     car: 'Porsche 911 GT3 R',
-//     iRating: 3650,
-//     color: '#22c55e',
-//     laps: generateLaps(2, 25),
-//     bestLap: null,
-//     avgLapTime: '',
-//     consistency: 0,
-//     telemetryTrace: generateTelemetryTrace(2)
-//   },
-//   {
-//     id: 'd4',
-//     name: 'Casey Williams',
-//     number: '23',
-//     team: 'Velocity Racing',
-//     car: 'Porsche 911 GT3 R',
-//     iRating: 4100,
-//     color: '#a855f7',
-//     laps: generateLaps(0.5, 25),
-//     bestLap: null,
-//     avgLapTime: '',
-//     consistency: 0,
-//     telemetryTrace: generateTelemetryTrace(0.5)
-//   }
-// ];
-
-// Calculate derived stats - DISABLED
-// mockDrivers.forEach(driver => {
-//   const validLaps = driver.laps.filter(l => l.lapTimeMs > 0);
-//   driver.bestLap = validLaps.reduce((best, lap) => 
-//     !best || lap.lapTimeMs < best.lapTimeMs ? lap : best, null as LapData | null);
-//   
-//   const avgMs = validLaps.reduce((sum, l) => sum + l.lapTimeMs, 0) / validLaps.length;
-//   driver.avgLapTime = formatLapTime(avgMs);
-//   
-//   const variance = validLaps.reduce((sum, l) => sum + Math.pow(l.lapTimeMs - avgMs, 2), 0) / validLaps.length;
-//   driver.consistency = Math.max(0, 100 - Math.sqrt(variance) / 10);
-// });
-
 export function DriverComparison() {
   const { teamId } = useParams<{ teamId: string }>();
-  const [drivers] = useState<DriverData[]>([]); // Demo disabled - start empty
-  const [driver1, setDriver1] = useState<DriverData | null>(null); // Demo disabled
-  const [driver2, setDriver2] = useState<DriverData | null>(null); // Demo disabled
+  const { drivers: teamDrivers } = useTeamData();
+
+  // Map team roster drivers to comparison driver format (placeholders until live telemetry data populates)
+  const driverColors = ['#3b82f6', '#f97316', '#22c55e', '#a855f7', '#ef4444', '#06b6d4'];
+  const drivers = useMemo<DriverData[]>(() => teamDrivers.map((d, i) => ({
+    id: d.id,
+    name: d.name,
+    number: d.number || '??',
+    car: '',
+    iRating: d.iRatingRoad || 0,
+    color: driverColors[i % driverColors.length],
+    laps: [],
+    bestLap: null,
+    avgLapTime: '--',
+    consistency: 0,
+    telemetryTrace: [],
+  })), [teamDrivers]);
+
+  const [driver1, setDriver1] = useState<DriverData | null>(null);
+  const [driver2, setDriver2] = useState<DriverData | null>(null);
   const [viewMode, setViewMode] = useState<'laps' | 'telemetry' | 'sectors'>('laps');
   const [showDropdown1, setShowDropdown1] = useState(false);
   const [showDropdown2, setShowDropdown2] = useState(false);
@@ -217,13 +98,7 @@ export function DriverComparison() {
   if (!driver1 || !driver2) {
     return (
       <div className="min-h-screen relative">
-        <div className="fixed inset-0 z-0">
-          <video autoPlay loop muted playsInline className="w-full h-full object-cover opacity-60">
-            <source src="/videos/team-bg.mp4" type="video/mp4" />
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/90 via-[#0e0e0e]/70 to-[#0e0e0e]/50" />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/90" />
-        </div>
+        <PitwallBackground />
         <div className="relative z-10">
           {/* Header */}
           <div className="border-b border-white/[0.06] bg-[#0e0e0e]/80 backdrop-blur-xl">
@@ -316,14 +191,25 @@ export function DriverComparison() {
           {/* Empty state prompt */}
           <div className="max-w-7xl mx-auto px-6 py-16 flex flex-col items-center justify-center text-center">
             <Users className="w-12 h-12 text-white/20 mb-4" />
-            <h2 className="text-lg text-white/60 font-medium mb-2">Select Two Drivers to Compare</h2>
-            <p className="text-sm text-white/30 max-w-md">
-              {!driver1 && !driver2
-                ? 'Choose both drivers from the selectors above to see a side-by-side telemetry comparison.'
-                : !driver1
-                  ? 'Select the first driver to begin the comparison.'
-                  : 'Select the second driver to begin the comparison.'}
-            </p>
+            {drivers.length === 0 ? (
+              <>
+                <h2 className="text-lg text-white/60 font-medium mb-2">No Drivers in Roster</h2>
+                <p className="text-sm text-white/30 max-w-md">
+                  Add drivers to your team roster before using the comparison tool.
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-lg text-white/60 font-medium mb-2">Select Two Drivers to Compare</h2>
+                <p className="text-sm text-white/30 max-w-md">
+                  {!driver1 && !driver2
+                    ? 'Choose both drivers from the selectors above to see a side-by-side telemetry comparison.'
+                    : !driver1
+                      ? 'Select the first driver to begin the comparison.'
+                      : 'Select the second driver to begin the comparison.'}
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -395,20 +281,7 @@ export function DriverComparison() {
 
   return (
     <div className="min-h-screen relative">
-      {/* Background video */}
-      <div className="fixed inset-0 z-0">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover opacity-60"
-        >
-          <source src="/videos/team-bg.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/90 via-[#0e0e0e]/70 to-[#0e0e0e]/50" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/90" />
-      </div>
+      <PitwallBackground />
 
       {/* Content */}
       <div className="relative z-10">

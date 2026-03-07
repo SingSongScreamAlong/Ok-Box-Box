@@ -1,8 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { FileText, Sparkles, ChevronRight, Loader2 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { useTeamData } from '../../hooks/useTeamData';
+import { PitwallBackground } from '../../components/PitwallBackground';
 
-// Types from legacy
+const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+
 interface TeamDebrief {
   event_id: string;
   event_name: string | null;
@@ -21,116 +25,41 @@ interface TeamDebrief {
   status: string;
 }
 
-// Mock data from legacy
-const mockEvents = [
-  { id: 'evt-1', event_name: 'Daytona 500 Practice', created_at: '2026-01-18T14:00:00Z' },
-  { id: 'evt-2', event_name: 'Spa Endurance Race', created_at: '2026-01-12T09:00:00Z' },
-  { id: 'evt-3', event_name: 'Nordschleife Time Attack', created_at: '2026-01-10T16:00:00Z' }
-];
-
-const mockDebriefs: Record<string, TeamDebrief> = {
-  'evt-2': {
-    event_id: 'evt-2',
-    event_name: 'Spa Endurance Race',
-    session_id: 'sess-002',
-    driver_summaries: [
-      {
-        driver_profile_id: 'd1',
-        display_name: 'Alex Rivera',
-        headline: 'Excellent fuel management saved 2 pit stops. Consistent lap times in the 2:18s throughout.',
-        primary_limiter: 'Tire Degradation'
-      },
-      {
-        driver_profile_id: 'd2',
-        display_name: 'Jordan Chen',
-        headline: 'Strong qualifying pace translated to race. Aggressive but clean overtakes in Eau Rouge.',
-        primary_limiter: 'Brake Consistency'
-      },
-      {
-        driver_profile_id: 'd3',
-        display_name: 'Sam Williams',
-        headline: 'Solid double stint on hard compound. Minor lockups in sector 2 affected pace by 0.3s.',
-        primary_limiter: 'Trail Braking'
-      }
-    ],
-    team_summary: {
-      overall_observation: 'The team showed exceptional endurance race strategy execution. Driver changeovers were smooth and communication between stints was clear and actionable.',
-      common_patterns: [
-        'All drivers lost time in the Bus Stop chicane under traffic',
-        'Tire management improved significantly from practice',
-        'Radio discipline was excellent during safety car periods'
-      ],
-      priority_focus: 'Focus on Bus Stop chicane entry and late apex technique for the next event.'
-    },
-    status: 'complete'
-  },
-  'evt-3': {
-    event_id: 'evt-3',
-    event_name: 'Nordschleife Time Attack',
-    session_id: 'sess-003',
-    driver_summaries: [
-      {
-        driver_profile_id: 'd2',
-        display_name: 'Jordan Chen',
-        headline: 'Set personal best by 1.2 seconds. Improved Carousel section technique significantly.',
-        primary_limiter: 'Jump Landings'
-      },
-      {
-        driver_profile_id: 'd4',
-        display_name: 'Casey Morgan',
-        headline: 'Good learning session with 15 clean laps. Track knowledge improving steadily.',
-        primary_limiter: 'Overall Pace'
-      }
-    ],
-    team_summary: {
-      overall_observation: 'Productive time attack session with focus on sector improvements. Both drivers showed measurable progress.',
-      common_patterns: [
-        'Brundle exit causing understeer on cold tires',
-        'Jump landing technique needs refinement',
-        'Good consistency in Sector 1'
-      ],
-      priority_focus: 'Practice jump entries at reduced speed to build confidence.'
-    },
-    status: 'complete'
-  }
-};
-
 export function PitwallReports() {
   const { teamId } = useParams<{ teamId: string }>();
-  const [events, setEvents] = useState<typeof mockEvents>([]);
+  const { session } = useAuth();
+  const { events: teamEvents, loading: eventsLoading } = useTeamData();
   const [selectedDebrief, setSelectedDebrief] = useState<TeamDebrief | null>(null);
-  const [loading, setLoading] = useState(true);
   const [loadingDebrief, setLoadingDebrief] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const [debriefError, setDebriefError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      setLoading(true);
-      if (teamId === 'demo') {
-        await new Promise(r => setTimeout(r, 400));
-      }
-      setEvents(mockEvents);
-      setLoading(false);
-    };
-    fetchEvents();
-  }, [teamId]);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
-    }
-  }, []);
-
-  const fetchDebrief = async (eventId: string) => {
+  const fetchDebrief = async (eventId: string, eventName: string) => {
+    if (!teamId || !session?.access_token) return;
     setLoadingDebrief(true);
-    if (teamId === 'demo') {
-      await new Promise(r => setTimeout(r, 500));
+    setDebriefError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/teams/${teamId}/events/${eventId}/debrief`, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedDebrief(data);
+      } else if (res.status === 404) {
+        setSelectedDebrief(null);
+        setDebriefError(`No debrief generated yet for "${eventName}".`);
+      } else {
+        setSelectedDebrief(null);
+        setDebriefError('Failed to load debrief.');
+      }
+    } catch {
+      setSelectedDebrief(null);
+      setDebriefError('Network error loading debrief.');
+    } finally {
+      setLoadingDebrief(false);
     }
-    setSelectedDebrief(mockDebriefs[eventId] || null);
-    setLoadingDebrief(false);
   };
 
-  if (loading) {
+  if (eventsLoading) {
     return (
       <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
@@ -143,22 +72,7 @@ export function PitwallReports() {
 
   return (
     <div className="min-h-[calc(100vh-8rem)] relative">
-      {/* Background video */}
-      <div className="fixed inset-0 z-0">
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="w-full h-full object-cover opacity-50"
-        >
-          <source src="/videos/bg-3.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/95 via-[#0e0e0e]/80 to-[#0e0e0e]/70" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/95" />
-      </div>
+      <PitwallBackground />
 
       <div className="relative z-10 p-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -186,28 +100,30 @@ export function PitwallReports() {
               </span>
             </div>
             <div className="divide-y divide-white/5">
-              {events.length === 0 ? (
-                <div className="py-8 text-center text-white/30 text-sm">No events</div>
+              {teamEvents.length === 0 ? (
+                <div className="py-8 text-center">
+                  <FileText className="mx-auto text-white/15 mb-2" size={28} />
+                  <div className="text-white/30 text-sm">No events yet</div>
+                  <div className="text-white/20 text-xs mt-1">Create events in Schedule to generate reports</div>
+                </div>
               ) : (
-                events.map(event => {
-                  const hasDebrief = !!mockDebriefs[event.id];
+                teamEvents.map(event => {
                   const isSelected = selectedDebrief?.event_id === event.id;
                   return (
                     <button
                       key={event.id}
-                      onClick={() => fetchDebrief(event.id)}
-                      disabled={!hasDebrief}
+                      onClick={() => fetchDebrief(event.id, event.name)}
                       className={`w-full text-left px-4 py-3 flex items-center justify-between transition-colors ${
-                        isSelected ? 'bg-white/5' : hasDebrief ? 'hover:bg-white/5' : 'opacity-50'
+                        isSelected ? 'bg-white/5' : 'hover:bg-white/5'
                       }`}
                     >
                       <div>
-                        <div className={`text-sm font-medium ${isSelected ? 'text-white' : 'text-white'}`}>
-                          {event.event_name}
+                        <div className="text-sm font-medium text-white">
+                          {event.name}
                         </div>
-                        <div className="text-xs text-white/40">{new Date(event.created_at).toLocaleDateString()}</div>
+                        <div className="text-xs text-white/40">{event.date}</div>
                       </div>
-                      {hasDebrief && <ChevronRight size={14} className={isSelected ? 'text-white/50' : 'text-white/30'} />}
+                      <ChevronRight size={14} className={isSelected ? 'text-white/50' : 'text-white/30'} />
                     </button>
                   );
                 })
@@ -284,6 +200,12 @@ export function PitwallReports() {
                   </div>
                 </div>
               </div>
+            </div>
+          ) : debriefError ? (
+            <div className="bg-white/[0.03] border border-white/[0.06] rounded p-12 text-center">
+              <Sparkles className="mx-auto text-white/15 mb-2" size={32} />
+              <p className="text-white/40 text-sm">{debriefError}</p>
+              <p className="text-white/20 text-xs mt-2">Run a session with the relay connected to generate an AI debrief.</p>
             </div>
           ) : (
             <div className="bg-white/[0.03] border border-white/[0.06] rounded p-12 text-center">

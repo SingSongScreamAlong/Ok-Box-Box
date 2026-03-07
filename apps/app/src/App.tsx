@@ -61,7 +61,6 @@ const PitwallStrategy = lazy(() => import('./pages/pitwall/PitwallStrategy').the
 const PitwallPractice = lazy(() => import('./pages/pitwall/PitwallPractice').then(m => ({ default: m.PitwallPractice })));
 const PitwallRoster   = lazy(() => import('./pages/pitwall/PitwallRoster').then(m => ({ default: m.PitwallRoster })));
 const PitwallPlanning = lazy(() => import('./pages/pitwall/PitwallPlanning').then(m => ({ default: m.PitwallPlanning })));
-const PitwallEvents   = lazy(() => import('./pages/pitwall/PitwallEvents').then(m => ({ default: m.PitwallEvents })));
 const PitwallReports  = lazy(() => import('./pages/pitwall/PitwallReports').then(m => ({ default: m.PitwallReports })));
 const PitwallSetups   = lazy(() => import('./pages/pitwall/PitwallSetups').then(m => ({ default: m.PitwallSetups })));
 const TeamRaceViewer  = lazy(() => import('./pages/pitwall/TeamRaceViewer').then(m => ({ default: m.TeamRaceViewer })));
@@ -243,7 +242,7 @@ function App() {
           <Route path="pitwall/race"          element={<TeamRaceViewer />} />
           <Route path="pitwall/compare"       element={<DriverComparison />} />
           <Route path="pitwall/stint-planner" element={<StintPlanner />} />
-          <Route path="pitwall/events"        element={<PitwallEvents />} />
+          <Route path="pitwall/events"        element={<Navigate to="../planning" replace />} />
           <Route path="pitwall/reports"       element={<PitwallReports />} />
           <Route path="pitwall/setups"        element={<PitwallSetups />} />
           <Route path="pitwall/incidents"     element={<TeamIncidents />} />
