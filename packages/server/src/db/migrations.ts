@@ -46,18 +46,6 @@ export async function runMigrations(): Promise<void> {
             )
         `);
 
-        // One-time reset: clear stale migration records from old ProjectBlackBox deployment.
-        // The old deployment tracked migrations under a 'filename' column with entries that
-        // don't match actual applied state. All SQL migrations use IF NOT EXISTS so re-running is safe.
-        const staleCheck = await client.query(`
-            SELECT COUNT(*) as cnt FROM _migrations 
-            WHERE applied_at < '2026-02-18T00:00:00Z'
-        `);
-        if (parseInt(staleCheck.rows[0].cnt) > 0) {
-            await client.query(`TRUNCATE _migrations RESTART IDENTITY`);
-            console.log('   🔧 Cleared stale migration records from legacy deployment');
-        }
-
         // Find migrations directory
         const MIGRATIONS_DIR = findMigrationsDir();
         if (!MIGRATIONS_DIR) {
