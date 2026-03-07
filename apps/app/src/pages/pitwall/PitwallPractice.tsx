@@ -126,6 +126,23 @@ export function PitwallPractice() {
   const bestOverall = stints.reduce((best, s) => (!best || s.best_lap_ms < best.ms) ? { time: s.best_lap, ms: s.best_lap_ms, driver: s.driver_name } : best, { time: '', ms: Infinity, driver: '' });
   const theoreticalBest = stints.reduce((best, s) => (!best || s.theoretical_best < best) ? s.theoretical_best : best, '');
   const totalLaps = stints.reduce((sum, s) => sum + s.laps, 0);
+
+  // Compute best sector times dynamically across all drivers
+  const bestS1 = stints.reduce<string>((best, s) => {
+    if (!s.sectors.s1_best) return best;
+    if (!best) return s.sectors.s1_best;
+    return parseFloat(s.sectors.s1_best) < parseFloat(best) ? s.sectors.s1_best : best;
+  }, '');
+  const bestS2 = stints.reduce<string>((best, s) => {
+    if (!s.sectors.s2_best) return best;
+    if (!best) return s.sectors.s2_best;
+    return parseFloat(s.sectors.s2_best) < parseFloat(best) ? s.sectors.s2_best : best;
+  }, '');
+  const bestS3 = stints.reduce<string>((best, s) => {
+    if (!s.sectors.s3_best) return best;
+    if (!best) return s.sectors.s3_best;
+    return parseFloat(s.sectors.s3_best) < parseFloat(best) ? s.sectors.s3_best : best;
+  }, '');
   const totalIncidents = stints.reduce((sum, s) => sum + s.incidents, 0);
   const avgFuelPerLap = stints.length > 0 ? (stints.reduce((sum, s) => sum + s.fuel_per_lap, 0) / stints.length).toFixed(2) : '0';
 
@@ -336,13 +353,13 @@ export function PitwallPractice() {
                       </div>
                       <span className="text-sm text-white">{stint.driver_name}</span>
                     </div>
-                    <div className={`text-center p-2 font-mono text-sm ${stint.sectors.s1_best === '32.234' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-[#0a0a0a] text-white border border-white/5'}`}>
+                    <div className={`text-center p-2 font-mono text-sm ${bestS1 && stint.sectors.s1_best === bestS1 ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-[#0a0a0a] text-white border border-white/5'}`}>
                       {stint.sectors.s1_best}
                     </div>
-                    <div className={`text-center p-2 font-mono text-sm ${stint.sectors.s2_best === '42.089' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-[#0a0a0a] text-white border border-white/5'}`}>
+                    <div className={`text-center p-2 font-mono text-sm ${bestS2 && stint.sectors.s2_best === bestS2 ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-[#0a0a0a] text-white border border-white/5'}`}>
                       {stint.sectors.s2_best}
                     </div>
-                    <div className={`text-center p-2 font-mono text-sm ${stint.sectors.s3_best === '32.544' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-[#0a0a0a] text-white border border-white/5'}`}>
+                    <div className={`text-center p-2 font-mono text-sm ${bestS3 && stint.sectors.s3_best === bestS3 ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-[#0a0a0a] text-white border border-white/5'}`}>
                       {stint.sectors.s3_best}
                     </div>
                   </div>
@@ -353,9 +370,9 @@ export function PitwallPractice() {
                     <Zap size={14} className="text-purple-400" />
                     <span className="text-sm text-purple-400 font-semibold">Ideal Lap</span>
                   </div>
-                  <div className="text-center p-2 bg-purple-500/10 border border-purple-500/30 font-mono text-sm text-purple-400">32.234</div>
-                  <div className="text-center p-2 bg-purple-500/10 border border-purple-500/30 font-mono text-sm text-purple-400">42.089</div>
-                  <div className="text-center p-2 bg-purple-500/10 border border-purple-500/30 font-mono text-sm text-purple-400">32.544</div>
+                  <div className="text-center p-2 bg-purple-500/10 border border-purple-500/30 font-mono text-sm text-purple-400">{bestS1 || '—'}</div>
+                  <div className="text-center p-2 bg-purple-500/10 border border-purple-500/30 font-mono text-sm text-purple-400">{bestS2 || '—'}</div>
+                  <div className="text-center p-2 bg-purple-500/10 border border-purple-500/30 font-mono text-sm text-purple-400">{bestS3 || '—'}</div>
                 </div>
               </div>
             </div>

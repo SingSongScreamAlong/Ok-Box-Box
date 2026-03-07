@@ -301,9 +301,26 @@ export async function acceptInvitation(
     return { error: 'Invitation has expired' };
   }
 
+  // Resolve the user's driver profile (team_memberships uses driver_profile_id, not user_id)
+  const { data: profile, error: profileError } = await supabase
+    .from('driver_profiles')
+    .select('id')
+    .eq('user_account_id', userId)
+    .single();
+
+  if (profileError || !profile) {
+    return { error: 'Driver profile not found. Complete your profile setup before accepting invitations.' };
+  }
+
   const { error: memberError } = await supabase
     .from('team_memberships')
-    .insert({ team_id: invitation.team_id, user_id: userId, role: 'member' });
+    .insert({
+      team_id: invitation.team_id,
+      driver_profile_id: profile.id,
+      role: 'driver',
+      status: 'active',
+      joined_at: new Date().toISOString(),
+    });
 
   if (memberError) return { error: memberError.message };
 

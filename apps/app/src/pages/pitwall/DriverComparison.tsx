@@ -801,11 +801,11 @@ export function DriverComparison() {
                     <span className="text-xs text-white">{driver1.name}</span>
                   </div>
                   <p className="text-lg font-mono text-white">
-                    {formatLapTime(
+                    {driver1.laps.length > 0 ? formatLapTime(
                       Math.min(...driver1.laps.map(l => l.sector1Ms)) +
                       Math.min(...driver1.laps.map(l => l.sector2Ms)) +
                       Math.min(...driver1.laps.map(l => l.sector3Ms))
-                    )}
+                    ) : '—'}
                   </p>
                   <p className="text-[10px] text-white/30 mt-1">
                     vs actual best: {driver1.bestLap?.lapTime}
@@ -817,11 +817,11 @@ export function DriverComparison() {
                     <span className="text-xs text-white">{driver2.name}</span>
                   </div>
                   <p className="text-lg font-mono text-white">
-                    {formatLapTime(
+                    {driver2.laps.length > 0 ? formatLapTime(
                       Math.min(...driver2.laps.map(l => l.sector1Ms)) +
                       Math.min(...driver2.laps.map(l => l.sector2Ms)) +
                       Math.min(...driver2.laps.map(l => l.sector3Ms))
-                    )}
+                    ) : '—'}
                   </p>
                   <p className="text-[10px] text-white/30 mt-1">
                     vs actual best: {driver2.bestLap?.lapTime}
