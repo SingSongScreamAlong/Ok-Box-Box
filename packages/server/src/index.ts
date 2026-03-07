@@ -72,7 +72,7 @@ async function main() {
     // Start listening
     httpServer.listen(config.port, config.host, () => {
         console.log(`🚀 ControlBox server running at http://${config.host}:${config.port}`);
-        console.log(`   Build: 2026-02-23-v2`);
+        console.log(`   Build: 2026-03-07-v1`);
         console.log(`   Health check: http://${config.host}:${config.port}/api/health`);
     });
 
