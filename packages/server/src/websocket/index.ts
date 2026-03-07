@@ -28,6 +28,7 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
             credentials: true,
         },
         transports: ['websocket', 'polling'],
+        maxHttpBufferSize: 5e6, // 5MB for voice audio payloads
     });
 
     // Provide IO instance to BroadcastHandler exports
