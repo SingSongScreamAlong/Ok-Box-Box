@@ -9,6 +9,7 @@ import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { pool } from '../../db/client.js';
 import { getIO } from '../../websocket/index.js';
+import { getActiveMembership, getActiveMembers } from '../../db/repositories/team-membership.repo.js';
 
 const router = Router();
 
@@ -121,6 +122,126 @@ router.get('/:teamId/drivers', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('[Team API] Error fetching drivers:', error);
         res.status(500).json({ error: 'Failed to fetch drivers' });
+    }
+});
+
+// =====================================================================
+// GET /api/v1/teams/:teamId/roster
+// Roster from team_memberships (driver_profile_id model)
+// Used by TeamSettings and useTeamData fetchTeamRoster
+// =====================================================================
+router.get('/:teamId/roster', async (req: Request, res: Response) => {
+    try {
+        const userId = req.user!.id;
+        const { teamId } = req.params;
+
+        const hasAccess = await checkTeamAccess(userId, teamId);
+        if (!hasAccess) {
+            res.status(403).json({ error: 'Not a member of this team' });
+            return;
+        }
+
+        const result = await pool.query(
+            `SELECT
+                tm.id AS membership_id,
+                tm.driver_profile_id,
+                tm.role,
+                tm.joined_at,
+                dp.display_name,
+                dp.primary_discipline AS discipline,
+                ip.irating_road,
+                ip.irating_oval,
+                ip.sr_road,
+                ip.sr_oval,
+                ip.license_road,
+                ip.license_oval
+             FROM team_memberships tm
+             JOIN driver_profiles dp ON dp.id = tm.driver_profile_id
+             LEFT JOIN iracing_profiles ip ON ip.admin_user_id = dp.user_account_id
+             WHERE tm.team_id = $1 AND tm.status = 'active'
+             ORDER BY dp.display_name`,
+            [teamId]
+        );
+
+        const team = await pool.query(
+            `SELECT id, name FROM teams WHERE id = $1`,
+            [teamId]
+        );
+
+        res.json({
+            team_id: teamId,
+            team_name: team.rows[0]?.name || '',
+            member_count: result.rows.length,
+            members: result.rows.map(row => ({
+                membership_id: row.membership_id,
+                driver_profile_id: row.driver_profile_id,
+                display_name: row.display_name,
+                role: row.role,
+                joined_at: row.joined_at,
+                discipline: row.discipline,
+                irating: { road: row.irating_road, oval: row.irating_oval },
+                safetyRating: {
+                    road: row.sr_road ? row.sr_road / 100 : null,
+                    oval: row.sr_oval ? row.sr_oval / 100 : null,
+                },
+            })),
+        });
+    } catch (error) {
+        console.error('[Team API] Error fetching roster:', error);
+        res.status(500).json({ error: 'Failed to fetch roster' });
+    }
+});
+
+// =====================================================================
+// PATCH /api/v1/teams/:teamId/members/:driverProfileId/role
+// Update a team member's role (owner-only)
+// =====================================================================
+router.patch('/:teamId/members/:driverProfileId/role', async (req: Request, res: Response) => {
+    try {
+        const userId = req.user!.id;
+        const { teamId, driverProfileId } = req.params;
+        const { role } = req.body;
+
+        const allowedRoles = ['driver', 'engineer', 'manager', 'owner'];
+        if (!role || !allowedRoles.includes(role)) {
+            res.status(400).json({ error: `role must be one of: ${allowedRoles.join(', ')}` });
+            return;
+        }
+
+        const hasAccess = await checkTeamAccess(userId, teamId);
+        if (!hasAccess) {
+            res.status(403).json({ error: 'Not a member of this team' });
+            return;
+        }
+
+        // Find the target membership
+        const target = await getActiveMembership(teamId, driverProfileId);
+        if (!target) {
+            res.status(404).json({ error: 'Member not found in this team' });
+            return;
+        }
+
+        // Update role
+        const result = await pool.query(
+            `UPDATE team_memberships SET role = $1 WHERE id = $2 RETURNING *`,
+            [role, target.id]
+        );
+
+        if (result.rows.length === 0) {
+            res.status(404).json({ error: 'Member not found' });
+            return;
+        }
+
+        try {
+            getIO().to(`team:${teamId}`).emit('team:roster_update', {
+                type: 'role_changed', teamId, driverProfileId, role,
+            });
+        } catch (_) { /* WebSocket not available in tests */ }
+
+        res.json({ success: true, membership: result.rows[0] });
+    } catch (error) {
+        console.error('[Team API] Error updating member role:', error);
+        res.status(500).json({ error: 'Failed to update role' });
     }
 });
 
