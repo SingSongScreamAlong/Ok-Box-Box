@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Activity, Clock, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { fetchDriverProfileForTeam, type TeamDriverProfile } from '../../lib/teamService';
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
 
 // Trait category colors
 const traitCategoryColors: Record<string, string> = {
@@ -56,7 +57,7 @@ export function DriverProfilePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (videoRef.current) videoRef.current.playbackRate = 0.6;
+    if (videoRef.current) videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
   }, []);
 
   useEffect(() => {

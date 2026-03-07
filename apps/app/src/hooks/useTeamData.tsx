@@ -1,7 +1,9 @@
 // Hook for accessing team data (drivers, cars, events, race plans)
 // Connected to real API - NO DEMO DATA
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
+import { io } from 'socket.io-client';
+import { supabase } from '../lib/supabase';
 import {
   fetchTeam,
   fetchTeamDrivers,
@@ -10,6 +12,8 @@ import {
   fetchStints,
   fetchTeamRoster,
   fetchTeamStrategy,
+  fetchPracticeSessions,
+  fetchPracticeSession,
 } from '../lib/teamService';
 import {
   type Driver,
@@ -209,12 +213,54 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
           setStrategyPlan(apiStrategy);
         }
 
-        // These remain empty until live session provides data via WebSocket
-        // No mock data - real racing system only
         setTracks([]);
         setRadioChannels([]);
-        setRunPlans([]);
-        setDriverStints([]);
+
+        // Load practice data from most recent session
+        try {
+          const sessions = await fetchPracticeSessions(teamId);
+          if (sessions.length > 0) {
+            const detail = await fetchPracticeSession(teamId, sessions[0].id);
+            if (detail) {
+              const msToLapTime = (ms: number | null): string => {
+                if (!ms) return '0:00.000';
+                const m = Math.floor(ms / 60000);
+                const s = ((ms % 60000) / 1000).toFixed(3);
+                return `${m}:${s.padStart(6, '0')}`;
+              };
+
+              setRunPlans(detail.run_plans.map(rp => ({
+                id: rp.id,
+                name: rp.name,
+                targetLaps: rp.target_laps,
+                completedLaps: rp.completed_laps,
+                targetTime: rp.target_time || undefined,
+                focus: rp.focus_areas,
+                status: rp.status,
+              })));
+
+              setDriverStints(detail.driver_stints.map(s => ({
+                driverId: s.driver_profile_id || s.id,
+                driverName: s.driver_name,
+                laps: s.laps_completed,
+                bestLap: msToLapTime(s.best_lap_time_ms),
+                bestLapMs: s.best_lap_time_ms || 0,
+                avgLap: msToLapTime(s.avg_lap_time_ms),
+                avgLapMs: s.avg_lap_time_ms || 0,
+                consistency: s.consistency_score || 0,
+                incidents: s.incidents,
+                fuelPerLap: 0,
+                tireDegPerLap: 0,
+                sectors: { s1Best: '', s2Best: '', s3Best: '' },
+                theoreticalBest: '',
+                gapToLeader: '',
+                lapHistory: [],
+              })));
+            }
+          }
+        } catch (err) {
+          console.warn('[TeamData] Failed to load practice data:', err);
+        }
 
         console.log('[TeamData] Loaded real data for team:', teamId);
       } catch (error) {
@@ -266,6 +312,33 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
   const refreshRacePlans = useCallback(() => {
     setRacePlansVersion(v => v + 1);
   }, []);
+
+  // Listen for plan changes pushed from the server (team:plan_update events)
+  useEffect(() => {
+    if (!teamId) return;
+    let cancelled = false;
+    let socket: ReturnType<typeof io> | null = null;
+    const wsUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled) return;
+      socket = io(wsUrl, {
+        transports: ['websocket', 'polling'],
+        auth: session?.access_token ? { token: session.access_token } : {},
+      });
+      socket.on('connect', () => {
+        socket!.emit('team:join', { teamId });
+      });
+      socket.on('team:plan_update', () => {
+        setRacePlansVersion(v => v + 1);
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      socket?.disconnect();
+    };
+  }, [teamId]);
 
   // Driver helpers
   const getDriver = useCallback((id: string) => {

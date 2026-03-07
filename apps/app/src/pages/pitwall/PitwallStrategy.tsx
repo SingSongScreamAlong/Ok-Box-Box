@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Fuel, Cloud, ChevronDown, ChevronUp, AlertTriangle, TrendingDown, Zap, Timer, Flag, Droplets, Sun, RefreshCw, Loader2 } from 'lucide-react';
 import { useTeamData } from '../../hooks/useTeamData';
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
 
 // Types - comprehensive strategy modeling
 interface StintPlan {
@@ -183,7 +184,7 @@ export function PitwallStrategy() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Timer, Clock, CheckCircle, Plus, TrendingUp, TrendingDown, Zap, BarChart3, Activity, AlertTriangle, Target, Layers, Loader2 } from 'lucide-react';
 import { useTeamData } from '../../hooks/useTeamData';
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
 
 // Types - comprehensive practice/telemetry modeling
 interface RunPlan {
@@ -118,7 +119,7 @@ export function PitwallPractice() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

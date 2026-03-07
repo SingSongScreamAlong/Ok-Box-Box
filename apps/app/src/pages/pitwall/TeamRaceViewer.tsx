@@ -7,6 +7,7 @@ import {
 import { useRelay } from '../../hooks/useRelay';
 import { getTeam, Team } from '../../lib/teams';
 import { useTeamData } from '../../hooks/useTeamData';
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
 
 // Types for Team Race Viewer
 interface Driver {
@@ -110,7 +111,7 @@ export function TeamRaceViewer() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

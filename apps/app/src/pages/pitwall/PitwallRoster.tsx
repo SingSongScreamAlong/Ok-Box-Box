@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { UserPlus, Search, Filter, Users, Crown, Wrench, User, LinkIcon, Target, Loader2 } from 'lucide-react';
 import { useTeamData } from '../../hooks/useTeamData';
 import { InviteBuilder } from '../../components/InviteBuilder';
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
 
 // Types from legacy
 interface DriverSummary {
@@ -98,7 +99,7 @@ export function PitwallRoster() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

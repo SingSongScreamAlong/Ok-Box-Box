@@ -7,8 +7,7 @@ import {
 } from 'lucide-react';
 import { useTeamData } from '../../hooks/useTeamData';
 import { useAuth } from '../../contexts/AuthContext';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+import { API_BASE } from '../../lib/config';
 
 // Local types
 interface Driver {

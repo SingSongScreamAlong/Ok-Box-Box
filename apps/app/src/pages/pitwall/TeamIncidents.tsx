@@ -5,8 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { 
   ArrowLeft, AlertTriangle, ChevronRight, Search, Eye, TrendingDown
 } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+import { API_BASE, VIDEO_PLAYBACK_RATE } from '../../lib/config';
 
 interface TeamIncident {
   id: string;
@@ -45,7 +44,7 @@ export function TeamIncidents() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

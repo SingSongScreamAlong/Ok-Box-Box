@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Calendar, Plus, Users, Clock, Loader2, X, AlertCircle } from 'lucide-react';
 import { fetchTeamEventsV1, createTeamEventV1, type TeamEventV1 } from '../../lib/teamService';
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
 
 const EVENT_TYPES: { value: TeamEventV1['event_type']; label: string }[] = [
   { value: 'practice', label: 'Practice' },
@@ -40,7 +41,7 @@ export function PitwallEvents() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Calendar, Users, Clock, Plus, ChevronDown, ChevronUp, Flag, AlertCircle, Edit, Trash2, UserPlus, Loader2, Target, ChevronRight } from 'lucide-react';
 import { useTeamData } from '../../hooks/useTeamData';
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
 
 const typeStyles: Record<string, { bg: string; text: string; label: string }> = {
   practice: { bg: 'bg-[#3b82f6]/20', text: 'text-[#3b82f6]', label: 'Practice' },
@@ -25,7 +26,7 @@ export function PitwallPlanning() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

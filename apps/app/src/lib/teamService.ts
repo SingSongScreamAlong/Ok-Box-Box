@@ -6,8 +6,7 @@
  */
 
 import { supabase } from './supabase';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+import { API_BASE } from './config';
 
 // =====================================================================
 // Types
@@ -683,5 +682,101 @@ export async function generateTeamDebriefV1(
   } catch (error) {
     console.error('[Team] Error generating debrief:', error);
     throw error;
+  }
+}
+
+// =====================================================================
+// Practice Sessions
+// =====================================================================
+
+export interface PracticeSessionSummary {
+  id: string;
+  team_id: string;
+  event_id: string | null;
+  name: string;
+  track_name: string | null;
+  car_name: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  status: 'planned' | 'active' | 'completed';
+  created_at: string;
+}
+
+export interface PracticeRunPlan {
+  id: string;
+  practice_session_id: string;
+  name: string;
+  target_laps: number;
+  completed_laps: number;
+  target_time: string | null;
+  focus_areas: string[];
+  status: 'planned' | 'in_progress' | 'completed';
+  created_at: string;
+}
+
+export interface PracticeDriverStint {
+  id: string;
+  practice_session_id: string;
+  driver_profile_id: string | null;
+  driver_name: string;
+  laps_completed: number;
+  best_lap_time_ms: number | null;
+  avg_lap_time_ms: number | null;
+  consistency_score: number | null;
+  incidents: number;
+  started_at: string | null;
+  ended_at: string | null;
+}
+
+/**
+ * List all practice sessions for a team (most recent first)
+ * GET /api/teams/:teamId/practice
+ */
+export async function fetchPracticeSessions(teamId: string): Promise<PracticeSessionSummary[]> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) return [];
+
+    const response = await fetch(`${API_BASE}/api/teams/${teamId}/practice`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    return data.data?.sessions || [];
+  } catch (error) {
+    console.error('[Team] Error fetching practice sessions:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch a single practice session with its run plans and driver stints
+ * GET /api/teams/:teamId/practice/:sessionId
+ */
+export async function fetchPracticeSession(
+  teamId: string,
+  sessionId: string
+): Promise<{ session: PracticeSessionSummary; run_plans: PracticeRunPlan[]; driver_stints: PracticeDriverStint[] } | null> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) return null;
+
+    const response = await fetch(`${API_BASE}/api/teams/${teamId}/practice/${sessionId}`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    return data.data ? {
+      session: data.data,
+      run_plans: data.data.run_plans || [],
+      driver_stints: data.data.driver_stints || [],
+    } : null;
+  } catch (error) {
+    console.error('[Team] Error fetching practice session:', error);
+    return null;
   }
 }

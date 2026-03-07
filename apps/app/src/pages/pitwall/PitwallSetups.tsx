@@ -2,8 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { Settings, Download, Upload, Star, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+import { API_BASE, VIDEO_PLAYBACK_RATE } from '../../lib/config';
 
 interface Setup {
   id: string;
@@ -58,7 +57,7 @@ export function PitwallSetups() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

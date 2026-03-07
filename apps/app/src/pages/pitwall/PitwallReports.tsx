@@ -8,6 +8,7 @@ import {
   type TeamEventV1,
   type TeamDebriefV1,
 } from '../../lib/teamService';
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
 
 export function PitwallReports() {
   const { teamId } = useParams<{ teamId: string }>();
@@ -31,7 +32,7 @@ export function PitwallReports() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 
