@@ -894,20 +894,24 @@ export function TeamRaceViewer() {
           </div>
         </div>
 
-        {/* Lap Intelligence Overlay Panel */}
+        {/* Lap Intelligence Overlay — F1 Broadcast Style */}
         {showLapIntel && (
-          <div className="fixed inset-y-0 right-0 w-[480px] z-50 overflow-y-auto shadow-2xl">
-            <LapIntelligence
-              driverName={selectedCarNumber ? `Car #${selectedCarNumber}` : activeTeamCar.currentDriver.name}
-              driverColor={activeTeamCar.currentDriver.color}
-              completedLaps={completedLaps}
-              personalBest={personalBest}
-              lastLap={lastCompletedLap}
-              optimalLap={optimalLap}
-              onClose={() => setShowLapIntel(false)}
-              corners={activeTrackCorners}
-              className="h-full"
-            />
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowLapIntel(false)}>
+            <div className="w-[1100px] max-w-[95vw] max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <LapIntelligence
+                driverName={selectedCarNumber ? `Car #${selectedCarNumber}` : activeTeamCar.currentDriver.name}
+                driverColor={activeTeamCar.currentDriver.color}
+                completedLaps={completedLaps}
+                personalBest={personalBest}
+                lastLap={lastCompletedLap}
+                optimalLap={optimalLap}
+                onClose={() => setShowLapIntel(false)}
+                corners={activeTrackCorners}
+                trackId={activeTrackName ?? undefined}
+                trackName={relaySession.trackName ?? activeTrackName ?? undefined}
+                sessionName={relaySession.sessionType ?? 'Practice'}
+              />
+            </div>
           </div>
         )}
       </div>
