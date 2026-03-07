@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Activity, Clock, TrendingUp, TrendingDown, Loader2 } from 'lucide-react';
 import { fetchDriverProfileForTeam, type TeamDriverProfile } from '../../lib/teamService';
+import { PitwallBackground } from '../../components/PitwallBackground';
 
 // Trait category colors
 const traitCategoryColors: Record<string, string> = {
@@ -53,12 +54,6 @@ export function DriverProfilePage() {
   const [data, setData] = useState<TeamDriverProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'history'>('overview');
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    if (videoRef.current) videoRef.current.playbackRate = 0.6;
-  }, []);
-
   useEffect(() => {
     if (!driverId) return;
     setLoading(true);
@@ -103,22 +98,7 @@ export function DriverProfilePage() {
 
   return (
     <div className="min-h-[calc(100vh-8rem)] relative">
-      {/* Background video */}
-      <div className="fixed inset-0 z-0">
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="w-full h-full object-cover opacity-50"
-        >
-          <source src="/videos/bg-3.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/95 via-[#0e0e0e]/80 to-[#0e0e0e]/70" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/95" />
-      </div>
+      <PitwallBackground />
 
       <div className="relative z-10 p-6 max-w-7xl mx-auto">
         {/* Back Link */}

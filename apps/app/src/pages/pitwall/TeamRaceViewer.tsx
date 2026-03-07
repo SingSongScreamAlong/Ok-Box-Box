@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Users, Clock, Fuel, Flag, AlertTriangle, ChevronDown, ChevronUp,
@@ -7,6 +7,7 @@ import {
 import { useRelay } from '../../hooks/useRelay';
 import { getTeam, Team } from '../../lib/teams';
 import { useTeamData } from '../../hooks/useTeamData';
+import { PitwallBackground } from '../../components/PitwallBackground';
 import { TrackMapPro } from '../../components/TrackMapPro';
 import { useLapTelemetry } from '../../hooks/useLapTelemetry';
 import { LapIntelligence } from '../../components/lap-intelligence';
@@ -159,7 +160,6 @@ export function TeamRaceViewer() {
   const [showLapIntel, setShowLapIntel] = useState(false);
   const [selectedCarNumber, setSelectedCarNumber] = useState<string | null>(null);
   const { status: relayStatus, telemetry: relayTelemetry, session: relaySession } = useRelay();
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Lap telemetry collection from relay
   const {
@@ -198,11 +198,6 @@ export function TeamRaceViewer() {
     }
   }, [serviceDrivers]);
 
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
-    }
-  }, []);
 
   useEffect(() => {
     if (teamId) {
@@ -381,21 +376,7 @@ export function TeamRaceViewer() {
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-[#0a0a0a]">
-      {/* Background video */}
-      <div className="fixed inset-0 z-0">
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="w-full h-full object-cover opacity-30"
-        >
-          <source src="/videos/team-bg.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a]/80 via-transparent to-[#0a0a0a]/90" />
-      </div>
+      <PitwallBackground />
 
       {/* Content */}
       <div className="relative z-10 p-6">

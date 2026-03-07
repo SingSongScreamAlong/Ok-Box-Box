@@ -6,6 +6,7 @@ import {
   Settings, RotateCcw
 } from 'lucide-react';
 import { useTeamData } from '../../hooks/useTeamData';
+import { PitwallBackground } from '../../components/PitwallBackground';
 // Service imports for future API integration
 // import {
 //   fetchTeamDrivers,
@@ -50,14 +51,6 @@ interface RaceConfig {
   driverChangeTime: number; // seconds
 }
 
-// Mock data - DISABLED
-// const mockDrivers: Driver[] = [
-//   { id: 'd1', name: 'Alex Thompson', number: '42', color: '#3b82f6', avgLapTime: 87000, fuelPerLap: 2.8, maxStintLength: 35 },
-//   { id: 'd2', name: 'Jordan Mitchell', number: '17', color: '#f97316', avgLapTime: 87500, fuelPerLap: 2.9, maxStintLength: 30 },
-//   { id: 'd3', name: 'Sam Rodriguez', number: '88', color: '#22c55e', avgLapTime: 88000, fuelPerLap: 3.0, maxStintLength: 28 },
-//   { id: 'd4', name: 'Casey Williams', number: '23', color: '#a855f7', avgLapTime: 87200, fuelPerLap: 2.85, maxStintLength: 32 },
-// ];
-
 const defaultConfig: RaceConfig = {
   totalLaps: 120,
   totalTime: 180,
@@ -79,13 +72,6 @@ function formatTime(ms: number): string {
     return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
   return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
-function formatLapTime(ms: number): string {
-  const mins = Math.floor(ms / 60000);
-  const secs = Math.floor((ms % 60000) / 1000);
-  const millis = ms % 1000;
-  return `${mins}:${secs.toString().padStart(2, '0')}.${millis.toString().padStart(3, '0')}`;
 }
 
 export function StintPlanner() {
@@ -111,7 +97,7 @@ export function StintPlanner() {
   const [stints, setStints] = useState<Stint[]>([]);
   const [showConfig, setShowConfig] = useState(false);
   const [selectedStint, setSelectedStint] = useState<string | null>(null);
-  const [draggedStint, setDraggedStint] = useState<string | null>(null);
+  const [_draggedStint, _setDraggedStint] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   // Calculate stint times
@@ -255,20 +241,7 @@ export function StintPlanner() {
 
   return (
     <div className="min-h-screen relative">
-      {/* Background video */}
-      <div className="fixed inset-0 z-0">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover opacity-60"
-        >
-          <source src="/videos/team-bg.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/90 via-[#0e0e0e]/70 to-[#0e0e0e]/50" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/90" />
-      </div>
+      <PitwallBackground />
 
       {/* Content */}
       <div className="relative z-10">
@@ -451,7 +424,7 @@ export function StintPlanner() {
                 ))}
                 
                 {/* Stints */}
-                {stints.map((stint, idx) => {
+                {stints.map((stint) => {
                   const driver = drivers.find(d => d.id === stint.driverId);
                   const startPct = ((stint.startLap - 1) / config.totalLaps) * 100;
                   const widthPct = ((stint.endLap - stint.startLap + 1) / config.totalLaps) * 100;
@@ -675,7 +648,7 @@ export function StintPlanner() {
             <div className="p-4 bg-white/[0.03] border border-white/[0.06] rounded-lg mb-4">
               <h3 className="text-xs text-white/50 uppercase tracking-wider mb-3">Driver Time</h3>
               <div className="space-y-3">
-                {driverTimeBreakdown.map(({ driver, totalTime, totalLaps, stintCount }) => (
+                {driverTimeBreakdown.map(({ driver, totalTime, totalLaps }) => (
                   <div key={driver.id}>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">

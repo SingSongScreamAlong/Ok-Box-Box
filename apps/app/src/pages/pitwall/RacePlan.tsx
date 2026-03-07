@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft, Flag, Users, Clock, Fuel, CheckCircle2,
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { TrackMap } from '../../components/TrackMap';
 import { useTeamData } from '../../hooks/useTeamData';
+import { PitwallBackground } from '../../components/PitwallBackground';
 import type { Stint } from '../../services/mockData/types';
 
 interface RaceConfig {
@@ -75,7 +76,6 @@ const tireColors: Record<string, string> = {
 
 export function RacePlan() {
   const { teamId } = useParams<{ teamId: string }>();
-  const videoRef = useRef<HTMLVideoElement>(null);
   const { drivers } = useTeamData();
   
   const [config] = useState<RaceConfig>(defaultConfig);
@@ -85,7 +85,7 @@ export function RacePlan() {
   const [pendingChanges, setPendingChanges] = useState<LocalPlanChange[]>([]);
   
   // Plans A, B, C
-  const [plans, setPlans] = useState<Record<'A' | 'B' | 'C', RacePlanData>>({
+  const [plans, _setPlans] = useState<Record<'A' | 'B' | 'C', RacePlanData>>({
     A: {
       id: 'plan-a',
       name: 'Plan A - Standard',
@@ -134,11 +134,6 @@ export function RacePlan() {
     },
   });
 
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
-    }
-  }, []);
 
   const currentPlan = plans[activePlan];
 
@@ -180,22 +175,7 @@ export function RacePlan() {
 
   return (
     <div className="min-h-[calc(100vh-8rem)] relative">
-      {/* Background video */}
-      <div className="fixed inset-0 z-0">
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="w-full h-full object-cover opacity-50"
-        >
-          <source src="/videos/bg-3.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/95 via-[#0e0e0e]/80 to-[#0e0e0e]/70" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/95" />
-      </div>
+      <PitwallBackground />
 
       <div className="relative z-10 p-6 max-w-7xl mx-auto">
         {/* Header */}
