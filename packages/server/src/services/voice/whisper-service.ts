@@ -6,7 +6,7 @@
  */
 
 import { config } from '../../config/index.js';
-import OpenAI from 'openai';
+import OpenAI, { toFile } from 'openai';
 
 // ============================================================================
 // TYPES
@@ -116,8 +116,8 @@ export class WhisperService {
 
             const startTime = Date.now();
 
-            // Use OpenAI SDK with File object for proper file handling
-            const file = new File([request.audioBuffer], 'audio.webm', { type: 'audio/webm' });
+            // Use OpenAI SDK toFile helper for Node.js compatibility
+            const file = await toFile(request.audioBuffer, 'audio.webm', { type: 'audio/webm' });
             
             const transcription = await this.openai.audio.transcriptions.create({
                 file,
