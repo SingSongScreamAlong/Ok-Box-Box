@@ -313,12 +313,19 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
     setRacePlansVersion(v => v + 1);
   }, []);
 
-  // Listen for plan changes pushed from the server (team:plan_update events)
+  // Listen for plan and practice changes pushed from the server
   useEffect(() => {
     if (!teamId) return;
     let cancelled = false;
     let socket: ReturnType<typeof io> | null = null;
     const wsUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+
+    const msToLapTime = (ms: number | null): string => {
+      if (!ms) return '0:00.000';
+      const m = Math.floor(ms / 60000);
+      const s = ((ms % 60000) / 1000).toFixed(3);
+      return `${m}:${s.padStart(6, '0')}`;
+    };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (cancelled) return;
@@ -331,6 +338,67 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
       });
       socket.on('team:plan_update', () => {
         setRacePlansVersion(v => v + 1);
+      });
+      socket.on('team:practice_update', (data: any) => {
+        if (!data) return;
+        if (data.type === 'stint_created') {
+          const s = data.stint;
+          setDriverStints(prev => [...prev, {
+            driverId: s.driver_profile_id || s.id,
+            driverName: s.driver_name,
+            laps: s.laps_completed,
+            bestLap: msToLapTime(s.best_lap_time_ms),
+            bestLapMs: s.best_lap_time_ms || 0,
+            avgLap: msToLapTime(s.avg_lap_time_ms),
+            avgLapMs: s.avg_lap_time_ms || 0,
+            consistency: s.consistency_score || 0,
+            incidents: s.incidents,
+            fuelPerLap: 0,
+            tireDegPerLap: 0,
+            sectors: { s1Best: '', s2Best: '', s3Best: '' },
+            theoreticalBest: '',
+            gapToLeader: '',
+            lapHistory: [],
+          }]);
+        } else if (data.type === 'stint_updated') {
+          const s = data.stint;
+          setDriverStints(prev => prev.map(d =>
+            d.driverId === (s.driver_profile_id || s.id) ? {
+              ...d,
+              laps: s.laps_completed,
+              bestLap: msToLapTime(s.best_lap_time_ms),
+              bestLapMs: s.best_lap_time_ms || 0,
+              avgLap: msToLapTime(s.avg_lap_time_ms),
+              avgLapMs: s.avg_lap_time_ms || 0,
+              consistency: s.consistency_score || 0,
+              incidents: s.incidents,
+            } : d
+          ));
+        } else if (data.type === 'run_plan_created') {
+          const rp = data.runPlan;
+          setRunPlans(prev => [...prev, {
+            id: rp.id,
+            name: rp.name,
+            targetLaps: rp.target_laps,
+            completedLaps: rp.completed_laps,
+            targetTime: rp.target_time || undefined,
+            focus: rp.focus_areas,
+            status: rp.status,
+          }]);
+        } else if (data.type === 'run_plan_updated') {
+          const rp = data.runPlan;
+          setRunPlans(prev => prev.map(p =>
+            p.id === rp.id ? {
+              ...p,
+              name: rp.name,
+              targetLaps: rp.target_laps,
+              completedLaps: rp.completed_laps,
+              targetTime: rp.target_time || undefined,
+              focus: rp.focus_areas,
+              status: rp.status,
+            } : p
+          ));
+        }
       });
     });
 

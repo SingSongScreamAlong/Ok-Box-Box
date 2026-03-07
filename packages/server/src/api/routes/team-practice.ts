@@ -6,6 +6,7 @@
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { pool } from '../../db/client.js';
+import { getIO } from '../../websocket/index.js';
 
 const router = Router();
 
@@ -237,6 +238,13 @@ router.post('/:teamId/practice/:sessionId/run-plans', requireAuth, async (req: R
             [sessionId, name, target_laps, target_time || null, JSON.stringify(focus_areas || [])]
         );
 
+        try {
+            const { teamId, sessionId } = req.params;
+            getIO().to(`team:${teamId}`).emit('team:practice_update', {
+                type: 'run_plan_created', teamId, sessionId, runPlan: result.rows[0],
+            });
+        } catch (_) { /* WebSocket not available in tests */ }
+
         res.status(201).json({ success: true, data: result.rows[0] });
     } catch (error) {
         console.error('[TeamPractice] Error adding run plan:', error);
@@ -281,6 +289,13 @@ router.patch('/:teamId/practice/:sessionId/run-plans/:planId', requireAuth, asyn
             return;
         }
 
+        try {
+            const { teamId, sessionId } = req.params;
+            getIO().to(`team:${teamId}`).emit('team:practice_update', {
+                type: 'run_plan_updated', teamId, sessionId, runPlan: result.rows[0],
+            });
+        } catch (_) { /* WebSocket not available in tests */ }
+
         res.json({ success: true, data: result.rows[0] });
     } catch (error) {
         console.error('[TeamPractice] Error updating run plan:', error);
@@ -316,6 +331,13 @@ router.post('/:teamId/practice/:sessionId/stints', requireAuth, async (req: Requ
                 incidents || 0,
             ]
         );
+
+        try {
+            const { teamId, sessionId } = req.params;
+            getIO().to(`team:${teamId}`).emit('team:practice_update', {
+                type: 'stint_created', teamId, sessionId, stint: result.rows[0],
+            });
+        } catch (_) { /* WebSocket not available in tests */ }
 
         res.status(201).json({ success: true, data: result.rows[0] });
     } catch (error) {
@@ -359,6 +381,13 @@ router.patch('/:teamId/practice/:sessionId/stints/:stintId', requireAuth, async 
             res.status(404).json({ success: false, error: { message: 'Driver stint not found' } });
             return;
         }
+
+        try {
+            const { teamId, sessionId } = req.params;
+            getIO().to(`team:${teamId}`).emit('team:practice_update', {
+                type: 'stint_updated', teamId, sessionId, stint: result.rows[0],
+            });
+        } catch (_) { /* WebSocket not available in tests */ }
 
         res.json({ success: true, data: result.rows[0] });
     } catch (error) {
