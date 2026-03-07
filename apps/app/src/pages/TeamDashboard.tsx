@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getTeam, getUserTeamRole, getTeamMembers, Team, TeamMembership } from '../lib/teams';
@@ -7,6 +7,7 @@ import {
   Play, GitCompare, Calendar, Fuel, Crown, Shield, User, Clock, Flag
 } from 'lucide-react';
 import { WeatherWidget } from '../components/WeatherWidget';
+import { PitwallBackground } from '../components/PitwallBackground';
 
 export function TeamDashboard() {
   const { teamId } = useParams<{ teamId: string }>();
@@ -16,19 +17,12 @@ export function TeamDashboard() {
   const [role, setRole] = useState<string | null>(null);
   const [members, setMembers] = useState<TeamMembership[]>([]);
   const [loading, setLoading] = useState(true);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     if (teamId && user) {
       loadTeamData();
     }
   }, [teamId, user]);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
-    }
-  }, []);
 
   const loadTeamData = async () => {
     if (!teamId || !user) return;
@@ -86,22 +80,7 @@ export function TeamDashboard() {
 
   return (
     <div className="min-h-[calc(100vh-8rem)] relative">
-      {/* Background video */}
-      <div className="fixed inset-0 z-0">
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          className="w-full h-full object-cover opacity-70"
-        >
-          <source src="/videos/team-bg.mp4" type="video/mp4" />
-        </video>
-        <div className="absolute inset-0 bg-gradient-to-r from-[#0e0e0e]/90 via-[#0e0e0e]/70 to-[#0e0e0e]/50" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#0e0e0e]/90" />
-      </div>
+      <PitwallBackground />
 
       <div className="relative z-10 p-6 max-w-5xl mx-auto">
         {/* Page Header */}
