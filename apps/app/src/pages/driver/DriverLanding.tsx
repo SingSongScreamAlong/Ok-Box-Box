@@ -50,6 +50,7 @@ import {
   TelemetryMetricsResponse,
 } from '../../lib/driverService';
 import {
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
   computePerformanceDirection,
   computeConsistency,
   buildRatingTrend,
@@ -1578,7 +1579,7 @@ export function DriverLanding() {
   // Background video
   const videoRef = useRef<HTMLVideoElement>(null);
   useEffect(() => {
-    if (videoRef.current) videoRef.current.playbackRate = 0.6;
+    if (videoRef.current) videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
   }, []);
 
   // Performance snapshot

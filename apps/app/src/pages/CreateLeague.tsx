@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { createLeague } from '../lib/leagues';
+import { VIDEO_PLAYBACK_RATE } from '../lib/config';
 
 export function CreateLeague() {
   const { user } = useAuth();
@@ -14,7 +15,7 @@ export function CreateLeague() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

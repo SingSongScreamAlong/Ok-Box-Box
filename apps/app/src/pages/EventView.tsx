@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getEvent, getEventEntries, registerForEvent, withdrawFromEvent, getUserEventEntry, Event, EventEntry } from '../lib/events';
 import { getLeague, getUserLeagueRole, League } from '../lib/leagues';
 import { ArrowLeft, Users, Calendar, MapPin, UserPlus, UserMinus } from 'lucide-react';
+import { VIDEO_PLAYBACK_RATE } from '../lib/config';
 
 export function EventView() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -26,7 +27,7 @@ export function EventView() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

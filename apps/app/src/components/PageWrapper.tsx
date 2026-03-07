@@ -1,4 +1,5 @@
 import { ReactNode, useRef, useEffect } from 'react';
+import { VIDEO_PLAYBACK_RATE } from '../lib/config';
 
 interface PageWrapperProps {
   children: ReactNode;
@@ -27,7 +28,7 @@ export function PageWrapper({
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

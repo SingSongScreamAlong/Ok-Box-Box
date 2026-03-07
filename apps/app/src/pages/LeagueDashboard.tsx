@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useLeagueData } from '../hooks/useLeagueData';
 import { Settings, Users, ArrowLeft, Calendar, Plus, AlertTriangle, Flag, Trophy } from 'lucide-react';
+import { VIDEO_PLAYBACK_RATE } from '../lib/config';
 
 export function LeagueDashboard() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -11,7 +12,7 @@ export function LeagueDashboard() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

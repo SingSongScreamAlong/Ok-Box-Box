@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getLeague, getUserLeagueRole, League } from '../lib/leagues';
 import { 
+import { VIDEO_PLAYBACK_RATE } from '../lib/config';
   ArrowLeft, MessageSquare, CheckCircle, XCircle, 
   Clock, AlertTriangle, ChevronRight, Filter, Search,
   FileText, User, Calendar, ThumbsUp, ThumbsDown, Scale
@@ -150,7 +151,7 @@ export function LeagueProtests() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

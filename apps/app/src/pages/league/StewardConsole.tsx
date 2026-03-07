@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getLeague, getUserLeagueRole, League } from '../../lib/leagues';
 import { useRelay } from '../../hooks/useRelay';
 import { 
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
   ArrowLeft, Radio, AlertTriangle, Flag, Clock, 
   Play, Pause, Users, Car, Zap, Eye, Volume2,
   CheckCircle, XCircle, MessageSquare, Send,
@@ -117,7 +118,7 @@ export function StewardConsole() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

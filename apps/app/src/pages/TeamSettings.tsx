@@ -16,6 +16,7 @@ import {
   TeamInvitation
 } from '../lib/teams';
 import { ArrowLeft, Trash2, UserPlus, Mail } from 'lucide-react';
+import { VIDEO_PLAYBACK_RATE } from '../lib/config';
 
 export function TeamSettings() {
   const { teamId } = useParams<{ teamId: string }>();
@@ -42,7 +43,7 @@ export function TeamSettings() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

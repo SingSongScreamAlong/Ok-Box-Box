@@ -12,6 +12,7 @@ import {
   PENALTY_TYPES
 } from '../lib/rulebooks';
 import { 
+import { VIDEO_PLAYBACK_RATE } from '../lib/config';
   ArrowLeft, Book, Plus, Trash2, Edit2, Save, X, 
   ChevronDown, ChevronUp
 } from 'lucide-react';
@@ -36,7 +37,7 @@ export function LeagueRulebook() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

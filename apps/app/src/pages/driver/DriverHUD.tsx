@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
   Monitor,
   Wrench,
   Eye,
@@ -33,7 +34,7 @@ function saveHUDSettings(widgets: HUDWidget[]) {
 
 export function DriverHUD() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = 0.6; }, []);
+  useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE; }, []);
 
   const [widgets, setWidgets] = useState<HUDWidget[]>(loadHUDSettings() || [
     {

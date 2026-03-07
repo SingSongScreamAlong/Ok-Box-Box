@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getLeague, getUserLeagueRole, League } from '../lib/leagues';
 import { 
+import { VIDEO_PLAYBACK_RATE } from '../lib/config';
   ArrowLeft, Trophy, Calendar, ChevronDown, ChevronUp,
   Medal, TrendingUp, TrendingDown, Minus, Settings, Plus
 } from 'lucide-react';
@@ -168,7 +169,7 @@ export function LeagueChampionship() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

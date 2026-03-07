@@ -12,6 +12,7 @@ import {
   getPenaltyTypeColor
 } from '../lib/penalties';
 import { 
+import { VIDEO_PLAYBACK_RATE } from '../lib/config';
   ArrowLeft, Flag, CheckCircle, XCircle, 
   Clock, Gavel, ChevronRight, AlertTriangle
 } from 'lucide-react';
@@ -34,7 +35,7 @@ export function LeaguePenalties() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

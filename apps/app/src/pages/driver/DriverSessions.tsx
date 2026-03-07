@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { fetchDriverSessions, DriverSessionSummary, getDisciplineLabel } from '../../lib/driverService';
 import { Calendar, MapPin, Flag, Trophy, AlertTriangle, Loader2 } from 'lucide-react';
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
 
 export function DriverSessions() {
   const [sessions, setSessions] = useState<DriverSessionSummary[] | null>(null);
@@ -16,7 +17,7 @@ export function DriverSessions() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

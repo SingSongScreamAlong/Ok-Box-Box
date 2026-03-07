@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserLeagues, LeagueWithRole } from '../lib/leagues';
 import { Plus, Trophy } from 'lucide-react';
+import { VIDEO_PLAYBACK_RATE } from '../lib/config';
 
 export function Leagues() {
   const { user } = useAuth();
@@ -18,7 +19,7 @@ export function Leagues() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
   Wrench,
   Eye,
   Volume2,
@@ -41,7 +42,7 @@ function saveVoiceSettings(settings: VoiceSettings) {
 
 export function DriverVoice() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = 0.6; }, []);
+  useEffect(() => { if (videoRef.current) videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE; }, []);
 
   const saved = loadVoiceSettings();
   const [engineerVolume, setEngineerVolume] = useState(saved?.engineerVolume ?? 80);

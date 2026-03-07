@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useDriverData } from '../../hooks/useDriverData';
 import { getDisciplineLabel, getLicenseColor } from '../../lib/driverService';
 import { Award, Shield, TrendingUp, Loader2 } from 'lucide-react';
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
 
 export function DriverRatings() {
   const { profile, loading } = useDriverData();
@@ -9,7 +10,7 @@ export function DriverRatings() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

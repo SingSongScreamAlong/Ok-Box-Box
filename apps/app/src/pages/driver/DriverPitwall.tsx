@@ -18,6 +18,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { TrackMinimap } from '../../components/TrackMinimap';
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
 
 interface EngineerInsight {
   type: 'fuel' | 'pace' | 'strategy' | 'info';
@@ -37,7 +38,7 @@ export function DriverPitwall() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

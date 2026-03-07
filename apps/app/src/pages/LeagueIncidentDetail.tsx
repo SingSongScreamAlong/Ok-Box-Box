@@ -12,6 +12,7 @@ import {
   getStatusColor
 } from '../lib/incidents';
 import { 
+import { VIDEO_PLAYBACK_RATE } from '../lib/config';
   ArrowLeft, AlertTriangle, CheckCircle, XCircle, 
   Gavel, MessageSquare, Play, Flag, Car
 } from 'lucide-react';
@@ -35,7 +36,7 @@ export function LeagueIncidentDetail() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

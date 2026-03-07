@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getLeague, getUserLeagueRole, League } from '../lib/leagues';
 import { createEvent } from '../lib/events';
 import { ArrowLeft } from 'lucide-react';
+import { VIDEO_PLAYBACK_RATE } from '../lib/config';
 
 export function CreateEvent() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -26,7 +27,7 @@ export function CreateEvent() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

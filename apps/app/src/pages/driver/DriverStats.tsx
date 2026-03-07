@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { fetchDriverStats, DriverStatsSnapshot, getDisciplineLabel } from '../../lib/driverService';
 import { BarChart3, Trophy, Medal, Flag, TrendingUp, Loader2 } from 'lucide-react';
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
 
 export function DriverStats() {
   const [stats, setStats] = useState<DriverStatsSnapshot[] | null>(null);
@@ -16,7 +17,7 @@ export function DriverStats() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

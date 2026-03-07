@@ -7,6 +7,8 @@ import {
   Play, GitCompare, Calendar, Fuel, Crown, Shield, User, Clock, Flag
 } from 'lucide-react';
 import { WeatherWidget } from '../components/WeatherWidget';
+import { fetchTeamEventsV1, type TeamEventV1 } from '../lib/teamService';
+import { VIDEO_PLAYBACK_RATE } from '../lib/config';
 
 export function TeamDashboard() {
   const { teamId } = useParams<{ teamId: string }>();
@@ -15,6 +17,7 @@ export function TeamDashboard() {
   const [team, setTeam] = useState<Team | null>(null);
   const [role, setRole] = useState<'owner' | 'manager' | 'member' | null>(null);
   const [members, setMembers] = useState<TeamMembership[]>([]);
+  const [nextEventTrack, setNextEventTrack] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -26,17 +29,18 @@ export function TeamDashboard() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 
   const loadTeamData = async () => {
     if (!teamId || !user) return;
 
-    const [teamData, userRole, teamMembers] = await Promise.all([
+    const [teamData, userRole, teamMembers, events] = await Promise.all([
       getTeam(teamId),
       getUserTeamRole(teamId, user.id),
-      getTeamMembers(teamId)
+      getTeamMembers(teamId),
+      fetchTeamEventsV1(teamId),
     ]);
 
     if (!teamData || !userRole) {
@@ -47,6 +51,15 @@ export function TeamDashboard() {
     setTeam(teamData);
     setRole(userRole);
     setMembers(teamMembers);
+
+    // Pick the soonest upcoming event to show weather for its track
+    const upcoming = events
+      .filter((e: TeamEventV1) => e.event_type !== null)
+      .sort((a: TeamEventV1, b: TeamEventV1) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    if (upcoming.length > 0) {
+      setNextEventTrack(upcoming[0].event_name || undefined);
+    }
+
     setLoading(false);
   };
 
@@ -240,7 +253,7 @@ export function TeamDashboard() {
             >
               Track Conditions
             </h2>
-            <WeatherWidget variant="full" trackName="Next Event Track" />
+            <WeatherWidget variant="full" trackName={nextEventTrack} />
           </div>
 
           {/* Team Members */}

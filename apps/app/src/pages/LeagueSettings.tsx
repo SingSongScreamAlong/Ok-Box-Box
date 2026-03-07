@@ -12,6 +12,7 @@ import {
 } from '../lib/leagues';
 import { ArrowLeft, UserPlus } from 'lucide-react';
 import { InviteBuilder, InviteManager } from '../components/InviteBuilder';
+import { VIDEO_PLAYBACK_RATE } from '../lib/config';
 
 export function LeagueSettings() {
   const { leagueId } = useParams<{ leagueId: string }>();
@@ -37,7 +38,7 @@ export function LeagueSettings() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 

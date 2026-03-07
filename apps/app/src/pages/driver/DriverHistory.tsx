@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useDriverData } from '../../hooks/useDriverData';
 import { getDisciplineLabel, getLicenseColor, DriverDiscipline } from '../../lib/driverService';
 import { 
+import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
   Calendar, MapPin, Flag, Trophy, AlertTriangle, Loader2,
   TrendingUp, TrendingDown, Minus, Filter, ChevronRight,
   BarChart3, Target, Clock, ArrowLeft, Medal, Award, Shield
@@ -29,7 +30,7 @@ export function DriverHistory() {
 
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.playbackRate = 0.6;
+      videoRef.current.playbackRate = VIDEO_PLAYBACK_RATE;
     }
   }, []);
 
