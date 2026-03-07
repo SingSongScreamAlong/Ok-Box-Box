@@ -5,9 +5,11 @@
 
 import { BrowserWindow, globalShortcut } from 'electron';
 import { uIOhook, UiohookKey } from 'uiohook-napi';
+import HID from 'node-hid';
 
 // We'll use the Web Audio API via the renderer process for recording
-// and uiohook-napi for global keyboard detection (works without window focus)
+// node-hid for background joystick input (works without window focus)
+// uiohook-napi for global keyboard detection
 
 interface VoiceConfig {
   pttType: 'keyboard' | 'joystick';
@@ -30,6 +32,8 @@ export class VoiceSystem {
   private pttPressed = false;
   private pollInterval: NodeJS.Timeout | null = null;
   private joystick: any = null;
+  private hidDevice: HID.HID | null = null;
+  private hidButtonState = false;
   private uiohookStarted = false;
   private socket: any = null;
   private sessionId: string | null = null;
@@ -74,6 +78,10 @@ export class VoiceSystem {
     // Reinitialize PTT if type changed
     if (settings.pttType && settings.pttType !== oldPttType) {
       // Stop existing hooks
+      if (this.hidDevice) {
+        try { this.hidDevice.close(); } catch (e) { /* ignore */ }
+        this.hidDevice = null;
+      }
       if (this.uiohookStarted) {
         uIOhook.stop();
         this.uiohookStarted = false;
@@ -136,6 +144,12 @@ export class VoiceSystem {
       clearInterval(this.pollInterval);
       this.pollInterval = null;
     }
+    if (this.hidDevice) {
+      try {
+        this.hidDevice.close();
+      } catch (e) { /* ignore */ }
+      this.hidDevice = null;
+    }
     if (this.uiohookStarted) {
       uIOhook.stop();
       this.uiohookStarted = false;
@@ -144,10 +158,106 @@ export class VoiceSystem {
   }
 
   private async initJoystick() {
-    // For joystick PTT, we rely on the renderer's Gamepad API
-    // This requires the window to have focus, so we also support keyboard PTT as fallback
-    console.log(`🎮 Joystick PTT configured: Device ${this.config.joystickId}, Button ${this.config.joystickButton}`);
-    console.log('🎮 Note: Joystick PTT requires window focus. Consider using keyboard PTT for background operation.');
+    // Use node-hid for background joystick detection (works without window focus)
+    console.log(`🎮 Initializing HID joystick PTT: Device ${this.config.joystickId}, Button ${this.config.joystickButton}`);
+    
+    try {
+      const devices = HID.devices();
+      
+      // Find gaming devices - look for joysticks, gamepads, and wheels
+      // UsagePage 1 = Generic Desktop, Usage 4 = Joystick, Usage 5 = Gamepad
+      const gamepads = devices.filter(d => 
+        d.usagePage === 1 && (d.usage === 4 || d.usage === 5 || d.usage === 8)
+      );
+      
+      // Also look for SIMAGIC specifically by vendor ID
+      const simagicDevices = devices.filter(d => 
+        d.vendorId === 1155 || // SIMAGIC vendor ID
+        (d.product && d.product.toLowerCase().includes('simagic'))
+      );
+      
+      const allGamepads = [...new Map([...gamepads, ...simagicDevices].map(d => [d.path, d])).values()];
+      
+      console.log(`🎮 Found ${allGamepads.length} HID gamepad(s):`);
+      allGamepads.forEach((gp, i) => {
+        console.log(`   ${i}: ${gp.product || 'Unknown'} (VID:${gp.vendorId} PID:${gp.productId} Usage:${gp.usage})`);
+      });
+      
+      if (allGamepads.length > this.config.joystickId) {
+        const target = allGamepads[this.config.joystickId];
+        console.log(`🎮 Opening HID device: ${target.product}`);
+        
+        try {
+          this.hidDevice = new HID.HID(target.path!);
+          this.startHIDButtonDetection();
+        } catch (openErr) {
+          console.error(`🎮 Failed to open HID device: ${openErr}`);
+          console.log('🎮 Falling back to renderer Gamepad API (requires window focus)');
+        }
+      } else {
+        console.log('🎮 No HID gamepad found, using renderer Gamepad API (requires window focus)');
+      }
+    } catch (err) {
+      console.error('🎮 HID enumeration error:', err);
+    }
+  }
+
+  private startHIDButtonDetection() {
+    if (!this.hidDevice) return;
+    
+    // Track previous report to detect changes
+    let prevReport: Buffer | null = null;
+    let calibrated = false;
+    let buttonByteIndex = -1;
+    let buttonBitMask = 0;
+    
+    console.log(`🎮 HID button detection started for button ${this.config.joystickButton}`);
+    console.log('🎮 Press the PTT button once to calibrate...');
+    
+    this.hidDevice.on('data', (data: Buffer) => {
+      if (!calibrated && prevReport) {
+        // Find which byte changed - this is likely the button byte
+        for (let i = 0; i < Math.min(data.length, prevReport.length); i++) {
+          const diff = data[i] ^ prevReport[i];
+          if (diff !== 0) {
+            // Found a changed byte - check if it's a single bit change (button press)
+            const bitCount = this.countBits(diff);
+            if (bitCount === 1) {
+              buttonByteIndex = i;
+              buttonBitMask = diff;
+              calibrated = true;
+              console.log(`🎮 Calibrated! Button ${this.config.joystickButton} = byte ${i}, mask 0x${diff.toString(16)}`);
+              break;
+            }
+          }
+        }
+      }
+      
+      if (calibrated && buttonByteIndex >= 0) {
+        const pressed = (data[buttonByteIndex] & buttonBitMask) !== 0;
+        
+        if (pressed !== this.hidButtonState) {
+          this.hidButtonState = pressed;
+          console.log(`🎮 HID PTT: ${pressed ? 'PRESSED' : 'RELEASED'}`);
+          this.onPTTStateChange(pressed);
+        }
+      }
+      
+      prevReport = Buffer.from(data);
+    });
+    
+    this.hidDevice.on('error', (err: Error) => {
+      console.error('🎮 HID error:', err);
+    });
+  }
+
+  private countBits(n: number): number {
+    let count = 0;
+    while (n) {
+      count += n & 1;
+      n >>= 1;
+    }
+    return count;
   }
 
   private initKeyboardPTT() {
