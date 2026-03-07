@@ -21,17 +21,6 @@ interface RaceConfig {
   maxDriverTime: number; // minutes
 }
 
-interface RacePlanData {
-  id: string;
-  name: string;
-  isActive: boolean;
-  stints: Stint[];
-  totalLaps: number;
-  estimatedTime: number;
-  fuelUsed: number;
-  pitStops: number;
-}
-
 interface LocalPlanChange {
   id: string;
   timestamp: Date;
