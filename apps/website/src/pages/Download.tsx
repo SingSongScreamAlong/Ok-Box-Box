@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
-import { ExternalLink } from 'lucide-react';
+import { Download as DownloadIcon, ExternalLink } from 'lucide-react';
 import { StackingSections, StackingSection } from '../components/StackingSections';
+
+const RELAY_DOWNLOAD_URL = 'https://github.com/SingSongScreamAlong/Ok-Box-Box/releases/latest/download/okboxbox-relay-1.0.0-alpha.exe';
 
 export function Download() {
     return (
@@ -32,16 +34,19 @@ export function Download() {
                     </h1>
                     <p className="text-sm text-white/80 leading-relaxed max-w-lg mx-auto mb-8">
                         The Relay connects your iRacing session to Ok, Box Box in real time.
-                        It's the bridge between the simulator and the system.
+                        It installs as a standalone desktop app with one-click account linking.
                     </p>
 
                     <a 
-                        href="https://github.com/SingSongScreamAlong/Ok-Box-Box/releases/latest/download/Ok-Box-Box-Relay-1.0.0-alpha.exe" 
+                        href={RELAY_DOWNLOAD_URL}
                         className="btn btn-primary px-8 py-4 text-sm uppercase tracking-wider font-semibold mb-3 inline-block"
                     >
-                        Download for Windows
+                        <span className="inline-flex items-center gap-2">
+                            <DownloadIcon className="w-4 h-4" />
+                            Download for Windows
+                        </span>
                     </a>
-                    <p className="text-[10px] text-white/60 uppercase tracking-wider">Windows 10+</p>
+                    <p className="text-[10px] text-white/60 uppercase tracking-wider">Windows 10+ • Installer includes embedded runtime</p>
                 </div>
             </div>
 
@@ -67,7 +72,7 @@ export function Download() {
                                 </li>
                                 <li className="flex items-start gap-3">
                                     <span className="w-1 h-1 rounded-full bg-[#f97316] mt-2 flex-shrink-0" />
-                                    <span>Syncs driver identity</span>
+                                    <span>Links directly to your Ok, Box Box account</span>
                                 </li>
                             </ul>
                         </div>
@@ -120,7 +125,11 @@ export function Download() {
                                 </li>
                                 <li className="flex items-start gap-3">
                                     <span className="w-1 h-1 rounded-full bg-[#3b82f6] mt-2 flex-shrink-0" />
-                                    <span>Automatic updates when available</span>
+                                    <span>Auto-update checks from inside the relay app</span>
+                                </li>
+                                <li className="flex items-start gap-3">
+                                    <span className="w-1 h-1 rounded-full bg-[#3b82f6] mt-2 flex-shrink-0" />
+                                    <span>No Docker, no Python, no manual env files for end users</span>
                                 </li>
                             </ul>
                         </div>
@@ -137,19 +146,19 @@ export function Download() {
                             <div className="space-y-3">
                                 <div className="flex items-center gap-4">
                                     <span className="w-6 h-6 flex items-center justify-center bg-[#3b82f6]/20 text-[#3b82f6] text-xs font-semibold rounded-full flex-shrink-0">1</span>
-                                    <p className="text-white/80">Launch iRacing</p>
+                                    <p className="text-white/80">Install and open the relay once</p>
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <span className="w-6 h-6 flex items-center justify-center bg-[#3b82f6]/20 text-[#3b82f6] text-xs font-semibold rounded-full flex-shrink-0">2</span>
-                                    <p className="text-white/80">Start the Relay</p>
+                                    <p className="text-white/80">Sign in to your Ok, Box Box account</p>
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <span className="w-6 h-6 flex items-center justify-center bg-[#3b82f6]/20 text-[#3b82f6] text-xs font-semibold rounded-full flex-shrink-0">3</span>
-                                    <p className="text-white/80">Log in to Ok, Box Box</p>
+                                    <p className="text-white/80">Click launch from the download page to link the installed relay</p>
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <span className="w-6 h-6 flex items-center justify-center bg-[#3b82f6]/20 text-[#3b82f6] text-xs font-semibold rounded-full flex-shrink-0">4</span>
-                                    <p className="text-white/80">Your session appears automatically</p>
+                                    <p className="text-white/80">Start iRacing and your session appears automatically</p>
                                 </div>
                             </div>
                             <p className="text-white/70 italic">

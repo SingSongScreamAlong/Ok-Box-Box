@@ -5,6 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { requireTeamMember } from '../middleware/team-guards.js';
 import { pool } from '../../db/client.js';
 
 const router = Router();
@@ -53,7 +54,7 @@ interface DriverStint {
 }
 
 // GET /api/teams/:teamId/practice - List all practice sessions
-router.get('/:teamId/practice', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get('/:teamId/practice', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId } = req.params;
         const { status, eventId } = req.query;
@@ -89,7 +90,7 @@ router.get('/:teamId/practice', requireAuth, async (req: Request, res: Response)
 });
 
 // GET /api/teams/:teamId/practice/:sessionId - Get a practice session with details
-router.get('/:teamId/practice/:sessionId', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get('/:teamId/practice/:sessionId', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId, sessionId } = req.params;
 
@@ -129,7 +130,7 @@ router.get('/:teamId/practice/:sessionId', requireAuth, async (req: Request, res
 });
 
 // POST /api/teams/:teamId/practice - Create a new practice session
-router.post('/:teamId/practice', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post('/:teamId/practice', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId } = req.params;
         const { name, event_id, track_name, car_name } = req.body;
@@ -154,7 +155,7 @@ router.post('/:teamId/practice', requireAuth, async (req: Request, res: Response
 });
 
 // PATCH /api/teams/:teamId/practice/:sessionId - Update a practice session
-router.patch('/:teamId/practice/:sessionId', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.patch('/:teamId/practice/:sessionId', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId, sessionId } = req.params;
         const { name, track_name, car_name, status, started_at, ended_at } = req.body;
@@ -198,7 +199,7 @@ router.patch('/:teamId/practice/:sessionId', requireAuth, async (req: Request, r
 });
 
 // DELETE /api/teams/:teamId/practice/:sessionId - Delete a practice session
-router.delete('/:teamId/practice/:sessionId', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.delete('/:teamId/practice/:sessionId', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId, sessionId } = req.params;
 
@@ -220,9 +221,10 @@ router.delete('/:teamId/practice/:sessionId', requireAuth, async (req: Request, 
 });
 
 // POST /api/teams/:teamId/practice/:sessionId/run-plans - Add a run plan
-router.post('/:teamId/practice/:sessionId/run-plans', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post('/:teamId/practice/:sessionId/run-plans', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { sessionId } = req.params;
+
         const { name, target_laps, target_time, focus_areas } = req.body;
 
         if (!name || target_laps === undefined) {
@@ -245,9 +247,10 @@ router.post('/:teamId/practice/:sessionId/run-plans', requireAuth, async (req: R
 });
 
 // PATCH /api/teams/:teamId/practice/:sessionId/run-plans/:planId - Update a run plan
-router.patch('/:teamId/practice/:sessionId/run-plans/:planId', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.patch('/:teamId/practice/:sessionId/run-plans/:planId', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { sessionId, planId } = req.params;
+
         const { name, target_laps, completed_laps, target_time, focus_areas, status } = req.body;
 
         const updates: string[] = [];
@@ -289,9 +292,10 @@ router.patch('/:teamId/practice/:sessionId/run-plans/:planId', requireAuth, asyn
 });
 
 // POST /api/teams/:teamId/practice/:sessionId/stints - Add a driver stint
-router.post('/:teamId/practice/:sessionId/stints', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post('/:teamId/practice/:sessionId/stints', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { sessionId } = req.params;
+
         const { driver_profile_id, driver_name, laps_completed, best_lap_time_ms, avg_lap_time_ms, consistency_score, incidents } = req.body;
 
         if (!driver_name) {
@@ -325,9 +329,10 @@ router.post('/:teamId/practice/:sessionId/stints', requireAuth, async (req: Requ
 });
 
 // PATCH /api/teams/:teamId/practice/:sessionId/stints/:stintId - Update a driver stint
-router.patch('/:teamId/practice/:sessionId/stints/:stintId', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.patch('/:teamId/practice/:sessionId/stints/:stintId', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { sessionId, stintId } = req.params;
+
         const { laps_completed, best_lap_time_ms, avg_lap_time_ms, consistency_score, incidents } = req.body;
 
         const updates: string[] = [];

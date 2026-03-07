@@ -7,20 +7,7 @@ import { useRelay } from '../../hooks/useRelay';
 import { TrackMap } from '../../components/TrackMap';
 import { useTeamData } from '../../hooks/useTeamData';
 
-// Radio channel interface for F1-style comms panel
-interface RadioChannel {
-  id: string;
-  name: string;
-  shortName: string;
-  type: 'driver' | 'crew' | 'team' | 'race';
-  volume: number;
-  muted: boolean;
-  active: boolean;
-  speaking: boolean;
-  color?: string;
-}
-
-// Mock driver data for team telemetry view
+// Driver data for team telemetry view
 interface TeamDriver {
   id: string;
   name: string;
@@ -284,12 +271,10 @@ export function PitwallHome() {
             <div className="p-3">
               {/* Row 1: Driver Names */}
               <div className="flex gap-2 mb-2">
-                {/* Driver columns */}
-                {['alex', 'jordan', 'sam', 'casey'].map(driverKey => {
-                  const driverChannel = radioChannels.find(ch => ch.id === `${driverKey}-driver`);
-                  if (!driverChannel) return null;
+                {/* Driver columns - dynamic from team roster */}
+                {radioChannels.filter(ch => ch.type === 'driver').map(driverChannel => {
                   return (
-                    <div key={driverKey} className="flex-1">
+                    <div key={driverChannel.id} className="flex-1">
                       <button
                         onClick={() => toggleChannel(driverChannel.id)}
                         className={`w-full h-9 rounded border-2 transition-all font-mono text-[11px] font-bold tracking-wider ${
@@ -531,73 +516,82 @@ export function PitwallHome() {
                 </div>
                 <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
               </div>
-              <div className="grid grid-cols-4 gap-4">
-                {/* Undercut/Overcut Analysis */}
-                <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Undercut Window</div>
-                  <div className="text-xl font-mono text-green-400">3.2s</div>
-                  <div className="text-[10px] text-white/30 mt-1">Pit now gains vs P2</div>
-                  <div className="mt-2 h-1 bg-white/10 rounded overflow-hidden">
-                    <div className="h-full bg-green-500" style={{ width: '75%' }} />
-                  </div>
-                  <div className="text-[9px] text-green-400/70 mt-1">75% confidence</div>
+              {status !== 'in_session' ? (
+                <div className="text-center py-8">
+                  <Target size={32} className="mx-auto text-purple-400/30 mb-3" />
+                  <div className="text-white/40 text-sm">No active session</div>
+                  <div className="text-white/20 text-xs mt-1">Strategy analytics will appear when the relay is connected and in session</div>
                 </div>
-                
-                {/* Tire Degradation Projection */}
-                <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Tire Cliff ETA</div>
-                  <div className="text-xl font-mono text-amber-400">~6 laps</div>
-                  <div className="text-[10px] text-white/30 mt-1">Based on deg rate: 0.12s/lap</div>
-                  <div className="mt-2 flex gap-1">
-                    {[1,2,3,4,5,6,7,8].map(i => (
-                      <div key={i} className={`flex-1 h-3 rounded-sm ${i <= 6 ? 'bg-amber-500/60' : 'bg-white/10'}`} />
-                    ))}
+              ) : (
+                <div className="grid grid-cols-4 gap-4">
+                  {/* Tire Wear */}
+                  <div className="bg-black/40 rounded p-4">
+                    <div className="text-[10px] uppercase text-white/40 mb-2">Tire Wear</div>
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      {(['fl', 'fr', 'rl', 'rr'] as const).map(pos => {
+                        const wear = telemetry.strategy.tireWear[pos];
+                        const pct = Math.round(wear * 100);
+                        return (
+                          <div key={pos} className="text-center">
+                            <div className="text-[9px] text-white/30 uppercase">{pos}</div>
+                            <div className={`text-sm font-mono ${pct > 70 ? 'text-green-400' : pct > 40 ? 'text-amber-400' : 'text-red-400'}`}>{pct}%</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="text-[9px] text-white/30">Stint: {telemetry.strategy.tireStintLaps} laps</div>
                   </div>
-                  <div className="text-[9px] text-amber-400/70 mt-1">Grip loss accelerating</div>
-                </div>
-                
-                {/* Optimal Pit Lap Calculator */}
-                <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Optimal Pit Lap</div>
-                  <div className="text-xl font-mono text-purple-400">Lap 19</div>
-                  <div className="text-[10px] text-white/30 mt-1">Balances tire life + track pos</div>
-                  <div className="mt-2 space-y-1">
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 18</span>
-                      <span className="text-yellow-400">-0.8s net</span>
+
+                  {/* Fuel Strategy */}
+                  <div className="bg-black/40 rounded p-4">
+                    <div className="text-[10px] uppercase text-white/40 mb-2">Fuel</div>
+                    <div className="text-xl font-mono text-amber-400">{telemetry.fuel?.toFixed(1) ?? '—'}L</div>
+                    <div className="text-[10px] text-white/30 mt-1">{telemetry.strategy.fuelPerLap?.toFixed(2) ?? '—'} L/lap</div>
+                    <div className="mt-2 h-1 bg-white/10 rounded overflow-hidden">
+                      <div className="h-full bg-amber-500" style={{ width: `${Math.min(100, (telemetry.fuel ?? 0) / (session.fuelTankCapacity || 100) * 100)}%` }} />
                     </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 19</span>
-                      <span className="text-green-400">+1.2s net ★</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 20</span>
-                      <span className="text-yellow-400">+0.4s net</span>
-                    </div>
+                    <div className="text-[9px] text-amber-400/70 mt-1">{telemetry.strategy.fuelLapsRemaining?.toFixed(0) ?? '—'} laps remaining</div>
                   </div>
-                </div>
-                
-                {/* Traffic Analysis */}
-                <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Pit Exit Traffic</div>
-                  <div className="text-xl font-mono text-green-400">CLEAR</div>
-                  <div className="text-[10px] text-white/30 mt-1">No cars in pit window</div>
-                  <div className="mt-2 space-y-1">
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Behind you</span>
-                      <span className="text-white/70">P4 @ +8.3s</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Pit delta</span>
-                      <span className="text-white/70">~22s</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Exit pos</span>
-                      <span className="text-green-400">P3 (hold)</span>
+
+                  {/* Gap Analysis */}
+                  <div className="bg-black/40 rounded p-4">
+                    <div className="text-[10px] uppercase text-white/40 mb-2">Gaps</div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-white/40">Ahead</span>
+                        <span className="text-green-400 font-mono">{telemetry.strategy.gapToCarAhead > 0 ? `-${telemetry.strategy.gapToCarAhead.toFixed(1)}s` : '—'}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-white/40">Behind</span>
+                        <span className="text-red-400 font-mono">{telemetry.strategy.gapFromCarBehind > 0 ? `+${telemetry.strategy.gapFromCarBehind.toFixed(1)}s` : '—'}</span>
+                      </div>
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-white/40">To Leader</span>
+                        <span className="text-white/60 font-mono">{telemetry.strategy.gapToLeader > 0 ? `+${telemetry.strategy.gapToLeader.toFixed(1)}s` : '—'}</span>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Position & Pit Stops */}
+                  <div className="bg-black/40 rounded p-4">
+                    <div className="text-[10px] uppercase text-white/40 mb-2">Race Status</div>
+                    <div className="text-xl font-mono text-white">P{telemetry.position ?? '—'}</div>
+                    <div className="text-[10px] text-white/30 mt-1">Lap {telemetry.lap ?? '—'}</div>
+                    <div className="mt-2 space-y-1">
+                      <div className="flex justify-between text-[9px]">
+                        <span className="text-white/40">Pit stops</span>
+                        <span className="text-white/70">{telemetry.strategy.pitStops}</span>
+                      </div>
+                      <div className="flex justify-between text-[9px]">
+                        <span className="text-white/40">Damage</span>
+                        <span className={`${telemetry.strategy.damageAero > 0 || telemetry.strategy.damageEngine > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                          {telemetry.strategy.damageAero > 0 || telemetry.strategy.damageEngine > 0 ? 'Yes' : 'Clean'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -610,105 +604,41 @@ export function PitwallHome() {
                 </div>
                 <button onClick={() => setActivePanel(null)} className="text-white/40 hover:text-white text-sm">✕ Close</button>
               </div>
-              <div className="grid grid-cols-4 gap-4">
-                {/* Sector Comparison */}
-                <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Sector Comparison</div>
-                  <div className="text-[10px] text-white/50 mb-2">Alex vs Team Best</div>
-                  <div className="space-y-2">
-                    <div>
-                      <div className="flex justify-between text-[9px] mb-1">
-                        <span className="text-white/40">S1</span>
-                        <span className="text-green-400">-0.12s</span>
-                      </div>
-                      <div className="h-1.5 bg-white/10 rounded overflow-hidden">
-                        <div className="h-full bg-green-500" style={{ width: '95%' }} />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-[9px] mb-1">
-                        <span className="text-white/40">S2</span>
-                        <span className="text-red-400">+0.24s</span>
-                      </div>
-                      <div className="h-1.5 bg-white/10 rounded overflow-hidden">
-                        <div className="h-full bg-red-500" style={{ width: '78%' }} />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-[9px] mb-1">
-                        <span className="text-white/40">S3</span>
-                        <span className="text-green-400">-0.08s</span>
-                      </div>
-                      <div className="h-1.5 bg-white/10 rounded overflow-hidden">
-                        <div className="h-full bg-green-500" style={{ width: '92%' }} />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-[9px] text-cyan-400/70 mt-2">Focus: T5-T7 braking</div>
+              {localDrivers.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users size={32} className="mx-auto text-cyan-400/30 mb-3" />
+                  <div className="text-white/40 text-sm">No drivers in roster</div>
+                  <div className="text-white/20 text-xs mt-1">Add team members to see driver performance analytics</div>
                 </div>
-                
-                {/* Consistency Analysis */}
-                <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Consistency Score</div>
-                  <div className="text-xl font-mono text-cyan-400">94.2%</div>
-                  <div className="text-[10px] text-white/30 mt-1">Last 10 laps σ: ±0.18s</div>
-                  <div className="mt-2 flex items-end gap-0.5 h-8">
-                    {[0.2, 0.1, 0.15, 0.08, 0.12, 0.1, 0.18, 0.14, 0.09, 0.11].map((v, i) => (
-                      <div key={i} className="flex-1 bg-cyan-500/60 rounded-t" style={{ height: `${v * 200}%` }} />
-                    ))}
-                  </div>
-                  <div className="text-[9px] text-white/40 mt-1">Lap variance (lower = better)</div>
+              ) : (
+                <div className="grid grid-cols-4 gap-4">
+                  {/* Driver Overview Cards */}
+                  {localDrivers.map(driver => (
+                    <div key={driver.id} className={`bg-black/40 rounded p-4 border ${driver.isActive ? 'border-cyan-500/30' : 'border-white/5'}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-xs font-medium text-white truncate">{driver.name}</div>
+                        {driver.isActive && <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />}
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-white/40">Position</span>
+                          <span className="text-white font-mono">{driver.position ? `P${driver.position}` : '—'}</span>
+                        </div>
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-white/40">Gap</span>
+                          <span className="text-white/60 font-mono">{driver.gap ?? '—'}</span>
+                        </div>
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-white/40">Status</span>
+                          <span className={`text-[9px] uppercase font-semibold ${driver.isActive ? 'text-green-400' : 'text-white/30'}`}>
+                            {driver.isActive ? 'On Track' : 'Offline'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                
-                {/* Pace Trend */}
-                <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Pace Trend</div>
-                  <div className="text-xl font-mono text-green-400">↑ Improving</div>
-                  <div className="text-[10px] text-white/30 mt-1">-0.3s over last 5 laps</div>
-                  <div className="mt-2 space-y-1">
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 43</span>
-                      <span className="text-white/70">1:38.42</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 44</span>
-                      <span className="text-white/70">1:38.31</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 45</span>
-                      <span className="text-white/70">1:38.24</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 46</span>
-                      <span className="text-white/70">1:38.18</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Lap 47</span>
-                      <span className="text-green-400">1:38.12 ★</span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Driver Fatigue / Stint Analysis */}
-                <div className="bg-black/40 rounded p-4">
-                  <div className="text-[10px] uppercase text-white/40 mb-2">Stint Fatigue Index</div>
-                  <div className="text-xl font-mono text-amber-400">72%</div>
-                  <div className="text-[10px] text-white/30 mt-1">Reaction time +4ms avg</div>
-                  <div className="mt-2 h-2 bg-white/10 rounded overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-green-500 via-amber-500 to-red-500" style={{ width: '72%' }} />
-                  </div>
-                  <div className="mt-2 space-y-1">
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Stint length</span>
-                      <span className="text-white/70">1h 42m</span>
-                    </div>
-                    <div className="flex justify-between text-[9px]">
-                      <span className="text-white/40">Rec. swap</span>
-                      <span className="text-amber-400">~25 min</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              )}
               
               {/* Per-Driver Behavioral Health */}
               <div className="mt-4">

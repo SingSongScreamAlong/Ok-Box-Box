@@ -10,6 +10,10 @@ import {
   fetchStints,
   fetchTeamRoster,
   fetchTeamStrategy,
+  activateRacePlan,
+  createStint as apiCreateStint,
+  updateStint as apiUpdateStint,
+  deleteStint as apiDeleteStint,
 } from '../lib/teamService';
 import {
   type Driver,
@@ -24,7 +28,7 @@ import {
   type DriverStint,
   type StrategyPlan,
   type TeamRoster,
-} from '../services/mockData';
+} from '../services/mockData/types';
 
 interface TeamDataContextValue {
   // Team & Drivers
@@ -205,10 +209,27 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
           setStrategyPlan(apiStrategy);
         }
 
+        // Build radio channels from loaded drivers
+        const driverColors = ['#f97316', '#3b82f6', '#22c55e', '#a855f7', '#ef4444', '#06b6d4'];
+        const generatedChannels: RadioChannel[] = [
+          ...transformedDrivers.map((d, i) => ({
+            id: `${d.name.split(' ')[0].toLowerCase()}-driver`,
+            name: d.name,
+            shortName: d.shortName || d.name.split(' ')[0].substring(0, 3).toUpperCase(),
+            type: 'driver' as const,
+            volume: 80,
+            muted: false,
+            active: true,
+            speaking: false,
+            color: driverColors[i % driverColors.length],
+          })),
+          { id: 'all-drivers', name: 'All Drivers', shortName: 'ALL', type: 'team' as const, volume: 80, muted: false, active: true, speaking: false, color: '#06b6d4' },
+          { id: 'race-control', name: 'Race Control', shortName: 'RC', type: 'race' as const, volume: 60, muted: false, active: false, speaking: false, color: '#fbbf24' },
+        ];
+        setRadioChannels(generatedChannels);
+
         // These remain empty until live session provides data via WebSocket
-        // No mock data - real racing system only
         setTracks([]);
-        setRadioChannels([]);
         setRunPlans([]);
         setDriverStints([]);
 
@@ -262,14 +283,26 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
     return racePlans.find(p => p.eventId === eventId && p.isActive);
   }, [racePlans]);
 
-  const setActivePlan = useCallback((eventId: string, planId: string) => {
+  const setActivePlan = useCallback(async (eventId: string, planId: string) => {
+    // Optimistic local update
     setRacePlans(prev => prev.map(p => ({
       ...p,
       isActive: p.eventId === eventId ? p.id === planId : p.isActive,
     })));
-  }, []);
+    // Persist to server
+    const success = await activateRacePlan(teamId, planId);
+    if (!success) {
+      console.error('[TeamData] Failed to activate plan on server, reverting');
+      // Revert on failure
+      setRacePlans(prev => prev.map(p => ({
+        ...p,
+        isActive: p.eventId === eventId ? p.id !== planId : p.isActive,
+      })));
+    }
+  }, [teamId]);
 
-  const updateStint = useCallback((planId: string, stintId: string, updates: Partial<Stint>) => {
+  const updateStint = useCallback(async (planId: string, stintId: string, updates: Partial<Stint>) => {
+    // Optimistic local update
     setRacePlans(prev => prev.map(plan => {
       if (plan.id !== planId) return plan;
       return {
@@ -279,24 +312,33 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
         ),
       };
     }));
-  }, []);
+    // Persist to server
+    await apiUpdateStint(teamId, stintId, updates as any);
+  }, [teamId]);
 
-  const addStint = useCallback((planId: string, stint: Omit<Stint, 'id'>) => {
-    const newStint: Stint = {
-      ...stint,
-      id: `stint-${Date.now()}`,
-    };
-    setRacePlans(prev => prev.map(plan => {
-      if (plan.id !== planId) return plan;
-      return {
-        ...plan,
-        stints: [...plan.stints, newStint],
-        pitStops: plan.pitStops + 1,
+  const addStint = useCallback(async (planId: string, stint: Omit<Stint, 'id'>) => {
+    // Create on server first to get real ID
+    const created = await apiCreateStint(teamId, planId, stint as any);
+    if (created) {
+      const newStint: Stint = {
+        ...stint,
+        id: created.id,
       };
-    }));
-  }, []);
+      setRacePlans(prev => prev.map(plan => {
+        if (plan.id !== planId) return plan;
+        return {
+          ...plan,
+          stints: [...plan.stints, newStint],
+          pitStops: plan.pitStops + 1,
+        };
+      }));
+    } else {
+      console.error('[TeamData] Failed to create stint on server');
+    }
+  }, [teamId]);
 
-  const removeStint = useCallback((planId: string, stintId: string) => {
+  const removeStint = useCallback(async (planId: string, stintId: string) => {
+    // Optimistic local update
     setRacePlans(prev => prev.map(plan => {
       if (plan.id !== planId) return plan;
       return {
@@ -305,7 +347,12 @@ export function TeamDataProvider({ children, teamId }: { children: ReactNode; te
         pitStops: Math.max(0, plan.pitStops - 1),
       };
     }));
-  }, []);
+    // Delete on server
+    const success = await apiDeleteStint(teamId, stintId);
+    if (!success) {
+      console.error('[TeamData] Failed to delete stint on server');
+    }
+  }, [teamId]);
 
   // Plan change/confirmation system
   const sendPlanToDrivers = useCallback((planId: string, driverIds: string[]): PlanChange => {

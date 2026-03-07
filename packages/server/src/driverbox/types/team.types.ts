@@ -37,7 +37,7 @@ export interface TeamMembership {
     access_grant_id: string | null;
 }
 
-export type TeamRole = 'driver' | 'engineer' | 'manager' | 'owner';
+export type TeamRole = 'driver' | 'analyst' | 'engineer' | 'admin' | 'manager' | 'owner';
 export type MembershipStatus = 'invited' | 'active' | 'left' | 'removed';
 
 export interface TeamEvent {
@@ -86,7 +86,6 @@ export interface UpdateTeamDTO {
 export interface InviteDriverDTO {
     driver_profile_id: string;
     role?: TeamRole;
-    requested_scope: 'team_standard' | 'team_deep';
 }
 
 export interface CreateTeamEventDTO {
@@ -192,8 +191,12 @@ export function getPermissionsForRole(role: TeamRole): TeamPermission[] {
             return ['team:view', 'team:edit', 'team:manage_members', 'team:create_events', 'team:delete'];
         case 'manager':
             return ['team:view', 'team:edit', 'team:manage_members', 'team:create_events'];
+        case 'admin':
+            return ['team:view', 'team:edit', 'team:create_events'];
         case 'engineer':
             return ['team:view', 'team:create_events'];
+        case 'analyst':
+            return ['team:view'];
         case 'driver':
             return ['team:view'];
         default:

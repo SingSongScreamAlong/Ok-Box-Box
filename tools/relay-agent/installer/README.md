@@ -1,63 +1,106 @@
-# ControlBox Relay Agent - Installer Build Guide
+# Ok, Box Box Relay Agent
 
-## Prerequisites
+Connects iRacing to your Ok, Box Box dashboard for live telemetry, AI race engineer, and session analysis.
 
-1. **Windows PC** (installer must be built on Windows)
-2. **Python 3.7+** with pip
-3. **NSIS** - [Download from nsis.sourceforge.io](https://nsis.sourceforge.io/Download)
+## ⚠️ Requirements
 
-## Quick Build
+- **Windows 10+** with iRacing installed
+- **Python 3.10+** ([Download Python](https://www.python.org/downloads/))
+- iRacing must be running (practice, qualifying, or race)
 
-### Step 1: Build Executable
-```powershell
-cd tools/relay-python
-.\build.bat
+## Quick Start
+
+### 1. Download & Extract
+Download the latest release and extract to any folder.
+
+### 2. Configure
+Copy `.env.example` to `.env` and add your auth token:
+```
+SERVER_URL=https://octopus-app-qsi3i.ondigitalocean.app
+AUTH_TOKEN=your_token_here
 ```
 
-This creates `dist/ControlBox-Relay.exe` (~50MB standalone executable)
+Get your auth token from: **Ok, Box Box App → Settings → Relay Token**
 
-### Step 2: Build Installer
+### 3. Run
+Double-click `START-RELAY.bat` or run manually:
 ```powershell
-cd installer
-.\build-installer.bat
+python main.py
 ```
 
-This creates `ControlBox-Relay-Setup.exe` (~20MB installer)
+The relay will:
+- Auto-detect when iRacing starts a session
+- Stream telemetry to your dashboard
+- Enable voice commands with your AI engineer
+- Log sessions for post-race analysis
 
-## Output Files
+## Features
 
-| File | Description |
-|------|-------------|
-| `dist/ControlBox-Relay.exe` | Standalone executable (no installer) |
-| `installer/ControlBox-Relay-Setup.exe` | Windows installer with shortcuts |
+| Feature | Description |
+|---------|-------------|
+| **Live Telemetry** | 60Hz car data to your dashboard |
+| **AI Engineer** | Voice commands during racing |
+| **Session Logging** | Compressed race logs for analysis |
+| **Auto-Reconnect** | Handles network interruptions |
+| **System Tray** | Runs quietly in background |
 
-## What the Installer Does
+### Custom Server URL
+```powershell
+python main.py --url https://your-controlbox-server.com
+```
 
-1. Installs to `C:\Program Files\ControlBox\Relay Agent\`
-2. Creates Start Menu shortcuts
-3. Creates Desktop shortcut
-4. Registers in Add/Remove Programs
-5. Creates default config file
+### Verbose Logging
+```powershell
+python main.py -v
+```
 
-## Customization
+### Custom Poll Rate
+```powershell
+python main.py --rate 20  # 20 Hz telemetry
+```
 
-### Change Cloud URL
-Edit `ControlBox-Relay.nsi` line ~52 to change the default cloud URL.
+## Environment Variables
 
-### Add Icon
-Place `controlbox.ico` in the `installer/` folder before building.
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `BLACKBOX_SERVER_URL` | `http://localhost:3000` | ControlBox Server URL |
+| `POLL_RATE_HZ` | `10` | Telemetry updates per second |
+| `LOG_LEVEL` | `INFO` | Logging verbosity |
+| `LOG_TELEMETRY` | `false` | Log each telemetry frame |
 
-### Add Banner
-Create `installer-banner.bmp` (164x314 pixels) for the installer welcome page.
+## What It Does
+
+1. **Connects to iRacing** via pyirsdk (Windows shared memory)
+2. **Reads live telemetry** at configurable rate (default 10 Hz):
+   - Car positions, speeds, gaps
+   - Flag states
+   - Lap times
+3. **Detects incidents** by monitoring iRacing's incident counters
+4. **Sends data to ControlBox Server** via Socket.IO WebSocket
+5. **Receives situational awareness updates** from the server
 
 ## Troubleshooting
 
-### "NSIS not found"
-Ensure NSIS is installed and `makensis.exe` is in your PATH.
+### "pyirsdk not installed"
+```powershell
+pip install pyirsdk
+```
 
-### "PyInstaller failed"
-- Try: `pip install --upgrade pyinstaller`
-- Check if antivirus is blocking the build
+### "Failed to connect to iRacing"
+- Ensure iRacing is running
+- Make sure you're in a session (not lobby)
+- Try starting a replay if no live session available
 
-### Large file size
-The ~50MB size is normal - it bundles Python and all dependencies.
+### "Connection refused to server"
+- Make sure ControlBox Server is running (`cd server && npm start`)
+- Check the server URL is correct
+- Verify firewall isn't blocking the connection
+
+## Development
+
+The relay is structured as:
+- `main.py` - Entry point and main loop
+- `iracing_reader.py` - pyirsdk wrapper
+- `data_mapper.py` - iRacing → ControlBox protocol translation
+- `controlbox_client.py` - Socket.IO server client
+- `config.py` - Configuration and constants

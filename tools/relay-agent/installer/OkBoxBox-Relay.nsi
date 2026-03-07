@@ -29,9 +29,9 @@ VIAddVersionKey "LegalCopyright" "© 2024-2026 ${PUBLISHER}"
 
 ; Interface settings
 !define MUI_ABORTWARNING
-!define MUI_ICON "okboxbox.ico"
-!define MUI_UNICON "okboxbox.ico"
-!define MUI_WELCOMEFINISHPAGE_BITMAP "installer-banner.bmp"
+!define MUI_ICON "okboxbox-logo.ico"
+!define MUI_UNICON "okboxbox-logo.ico"
+; !define MUI_WELCOMEFINISHPAGE_BITMAP "installer-banner.bmp"
 
 ; Header text
 !define MUI_WELCOMEPAGE_TITLE "Welcome to Ok, Box Box Relay Setup"
@@ -114,6 +114,9 @@ Section "Install"
     ; Save install directory and version
     WriteRegStr HKLM "Software\OkBoxBox\Relay" "Install_Dir" "$INSTDIR"
     WriteRegStr HKLM "Software\OkBoxBox\Relay" "Version" "${VERSION}"
+    
+    ; Add to Windows startup (run on login)
+    WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "OkBoxBoxRelay" '"$INSTDIR\OkBoxBox-Relay.exe"'
 SectionEnd
 
 ; Uninstaller Section
@@ -137,4 +140,7 @@ Section "Uninstall"
     ; Remove registry keys
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\OkBoxBoxRelay"
     DeleteRegKey HKLM "Software\OkBoxBox\Relay"
+    
+    ; Remove from Windows startup
+    DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "OkBoxBoxRelay"
 SectionEnd

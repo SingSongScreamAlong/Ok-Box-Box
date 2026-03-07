@@ -220,9 +220,11 @@ export async function hasTeamPermission(
 
     const roleHierarchy: Record<TeamRole, number> = {
         driver: 1,
-        engineer: 2,
-        manager: 3,
-        owner: 4,
+        analyst: 2,
+        engineer: 3,
+        admin: 4,
+        manager: 5,
+        owner: 6,
     };
 
     return roleHierarchy[role] >= roleHierarchy[requiredRole];

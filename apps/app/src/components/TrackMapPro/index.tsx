@@ -6,6 +6,8 @@ import { TrackVisuals } from './TrackVisuals';
 import { TrackControls } from './TrackControls';
 import { TrackLabels } from './TrackLabels';
 import { getTrackData, getTrackId } from '../../data/tracks';
+import { SpeedMap } from '../lap-intelligence/SpeedMap';
+import type { LapData } from '../lap-intelligence/types';
 
 /* 
   TrackMapPro: The Ultimate Race Control Surface
@@ -36,6 +38,8 @@ interface TrackMapProProps {
         brake?: number;
         gear?: number;
     }[];
+    speedMapLap?: LapData | null;
+    onCarClick?: (car: CarPosition) => void;
     className?: string;
 }
 
@@ -48,7 +52,8 @@ export function TrackMapPro({
     trackId,
     carPosition,
     otherCars,
-    telemetry,
+    speedMapLap,
+    onCarClick,
     className = "w-full h-full bg-slate-950"
 }: TrackMapProProps) {
     const shapeId = getShapeId(trackId);
@@ -113,11 +118,17 @@ export function TrackMapPro({
                 className="w-full h-full pointer-events-auto cursor-grab active:cursor-grabbing"
                 shapeRendering="geometricPrecision"
             >
+                {/* Speed-colored racing line overlay */}
+                {speedMapLap && (
+                    <SpeedMap shape={shape} lap={speedMapLap} />
+                )}
+
                 <TrackVisuals
                     shape={shape}
                     carPosition={carPosition}
                     otherCars={otherCars}
                     showSectors={true}
+                    onCarClick={onCarClick}
                 />
 
                 {trackMetadata && trackMetadata.corners && (

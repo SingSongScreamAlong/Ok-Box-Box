@@ -5,7 +5,7 @@
  */
 
 import { getEventDebrief, createEventDebrief, TeamEvent, TeamEventDebrief } from '../../repositories/team-event.repo.js';
-import { getReportsForDriver } from '../../../db/repositories/driver-reports.repo.js';
+import { getReportsForDriver, getReportForSession } from '../../../db/repositories/driver-reports.repo.js';
 import { getActiveMembers } from '../../../db/repositories/team-membership.repo.js';
 import { getDriverProfileById } from '../../../db/repositories/driver-profile.repo.js';
 import { config } from '../../../config/index.js';
@@ -59,17 +59,17 @@ export async function aggregateDriverDebriefs(
         const profile = await getDriverProfileById(driverId);
         if (!profile) continue;
 
-        // Get session debrief for this driver
-        const reports = await getReportsForDriver(driverId, {
-            reportType: 'session_debrief',
-            status: 'published',
-            limit: 1,
-            // Ideally we'd filter by session_id here, but let's assume the latest matches
-        });
-
-        if (reports.length === 0) continue;
-
-        const report = reports[0];
+        // Get session debrief for this driver — prefer session-specific, fall back to latest
+        let report = await getReportForSession(event.session_id, driverId);
+        if (!report) {
+            const reports = await getReportsForDriver(driverId, {
+                reportType: 'session_debrief',
+                status: 'published',
+                limit: 1,
+            });
+            if (reports.length === 0) continue;
+            report = reports[0];
+        }
         const content = report.content_json as Record<string, unknown>;
 
         summaries.push({

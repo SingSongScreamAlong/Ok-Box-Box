@@ -1,10 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Orbitron:wght@400;500;600;700;800;900&display=swap');
 
-@import '../../../../packages/dashboard/src/styles/theme.css';
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --font-ui: 'Inter', system-ui, sans-serif;
+  --font-display: 'Orbitron', sans-serif;
+  --bg: #0a0a0a;
+  --panel: rgba(255, 255, 255, 0.03);
+  --text: #ffffff;
+  --accent: #f97316;
+  --border-medium: rgba(255, 255, 255, 0.12);
+  --border-hard: rgba(255, 255, 255, 0.2);
+}
 
 body {
   font-family: var(--font-ui);

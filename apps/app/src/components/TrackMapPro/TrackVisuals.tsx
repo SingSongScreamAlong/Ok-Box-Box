@@ -26,6 +26,7 @@ interface TrackVisualsProps {
     carPosition?: CarPosition;
     otherCars?: CarPosition[];
     showSectors?: boolean;
+    onCarClick?: (car: CarPosition) => void;
 }
 
 // Position-based colors for podium + nearby cars
@@ -37,7 +38,7 @@ function getPositionColor(pos: number | undefined, fallback: string): string {
     return fallback;
 }
 
-export function TrackVisuals({ shape, carPosition, otherCars, showSectors = true }: TrackVisualsProps) {
+export function TrackVisuals({ shape, carPosition, otherCars, showSectors = true, onCarClick }: TrackVisualsProps) {
 
     const fullPathData = useMemo(() => {
         if (!shape.centerline) return '';
@@ -230,6 +231,8 @@ export function TrackVisuals({ shape, carPosition, otherCars, showSectors = true
                         initial={{ x: coords.x, y: coords.y }}
                         animate={{ x: coords.x, y: coords.y }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                        style={{ cursor: onCarClick ? 'pointer' : undefined }}
+                        onClick={() => onCarClick?.(car)}
                     >
                         {/* In-pit indicator */}
                         {car.inPit && (

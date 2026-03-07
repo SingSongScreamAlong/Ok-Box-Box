@@ -72,18 +72,44 @@ export function requireTeamRole(minRole: TeamRole) {
 }
 
 export function rateLimit(key: string, maxPerDay: number) {
-    const counters = new Map<string, { count: number; resetAt: number }>();
+    // In-memory fallback when Redis is unavailable
+    const memCounters = new Map<string, { count: number; resetAt: number }>();
+
     return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const userId = req.user!.id;
-        const counterKey = `${key}:${userId}`;
-        const now = Date.now();
+        const counterKey = `ratelimit:${key}:${userId}`;
+        const ttlSeconds = 24 * 60 * 60;
 
-        let counter = counters.get(counterKey);
+        try {
+            // Try Redis first
+            const { getRedisClient } = await import('../../services/redis-client.js');
+            const redis = await getRedisClient();
+
+            if (redis) {
+                const count = await redis.incr(counterKey);
+                if (count === 1) {
+                    await redis.expire(counterKey, ttlSeconds);
+                }
+                if (count > maxPerDay) {
+                    const ttl = await redis.ttl(counterKey);
+                    res.status(429).json({ error: `Rate limit exceeded. Maximum ${maxPerDay} ${key} per day.`, retry_after_seconds: ttl > 0 ? ttl : ttlSeconds });
+                    return;
+                }
+                next();
+                return;
+            }
+        } catch {
+            // Redis unavailable, fall through to in-memory
+        }
+
+        // In-memory fallback
+        const now = Date.now();
+        let counter = memCounters.get(counterKey);
         if (!counter || counter.resetAt < now) {
-            counter = { count: 0, resetAt: now + 24 * 60 * 60 * 1000 };
+            counter = { count: 0, resetAt: now + ttlSeconds * 1000 };
         }
         counter.count++;
-        counters.set(counterKey, counter);
+        memCounters.set(counterKey, counter);
 
         if (counter.count > maxPerDay) {
             res.status(429).json({ error: `Rate limit exceeded. Maximum ${maxPerDay} ${key} per day.`, retry_after_seconds: Math.ceil((counter.resetAt - now) / 1000) });

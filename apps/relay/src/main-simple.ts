@@ -8,20 +8,24 @@
  * - Auto-reconnects on failure
  * - Shows minimal status indicator
  * 
- * NO login required, NO mode selection, NO HUD - just pure telemetry relay.
+ * Standalone desktop runtime for the embedded relay.
  */
 
-import { app } from 'electron';
+import { app, shell } from 'electron';
+import { AuthManager } from './auth.js';
+import { checkForUpdates, showUpdateDialog, startUpdateChecker, stopUpdateChecker, manualUpdateCheck } from './auto-updater.js';
+import { extractProtocolUrl, parseProtocolUrl, registerProtocol } from './protocol-handler.js';
+import { getRelaySettings } from './settings.js';
 import { TrayManager } from './tray-simple.js';
 import { PythonBridge, RelayStatus } from './python-bridge-simple.js';
 import { createStatusWindow, updateStatus, closeStatusWindow } from './status-window.js';
 
 const APP_NAME = 'Ok, Box Box Relay';
-const CLOUD_URL = process.env.OKBOXBOX_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
 
 let tray: TrayManager | null = null;
 let pythonBridge: PythonBridge | null = null;
-let statusWindow: any = null;
+const authManager = new AuthManager();
+let pendingLaunchUrl: string | null = extractProtocolUrl(process.argv);
 
 // Prevent multiple instances
 const gotTheLock = app.requestSingleInstanceLock();
@@ -32,19 +36,67 @@ if (!gotTheLock) {
 
 app.whenReady().then(async () => {
     console.log(`🏎️ ${APP_NAME} starting...`);
+    app.setAppUserModelId('com.okboxbox.relay');
 
     // Auto-start on Windows boot
     setupAutoStart();
 
+    registerProtocol();
+
     // Create minimal tray
-    tray = new TrayManager();
+    tray = new TrayManager({
+        openApp: () => {
+            const settings = getRelaySettings();
+            void shell.openExternal(authManager.isLoggedIn() ? `${settings.appUrl}/driver/home` : `${settings.appUrl}/login`);
+        },
+        connectRelay: () => {
+            const settings = getRelaySettings();
+            void shell.openExternal(`${settings.appUrl}/download`);
+        },
+        checkForUpdates: () => {
+            void manualUpdateCheck();
+        },
+        logout: () => {
+            void unlinkRelay();
+        },
+    });
 
     // Create status window
-    statusWindow = createStatusWindow();
+    createStatusWindow();
     updateStatus({ serverConnected: false, iRacingDetected: false, sending: false, error: null });
 
+    const restored = await authManager.loadSavedToken();
+    refreshLinkState();
+
     // Start the autonomous relay
-    startRelay();
+    await startRelay();
+
+    if (pendingLaunchUrl) {
+        await handleLaunchUrl(pendingLaunchUrl);
+        pendingLaunchUrl = null;
+    }
+
+    const updateInfo = await checkForUpdates(true);
+    if (updateInfo) {
+        await showUpdateDialog(updateInfo);
+    }
+    startUpdateChecker();
+
+    if (!restored) {
+        console.log('🔓 Relay not linked yet. Waiting for launch token or manual connect flow.');
+    }
+});
+
+app.on('second-instance', (_event, argv) => {
+    const url = extractProtocolUrl(argv);
+    if (url) {
+        void handleLaunchUrl(url);
+    }
+});
+
+app.on('open-url', (event, url) => {
+    event.preventDefault();
+    void handleLaunchUrl(url);
 });
 
 app.on('window-all-closed', () => {
@@ -53,9 +105,62 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
     console.log('🛑 Shutting down...');
+    stopUpdateChecker();
     pythonBridge?.stop();
     closeStatusWindow();
 });
+
+function getBridgeOptions() {
+    const settings = getRelaySettings();
+    return {
+        cloudUrl: settings.apiUrl,
+        relayId: settings.relayId,
+        authToken: authManager.getAccessToken(),
+        userId: settings.userId,
+        enableLocalDev: !app.isPackaged,
+    };
+}
+
+function refreshLinkState(): void {
+    tray?.updateLinkState(authManager.getBootstrap()?.user.displayName || null);
+    pythonBridge?.updateOptions(getBridgeOptions());
+}
+
+async function unlinkRelay(): Promise<void> {
+    await authManager.logout();
+    refreshLinkState();
+    await restartRelay();
+}
+
+async function restartRelay(): Promise<void> {
+    pythonBridge?.stop();
+    pythonBridge = null;
+    updateStatus({ serverConnected: false, iRacingDetected: false, sending: false, error: null });
+    await startRelay();
+}
+
+async function handleLaunchUrl(url: string): Promise<boolean> {
+    const parsed = parseProtocolUrl(url);
+    if (!parsed || parsed.action !== 'launch') {
+        return false;
+    }
+
+    try {
+        const bootstrap = await authManager.exchangeLaunchToken(parsed.token);
+        if (!bootstrap) {
+            return false;
+        }
+
+        console.log(`🔗 Relay linked to ${bootstrap.user.email}`);
+        refreshLinkState();
+        await restartRelay();
+        return true;
+    } catch (error) {
+        console.error('Failed to handle launch URL:', error);
+        updateStatus({ error: error instanceof Error ? error.message : 'Relay link failed' });
+        return false;
+    }
+}
 
 /**
  * Start the autonomous relay - self-healing, always running
@@ -63,7 +168,7 @@ app.on('before-quit', () => {
 async function startRelay() {
     console.log('🚀 Starting autonomous relay...');
 
-    pythonBridge = new PythonBridge(CLOUD_URL);
+    pythonBridge = new PythonBridge(getBridgeOptions());
 
     // Wire up status updates
     pythonBridge.on('status', (status: RelayStatus) => {
@@ -80,6 +185,9 @@ async function startRelay() {
  */
 function setupAutoStart(): void {
     if (process.platform !== 'win32') return;
+
+    const settings = getRelaySettings();
+    if (!settings.autoLaunch) return;
 
     const AutoLaunch = require('auto-launch');
     const autoLauncher = new AutoLaunch({

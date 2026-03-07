@@ -163,13 +163,13 @@ apiRouter.use('/v1/teams', teamOperationsRouter);
 
 // Team Setups (Car setup file sharing)
 import teamSetupsRouter from './team-setups.js';
-apiRouter.use('/teams', teamSetupsRouter);
+apiRouter.use('/v1/teams', teamSetupsRouter);
 
 // Team Strategy (Race strategy planning)
 import teamStrategyRouter from './team-strategy.js';
-apiRouter.use('/teams', teamStrategyRouter);
+apiRouter.use('/v1/teams', teamStrategyRouter);
 
 // Team Practice (Practice session tracking)
 import teamPracticeRouter from './team-practice.js';
-apiRouter.use('/teams', teamPracticeRouter);
+apiRouter.use('/v1/teams', teamPracticeRouter);
 

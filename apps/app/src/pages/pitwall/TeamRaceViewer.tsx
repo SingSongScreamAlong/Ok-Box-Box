@@ -1,13 +1,16 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import {
   Users, Clock, Fuel, Flag, AlertTriangle, ChevronDown, ChevronUp,
-  Thermometer, Droplets, Wind, Sun, CloudRain
+  Thermometer, Droplets, Wind, Sun, CloudRain, Zap
 } from 'lucide-react';
 import { useRelay } from '../../hooks/useRelay';
 import { getTeam, Team } from '../../lib/teams';
 import { useTeamData } from '../../hooks/useTeamData';
 import { TrackMapPro } from '../../components/TrackMapPro';
+import { useLapTelemetry } from '../../hooks/useLapTelemetry';
+import { LapIntelligence } from '../../components/lap-intelligence';
+import { getTrackData } from '../../data/tracks';
 
 // Types for Team Race Viewer
 interface Driver {
@@ -153,8 +156,33 @@ export function TeamRaceViewer() {
   const [session, setSession] = useState<RaceSession | null>(null); // Demo disabled - start null
   const [expandedStint, setExpandedStint] = useState<string | null>(null);
   const [showStintHistory, setShowStintHistory] = useState(true);
+  const [showLapIntel, setShowLapIntel] = useState(false);
+  const [selectedCarNumber, setSelectedCarNumber] = useState<string | null>(null);
   const { status: relayStatus, telemetry: relayTelemetry, session: relaySession } = useRelay();
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Lap telemetry collection from relay
+  const {
+    completedLaps,
+    personalBest,
+    lastLap: lastCompletedLap,
+    optimalLap,
+  } = useLapTelemetry(relayTelemetry);
+
+  // Track corner data for segment analysis
+  const activeTrackCorners = useMemo(() => {
+    const trackName = relaySession.trackName;
+    if (!trackName) return undefined;
+    const meta = getTrackData(trackName);
+    if (!meta?.corners) return undefined;
+    return meta.corners.map(c => ({ name: c.name, distPct: c.apex.normalizedDistance ?? 0 }));
+  }, [relaySession.trackName]);
+
+  // Handle car click on track map
+  const handleCarClick = useCallback((car: { carNumber?: string; driverName?: string }) => {
+    setSelectedCarNumber(car.carNumber ?? car.driverName ?? null);
+    setShowLapIntel(true);
+  }, []);
   
   // Map service drivers to local format
   useEffect(() => {
@@ -758,6 +786,8 @@ export function TeamRaceViewer() {
                   trackId={activeTrackName}
                   carPosition={relayCarPosition}
                   otherCars={relayOtherCars}
+                  speedMapLap={personalBest}
+                  onCarClick={handleCarClick}
                   className="w-full h-full bg-transparent"
                 />
               </div>
@@ -819,6 +849,19 @@ export function TeamRaceViewer() {
               </div>
             )}
 
+            {/* Lap Intelligence Button */}
+            <button
+              onClick={() => setShowLapIntel(!showLapIntel)}
+              className={`w-full mb-4 px-4 py-3 text-xs font-semibold uppercase tracking-wider transition-all ${
+                showLapIntel
+                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                  : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10 hover:text-white/70'
+              }`}
+            >
+              <Zap size={14} className="inline mr-2" />
+              Lap Intelligence {completedLaps.length > 0 ? `(${completedLaps.length} laps)` : ''}
+            </button>
+
             {/* Alerts */}
             <div className="bg-white/5 backdrop-blur-xl border border-white/10 p-4">
               <div className="text-[10px] font-semibold text-white/40 uppercase tracking-[0.2em] mb-3">
@@ -850,6 +893,23 @@ export function TeamRaceViewer() {
             </div>
           </div>
         </div>
+
+        {/* Lap Intelligence Overlay Panel */}
+        {showLapIntel && (
+          <div className="fixed inset-y-0 right-0 w-[480px] z-50 overflow-y-auto shadow-2xl">
+            <LapIntelligence
+              driverName={selectedCarNumber ? `Car #${selectedCarNumber}` : activeTeamCar.currentDriver.name}
+              driverColor={activeTeamCar.currentDriver.color}
+              completedLaps={completedLaps}
+              personalBest={personalBest}
+              lastLap={lastCompletedLap}
+              optimalLap={optimalLap}
+              onClose={() => setShowLapIntel(false)}
+              corners={activeTrackCorners}
+              className="h-full"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -7,71 +7,21 @@
 
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { requireTeamMember } from '../middleware/team-guards.js';
 import { pool } from '../../db/client.js';
 
 const router = Router();
 
-// All routes require authentication
+// All routes require authentication + team membership
 router.use(requireAuth);
 
 // =====================================================================
-// Helper: Check team membership
-// =====================================================================
-async function checkTeamAccess(userId: string, teamId: string): Promise<boolean> {
-    const result = await pool.query(
-        `SELECT 1 FROM team_members WHERE team_id = $1 AND user_id = $2`,
-        [teamId, userId]
-    );
-    return result.rows.length > 0;
-}
-
-// =====================================================================
-// GET /api/v1/teams/:teamId
-// Get team details
-// =====================================================================
-router.get('/:teamId', async (req: Request, res: Response) => {
-    try {
-        const userId = req.user!.id;
-        const { teamId } = req.params;
-
-        const hasAccess = await checkTeamAccess(userId, teamId);
-        if (!hasAccess) {
-            res.status(403).json({ error: 'Not a member of this team' });
-            return;
-        }
-
-        const result = await pool.query(
-            `SELECT id, name, short_name, logo_url, primary_color, secondary_color, created_at
-             FROM teams WHERE id = $1`,
-            [teamId]
-        );
-
-        if (result.rows.length === 0) {
-            res.status(404).json({ error: 'Team not found' });
-            return;
-        }
-
-        res.json(result.rows[0]);
-    } catch (error) {
-        console.error('[Team API] Error fetching team:', error);
-        res.status(500).json({ error: 'Failed to fetch team' });
-    }
-});
-
-// =====================================================================
 // GET /api/v1/teams/:teamId/drivers
-// Get team drivers/roster
+// Get team drivers/roster (not covered by driverbox teams router)
 // =====================================================================
-router.get('/:teamId/drivers', async (req: Request, res: Response) => {
+router.get('/:teamId/drivers', requireTeamMember('teamId'), async (req: Request, res: Response) => {
     try {
-        const userId = req.user!.id;
         const { teamId } = req.params;
-
-        const hasAccess = await checkTeamAccess(userId, teamId);
-        if (!hasAccess) {
-            res.status(403).json({ error: 'Not a member of this team' });
-            return;
-        }
 
         const result = await pool.query(
             `SELECT 
@@ -87,10 +37,10 @@ router.get('/:teamId/drivers', async (req: Request, res: Response) => {
                 ip.sr_oval,
                 ip.license_road,
                 ip.license_oval
-             FROM team_members tm
-             JOIN driver_profiles dp ON tm.user_id = dp.user_account_id
-             LEFT JOIN iracing_profiles ip ON tm.user_id = ip.admin_user_id
-             WHERE tm.team_id = $1
+             FROM team_memberships tm
+             JOIN driver_profiles dp ON tm.driver_profile_id = dp.id
+             LEFT JOIN iracing_profiles ip ON dp.user_account_id = ip.admin_user_id
+             WHERE tm.team_id = $1 AND tm.status = 'active'
              ORDER BY tm.role, dp.display_name`,
             [teamId]
         );
@@ -124,111 +74,13 @@ router.get('/:teamId/drivers', async (req: Request, res: Response) => {
 });
 
 // =====================================================================
-// GET /api/v1/teams/:teamId/events
-// Get team events
-// =====================================================================
-router.get('/:teamId/events', async (req: Request, res: Response) => {
-    try {
-        const userId = req.user!.id;
-        const { teamId } = req.params;
-        const { status } = req.query;
-
-        const hasAccess = await checkTeamAccess(userId, teamId);
-        if (!hasAccess) {
-            res.status(403).json({ error: 'Not a member of this team' });
-            return;
-        }
-
-        let query = `
-            SELECT * FROM team_events 
-            WHERE team_id = $1
-        `;
-        const params: any[] = [teamId];
-
-        if (status) {
-            query += ` AND status = $2`;
-            params.push(status);
-        }
-
-        query += ` ORDER BY event_date DESC`;
-
-        const result = await pool.query(query, params);
-
-        res.json({
-            events: result.rows.map(row => ({
-                id: row.id,
-                name: row.name,
-                seriesName: row.series_name,
-                trackName: row.track_name,
-                trackConfig: row.track_config,
-                eventDate: row.event_date,
-                durationMinutes: row.duration_minutes,
-                totalLaps: row.total_laps,
-                status: row.status,
-                carClass: row.car_class,
-                weatherType: row.weather_type,
-                finishPosition: row.finish_position,
-                classPosition: row.class_position,
-                lapsCompleted: row.laps_completed,
-                totalIncidents: row.total_incidents
-            }))
-        });
-    } catch (error) {
-        console.error('[Team API] Error fetching events:', error);
-        res.status(500).json({ error: 'Failed to fetch events' });
-    }
-});
-
-// =====================================================================
-// POST /api/v1/teams/:teamId/events
-// Create a new event
-// =====================================================================
-router.post('/:teamId/events', async (req: Request, res: Response) => {
-    try {
-        const userId = req.user!.id;
-        const { teamId } = req.params;
-        const { name, seriesName, trackName, trackConfig, eventDate, durationMinutes, totalLaps, carClass, weatherType } = req.body;
-
-        const hasAccess = await checkTeamAccess(userId, teamId);
-        if (!hasAccess) {
-            res.status(403).json({ error: 'Not a member of this team' });
-            return;
-        }
-
-        if (!name || !trackName || !eventDate) {
-            res.status(400).json({ error: 'Missing required fields: name, trackName, eventDate' });
-            return;
-        }
-
-        const result = await pool.query(
-            `INSERT INTO team_events (team_id, name, series_name, track_name, track_config, event_date, duration_minutes, total_laps, car_class, weather_type)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-             RETURNING *`,
-            [teamId, name, seriesName, trackName, trackConfig, eventDate, durationMinutes, totalLaps, carClass, weatherType]
-        );
-
-        res.status(201).json(result.rows[0]);
-    } catch (error) {
-        console.error('[Team API] Error creating event:', error);
-        res.status(500).json({ error: 'Failed to create event' });
-    }
-});
-
-// =====================================================================
 // GET /api/v1/teams/:teamId/race-plans
 // Get race plans for team (optionally filtered by event)
 // =====================================================================
-router.get('/:teamId/race-plans', async (req: Request, res: Response) => {
+router.get('/:teamId/race-plans', requireTeamMember('teamId'), async (req: Request, res: Response) => {
     try {
-        const userId = req.user!.id;
         const { teamId } = req.params;
         const { eventId } = req.query;
-
-        const hasAccess = await checkTeamAccess(userId, teamId);
-        if (!hasAccess) {
-            res.status(403).json({ error: 'Not a member of this team' });
-            return;
-        }
 
         let query = `
             SELECT rp.*, te.name as event_name, te.track_name
@@ -276,17 +128,11 @@ router.get('/:teamId/race-plans', async (req: Request, res: Response) => {
 // POST /api/v1/teams/:teamId/race-plans
 // Create a new race plan
 // =====================================================================
-router.post('/:teamId/race-plans', async (req: Request, res: Response) => {
+router.post('/:teamId/race-plans', requireTeamMember('teamId'), async (req: Request, res: Response) => {
     try {
         const userId = req.user!.id;
         const { teamId } = req.params;
         const { name, description, eventId, fuelStrategy, tireStrategy, targetLapTimeMs, fuelPerLap, notes } = req.body;
-
-        const hasAccess = await checkTeamAccess(userId, teamId);
-        if (!hasAccess) {
-            res.status(403).json({ error: 'Not a member of this team' });
-            return;
-        }
 
         if (!name) {
             res.status(400).json({ error: 'Missing required field: name' });
@@ -311,16 +157,9 @@ router.post('/:teamId/race-plans', async (req: Request, res: Response) => {
 // PATCH /api/v1/teams/:teamId/race-plans/:planId/activate
 // Set a plan as active (deactivates others for same event)
 // =====================================================================
-router.patch('/:teamId/race-plans/:planId/activate', async (req: Request, res: Response) => {
+router.patch('/:teamId/race-plans/:planId/activate', requireTeamMember('teamId'), async (req: Request, res: Response) => {
     try {
-        const userId = req.user!.id;
         const { teamId, planId } = req.params;
-
-        const hasAccess = await checkTeamAccess(userId, teamId);
-        if (!hasAccess) {
-            res.status(403).json({ error: 'Not a member of this team' });
-            return;
-        }
 
         // Get the plan to find its event
         const planResult = await pool.query(
@@ -335,11 +174,16 @@ router.patch('/:teamId/race-plans/:planId/activate', async (req: Request, res: R
 
         const eventId = planResult.rows[0].event_id;
 
-        // Deactivate other plans for same event
+        // Deactivate other plans for same event (or all null-event plans)
         if (eventId) {
             await pool.query(
                 `UPDATE race_plans SET is_active = false WHERE team_id = $1 AND event_id = $2`,
                 [teamId, eventId]
+            );
+        } else {
+            await pool.query(
+                `UPDATE race_plans SET is_active = false WHERE team_id = $1 AND event_id IS NULL`,
+                [teamId]
             );
         }
 
@@ -360,16 +204,9 @@ router.patch('/:teamId/race-plans/:planId/activate', async (req: Request, res: R
 // GET /api/v1/teams/:teamId/race-plans/:planId/stints
 // Get stints for a race plan
 // =====================================================================
-router.get('/:teamId/race-plans/:planId/stints', async (req: Request, res: Response) => {
+router.get('/:teamId/race-plans/:planId/stints', requireTeamMember('teamId'), async (req: Request, res: Response) => {
     try {
-        const userId = req.user!.id;
-        const { teamId, planId } = req.params;
-
-        const hasAccess = await checkTeamAccess(userId, teamId);
-        if (!hasAccess) {
-            res.status(403).json({ error: 'Not a member of this team' });
-            return;
-        }
+        const { planId } = req.params;
 
         const result = await pool.query(
             `SELECT s.*, dp.display_name as driver_display_name
@@ -411,17 +248,10 @@ router.get('/:teamId/race-plans/:planId/stints', async (req: Request, res: Respo
 // POST /api/v1/teams/:teamId/race-plans/:planId/stints
 // Add a stint to a race plan
 // =====================================================================
-router.post('/:teamId/race-plans/:planId/stints', async (req: Request, res: Response) => {
+router.post('/:teamId/race-plans/:planId/stints', requireTeamMember('teamId'), async (req: Request, res: Response) => {
     try {
-        const userId = req.user!.id;
         const { teamId, planId } = req.params;
         const { driverId, driverName, stintNumber, startLap, endLap, estimatedDurationMinutes, fuelLoad, fuelTargetLaps, tireCompound, tireChange, notes } = req.body;
-
-        const hasAccess = await checkTeamAccess(userId, teamId);
-        if (!hasAccess) {
-            res.status(403).json({ error: 'Not a member of this team' });
-            return;
-        }
 
         // Verify plan belongs to team
         const planCheck = await pool.query(
@@ -458,17 +288,10 @@ router.post('/:teamId/race-plans/:planId/stints', async (req: Request, res: Resp
 // PATCH /api/v1/teams/:teamId/stints/:stintId
 // Update a stint
 // =====================================================================
-router.patch('/:teamId/stints/:stintId', async (req: Request, res: Response) => {
+router.patch('/:teamId/stints/:stintId', requireTeamMember('teamId'), async (req: Request, res: Response) => {
     try {
-        const userId = req.user!.id;
         const { teamId, stintId } = req.params;
         const updates = req.body;
-
-        const hasAccess = await checkTeamAccess(userId, teamId);
-        if (!hasAccess) {
-            res.status(403).json({ error: 'Not a member of this team' });
-            return;
-        }
 
         // Verify stint belongs to team's plan
         const stintCheck = await pool.query(
@@ -520,16 +343,9 @@ router.patch('/:teamId/stints/:stintId', async (req: Request, res: Response) => 
 // DELETE /api/v1/teams/:teamId/stints/:stintId
 // Delete a stint
 // =====================================================================
-router.delete('/:teamId/stints/:stintId', async (req: Request, res: Response) => {
+router.delete('/:teamId/stints/:stintId', requireTeamMember('teamId'), async (req: Request, res: Response) => {
     try {
-        const userId = req.user!.id;
         const { teamId, stintId } = req.params;
-
-        const hasAccess = await checkTeamAccess(userId, teamId);
-        if (!hasAccess) {
-            res.status(403).json({ error: 'Not a member of this team' });
-            return;
-        }
 
         // Get plan ID before deleting
         const stintResult = await pool.query(
@@ -565,18 +381,11 @@ router.delete('/:teamId/stints/:stintId', async (req: Request, res: Response) =>
 // GET /api/v1/teams/:teamId/incidents
 // Get recent incidents for team members from iRacing race results
 // =====================================================================
-router.get('/:teamId/incidents', async (req: Request, res: Response) => {
+router.get('/:teamId/incidents', requireTeamMember('teamId'), async (req: Request, res: Response) => {
     try {
-        const userId = req.user!.id;
         const { teamId } = req.params;
         const { limit: limitParam } = req.query;
         const resultLimit = Math.min(parseInt(limitParam as string) || 50, 100);
-
-        const hasAccess = await checkTeamAccess(userId, teamId);
-        if (!hasAccess) {
-            res.status(403).json({ error: 'Not a member of this team' });
-            return;
-        }
 
         // Query iRacing race results for team members that had incidents
         const result = await pool.query(

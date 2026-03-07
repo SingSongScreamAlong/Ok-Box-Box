@@ -5,6 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { requireTeamMember } from '../middleware/team-guards.js';
 import { pool } from '../../db/client.js';
 
 const router = Router();
@@ -42,7 +43,7 @@ interface StrategyStint {
 }
 
 // GET /api/teams/:teamId/strategy - List all strategy plans
-router.get('/:teamId/strategy', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get('/:teamId/strategy', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId } = req.params;
         const { status, eventId } = req.query;
@@ -78,7 +79,7 @@ router.get('/:teamId/strategy', requireAuth, async (req: Request, res: Response)
 });
 
 // GET /api/teams/:teamId/strategy/:planId - Get a strategy plan with stints
-router.get('/:teamId/strategy/:planId', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get('/:teamId/strategy/:planId', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId, planId } = req.params;
 
@@ -111,7 +112,7 @@ router.get('/:teamId/strategy/:planId', requireAuth, async (req: Request, res: R
 });
 
 // POST /api/teams/:teamId/strategy - Create a new strategy plan
-router.post('/:teamId/strategy', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post('/:teamId/strategy', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId } = req.params;
         const { 
@@ -190,7 +191,7 @@ router.post('/:teamId/strategy', requireAuth, async (req: Request, res: Response
 });
 
 // PATCH /api/teams/:teamId/strategy/:planId - Update a strategy plan
-router.patch('/:teamId/strategy/:planId', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.patch('/:teamId/strategy/:planId', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId, planId } = req.params;
         const { name, event_name, race_duration, total_laps, fuel_per_lap, tank_capacity, pit_time_loss, status } = req.body;
@@ -236,7 +237,7 @@ router.patch('/:teamId/strategy/:planId', requireAuth, async (req: Request, res:
 });
 
 // DELETE /api/teams/:teamId/strategy/:planId - Delete a strategy plan
-router.delete('/:teamId/strategy/:planId', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.delete('/:teamId/strategy/:planId', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId, planId } = req.params;
 
@@ -258,9 +259,10 @@ router.delete('/:teamId/strategy/:planId', requireAuth, async (req: Request, res
 });
 
 // POST /api/teams/:teamId/strategy/:planId/stints - Add a stint to a plan
-router.post('/:teamId/strategy/:planId/stints', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post('/:teamId/strategy/:planId/stints', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { planId } = req.params;
+
         const { stint_number, driver_profile_id, driver_name, start_lap, end_lap, fuel_load, tire_compound, notes } = req.body;
 
         if (stint_number === undefined || start_lap === undefined || end_lap === undefined) {
@@ -298,7 +300,7 @@ router.post('/:teamId/strategy/:planId/stints', requireAuth, async (req: Request
 });
 
 // DELETE /api/teams/:teamId/strategy/:planId/stints/:stintId - Remove a stint
-router.delete('/:teamId/strategy/:planId/stints/:stintId', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.delete('/:teamId/strategy/:planId/stints/:stintId', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { planId, stintId } = req.params;
 

@@ -17,6 +17,7 @@
     "build": {
         "appId": "com.okboxbox.relay",
         "productName": "Ok Box Box Relay",
+        "artifactName": "okboxbox-relay-${version}.${ext}",
         "files": [
             "dist/**/*",
             "assets/**/*",
@@ -43,7 +44,7 @@
         "win": {
             "icon": "assets/icon.ico",
             "target": [
-                "portable"
+                "nsis"
             ],
             "signAndEditExecutable": false
         },

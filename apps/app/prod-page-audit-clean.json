@@ -1,0 +1,1438 @@
+[
+  {
+    "label": "root",
+    "route": "/",
+    "requestedUrl": "https://app.okboxbox.com/",
+    "finalUrl": "https://app.okboxbox.com/login",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Sign In",
+    "textSnippet": "SIGN IN Welcome back to the pit wall EMAIL PASSWORD Remember me Forgot password? SIGN IN OR CONTINUE WITH GOOGLE DISCORD New to Ok, Box Box? Create account",
+    "links": [
+      {
+        "text": "Ok, Box BoxRacing Operations System",
+        "href": "https://okboxbox.com"
+      },
+      {
+        "text": "← Back to Website",
+        "href": "https://okboxbox.com"
+      },
+      {
+        "text": "Forgot password?",
+        "href": "/forgot-password"
+      },
+      {
+        "text": "Create account",
+        "href": "/signup"
+      },
+      {
+        "text": "Docs",
+        "href": "https://okboxbox.com/docs"
+      },
+      {
+        "text": "Pricing",
+        "href": "https://okboxbox.com/pricing"
+      },
+      {
+        "text": "Support",
+        "href": "https://okboxbox.com/support"
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": []
+  },
+  {
+    "label": "login",
+    "route": "/login",
+    "requestedUrl": "https://app.okboxbox.com/login",
+    "finalUrl": "https://app.okboxbox.com/login",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Sign In",
+    "textSnippet": "SIGN IN Welcome back to the pit wall EMAIL PASSWORD Remember me Forgot password? SIGN IN OR CONTINUE WITH GOOGLE DISCORD New to Ok, Box Box? Create account",
+    "links": [
+      {
+        "text": "Ok, Box BoxRacing Operations System",
+        "href": "https://okboxbox.com"
+      },
+      {
+        "text": "← Back to Website",
+        "href": "https://okboxbox.com"
+      },
+      {
+        "text": "Forgot password?",
+        "href": "/forgot-password"
+      },
+      {
+        "text": "Create account",
+        "href": "/signup"
+      },
+      {
+        "text": "Docs",
+        "href": "https://okboxbox.com/docs"
+      },
+      {
+        "text": "Pricing",
+        "href": "https://okboxbox.com/pricing"
+      },
+      {
+        "text": "Support",
+        "href": "https://okboxbox.com/support"
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": []
+  },
+  {
+    "label": "signup",
+    "route": "/signup",
+    "requestedUrl": "https://app.okboxbox.com/signup",
+    "finalUrl": "https://app.okboxbox.com/signup",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Create Account",
+    "textSnippet": "CREATE ACCOUNT Join the pit wall DRIVER NAME EMAIL PASSWORD Minimum 6 characters CREATE ACCOUNT OR CONTINUE WITH GOOGLE DISCORD Already have an account? Sign in",
+    "links": [
+      {
+        "text": "Ok, Box BoxRacing Operations System",
+        "href": "https://okboxbox.com"
+      },
+      {
+        "text": "← Back to Website",
+        "href": "https://okboxbox.com"
+      },
+      {
+        "text": "Sign in",
+        "href": "/login"
+      },
+      {
+        "text": "Docs",
+        "href": "https://okboxbox.com/docs"
+      },
+      {
+        "text": "Pricing",
+        "href": "https://okboxbox.com/pricing"
+      },
+      {
+        "text": "Support",
+        "href": "https://okboxbox.com/support"
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": []
+  },
+  {
+    "label": "forgot-password",
+    "route": "/forgot-password",
+    "requestedUrl": "https://app.okboxbox.com/forgot-password",
+    "finalUrl": "https://app.okboxbox.com/forgot-password",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Reset Password",
+    "textSnippet": "RESET PASSWORD Enter your email and we'll send you a reset link EMAIL SEND RESET LINK Remember your password? Sign in",
+    "links": [
+      {
+        "text": "Ok, Box BoxRacing Operations System",
+        "href": "https://okboxbox.com"
+      },
+      {
+        "text": "← Back to Website",
+        "href": "https://okboxbox.com"
+      },
+      {
+        "text": "Sign in",
+        "href": "/login"
+      },
+      {
+        "text": "Docs",
+        "href": "https://okboxbox.com/docs"
+      },
+      {
+        "text": "Pricing",
+        "href": "https://okboxbox.com/pricing"
+      },
+      {
+        "text": "Support",
+        "href": "https://okboxbox.com/support"
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": []
+  },
+  {
+    "label": "pricing",
+    "route": "/pricing",
+    "requestedUrl": "https://app.okboxbox.com/pricing",
+    "finalUrl": "https://app.okboxbox.com/pricing",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Simple, Transparent Pricing",
+    "textSnippet": "SIMPLE, TRANSPARENT PRICING Live race execution. Situational awareness. Broadcast presentation. FREE FREE FOR EVERYONE RACEBOX Basic broadcast tools for leagues, streamers, and spectators. $0 forever free Public timing pages Basic timing tower overlay Basic broadcast overlays Ok, Box Box branding included START BROADCASTING MOST POPULAR FOR DRIVERS BLACKBOX Live race execution and AI crew for competitive drivers. $14/mo per driver / month AI Race Engineer (voice) AI Spotter AI Performance Analyst Live situational awareness Fuel & tire strategy Session history & IDP Opponent intel START RACING FOR TEAMS TEAMBOX Full pit wall system for team operations. Includes all BlackBox features. $26/mo per driver / month Everything in BlackBox Full Pit Wall (multi-car) Strategy timeline Team roster management Shared session reports LiveSpotter share links EQUIP YOUR TEAM FOR LEAGUES CONTROLBOX Race control automation and steward workflows for league operations. $48/mo per league / month + $2/mo per",
+    "links": [],
+    "consoleErrors": [],
+    "pageErrors": []
+  },
+  {
+    "label": "download",
+    "route": "/download",
+    "requestedUrl": "https://app.okboxbox.com/download",
+    "finalUrl": "https://app.okboxbox.com/download",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Ok, Box Box Relay",
+    "textSnippet": "OK, BOX BOX RELAY Connect iRacing to your dashboard Windows Relay Version 1.0.0 Live telemetry at 60Hz Voice commands with AI engineer Session logging for analysis Auto-reconnect on network issues DOWNLOAD RELAY (32 KB) Requires Windows 10+ and Python 3.10+ PREREQUISITES The relay requires Python to run. If you don't have it installed: Download Python 3.12 for Windows ✓ Check \"Add Python to PATH\" during installation QUICK START 1 Extract the zip to any folder 2 Copy .env.example to .env 3 Double-click START-RELAY.bat 4 Start iRacing and join a session First run will install dependencies automatically (~30 seconds) Back to Dashboard",
+    "links": [
+      {
+        "text": "Download Relay (32 KB)",
+        "href": "https://github.com/SingSongScreamAlong/Ok-Box-Box/releases/latest/download/okboxbox-relay-win.zip"
+      },
+      {
+        "text": "Download Python 3.12 for Windows",
+        "href": "https://www.python.org/ftp/python/3.12.2/python-3.12.2-amd64.exe"
+      },
+      {
+        "text": "Back to Dashboard",
+        "href": "/driver/home"
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": []
+  },
+  {
+    "label": "launch",
+    "route": "/launch",
+    "requestedUrl": "https://app.okboxbox.com/launch",
+    "finalUrl": "https://app.okboxbox.com/login",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Sign In",
+    "textSnippet": "SIGN IN Welcome back to the pit wall EMAIL PASSWORD Remember me Forgot password? SIGN IN OR CONTINUE WITH GOOGLE DISCORD New to Ok, Box Box? Create account",
+    "links": [
+      {
+        "text": "Ok, Box BoxRacing Operations System",
+        "href": "https://okboxbox.com"
+      },
+      {
+        "text": "← Back to Website",
+        "href": "https://okboxbox.com"
+      },
+      {
+        "text": "Forgot password?",
+        "href": "/forgot-password"
+      },
+      {
+        "text": "Create account",
+        "href": "/signup"
+      },
+      {
+        "text": "Docs",
+        "href": "https://okboxbox.com/docs"
+      },
+      {
+        "text": "Pricing",
+        "href": "https://okboxbox.com/pricing"
+      },
+      {
+        "text": "Support",
+        "href": "https://okboxbox.com/support"
+      }
+    ],
+    "consoleErrors": [],
+    "pageErrors": []
+  },
+  {
+    "label": "driver-home",
+    "route": "/driver/home",
+    "requestedUrl": "https://app.okboxbox.com/driver/home",
+    "finalUrl": "https://app.okboxbox.com/driver/home",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Conrad Weeden",
+    "textSnippet": "CONRAD WEEDEN Class B Oval 2.56 1129 IRATING 34 CPI PRIMARY PERFORMANCE CONSTRAINT Rating suppressed by incident density. 95% confidence • Last 10 races RESULTS Rating Change: 0 Avg Incidents: 5.6 per race SINCE LAST SESSION 18h ago 0 IRATING 0x BELOW AVG P0 FINISH Neutral rating result. Above recent average finish. Incident control improved. Session analyzed INCIDENT MANAGEMENT Confidence: High Incident rate is suppressing iRating gains. Reset performance baseline with 10 clean laps emphasizing controlled entry speed and throttle discipline. WHY? CPI BREAKDOWN Based on last 10 official races ANALYZED 15,780 pts FULL ANALYSIS FOCUS AREA CONSISTENCY Low High variance — limiting CPI by 20% STRENGTHS COMPLETION 100 CREW INTELLIGENCE ALERT FULL CREW ENGINEER Avg 7.0 incidents per race. Focus on braking entry control and throttle modulation. 70% conf • Last 5 races SPOTTER Traffic management stable. Maintain situational awareness. 60% conf • Recent sessions ANALYST Avg finish P15.8 with mod",
+    "links": [
+      {
+        "text": "Ok, Box BoxDriver Tier",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Cockpit",
+        "href": "/driver/cockpit"
+      },
+      {
+        "text": "Crew",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Progress",
+        "href": "/driver/progress"
+      },
+      {
+        "text": "Profile",
+        "href": "/driver/idp"
+      },
+      {
+        "text": "Ratings",
+        "href": "/driver/ratings"
+      },
+      {
+        "text": "History",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Tracks",
+        "href": "/track-intel"
+      },
+      {
+        "text": "Full Analysis",
+        "href": "/driver/ratings"
+      },
+      {
+        "text": "Full Crew",
+        "href": "/driver/crew"
+      },
+      {
+        "text": "EngineerAvg 7.0 incidents per race. Focus on braking entry control and throttle modulation.70% conf• Last 5 races",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "SpotterTraffic management stable. Maintain situational awareness.60% conf• Recent sessions",
+        "href": "/driver/crew/spotter"
+      },
+      {
+        "text": "AnalystAvg finish P15.8 with moderate variance. Isolate outlier sessions.60% conf• Recent sessions",
+        "href": "/driver/crew/analyst"
+      },
+      {
+        "text": "Full History",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Open Engineer Brief",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Review Last Race",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Details",
+        "href": "/driver/ratings"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226",
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "driver-cockpit",
+    "route": "/driver/cockpit",
+    "requestedUrl": "https://app.okboxbox.com/driver/cockpit",
+    "finalUrl": "https://app.okboxbox.com/driver/cockpit",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": null,
+    "textSnippet": "TRACK MAP LIVE POSITION RACE POSITION LIVE P0 0.00s TO BEST LAP TIMES Last Lap --:--.--- Best Lap --:--.--- FUEL & GAPS Fuel 0.0L Fuel Laps -- Gap Ahead -- Gap to Leader -- Pit Stops 0 TIRES STINT L0 FL 100% FR 100% RL 100% RR 100% CAR STATUS No damage detected No Track OFFLINE VOICE S2 S3 1 1 TURN 1 TUNNEL 2 2 TURN 2 3 3 INTL HORSESHOE 4 4 TURN 4 (KINK) 5 5 TURN 5 6 6 TURN 6 9 9 BUS STOP 10 10 BUS STOP EXIT 11 11 NASCAR 3 12 12 NASCAR 4 100% 381 iRacing not connected Launch the Ok Box Box relay app and start an iRacing session to see live data here. 0 MPH HOLD TO TALK — bind in settings LEADERBOARD LIVE STANDINGS Start iRacing session for live standings No track READY TEAM RADIO Start session for team radio",
+    "links": [
+      {
+        "text": "Ok, Box BoxDriver Tier",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Cockpit",
+        "href": "/driver/cockpit"
+      },
+      {
+        "text": "Crew",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Progress",
+        "href": "/driver/progress"
+      },
+      {
+        "text": "Profile",
+        "href": "/driver/idp"
+      },
+      {
+        "text": "Ratings",
+        "href": "/driver/ratings"
+      },
+      {
+        "text": "History",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Tracks",
+        "href": "/track-intel"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226",
+      "Failed to load resource: the server responded with a status of 400 ()",
+      "Failed to load resource: the server responded with a status of 400 ()"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "driver-history",
+    "route": "/driver/history",
+    "requestedUrl": "https://app.okboxbox.com/driver/history",
+    "finalUrl": "https://app.okboxbox.com/driver/history",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Performance Overview",
+    "textSnippet": "Back to Cockpit PERFORMANCE HISTORY & STATS OVERVIEW SESSIONS TRACKS FILTERS Time Period ALL TIME WEEK MONTH SEASON Discipline All Disciplines Oval Sports Car Formula Dirt Oval Dirt Road QUICK STATS Sessions 50 Wins 2 Podiums 5 Avg Finish 15.2 Positions Gained 0 PERFORMANCE OVERVIEW All time • All disciplines FORM: DECLINING WINS 2 4.0% win rate TOP 5S 8 16.0% top 5 rate AVG FINISH P15.2 Recent: P15.8 AVG INCIDENTS 4.0 per session RECENT SESSIONS View All P- USA International Speedway Mini Stock Rookie Series by Thrustmaster 0 pos 0x inc Mar 5 P10 USA International Speedway Mini Stock Rookie Series by Thrustmaster -10 pos 0x inc Mar 5 P17 Phoenix Raceway NASCAR Class C Series - Fixed -17 pos 8x inc Mar 4 P32 Motorsport Arena Oschersleben Production Car Challenge by Sim-Lab -32 pos 16x inc Mar 4 P20 Motorsport Arena Oschersleben Production Car Challenge by Sim-Lab -20 pos 11x inc Mar 4 BY DISCIPLINE OVAL 317 starts 16 WINS 92 TOP 5 0.0 AVG SPORTS CAR 91 starts 0 WINS 15 TOP 5 0.0 AVG FO",
+    "links": [
+      {
+        "text": "Ok, Box BoxDriver Tier",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Cockpit",
+        "href": "/driver/cockpit"
+      },
+      {
+        "text": "Crew",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Progress",
+        "href": "/driver/progress"
+      },
+      {
+        "text": "Profile",
+        "href": "/driver/idp"
+      },
+      {
+        "text": "Ratings",
+        "href": "/driver/ratings"
+      },
+      {
+        "text": "History",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Tracks",
+        "href": "/track-intel"
+      },
+      {
+        "text": "Back to Cockpit",
+        "href": "/driver/home"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "driver-profile",
+    "route": "/driver/profile",
+    "requestedUrl": "https://app.okboxbox.com/driver/profile",
+    "finalUrl": "https://app.okboxbox.com/driver/profile",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Driver Profile",
+    "textSnippet": "DRIVER PROFILE Manage your racing identity Conrad Weeden conrad@okboxbox.com DISPLAY NAME Edit Conrad Weeden IRACING CUSTOMER ID Edit 1185150 ACCOUNT CREATED January 23, 2026 LINKED RACING IDENTITIES iR iRacing Connected as Conrad Weeden (#1185150) Disconnect",
+    "links": [
+      {
+        "text": "Ok, Box BoxDriver Tier",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Cockpit",
+        "href": "/driver/cockpit"
+      },
+      {
+        "text": "Crew",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Progress",
+        "href": "/driver/progress"
+      },
+      {
+        "text": "Profile",
+        "href": "/driver/idp"
+      },
+      {
+        "text": "Ratings",
+        "href": "/driver/ratings"
+      },
+      {
+        "text": "History",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Tracks",
+        "href": "/track-intel"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "driver-progress",
+    "route": "/driver/progress",
+    "requestedUrl": "https://app.okboxbox.com/driver/progress",
+    "finalUrl": "https://app.okboxbox.com/driver/progress",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Conrad Weeden",
+    "textSnippet": "Back to Operations DEVELOPMENT DRIVER GROWTH 0 Rookie 50 XP 1 Level Progress 50 / 100 CURRENT PHASE Getting Started Phase Progress 0% THIS WEEK'S FOCUS Incident Reduction — Focus on Clean Laps ACTIVE GOALS Reach 1500 iRating (Oval) 0% NEXT SESSION PLAN Incident Reduction Session 1. Run 10 practice laps at 90% pace, focusing on clean lines 2. In the race, leave extra space in braking zones — brake 5m earlier 3. If someone is faster behind you, let them by cleanly 💡 A clean P15 gains more iRating than a DNF from P5. Survive first, compete second. CONRAD WEEDEN Your development journey FOCUS AREAS SKILL TREE GOALS JOURNEY Elevated Incident Rate 7.3 avg incidents per race. 12% clean races. 90% progress This is your biggest area for improvement right now 7.3 avg incidents per race. 12% clean races. PRACTICE DRILLS Complete 3 races with 0 incidents Practice 10 laps leaving extra space in braking zones Run a full race focusing only on survival, not position Strong Endurance Maintains or impr",
+    "links": [
+      {
+        "text": "Ok, Box BoxDriver Tier",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Cockpit",
+        "href": "/driver/cockpit"
+      },
+      {
+        "text": "Crew",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Progress",
+        "href": "/driver/progress"
+      },
+      {
+        "text": "Profile",
+        "href": "/driver/idp"
+      },
+      {
+        "text": "Ratings",
+        "href": "/driver/ratings"
+      },
+      {
+        "text": "History",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Tracks",
+        "href": "/track-intel"
+      },
+      {
+        "text": "Back to Operations",
+        "href": "/driver/home"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226",
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "driver-idp",
+    "route": "/driver/idp",
+    "requestedUrl": "https://app.okboxbox.com/driver/idp",
+    "finalUrl": "https://app.okboxbox.com/driver/idp",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Driver Profile",
+    "textSnippet": "Back to Operations DRIVER PROFILE How the AI understands you as a driver Sync Race History Full Sync Reset Refresh DATA BREAKDOWN What the AI is learning from 934 TOTAL SESSIONS 440 OFFICIAL RACES 24 UNOFFICIAL RACES 460 PRACTICE (STORED) 474 races analyzed for racecraft metrics. Practice sessions are stored for track learning but excluded from incident/racecraft analysis. YOUR DRIVER ARCHETYPE Developing Ascending Skill Trajectory Building your foundation. More data needed to identify your style. EVIDENCE Not enough data to determine archetype Ready for longer races Ready for new discipline CURRENT CHAPTER Refining your craft NEXT MILESTONE Consistent top-5 finishes Engineer's Assessment 3 active opinions Learned Tendencies 934 sessions • 15095 laps analyzed 100% Confidence Improvement Report 934 races analyzed • 2 action items ↓ Declining HOW THIS WORKS Learning Every session with the relay running teaches the AI about your driving style, tendencies, and mental patterns. Aggregation ",
+    "links": [
+      {
+        "text": "Ok, Box BoxDriver Tier",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Cockpit",
+        "href": "/driver/cockpit"
+      },
+      {
+        "text": "Crew",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Progress",
+        "href": "/driver/progress"
+      },
+      {
+        "text": "Profile",
+        "href": "/driver/idp"
+      },
+      {
+        "text": "Ratings",
+        "href": "/driver/ratings"
+      },
+      {
+        "text": "History",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Tracks",
+        "href": "/track-intel"
+      },
+      {
+        "text": "Back to Operations",
+        "href": "/driver/home"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226",
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "driver-engineer",
+    "route": "/driver/crew/engineer",
+    "requestedUrl": "https://app.okboxbox.com/driver/crew/engineer",
+    "finalUrl": "https://app.okboxbox.com/driver/crew/engineer",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": null,
+    "textSnippet": "Back to Operations RACE ENGINEER STRATEGY & SETUP Engineer Spotter Analyst UPCOMING RACES Circuit Gilles Villeneuve 2026-03-06 0 laps Charlotte Motor Speedway 2026-03-06 ARCA Menards Series 23 laps Circuit Gilles Villeneuve 2026-03-06 0 laps Oxford Plains Speedway 2026-03-06 CARS Tour Late Model Stocks 124 laps Charlotte Motor Speedway 2026-03-06 ARCA Menards Series 23 laps Oxford Plains Speedway 2026-03-06 CARS Tour Late Model Stocks - Fixed 60 laps Oxford Plains Speedway 2026-03-06 CARS Tour Late Model Stocks 124 laps Virginia International Raceway 2026-03-06 Formula 1600 Rookie Series 0 laps RACE DETAILS Start Time 2:00 PM Race Length 0 laps Est. Duration ~0 min Circuit Gilles Villeneuve - TRACK DATA CHAT ENGINEER'S BRIEFING CIRCUIT GILLES VILLENEUVE 2 previous sessions 2026-03-06 2:00 PM 0 Laps ~0 Minutes Clear Conditions P13 Best Finish YOUR PERFORMANCE HERE P14.5 Avg Finish P50% Avg Pace 3.5x Avg Incidents 0 Net iRating RACE STRATEGY ▸ Priority: survival. Run 90% pace for first 3",
+    "links": [
+      {
+        "text": "Ok, Box BoxDriver Tier",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Cockpit",
+        "href": "/driver/cockpit"
+      },
+      {
+        "text": "Crew",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Progress",
+        "href": "/driver/progress"
+      },
+      {
+        "text": "Profile",
+        "href": "/driver/idp"
+      },
+      {
+        "text": "Ratings",
+        "href": "/driver/ratings"
+      },
+      {
+        "text": "History",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Tracks",
+        "href": "/track-intel"
+      },
+      {
+        "text": "Back to Operations",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Engineer",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Spotter",
+        "href": "/driver/crew/spotter"
+      },
+      {
+        "text": "Analyst",
+        "href": "/driver/crew/analyst"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "driver-spotter",
+    "route": "/driver/crew/spotter",
+    "requestedUrl": "https://app.okboxbox.com/driver/crew/spotter",
+    "finalUrl": "https://app.okboxbox.com/driver/crew/spotter",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": null,
+    "textSnippet": "Back to Operations SPOTTER TRAFFIC & AWARENESS Engineer Spotter Analyst UPCOMING RACES Circuit Gilles Villeneuve 2026-03-06 24 cars Charlotte Motor Speedway 2026-03-06 ARCA Menards Series 24 cars Circuit Gilles Villeneuve 2026-03-06 24 cars Oxford Plains Speedway 2026-03-06 CARS Tour Late Model Stocks 24 cars Charlotte Motor Speedway 2026-03-06 ARCA Menards Series 24 cars Oxford Plains Speedway 2026-03-06 CARS Tour Late Model Stocks - Fixed 24 cars Oxford Plains Speedway 2026-03-06 CARS Tour Late Model Stocks 24 cars Virginia International Raceway 2026-03-06 Formula 1600 Rookie Series 24 cars FIELD INFO Expected 24 cars Caution Risk Medium Circuit Gilles Villeneuve - 24 car field LIVE TRACK DATA CHAT LIVE SPOTTER CLEAR — — CLEAR CLEAR ALL AROUND RECENT CALLOUTS No callouts yet P— POSITION — LAP — NEAREST Race Start Plan Who to Watch Traffic Tips SEND",
+    "links": [
+      {
+        "text": "Ok, Box BoxDriver Tier",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Cockpit",
+        "href": "/driver/cockpit"
+      },
+      {
+        "text": "Crew",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Progress",
+        "href": "/driver/progress"
+      },
+      {
+        "text": "Profile",
+        "href": "/driver/idp"
+      },
+      {
+        "text": "Ratings",
+        "href": "/driver/ratings"
+      },
+      {
+        "text": "History",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Tracks",
+        "href": "/track-intel"
+      },
+      {
+        "text": "Back to Operations",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Engineer",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Spotter",
+        "href": "/driver/crew/spotter"
+      },
+      {
+        "text": "Analyst",
+        "href": "/driver/crew/analyst"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "driver-analyst",
+    "route": "/driver/crew/analyst",
+    "requestedUrl": "https://app.okboxbox.com/driver/crew/analyst",
+    "finalUrl": "https://app.okboxbox.com/driver/crew/analyst",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": null,
+    "textSnippet": "Back to Operations PERFORMANCE ANALYST DATA & INSIGHTS Engineer Spotter Analyst RECENT SESSIONS USA International Speedway Mar 5 Mini Stock Rookie Series by Thrustmaster P0 from P0 USA International Speedway Mar 5 Mini Stock Rookie Series by Thrustmaster P10 from P0 Phoenix Raceway Mar 4 NASCAR Class C Series - Fixed P17 from P0 Motorsport Arena Oschersleben Mar 4 Production Car Challenge by Sim-Lab P32 from P0 Motorsport Arena Oschersleben Mar 4 Production Car Challenge by Sim-Lab P20 from P0 SESSION STATS Best Lap --:--.--- Consistency 0% Incidents 0x USA International Speedway - Mini Stock Rookie Series by Thrustmaster TRACK DATA CHAT PERFORMANCE ANALYSIS USA INTERNATIONAL SPEEDWAY 20 sessions analyzed Mini Stock Rookie Series by Thrustmaster P1 best finish P50% Avg Pace 0.00s Lap Std Dev 7.9x Avg Incidents -6 Avg Pos Gained P7.5 Avg Finish 0 Net iRating 6/20 Clean Races PERFORMANCE TRENDS P50% Recent Pace was P50% 5.9x Recent Inc was 9.9x Stable Consistency KEY INSIGHTS ● You lose ",
+    "links": [
+      {
+        "text": "Ok, Box BoxDriver Tier",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Cockpit",
+        "href": "/driver/cockpit"
+      },
+      {
+        "text": "Crew",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Progress",
+        "href": "/driver/progress"
+      },
+      {
+        "text": "Profile",
+        "href": "/driver/idp"
+      },
+      {
+        "text": "Ratings",
+        "href": "/driver/ratings"
+      },
+      {
+        "text": "History",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Tracks",
+        "href": "/track-intel"
+      },
+      {
+        "text": "Back to Operations",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Engineer",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Spotter",
+        "href": "/driver/crew/spotter"
+      },
+      {
+        "text": "Analyst",
+        "href": "/driver/crew/analyst"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "driver-blackbox",
+    "route": "/driver/blackbox",
+    "requestedUrl": "https://app.okboxbox.com/driver/blackbox",
+    "finalUrl": "https://app.okboxbox.com/driver/blackbox",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": null,
+    "textSnippet": "CONNECTING TO RELAY...",
+    "links": [
+      {
+        "text": "Ok, Box BoxDriver Tier",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Cockpit",
+        "href": "/driver/cockpit"
+      },
+      {
+        "text": "Crew",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Progress",
+        "href": "/driver/progress"
+      },
+      {
+        "text": "Profile",
+        "href": "/driver/idp"
+      },
+      {
+        "text": "Ratings",
+        "href": "/driver/ratings"
+      },
+      {
+        "text": "History",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Tracks",
+        "href": "/track-intel"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "settings",
+    "route": "/settings",
+    "requestedUrl": "https://app.okboxbox.com/settings",
+    "finalUrl": "https://app.okboxbox.com/settings",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Settings",
+    "textSnippet": "SETTINGS Manage your account PROFILE EMAIL Email cannot be changed DISPLAY NAME SAVE CHANGES IRACING ACCOUNT Connected as Conrad Weeden ID: 1185150 DISCONNECT ACCOUNT ACCOUNT ID 0793dfc4... CREATED 1/23/2026 AUTH PROVIDER Email SECURITY Password management and two-factor authentication COMING SOON DANGER ZONE Permanently delete your account and all associated data. This action cannot be undone. DELETE ACCOUNT",
+    "links": [
+      {
+        "text": "Ok, Box BoxDriver Tier",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Cockpit",
+        "href": "/driver/cockpit"
+      },
+      {
+        "text": "Crew",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Progress",
+        "href": "/driver/progress"
+      },
+      {
+        "text": "Profile",
+        "href": "/driver/idp"
+      },
+      {
+        "text": "Ratings",
+        "href": "/driver/ratings"
+      },
+      {
+        "text": "History",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Tracks",
+        "href": "/track-intel"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "teams",
+    "route": "/teams",
+    "requestedUrl": "https://app.okboxbox.com/teams",
+    "finalUrl": "https://app.okboxbox.com/teams",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Your Teams",
+    "textSnippet": "Back to Cockpit YOUR TEAMS Collaborate with your racing teams and crew CREATE TEAM 1 TEAMS 1 OWNED 1 TOTAL MEMBERS O Ok, Box Box Factory Racing OWNER 1 MEMBERS Jan 2026 CREATED PITWALL LIVE SESSION ENTER TEAM →",
+    "links": [
+      {
+        "text": "Back to Cockpit",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Create Team",
+        "href": "/create-team"
+      },
+      {
+        "text": "OOk, Box Box Factory RacingOwner1MembersJan 2026CreatedPitwallLive SessionEnter Team →",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "create-team",
+    "route": "/create-team",
+    "requestedUrl": "https://app.okboxbox.com/create-team",
+    "finalUrl": "https://app.okboxbox.com/create-team",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Create Team",
+    "textSnippet": "CREATE TEAM Set up a new team for coordination and shared operations TEAM NAME * Choose a name that represents your team CANCEL CREATE TEAM",
+    "links": [],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "leagues",
+    "route": "/leagues",
+    "requestedUrl": "https://app.okboxbox.com/leagues",
+    "finalUrl": "https://app.okboxbox.com/leagues",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Leagues",
+    "textSnippet": "LEAGUES Manage your league memberships CREATE LEAGUE IMSA ENDURANCE SERIES Owner Multi-class endurance racing championship featuring GT3, GTP, and LMP2 classes. Created 8/31/2025 TEST LEAGUE Owner testing features Created 1/23/2026",
+    "links": [
+      {
+        "text": "Create League",
+        "href": "/create-league"
+      },
+      {
+        "text": "IMSA Endurance SeriesOwnerMulti-class endurance racing championship featuring GT3, GTP, and LMP2 classes.Created 8/31/2025",
+        "href": "/league/demo"
+      },
+      {
+        "text": "Test LeagueOwnertesting featuresCreated 1/23/2026",
+        "href": "/league/3660f64c-e8aa-45bb-ac17-d3b37fb09be7"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "create-league",
+    "route": "/create-league",
+    "requestedUrl": "https://app.okboxbox.com/create-league",
+    "finalUrl": "https://app.okboxbox.com/create-league",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Create League",
+    "textSnippet": "CREATE LEAGUE Set up a new league for races and championships LEAGUE NAME * DESCRIPTION CANCEL CREATE LEAGUE",
+    "links": [],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "subscription",
+    "route": "/subscription",
+    "requestedUrl": "https://app.okboxbox.com/subscription",
+    "finalUrl": "https://app.okboxbox.com/subscription",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Subscription",
+    "textSnippet": "SUBSCRIPTION Manage your Ok, Box Box plan and billing Refresh ACCOUNT Email conrad@okboxbox.com Display Name Conrad Weeden ACTIVE PRODUCTS No active subscriptions VIEW PRICING VIEW ALL PLANS Back to Dashboard Need help with billing? support@okboxbox.com",
+    "links": [
+      {
+        "text": "support@okboxbox.com",
+        "href": "mailto:support@okboxbox.com"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226",
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "track-intel",
+    "route": "/track-intel",
+    "requestedUrl": "https://app.okboxbox.com/track-intel",
+    "finalUrl": "https://app.okboxbox.com/track-intel",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Track Intelligence",
+    "textSnippet": "TRACK INTELLIGENCE Select a track to view turn-by-turn analysis, strategy notes, and coaching tips. 🇺🇸 Daytona International Speedway Length: 3.56 mi Turns: 12 → 🇧🇪 Circuit de Spa-Francorchamps Length: 4.35 mi Turns: 19 → 🇺🇸 Watkins Glen International Length: 3.45 mi Turns: 11 → 🇺🇸 Road America Length: 4.05 mi Turns: 14 → 🇺🇸 Sebring International Raceway Length: 3.74 mi Turns: 17 → Note: Currently only Daytona has full map data. More tracks coming soon.",
+    "links": [
+      {
+        "text": "🇺🇸Daytona International SpeedwayLength: 3.56 miTurns: 12→",
+        "href": "/track-intel/daytona"
+      },
+      {
+        "text": "🇧🇪Circuit de Spa-FrancorchampsLength: 4.35 miTurns: 19→",
+        "href": "/track-intel/spa"
+      },
+      {
+        "text": "🇺🇸Watkins Glen InternationalLength: 3.45 miTurns: 11→",
+        "href": "/track-intel/watkins-glen"
+      },
+      {
+        "text": "🇺🇸Road AmericaLength: 4.05 miTurns: 14→",
+        "href": "/track-intel/road-america"
+      },
+      {
+        "text": "🇺🇸Sebring International RacewayLength: 3.74 miTurns: 17→",
+        "href": "/track-intel/sebring"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "admin-ops",
+    "route": "/admin/ops",
+    "requestedUrl": "https://app.okboxbox.com/admin/ops",
+    "finalUrl": "https://app.okboxbox.com/driver/home",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Conrad Weeden",
+    "textSnippet": "CONRAD WEEDEN Class B Oval 2.56 1129 IRATING 34 CPI PRIMARY PERFORMANCE CONSTRAINT Rating suppressed by incident density. 95% confidence • Last 10 races RESULTS Rating Change: 0 Avg Incidents: 5.6 per race SINCE LAST SESSION 18h ago 0 IRATING 0x BELOW AVG P0 FINISH Neutral rating result. Above recent average finish. Incident control improved. Session analyzed INCIDENT MANAGEMENT Confidence: High Incident rate is suppressing iRating gains. Reset performance baseline with 10 clean laps emphasizing controlled entry speed and throttle discipline. WHY? CPI BREAKDOWN Based on last 10 official races ANALYZED 15,780 pts FULL ANALYSIS FOCUS AREA CONSISTENCY Low High variance — limiting CPI by 20% STRENGTHS COMPLETION 100 CREW INTELLIGENCE ALERT FULL CREW ENGINEER Avg 7.0 incidents per race. Focus on braking entry control and throttle modulation. 70% conf • Last 5 races SPOTTER Traffic management stable. Maintain situational awareness. 60% conf • Recent sessions ANALYST Avg finish P15.8 with mod",
+    "links": [
+      {
+        "text": "Ok, Box BoxDriver Tier",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Cockpit",
+        "href": "/driver/cockpit"
+      },
+      {
+        "text": "Crew",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Progress",
+        "href": "/driver/progress"
+      },
+      {
+        "text": "Profile",
+        "href": "/driver/idp"
+      },
+      {
+        "text": "Ratings",
+        "href": "/driver/ratings"
+      },
+      {
+        "text": "History",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Tracks",
+        "href": "/track-intel"
+      },
+      {
+        "text": "Full Analysis",
+        "href": "/driver/ratings"
+      },
+      {
+        "text": "Full Crew",
+        "href": "/driver/crew"
+      },
+      {
+        "text": "EngineerAvg 7.0 incidents per race. Focus on braking entry control and throttle modulation.70% conf• Last 5 races",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "SpotterTraffic management stable. Maintain situational awareness.60% conf• Recent sessions",
+        "href": "/driver/crew/spotter"
+      },
+      {
+        "text": "AnalystAvg finish P15.8 with moderate variance. Isolate outlier sessions.60% conf• Recent sessions",
+        "href": "/driver/crew/analyst"
+      },
+      {
+        "text": "Full History",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Open Engineer Brief",
+        "href": "/driver/crew/engineer"
+      },
+      {
+        "text": "Review Last Race",
+        "href": "/driver/history"
+      },
+      {
+        "text": "Details",
+        "href": "/driver/ratings"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226",
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "team-entity",
+    "route": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230",
+    "requestedUrl": "https://app.okboxbox.com/team/48875c13-a572-411a-ac97-b7ed5ca9d230",
+    "finalUrl": "https://app.okboxbox.com/team/48875c13-a572-411a-ac97-b7ed5ca9d230",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Dashboard",
+    "textSnippet": "DASHBOARD OWNER Team overview and quick access to pitwall tools Pit Wall Team command center. Radio communications with drivers, spotters & engineers. Live driver camera feeds. Real-time telemetry overlays. Comms Cameras Crew Race Timing & standings view. Live lap times, gaps, positions. Stint management for endurance races. Fuel calculations and pit windows. Timing Standings Stints Strategy Race engineering Practice Session analysis TEAM TOOLS Driver Comparison Compare lap data Stint Planner Endurance strategy Roster Driver profiles Planning Event schedule TRACK CONDITIONS Weather Conditions Next Event Track Rain Expected 72°F Partly Cloudy Track Temp 98°F Wind 12 mph NE Humidity 65% Visibility 10 mi FORECAST Now 72° +1h 70° 25% +2h 68° 40% +3h 66° 75% +4h 64° 80% Rain Probability 15% TEAM MEMBERS 1 member 07 0793dfc4... owner Joined 1/23/2026 Manage members → TEAM INFO Team ID 48875c13... Created 1/23/2026",
+    "links": [
+      {
+        "text": "Ok, Box BoxTeam Tier",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Teams",
+        "href": "/teams"
+      },
+      {
+        "text": "Dashboard",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230"
+      },
+      {
+        "text": "Pit WallComms & Cameras",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall"
+      },
+      {
+        "text": "RaceTiming & Standings",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/race"
+      },
+      {
+        "text": "Strategy",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/strategy"
+      },
+      {
+        "text": "Roster",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/roster"
+      },
+      {
+        "text": "Practice",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/practice"
+      },
+      {
+        "text": "Compare",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/compare"
+      },
+      {
+        "text": "Stints",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/stint-planner"
+      },
+      {
+        "text": "Planning",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/planning"
+      },
+      {
+        "text": "Events",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/events"
+      },
+      {
+        "text": "Setups",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/setups"
+      },
+      {
+        "text": "Reports",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/reports"
+      },
+      {
+        "text": "Incidents",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/incidents"
+      },
+      {
+        "text": "",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/settings"
+      },
+      {
+        "text": "Pit WallTeam command center. Radio communications with drivers, spotters & engineers. Live driver camera feeds. Real-time telemetry overlays. Comms Cameras Crew",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall"
+      },
+      {
+        "text": "RaceTiming & standings view. Live lap times, gaps, positions. Stint management for endurance races. Fuel calculations and pit windows. Timing Standings Stints",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/race"
+      },
+      {
+        "text": "StrategyRace engineering",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/strategy"
+      },
+      {
+        "text": "PracticeSession analysis",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/practice"
+      },
+      {
+        "text": "Driver ComparisonCompare lap data",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/compare"
+      },
+      {
+        "text": "Stint PlannerEndurance strategy",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/stint-planner"
+      },
+      {
+        "text": "RosterDriver profiles",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/roster"
+      },
+      {
+        "text": "PlanningEvent schedule",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall/planning"
+      },
+      {
+        "text": "Manage members →",
+        "href": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/settings"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226",
+      "Failed to load resource: the server responded with a status of 500 ()",
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Failed to load resource: the server responded with a status of 500 ()"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "team-pitwall",
+    "route": "/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall",
+    "requestedUrl": "https://app.okboxbox.com/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall",
+    "finalUrl": "https://app.okboxbox.com/team/48875c13-a572-411a-ac97-b7ed5ca9d230/pitwall",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Something went wrong",
+    "textSnippet": "SOMETHING WENT WRONG An unexpected error occurred. This has been logged and we'll look into it. Reload Page Go Home",
+    "links": [],
+    "consoleErrors": [
+      "TypeError: Cannot read properties of undefined (reading 'cameraAvailable')\n    at Ae (https://app.okboxbox.com/assets/PitwallHome-CkUGloBU.js:20:33486)\n    at Au (https://app.okboxbox.com/assets/index-DyVTde-T.js:39:17009)\n    at yl (https://app.okboxbox.com/assets/index-DyVTde-T.js:41:3139)\n    at Sp (https://app.okboxbox.com/assets/index-DyVTde-T.js:41:44493)\n    at xp (https://app.okboxbox.com/assets/index-DyVTde-T.js:41:39727)\n    at Xy (https://app.okboxbox.com/assets/index-DyVTde-T.js:41:39655)\n    at ho (https://app.okboxbox.com/assets/index-DyVTde-T.js:41:39508)\n    at Pl (https://app.okboxbox.com/assets/index-DyVTde-T.js:41:35875)\n    at vp (https://app.okboxbox.com/assets/index-DyVTde-T.js:41:34826)\n    at S (https://app.okboxbox.com/assets/index-DyVTde-T.js:26:1556)",
+      "ErrorBoundary caught an error: TypeError: Cannot read properties of undefined (reading 'cameraAvailable')\n    at Ae (https://app.okboxbox.com/assets/PitwallHome-CkUGloBU.js:20:33486)\n    at Au (https://app.okboxbox.com/assets/index-DyVTde-T.js:39:17009)\n    at yl (https://app.okboxbox.com/assets/index-DyVTde-T.js:41:3139)\n    at Sp (https://app.okboxbox.com/assets/index-DyVTde-T.js:41:44493)\n    at xp (https://app.okboxbox.com/assets/index-DyVTde-T.js:41:39727)\n    at Xy (https://app.okboxbox.com/assets/index-DyVTde-T.js:41:39655)\n    at ho (https://app.okboxbox.com/assets/index-DyVTde-T.js:41:39508)\n    at Pl (https://app.okboxbox.com/assets/index-DyVTde-T.js:41:35875)\n    at vp (https://app.okboxbox.com/assets/index-DyVTde-T.js:41:34826)\n    at S (https://app.okboxbox.com/assets/index-DyVTde-T.js:26:1556) {componentStack: \n    at Ae (https://app.okboxbox.com/assets/Pitwal…pp.okboxbox.com/assets/index-DyVTde-T.js:68:1220)}",
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "league-entity",
+    "route": "/league/demo",
+    "requestedUrl": "https://app.okboxbox.com/league/demo",
+    "finalUrl": "https://app.okboxbox.com/league/demo",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "IMSA Endurance Series",
+    "textSnippet": "Back to Leagues IMSA ENDURANCE SERIES OWNER Multi-class endurance racing championship featuring GT3, GTP, and LMP2 classes. SETTINGS STEWARD ACTIONS Incident Queue Review pending incidents Penalties Manage driver penalties Championship Standings & points EVENTS CREATE EVENT No events scheduled Create your first event to get started STAFF & ADMINS 4 members DE demo-own... owner ST steward-... steward ST steward-... steward AD admin-1... admin Manage members → LEAGUE INFO League ID demo... Created 8/31/2025",
+    "links": [
+      {
+        "text": "Ok, Box BoxLeague Tier",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Leagues",
+        "href": "/leagues"
+      },
+      {
+        "text": "Dashboard",
+        "href": "/league/demo"
+      },
+      {
+        "text": "Championship",
+        "href": "/league/demo/championship"
+      },
+      {
+        "text": "Incidents",
+        "href": "/league/demo/incidents"
+      },
+      {
+        "text": "Penalties",
+        "href": "/league/demo/penalties"
+      },
+      {
+        "text": "Protests",
+        "href": "/league/demo/protests"
+      },
+      {
+        "text": "Steward Console",
+        "href": "/league/demo/steward-console"
+      },
+      {
+        "text": "Broadcast",
+        "href": "/league/demo/broadcast"
+      },
+      {
+        "text": "Public Timing",
+        "href": "/league/demo/timing"
+      },
+      {
+        "text": "Rulebook",
+        "href": "/league/demo/rulebook/main"
+      },
+      {
+        "text": "",
+        "href": "/league/demo/settings"
+      },
+      {
+        "text": "Back to Leagues",
+        "href": "/leagues"
+      },
+      {
+        "text": "Settings",
+        "href": "/league/demo/settings"
+      },
+      {
+        "text": "Incident QueueReview pending incidents",
+        "href": "/league/demo/incidents"
+      },
+      {
+        "text": "PenaltiesManage driver penalties",
+        "href": "/league/demo/penalties"
+      },
+      {
+        "text": "ChampionshipStandings & points",
+        "href": "/league/demo/championship"
+      },
+      {
+        "text": "Create Event",
+        "href": "/league/demo/create-event"
+      },
+      {
+        "text": "Manage members →",
+        "href": "/league/demo/settings"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226",
+      "Failed to load resource: the server responded with a status of 400 ()",
+      "Error fetching events: {code: 22P02, details: null, hint: null, message: invalid input syntax for type uuid: \"demo\"}",
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "pageErrors": []
+  },
+  {
+    "label": "league-incidents",
+    "route": "/league/demo/incidents",
+    "requestedUrl": "https://app.okboxbox.com/league/demo/incidents",
+    "finalUrl": "https://app.okboxbox.com/league/demo/incidents",
+    "status": 200,
+    "gotoError": null,
+    "title": "Ok, Box Box",
+    "heading": "Incident Queue",
+    "textSnippet": "Back to IMSA Endurance Series INCIDENT QUEUE Review and manage race incidents Total: 4 Pending 1 Reviewing 1 Penalized 1 No Action 1 Dismissed MEDIUM Contact #42 Rivera #17 Thompson Lap 23 Turn 1 Daytona International Speedway 1/15/2026 AI: Drive Through Penalty(85% conf) PENDING",
+    "links": [
+      {
+        "text": "Ok, Box BoxLeague Tier",
+        "href": "/driver/home"
+      },
+      {
+        "text": "Leagues",
+        "href": "/leagues"
+      },
+      {
+        "text": "Dashboard",
+        "href": "/league/demo"
+      },
+      {
+        "text": "Championship",
+        "href": "/league/demo/championship"
+      },
+      {
+        "text": "Incidents",
+        "href": "/league/demo/incidents"
+      },
+      {
+        "text": "Penalties",
+        "href": "/league/demo/penalties"
+      },
+      {
+        "text": "Protests",
+        "href": "/league/demo/protests"
+      },
+      {
+        "text": "Steward Console",
+        "href": "/league/demo/steward-console"
+      },
+      {
+        "text": "Broadcast",
+        "href": "/league/demo/broadcast"
+      },
+      {
+        "text": "Public Timing",
+        "href": "/league/demo/timing"
+      },
+      {
+        "text": "Rulebook",
+        "href": "/league/demo/rulebook/main"
+      },
+      {
+        "text": "",
+        "href": "/league/demo/settings"
+      },
+      {
+        "text": "Back to IMSA Endurance Series",
+        "href": "/league/demo"
+      },
+      {
+        "text": "MediumContact#42 Rivera#17 ThompsonLap 23Turn 1Daytona International Speedway1/15/2026AI: Drive Through Penalty(85% conf)pending",
+        "href": "/league/demo/incident/inc1"
+      }
+    ],
+    "consoleErrors": [
+      "[Relay] Connection error: Error: Authentication error: Invalid token\n    at gm.onpacket (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:80321)\n    at Ce.emit (https://app.okboxbox.com/assets/index-DyVTde-T.js:110:51461)\n    at https://app.okboxbox.com/assets/index-DyVTde-T.js:110:86226",
+      "Failed to load resource: the server responded with a status of 400 ()",
+      "Error fetching events: {code: 22P02, details: null, hint: null, message: invalid input syntax for type uuid: \"demo\"}",
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "pageErrors": []
+  }
+]

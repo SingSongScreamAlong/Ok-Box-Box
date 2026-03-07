@@ -409,7 +409,7 @@ export async function fetchTeamStrategy(teamId: string): Promise<any | null> {
       return null;
     }
 
-    const response = await fetch(`${API_BASE}/api/teams/${teamId}/strategy?status=active`, {
+    const response = await fetch(`${API_BASE}/api/v1/teams/${teamId}/strategy?status=active`, {
       headers: { ...auth, 'Content-Type': 'application/json' },
     });
 

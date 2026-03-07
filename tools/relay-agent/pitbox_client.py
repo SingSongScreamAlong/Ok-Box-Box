@@ -112,11 +112,18 @@ class PitBoxClient:
         
         try:
             logger.info(f"🔌 Connecting to PitBox Server at {self.url}...")
+            
+            # Build auth payload
+            auth_payload = {'relayId': config.RELAY_ID}
+            if config.AUTH_TOKEN:
+                auth_payload['token'] = config.AUTH_TOKEN
+            
             self.sio.connect(
                 self.url,
                 transports=['websocket'],
                 wait=True,
-                wait_timeout=10
+                wait_timeout=10,
+                auth=auth_payload
             )
             return self.connected
         except Exception as e:

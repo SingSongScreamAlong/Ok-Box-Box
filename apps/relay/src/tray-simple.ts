@@ -17,8 +17,17 @@ export interface RelayStatus {
     error: string | null;
 }
 
+interface TrayActions {
+    openApp: () => void;
+    connectRelay: () => void;
+    checkForUpdates: () => void;
+    logout: () => void;
+}
+
 export class TrayManager {
     private tray: Tray;
+    private actions: TrayActions;
+    private linkedDisplayName: string | null = null;
     private currentStatus: RelayStatus = {
         iRacingDetected: false,
         serverConnected: false,
@@ -26,7 +35,8 @@ export class TrayManager {
         error: null
     };
 
-    constructor() {
+    constructor(actions: TrayActions) {
+        this.actions = actions;
         // Try to load icon from multiple locations
         let icon: Electron.NativeImage = nativeImage.createEmpty();
         const { app } = require('electron');
@@ -79,6 +89,11 @@ export class TrayManager {
         this.updateMenu();
     }
 
+    updateLinkState(displayName: string | null): void {
+        this.linkedDisplayName = displayName;
+        this.updateMenu();
+    }
+
     /**
      * Update the tray menu based on current status
      */
@@ -99,10 +114,22 @@ export class TrayManager {
             },
             { type: 'separator' },
             {
-                label: '📊 Open Dashboard',
-                click: () => {
-                    shell.openExternal('https://octopus-app-qsi3i.ondigitalocean.app/team/live');
-                }
+                label: this.linkedDisplayName ? `� Linked: ${this.linkedDisplayName}` : '🔓 Connect Relay to Account',
+                enabled: !this.linkedDisplayName,
+                click: () => this.actions.connectRelay()
+            },
+            {
+                label: '📊 Open App',
+                click: () => this.actions.openApp()
+            },
+            {
+                label: '⬇️ Check for Updates',
+                click: () => this.actions.checkForUpdates()
+            },
+            {
+                label: '🔒 Unlink Relay',
+                enabled: !!this.linkedDisplayName,
+                click: () => this.actions.logout()
             },
             { type: 'separator' },
             {

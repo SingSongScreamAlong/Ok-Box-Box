@@ -11,52 +11,62 @@ echo Cleaning up...
 rmdir /s /q build 2>nul
 rmdir /s /q dist 2>nul
 
-REM 2. Activate virtual environment if exists
-if exist "venv\Scripts\activate.bat" (
-    call venv\Scripts\activate.bat
+REM 2. Activate virtual environment if exists, or create one
+if not exist "venv" (
+    echo Creating virtual environment...
+    python -m venv venv
 )
+call venv\Scripts\activate.bat
 
-REM 3. Build Executable
+REM 3. Install dependencies
+echo Installing dependencies...
+pip install -r requirements.txt -q
+pip install pyinstaller -q
+
+REM 4. Build Executable
 echo.
 echo Running PyInstaller...
 pyinstaller --noconfirm --clean build_dist.spec
 if %errorlevel% neq 0 (
     echo [ERROR] PyInstaller failed!
+    pause
     exit /b %errorlevel%
 )
 echo [OK] PyInstaller build complete.
 
-REM 4. Rename output to branded name
-if exist "dist\BlackBox-Relay.exe" (
-    move "dist\BlackBox-Relay.exe" "dist\OkBoxBox-Relay.exe"
-)
-
-REM 4b. Code Signing (Requires Certificate)
-REM Uncomment the following lines if you have a code signing certificate
-REM set SIGN_CERT_FILE=C:\path\to\cert.pfx
-REM set SIGN_CERT_PASS=your_password
-REM if defined SIGN_CERT_FILE (
-REM     echo Signing executable...
-REM     "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x64\signtool.exe" sign /f "%SIGN_CERT_FILE%" /p "%SIGN_CERT_PASS%" /tr http://timestamp.digicert.com /td sha256 /fd sha256 "dist\OkBoxBox-Relay.exe"
-REM )
-
 REM 5. Copy to installer folder
-copy /Y "dist\OkBoxBox-Relay.exe" "installer\"
+echo Copying files to installer folder...
+if not exist "installer" mkdir installer
+copy /Y "dist\OkBoxBox-Relay.exe" "installer\" 2>nul
 copy /Y "README.md" "installer\"
 
-REM 6. Build Installer
+REM 6. Check file size
+for %%A in (dist\OkBoxBox-Relay.exe) do set SIZE=%%~zA
+set /a SIZE_MB=%SIZE%/1048576
+echo [INFO] EXE size: %SIZE_MB% MB
+
+REM 7. Build Installer (if NSIS available)
 echo.
-echo Building Installer (requires NSIS)...
-if exist "C:\Program Files (x86)\NSIS\makensis.exe" (
+echo Building Installer...
+where makensis >nul 2>&1
+if %errorlevel% equ 0 (
+    makensis installer\OkBoxBox-Relay.nsi
+    if %errorlevel% neq 0 (
+        echo [ERROR] NSIS build failed!
+    ) else (
+        echo [OK] Installer created: installer\OkBoxBox-Relay-Setup.exe
+    )
+) else if exist "C:\Program Files (x86)\NSIS\makensis.exe" (
     "C:\Program Files (x86)\NSIS\makensis.exe" installer\OkBoxBox-Relay.nsi
     if %errorlevel% neq 0 (
         echo [ERROR] NSIS build failed!
-        exit /b %errorlevel%
+    ) else (
+        echo [OK] Installer created: installer\OkBoxBox-Relay-Setup.exe
     )
-    echo [OK] Installer created: installer\OkBoxBox-Relay-Setup.exe
 ) else (
     echo [WARN] NSIS not found. Skipping installer build.
-    echo Please compile 'installer\OkBoxBox-Relay.nsi' manually.
+    echo        Install NSIS from: https://nsis.sourceforge.io/Download
+    echo        Or use the standalone EXE: dist\OkBoxBox-Relay.exe
 )
 
 echo.
@@ -64,7 +74,9 @@ echo ========================================
 echo [OK] Build Process Complete!
 echo.
 echo Output:
-echo   - dist\OkBoxBox-Relay.exe  (standalone)
-echo   - installer\OkBoxBox-Relay-Setup.exe  (installer)
+echo   - dist\OkBoxBox-Relay.exe  (standalone, %SIZE_MB% MB)
+if exist "installer\OkBoxBox-Relay-Setup.exe" (
+    echo   - installer\OkBoxBox-Relay-Setup.exe  (installer)
+)
 echo ========================================
 pause

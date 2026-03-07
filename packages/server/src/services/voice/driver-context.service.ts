@@ -141,7 +141,7 @@ export async function getDriverContextForVoice(iRacingId: string): Promise<Drive
         // Fetch team info
         const teamResult = await pool.query(`
             SELECT t.name as team_name, tm.role as team_role
-            FROM team_members tm
+            FROM team_memberships tm
             JOIN teams t ON tm.team_id = t.id
             WHERE tm.driver_profile_id = $1 AND tm.status = 'active'
             LIMIT 1
@@ -152,11 +152,12 @@ export async function getDriverContextForVoice(iRacingId: string): Promise<Drive
         let teamStrategy: TeamStrategy | null = null;
         if (team) {
             const strategyResult = await pool.query(`
-                SELECT pit_window_start, pit_window_end, fuel_strategy, tire_strategy, 
-                       race_notes, target_position, key_rivals
-                FROM team_strategies
-                WHERE team_id = (SELECT team_id FROM team_members WHERE driver_profile_id = $1 LIMIT 1)
-                AND is_active = true
+                SELECT fuel_per_lap as fuel_strategy, name as tire_strategy,
+                       NULL as pit_window_start, NULL as pit_window_end,
+                       NULL as race_notes, NULL as target_position, NULL as key_rivals
+                FROM team_strategy_plans
+                WHERE team_id = (SELECT team_id FROM team_memberships WHERE driver_profile_id = $1 AND status = 'active' LIMIT 1)
+                AND status = 'active'
                 LIMIT 1
             `, [driverId]);
             

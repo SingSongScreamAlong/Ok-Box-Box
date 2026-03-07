@@ -22,7 +22,7 @@ export function TeamSettings() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [team, setTeam] = useState<Team | null>(null);
-  const [role, setRole] = useState<'owner' | 'manager' | 'member' | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [members, setMembers] = useState<TeamMembership[]>([]);
   const [invitations, setInvitations] = useState<TeamInvitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +56,7 @@ export function TeamSettings() {
       getTeamInvitations(teamId)
     ]);
 
-    if (!teamData || !userRole || (userRole !== 'owner' && userRole !== 'manager')) {
+    if (!teamData || !userRole || (userRole !== 'owner' && userRole !== 'manager' && userRole !== 'admin')) {
       navigate(`/team/${teamId}`);
       return;
     }
@@ -107,31 +107,31 @@ export function TeamSettings() {
     }
   };
 
-  const handleRemoveMember = async (userId: string) => {
+  const handleRemoveMember = async (memberIdOrProfileId: string) => {
     if (!teamId) return;
 
     const confirmed = window.confirm('Remove this member from the team?');
     if (!confirmed) return;
 
-    const { error } = await removeMember(teamId, userId);
+    const { error } = await removeMember(teamId, memberIdOrProfileId);
 
     if (error) {
       setError(error);
     } else {
-      setMembers(prev => prev.filter(m => m.user_id !== userId));
+      setMembers(prev => prev.filter(m => m.driver_profile_id !== memberIdOrProfileId && m.id !== memberIdOrProfileId));
     }
   };
 
-  const handleRoleChange = async (userId: string, newRole: 'manager' | 'member') => {
+  const handleRoleChange = async (membershipId: string, newRole: string) => {
     if (!teamId || role !== 'owner') return;
 
-    const { error } = await updateMemberRole(teamId, userId, newRole);
+    const { error } = await updateMemberRole(teamId, membershipId, newRole);
 
     if (error) {
       setError(error);
     } else {
       setMembers(prev => prev.map(m => 
-        m.user_id === userId ? { ...m, role: newRole } : m
+        m.id === membershipId ? { ...m, role: newRole } : m
       ));
     }
   };
@@ -314,12 +314,12 @@ export function TeamSettings() {
                 <div key={member.id} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs text-white/50">
-                      {member.user_id.slice(0, 2).toUpperCase()}
+                      {(member.display_name || member.driver_profile_id || '??').slice(0, 2).toUpperCase()}
                     </div>
                     <div>
-                      <p className="text-sm text-white">{member.user_id.slice(0, 8)}...</p>
+                      <p className="text-sm text-white">{member.display_name || 'Team Member'}</p>
                       <p className="text-[10px] text-white/40">
-                        {member.user_id === user?.id ? 'You' : ''}
+                        {member.role}
                       </p>
                     </div>
                   </div>
@@ -328,14 +328,17 @@ export function TeamSettings() {
                       <>
                         <select
                           value={member.role}
-                          onChange={(e) => handleRoleChange(member.user_id, e.target.value as 'manager' | 'member')}
+                          onChange={(e) => handleRoleChange(member.id, e.target.value)}
                           className="bg-transparent border border-white/10 text-xs text-white/70 px-2 py-1"
                         >
-                          <option value="member">Member</option>
+                          <option value="driver">Driver</option>
+                          <option value="analyst">Analyst</option>
+                          <option value="engineer">Engineer</option>
+                          <option value="admin">Admin</option>
                           <option value="manager">Manager</option>
                         </select>
                         <button
-                          onClick={() => handleRemoveMember(member.user_id)}
+                          onClick={() => handleRemoveMember(member.driver_profile_id || member.id)}
                           className="p-1 text-red-400/50 hover:text-red-400 transition-colors"
                           title="Remove member"
                         >

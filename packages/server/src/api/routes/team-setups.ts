@@ -5,6 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { requireTeamMember } from '../middleware/team-guards.js';
 import { pool } from '../../db/client.js';
 
 const router = Router();
@@ -29,7 +30,7 @@ interface TeamSetup {
 }
 
 // GET /api/teams/:teamId/setups - List all setups for a team
-router.get('/:teamId/setups', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get('/:teamId/setups', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId } = req.params;
         const { track, car, conditions } = req.query;
@@ -69,7 +70,7 @@ router.get('/:teamId/setups', requireAuth, async (req: Request, res: Response): 
 });
 
 // GET /api/teams/:teamId/setups/:setupId - Get a specific setup
-router.get('/:teamId/setups/:setupId', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.get('/:teamId/setups/:setupId', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId, setupId } = req.params;
 
@@ -91,7 +92,7 @@ router.get('/:teamId/setups/:setupId', requireAuth, async (req: Request, res: Re
 });
 
 // POST /api/teams/:teamId/setups - Create a new setup
-router.post('/:teamId/setups', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post('/:teamId/setups', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId } = req.params;
         const { name, car_name, track_name, conditions, file_name, file_size, notes, tags } = req.body;
@@ -133,7 +134,7 @@ router.post('/:teamId/setups', requireAuth, async (req: Request, res: Response):
 });
 
 // PATCH /api/teams/:teamId/setups/:setupId - Update a setup
-router.patch('/:teamId/setups/:setupId', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.patch('/:teamId/setups/:setupId', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId, setupId } = req.params;
         const { name, notes, tags, conditions } = req.body;
@@ -187,7 +188,7 @@ router.patch('/:teamId/setups/:setupId', requireAuth, async (req: Request, res: 
 });
 
 // DELETE /api/teams/:teamId/setups/:setupId - Delete a setup
-router.delete('/:teamId/setups/:setupId', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.delete('/:teamId/setups/:setupId', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId, setupId } = req.params;
 
@@ -209,7 +210,7 @@ router.delete('/:teamId/setups/:setupId', requireAuth, async (req: Request, res:
 });
 
 // POST /api/teams/:teamId/setups/:setupId/download - Increment download count
-router.post('/:teamId/setups/:setupId/download', requireAuth, async (req: Request, res: Response): Promise<void> => {
+router.post('/:teamId/setups/:setupId/download', requireAuth, requireTeamMember('teamId'), async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId, setupId } = req.params;
 

@@ -16,8 +16,15 @@ import { io, Socket } from 'socket.io-client';
 
 const PYTHON_PORT = 9999;
 const LOCAL_WS_URL = `http://127.0.0.1:${PYTHON_PORT}`;
-const RECONNECT_DELAY = 5000;
 const PYTHON_RESTART_DELAY = 3000;
+
+export interface RelayBridgeOptions {
+    cloudUrl: string;
+    relayId: string;
+    authToken?: string | null;
+    userId?: string | null;
+    enableLocalDev?: boolean;
+}
 
 export interface RelayStatus {
     iRacingDetected: boolean;
@@ -32,8 +39,9 @@ export class PythonBridge extends EventEmitter {
     private localSocket: Socket | null = null;
     private cloudSocket: Socket | null = null;
     private devSocket: Socket | null = null; // Local dev server connection
-    private cloudUrl: string;
+    private options: RelayBridgeOptions;
     private running = false;
+    private currentSessionId: string | null = null;
     private status: RelayStatus = {
         iRacingDetected: false,
         serverConnected: false,
@@ -43,9 +51,13 @@ export class PythonBridge extends EventEmitter {
     };
     private firstTelemetryLogged = false;
 
-    constructor(cloudUrl: string) {
+    constructor(options: RelayBridgeOptions) {
         super();
-        this.cloudUrl = cloudUrl;
+        this.options = options;
+    }
+
+    updateOptions(options: RelayBridgeOptions): void {
+        this.options = options;
     }
 
     /**
@@ -70,7 +82,9 @@ export class PythonBridge extends EventEmitter {
         this.connectToCloud();
 
         // Connect to local dev server (localhost:3001)
-        this.connectToDevServer();
+        if (this.options.enableLocalDev) {
+            this.connectToDevServer();
+        }
     }
 
     /**
@@ -78,6 +92,8 @@ export class PythonBridge extends EventEmitter {
      */
     stop(): void {
         this.running = false;
+
+        this.emitSessionEnd();
 
         if (this.localSocket) {
             this.localSocket.disconnect();
@@ -100,6 +116,18 @@ export class PythonBridge extends EventEmitter {
         }
 
         this.updateStatus({ serverConnected: false, iRacingDetected: false, sending: false });
+    }
+
+    private emitSessionEnd(): void {
+        if (!this.currentSessionId || !this.cloudSocket?.connected) {
+            return;
+        }
+
+        this.cloudSocket.emit('session_end', {
+            sessionId: this.currentSessionId,
+            userId: this.options.userId || undefined,
+        });
+        this.currentSessionId = null;
     }
 
     /**
@@ -232,6 +260,9 @@ export class PythonBridge extends EventEmitter {
         this.localSocket.on('iracing_status', (data: { connected: boolean }) => {
             console.log('iRacing status:', data.connected ? 'connected' : 'disconnected');
             this.updateStatus({ iRacingDetected: data.connected });
+            if (!data.connected) {
+                this.emitSessionEnd();
+            }
         });
 
         // Telemetry data - forward to cloud AND local dev server
@@ -265,6 +296,7 @@ export class PythonBridge extends EventEmitter {
         // Session metadata (Python sends as session_metadata)
         this.localSocket.on('session_metadata', (data: any) => {
             console.log('Session metadata received:', data?.trackName);
+            this.currentSessionId = data?.sessionId || this.currentSessionId;
             if (this.cloudSocket?.connected) {
                 this.cloudSocket.emit('session_metadata', data);
             }
@@ -276,6 +308,7 @@ export class PythonBridge extends EventEmitter {
         // Session info (alternative event name)
         this.localSocket.on('session_info', (data: any) => {
             console.log('Session info received');
+            this.currentSessionId = data?.sessionId || this.currentSessionId;
             if (this.cloudSocket?.connected) {
                 this.cloudSocket.emit('session_info', data);
             }
@@ -310,15 +343,19 @@ export class PythonBridge extends EventEmitter {
      * Connect to cloud server with auto-reconnect
      */
     private connectToCloud(): void {
-        console.log(`☁️ Connecting to cloud: ${this.cloudUrl}`);
+        console.log(`☁️ Connecting to cloud: ${this.options.cloudUrl}`);
 
-        this.cloudSocket = io(this.cloudUrl, {
+        this.cloudSocket = io(this.options.cloudUrl, {
             reconnection: true,
             reconnectionDelay: 1000,
             reconnectionDelayMax: 10000,
             reconnectionAttempts: Infinity,
             timeout: 10000,
-            transports: ['websocket', 'polling']
+            transports: ['websocket', 'polling'],
+            auth: {
+                relayId: this.options.relayId,
+                token: this.options.authToken || undefined,
+            },
         });
 
         this.cloudSocket.on('connect', () => {
@@ -329,6 +366,8 @@ export class PythonBridge extends EventEmitter {
             const os = require('os');
             this.cloudSocket?.emit('relay:connect', {
                 version: '1.0.0',
+                relayId: this.options.relayId,
+                userId: this.options.userId || undefined,
                 machineId: os.hostname(),
                 platform: process.platform,
                 arch: process.arch
@@ -364,7 +403,11 @@ export class PythonBridge extends EventEmitter {
             reconnectionDelayMax: 10000,
             reconnectionAttempts: Infinity,
             timeout: 10000,
-            transports: ['websocket', 'polling']
+            transports: ['websocket', 'polling'],
+            auth: {
+                relayId: this.options.relayId,
+                token: this.options.authToken || undefined,
+            },
         });
 
         this.devSocket.on('connect', () => {
@@ -374,6 +417,8 @@ export class PythonBridge extends EventEmitter {
             const os = require('os');
             this.devSocket?.emit('relay:connect', {
                 version: '1.0.0',
+                relayId: this.options.relayId,
+                userId: this.options.userId || undefined,
                 machineId: os.hostname(),
                 platform: process.platform,
                 arch: process.arch

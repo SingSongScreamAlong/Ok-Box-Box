@@ -94,6 +94,11 @@ class RelayAgent:
         self.start_time = 0
         self.telemetry_count = 0
         self.incident_count = 0
+        
+        # Track shape capture
+        self.track_shape_points = {}  # distPct -> {lat, lon, alt}
+        self.track_shape_saved = False
+        self.discipline_category = 'road'
 
     @property
     def is_connected(self):
@@ -466,7 +471,102 @@ class RelayAgent:
                 if (now - self.last_controls_time) >= self.CONTROLS_INTERVAL:
                     self.cloud_client.send_controls_stream(car_data)
                     self.last_controls_time = now
+            
+            # Capture track shape data (lat/lon at each track position)
+            self._capture_track_shape_point(player_car)
 
+
+
+    def _capture_track_shape_point(self, player_car):
+        """Capture lat/lon at current track position for track shape generation"""
+        if self.track_shape_saved:
+            return
+        
+        pct = player_car.track_pct
+        lat = player_car.lat
+        lon = player_car.lon
+        
+        if pct is None or lat == 0 or lon == 0:
+            return
+        
+        # Round to 0.1% increments (1000 points around track)
+        pct_key = round(pct * 1000)
+        
+        if pct_key not in self.track_shape_points:
+            self.track_shape_points[pct_key] = {
+                'distPct': pct,
+                'lat': lat,
+                'lon': lon,
+                'alt': player_car.alt
+            }
+        
+        # Check if we have enough coverage (90%+ of track)
+        coverage = len(self.track_shape_points) / 10  # percentage
+        if coverage >= 90 and not self.track_shape_saved:
+            self._save_track_shape()
+    
+    def _save_track_shape(self):
+        """Save captured track shape to file"""
+        if len(self.track_shape_points) < 100:
+            return
+        
+        session = self.ir_reader.get_session_data()
+        if not session:
+            return
+        
+        track_name = session.track_name
+        track_id = session.track_id
+        
+        # Sort points by distance percentage
+        points = sorted(self.track_shape_points.values(), key=lambda p: p['distPct'])
+        
+        # Convert lat/lon to X/Y (meters from origin)
+        import math
+        origin_lat = points[0]['lat']
+        origin_lon = points[0]['lon']
+        
+        meters_per_deg_lat = 111320
+        meters_per_deg_lon = 111320 * math.cos(math.radians(origin_lat))
+        
+        shape_points = []
+        for p in points:
+            x = (p['lon'] - origin_lon) * meters_per_deg_lon
+            y = (p['lat'] - origin_lat) * meters_per_deg_lat
+            shape_points.append({
+                'x': round(x, 2),
+                'y': round(y, 2),
+                'distPct': p['distPct']
+            })
+        
+        xs = [p['x'] for p in shape_points]
+        ys = [p['y'] for p in shape_points]
+        
+        shape = {
+            'name': track_name,
+            'trackId': str(track_id),
+            'centerline': shape_points,
+            'bounds': {
+                'xMin': min(xs),
+                'xMax': max(xs),
+                'yMin': min(ys),
+                'yMax': max(ys)
+            }
+        }
+        
+        # Save to track_shapes folder
+        from pathlib import Path
+        output_dir = Path(__file__).parent / 'track_shapes'
+        output_dir.mkdir(exist_ok=True)
+        
+        slug = track_name.lower().replace(' ', '-').replace('/', '-')
+        output_file = output_dir / f'{slug}.shape.json'
+        
+        import json
+        with open(output_file, 'w') as f:
+            json.dump(shape, f, indent=2)
+        
+        logger.info(f"📍 Track shape saved: {output_file} ({len(shape_points)} points)")
+        self.track_shape_saved = True
 
 
 # ========================

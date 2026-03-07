@@ -1,0 +1,54 @@
+{
+  "name": "okboxbox-desktop",
+  "version": "1.0.0",
+  "description": "Ok,Box Box - iRacing AI Race Engineer Desktop App",
+  "main": "electron/main.js",
+  "author": "Ok,Box Box",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run compile && vite build && electron-builder",
+    "compile": "tsc -p tsconfig.electron.json",
+    "preview": "vite preview",
+    "electron:dev": "npm run compile && concurrently \"vite\" \"wait-on http://localhost:5177 && electron .\"",
+    "electron:build": "npm run compile && vite build && electron-builder"
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0",
+    "form-data": "^4.0.0",
+    "node-fetch": "^2.7.0",
+    "irsdk-node": "^4.4.0",
+    "socket.io-client": "^4.7.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "concurrently": "^8.2.2",
+    "electron": "28.0.0",
+    "electron-builder": "^24.9.1",
+    "typescript": "^5.3.2",
+    "vite": "^5.0.0",
+    "wait-on": "^7.2.0"
+  },
+  "build": {
+    "appId": "com.okboxbox.desktop",
+    "productName": "Ok,Box Box",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "dist/**/*",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": ["nsis"],
+      "icon": "assets/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

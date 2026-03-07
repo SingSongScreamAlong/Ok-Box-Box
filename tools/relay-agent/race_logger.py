@@ -261,7 +261,7 @@ class RaceLogger:
         
     def connect(self):
         try:
-            self.sio.connect(SERVER_URL, transports=['websocket'])
+            self.sio.connect(SERVER_URL, transports=['websocket'], auth={'relayId': 'race-logger'})
             return True
         except Exception as e:
             print(f"❌ Connection failed: {e}")

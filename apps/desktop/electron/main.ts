@@ -14,7 +14,7 @@ let sessionId: string | null = null;
 let voiceSystem: VoiceSystem | null = null;
 let updateCheckInterval: NodeJS.Timeout | null = null;
 
-const SERVER_URL = 'https://octopus-app-qsi3i.ondigitalocean.app';
+const SERVER_URL = 'http://localhost:3001'; // DEV: local server for testing
 const SUPABASE_URL = 'https://muypplgzqqtjlwinhunw.supabase.co';
 const APP_VERSION = '1.0.0';
 
