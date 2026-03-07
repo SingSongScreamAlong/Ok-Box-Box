@@ -296,6 +296,13 @@ export function RacePlan() {
           )}
         </div>
 
+        {!currentPlan ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <Flag className="w-10 h-10 text-white/10 mb-4" />
+            <p className="text-white/40 text-sm">No race plans yet</p>
+            <p className="text-white/20 text-xs mt-1">Create a plan via the Planning page, then return here to manage stints</p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Stint Timeline */}
           <div className="lg:col-span-2">
@@ -522,6 +529,7 @@ export function RacePlan() {
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );
