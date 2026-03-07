@@ -3,18 +3,12 @@ import { useParams, Link } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Trash2, GripVertical, Clock, Fuel, Users,
   AlertTriangle, CheckCircle2, Save, Download, Upload,
-  Settings, RotateCcw
+  Settings, RotateCcw, Loader2
 } from 'lucide-react';
 import { useTeamData } from '../../hooks/useTeamData';
-// Service imports for future API integration
-// import {
-//   fetchTeamDrivers,
-//   validateStrategy,
-//   calculateStintTime,
-//   calculatePitDuration,
-//   autoBalanceStints,
-//   optimizeFuelLoads,
-// } from '../../lib/stintService';
+import { useAuth } from '../../contexts/AuthContext';
+
+const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
 
 // Local types
 interface Driver {
@@ -90,9 +84,10 @@ function formatLapTime(ms: number): string {
 
 export function StintPlanner() {
   const { teamId } = useParams<{ teamId: string }>();
-  const { drivers: serviceDrivers } = useTeamData();
+  const { session } = useAuth();
+  const { drivers: serviceDrivers, racePlans } = useTeamData();
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  
+
   // Map service drivers to local format
   useEffect(() => {
     if (serviceDrivers.length > 0) {
@@ -107,12 +102,59 @@ export function StintPlanner() {
       })));
     }
   }, [serviceDrivers]);
+
   const [config, setConfig] = useState<RaceConfig>(defaultConfig);
   const [stints, setStints] = useState<Stint[]>([]);
   const [showConfig, setShowConfig] = useState(false);
   const [selectedStint, setSelectedStint] = useState<string | null>(null);
   const [draggedStint, setDraggedStint] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('');
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+
+  // Default to first available plan
+  useEffect(() => {
+    if (!selectedPlanId && racePlans.length > 0) {
+      setSelectedPlanId(racePlans[0].id);
+    }
+  }, [racePlans, selectedPlanId]);
+
+  const saveStrategy = async () => {
+    if (!selectedPlanId || !session?.access_token || stints.length === 0) return;
+    setSaving(true);
+    setSaveMsg(null);
+    try {
+      for (let i = 0; i < stints.length; i++) {
+        const stint = stints[i];
+        const res = await fetch(
+          `${API_BASE}/api/v1/teams/${teamId}/race-plans/${selectedPlanId}/stints`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              stint_number: i + 1,
+              driver_id: stint.driverId || null,
+              start_lap: stint.startLap,
+              end_lap: stint.endLap,
+              fuel_load: stint.fuelLoad,
+              tire_compound: stint.tireCompound,
+              notes: stint.notes || null,
+            }),
+          }
+        );
+        if (!res.ok) throw new Error(`Stint ${i + 1}: ${res.statusText}`);
+      }
+      setSaveMsg(`Saved ${stints.length} stints to plan`);
+    } catch (err) {
+      setSaveMsg(err instanceof Error ? err.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // Calculate stint times
   const calculateStintTime = (stint: Stint): number => {
@@ -703,19 +745,33 @@ export function StintPlanner() {
 
             {/* Quick Actions */}
             <div className="p-4 bg-white/[0.03] border border-white/[0.06] rounded-lg">
-              <h3 className="text-xs text-white/50 uppercase tracking-wider mb-3">Quick Actions</h3>
+              <h3 className="text-xs text-white/50 uppercase tracking-wider mb-3">Save to Plan</h3>
               <div className="space-y-2">
-                <button className="w-full flex items-center gap-2 px-3 py-2 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] rounded text-xs text-white/70 hover:text-white transition-colors">
-                  <RotateCcw className="w-3 h-3" />
-                  Auto-Balance Stints
-                </button>
-                <button className="w-full flex items-center gap-2 px-3 py-2 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] rounded text-xs text-white/70 hover:text-white transition-colors">
-                  <Fuel className="w-3 h-3" />
-                  Optimize Fuel Loads
-                </button>
-                <button className="w-full flex items-center gap-2 px-3 py-2 bg-[#3b82f6]/20 hover:bg-[#3b82f6]/30 border border-[#3b82f6]/30 rounded text-xs text-[#3b82f6] transition-colors">
-                  <Save className="w-3 h-3" />
-                  Save Strategy
+                {racePlans.length > 0 ? (
+                  <select
+                    value={selectedPlanId}
+                    onChange={e => setSelectedPlanId(e.target.value)}
+                    className="w-full px-2 py-1.5 bg-white/[0.05] border border-white/10 rounded text-xs text-white/70 focus:outline-none focus:border-white/30"
+                  >
+                    {racePlans.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-[10px] text-white/30">No race plans — create one first</p>
+                )}
+                {saveMsg && (
+                  <p className={`text-[10px] ${saveMsg.includes('Saved') ? 'text-green-400' : 'text-red-400'}`}>
+                    {saveMsg}
+                  </p>
+                )}
+                <button
+                  onClick={saveStrategy}
+                  disabled={saving || !selectedPlanId || stints.length === 0}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#3b82f6]/20 hover:bg-[#3b82f6]/30 border border-[#3b82f6]/30 rounded text-xs text-[#3b82f6] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                  {saving ? 'Saving…' : 'Save Strategy'}
                 </button>
               </div>
             </div>
