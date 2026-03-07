@@ -109,6 +109,12 @@ export function PitwallStrategy() {
   // Map service data to local format
   useEffect(() => {
     if (!dataLoading && serviceStrategy) {
+      // Seed fuel calculator defaults from live strategy data
+      setFuelCalc(prev => ({
+        ...prev,
+        raceLaps: serviceStrategy.totalLaps || prev.raceLaps,
+        fuelPerLap: serviceStrategy.fuelPerLap || prev.fuelPerLap,
+      }));
       // Map camelCase to snake_case for compatibility with existing UI
       setStrategy({
         id: serviceStrategy.id,
@@ -182,8 +188,8 @@ export function PitwallStrategy() {
   }, []);
 
   const calculatedFuel = Math.ceil((fuelCalc.raceLaps * (fuelCalc.fuelSaveMode ? (strategy?.fuel_per_lap_save || fuelCalc.fuelPerLap) : fuelCalc.fuelPerLap)) + fuelCalc.reserve);
-  const maxLaps = strategy ? Math.floor(strategy.tank_capacity / strategy.fuel_per_lap) : 0;
-  const maxLapsSave = strategy ? Math.floor(strategy.tank_capacity / strategy.fuel_per_lap_save) : 0;
+  const maxLaps = strategy && strategy.fuel_per_lap > 0 ? Math.floor(strategy.tank_capacity / strategy.fuel_per_lap) : 0;
+  const maxLapsSave = strategy && strategy.fuel_per_lap_save > 0 ? Math.floor(strategy.tank_capacity / strategy.fuel_per_lap_save) : 0;
 
   if (dataLoading) {
     return (
@@ -196,7 +202,15 @@ export function PitwallStrategy() {
     );
   }
 
-  if (!strategy) return null;
+  if (!strategy) return (
+    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <Flag className="w-8 h-8 text-white/20" />
+        <span className="text-white/40 text-sm">No strategy data available</span>
+        <span className="text-white/20 text-xs">Configure a race strategy from the Planning page</span>
+      </div>
+    </div>
+  );
 
   const riskColors = { low: 'text-green-400 bg-green-500/10', medium: 'text-yellow-400 bg-yellow-500/10', high: 'text-red-400 bg-red-500/10' };
 

@@ -200,7 +200,7 @@ export function PitwallReports() {
                 <div className="px-4 py-3 border-b border-white/10 flex items-center justify-between">
                   <div>
                     <div className="font-medium text-white">
-                      {debrief.event_name || formatEventLabel(events.find(e => e.id === selectedEventId)!)}
+                      {debrief.event_name || (() => { const ev = events.find(e => e.id === selectedEventId); return ev ? formatEventLabel(ev) : 'Unknown Event'; })()}
                     </div>
                     <div className="text-xs text-white/40">Session Analysis</div>
                   </div>
@@ -247,7 +247,7 @@ export function PitwallReports() {
                         <div>
                           <h4 className="text-[10px] text-white/40 uppercase mb-2">Common Patterns</h4>
                           <ul className="space-y-1">
-                            {debrief.team_summary.common_patterns.map((p, i) => (
+                            {(debrief.team_summary.common_patterns ?? []).map((p, i) => (
                               <li key={i} className="text-xs text-white/60 flex items-start gap-2">
                                 <span className="text-[#f97316] mt-0.5">•</span>
                                 {p}
