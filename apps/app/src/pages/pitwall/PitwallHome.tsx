@@ -970,9 +970,8 @@ export function PitwallHome() {
                   <div className="text-[10px] uppercase text-white/40 mb-2 font-semibold">Live Standings</div>
                   <div className="space-y-1.5">
                     {localDrivers.filter((d: TeamDriver) => d.isActive).sort((a: TeamDriver, b: TeamDriver) => (a.position || 99) - (b.position || 99)).slice(0, 8).map((driver: TeamDriver) => {
-                      const isTeamCar = driver.id === 'd1' || driver.id === 'd2';
                       return (
-                        <div key={driver.id} className={`flex items-center justify-between text-[10px] ${isTeamCar ? 'text-blue-400' : 'text-white/50'}`}>
+                        <div key={driver.id} className="flex items-center justify-between text-[10px] text-blue-400">
                           <div className="flex items-center gap-1.5">
                             <span className="w-4 font-mono font-bold">P{driver.position}</span>
                             <span className="font-mono">#{driver.carNumber}</span>
