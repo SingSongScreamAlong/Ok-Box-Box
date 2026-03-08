@@ -267,8 +267,8 @@ export async function backfillDriverHistory(
                     race.subsession_id,
                     race.series_id,
                     JSON.stringify({
-                        finish_position: race.finish_position,
-                        start_position: race.start_position,
+                        finish_position: race.finish_position + 1,
+                        start_position: race.start_position + 1,
                         incidents: race.incidents,
                         irating_change: race.irating_change,
                         sof: race.strength_of_field,
@@ -290,8 +290,8 @@ export async function backfillDriverHistory(
                     incident_count: l.incident ? 1 : 0,
                 })),
                 result: {
-                    finish_position: race.finish_position,
-                    start_position: race.start_position,
+                    finish_position: race.finish_position + 1,
+                    start_position: race.start_position + 1,
                     sof: race.strength_of_field,
                     irating_change: race.irating_change,
                 },
@@ -300,7 +300,7 @@ export async function backfillDriverHistory(
             await computeSessionMetrics(metricsInput);
             synced++;
 
-            console.log(`[iRacing Sync] Synced: ${race.track.track_name} (P${race.finish_position})`);
+            console.log(`[iRacing Sync] Synced: ${race.track.track_name} (P${race.finish_position + 1})`);
 
         } catch (error) {
             console.error(`[iRacing Sync] Error syncing race ${race.subsession_id}:`, error);

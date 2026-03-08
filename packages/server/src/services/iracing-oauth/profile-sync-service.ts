@@ -536,9 +536,13 @@ export class IRacingProfileSyncService {
             licenseCategory = catMap[categoryId] || null;
         }
 
-        const startPos = result.start_position ?? result.starting_position ?? null;
-        const finishPos = result.finish_position ?? result.finishing_position ?? null;
-        const finishPosClass = result.finish_position_in_class ?? null;
+        // iRacing API returns 0-indexed positions (0 = 1st place) — convert to 1-indexed
+        const rawStartPos = result.start_position ?? result.starting_position ?? null;
+        const rawFinishPos = result.finish_position ?? result.finishing_position ?? null;
+        const rawFinishPosClass = result.finish_position_in_class ?? null;
+        const startPos = rawStartPos != null ? rawStartPos + 1 : null;
+        const finishPos = rawFinishPos != null ? rawFinishPos + 1 : null;
+        const finishPosClass = rawFinishPosClass != null ? rawFinishPosClass + 1 : null;
         const lapsComplete = result.laps_complete ?? result.laps_comp ?? null;
         const lapsLead = result.laps_lead ?? result.laps_led ?? null;
         const incidents = result.incidents ?? result.incident_count ?? null;
