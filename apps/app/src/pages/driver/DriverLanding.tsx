@@ -1316,6 +1316,40 @@ function LicensesCompactPanel({ profile }: { profile: ReturnType<typeof useDrive
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// UPGRADE TEASER (CFO audit: tier differentiation + upgrade triggers)
+// ═════════════════════════════════════════════════════════════════════════════
+
+function UpgradeTeaser() {
+  const features = [
+    { label: 'Telemetry Replay', desc: 'Review every corner in detail' },
+    { label: 'Strategy Engine', desc: 'AI pit window & fuel modeling' },
+    { label: 'Advanced Crew', desc: 'Deep behavioral coaching' },
+    { label: 'Team Pitwall', desc: 'Multi-driver live monitoring' },
+  ];
+
+  return (
+    <div className="border border-white/[0.06] bg-gradient-to-r from-[#f97316]/[0.03] to-transparent backdrop-blur-sm overflow-hidden">
+      <div className="px-5 py-3 flex items-center justify-between border-b border-white/[0.04]">
+        <div className="flex items-center gap-2">
+          <Zap className="w-3.5 h-3.5 text-[#f97316]/50" />
+          <span className="text-[10px] uppercase tracking-[0.15em] text-white/30" style={ORBITRON}>Unlock More</span>
+        </div>
+        <span className="text-[9px] text-white/15 uppercase tracking-wider">Coming Soon</span>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-white/[0.04]">
+        {features.map(f => (
+          <div key={f.label} className="p-3 text-center opacity-50 hover:opacity-70 transition-opacity">
+            <Lock className="w-3.5 h-3.5 mx-auto mb-1.5 text-white/20" />
+            <div className="text-[10px] font-semibold text-white/40 mb-0.5">{f.label}</div>
+            <div className="text-[8px] text-white/20">{f.desc}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // NEXT ACTION BLOCK (mission brief style)
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -1942,6 +1976,9 @@ export function DriverLanding() {
 
         {/* VALUE SIGNALS (CFO audit: show depth of analysis) */}
         {!loading && <ValueSignalStrip sessions={sessions} stats={stats} hasTelemetry={!!telemetryMetrics?.available} />}
+
+        {/* UPGRADE TEASER (CFO audit: tier differentiation) */}
+        {!isTrainingMode && <UpgradeTeaser />}
 
         {/* BUILD IDENTIFIER */}
         <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
