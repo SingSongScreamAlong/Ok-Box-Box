@@ -5,6 +5,7 @@
 import { Router, type Request, type Response } from 'express';
 import type { CreateRulebookRequest, UpdateRulebookRequest } from '@controlbox/common';
 import { RulebookRepository } from '../../db/repositories/rulebook.repo.js';
+import { RulebookParser } from '../../services/rulebook/parser.js';
 
 export const rulebooksRouter = Router();
 const rulebookRepo = new RulebookRepository();
@@ -117,14 +118,11 @@ rulebooksRouter.post('/:id/validate', async (req: Request, res: Response): Promi
             return;
         }
 
-        // TODO: Implement proper validation
+        const parser = new RulebookParser();
+        const validation = parser.validate(rulebook as any);
         res.json({
             success: true,
-            data: {
-                isValid: true,
-                errors: [],
-                warnings: [],
-            },
+            data: validation,
         });
     } catch {
         res.status(500).json({
