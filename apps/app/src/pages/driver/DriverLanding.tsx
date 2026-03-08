@@ -1180,9 +1180,9 @@ function CrewPreviewPanel({ sessions, focus, telemetry }: { sessions: DriverSess
   const insights = useMemo(() => computeTelemetryAwareCrewInsights(sessions, focus, telemetry), [sessions, focus, telemetry]);
 
   const crewRoles = [
-    { key: 'engineer' as const, label: 'Engineer', icon: Wrench, color: '#f97316', link: '/driver/crew/engineer' },
-    { key: 'spotter' as const, label: 'Spotter', icon: Eye, color: '#3b82f6', link: '/driver/crew/spotter' },
-    { key: 'analyst' as const, label: 'Analyst', icon: BarChart3, color: '#8b5cf6', link: '/driver/crew/analyst' },
+    { key: 'engineer' as const, label: 'Engineer', icon: Wrench, color: '#f97316', link: '/driver/crew/engineer', personality: 'Methodical. Data-driven. Your car is my responsibility.' },
+    { key: 'spotter' as const, label: 'Spotter', icon: Eye, color: '#3b82f6', link: '/driver/crew/spotter', personality: 'Eyes everywhere. I see what you can\'t.' },
+    { key: 'analyst' as const, label: 'Analyst', icon: BarChart3, color: '#8b5cf6', link: '/driver/crew/analyst', personality: 'Patterns don\'t lie. Let me show you the numbers.' },
   ];
 
   // Phase 5: Dynamic crew status based on focus
@@ -1209,13 +1209,14 @@ function CrewPreviewPanel({ sessions, focus, telemetry }: { sessions: DriverSess
           const insight = insights.find(i => i.role === role.key);
           return (
             <Link key={role.key} to={role.link} className="p-4 hover:bg-white/[0.03] transition-colors group">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-1">
                 <div className="w-6 h-6 rounded flex items-center justify-center" style={{ backgroundColor: `${role.color}20`, border: `1px solid ${role.color}30` }}>
                   <Icon className="w-3 h-3" style={{ color: role.color }} />
                 </div>
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-white/60">{role.label}</span>
                 <ChevronRight className="w-3 h-3 text-white/10 group-hover:text-white/30 ml-auto" />
               </div>
+              <p className="text-[9px] italic text-white/20 mb-2 pl-8">"{role.personality}"</p>
               {insight ? (
                 <>
                   <p className="text-[11px] text-white/40 leading-relaxed line-clamp-2">{insight.message}</p>
@@ -1251,6 +1252,9 @@ function LicensesCompactPanel({ profile }: { profile: ReturnType<typeof useDrive
     sportsCar: 'Road', oval: 'Oval', dirtOval: 'Dirt Oval', dirtRoad: 'Dirt Road', formula: 'Formula',
   };
 
+  const PROMO_THRESHOLD = 3.00;
+  const NEXT_CLASS: Record<string, string> = { R: 'D', D: 'C', C: 'B', B: 'A' };
+
   return (
     <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
       <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
@@ -1260,26 +1264,52 @@ function LicensesCompactPanel({ profile }: { profile: ReturnType<typeof useDrive
         </Link>
       </div>
       <div className="p-3 space-y-1.5">
-        {licenses.map(lic => (
-          <div key={lic.discipline} className="flex items-center justify-between py-2 px-3 rounded border border-white/[0.06]">
-            <div className="flex items-center gap-2.5">
-              <div
-                className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold text-white"
-                style={{ backgroundColor: getLicenseColor(lic.licenseClass) }}
-              >
-                {lic.licenseClass}
+        {licenses.map(lic => {
+          const sr = lic.safetyRating ?? 0;
+          const nextClass = NEXT_CLASS[lic.licenseClass];
+          const canPromote = nextClass && sr >= PROMO_THRESHOLD;
+          const srToPromo = nextClass ? Math.max(0, PROMO_THRESHOLD - sr) : 0;
+          const promoProgress = nextClass ? Math.min(1, sr / PROMO_THRESHOLD) : 1;
+
+          return (
+            <div key={lic.discipline} className="py-2 px-3 rounded border border-white/[0.06]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold text-white"
+                    style={{ backgroundColor: getLicenseColor(lic.licenseClass) }}
+                  >
+                    {lic.licenseClass}
+                  </div>
+                  <span className="text-[11px] text-white/60">{DISC_LABELS[lic.discipline] || lic.discipline}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1">
+                    <Shield className="w-3 h-3 text-green-400/40" />
+                    <span className="text-[10px] font-mono text-green-400/60">{lic.safetyRating?.toFixed(2) ?? '—'}</span>
+                  </div>
+                  <span className="text-[11px] font-mono font-bold text-blue-400">{lic.iRating ?? '—'}</span>
+                </div>
               </div>
-              <span className="text-[11px] text-white/60">{DISC_LABELS[lic.discipline] || lic.discipline}</span>
+              {nextClass && (
+                <div className="mt-1.5 flex items-center gap-2">
+                  <div className="flex-1 h-1 bg-white/[0.06] rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${promoProgress * 100}%`,
+                        backgroundColor: canPromote ? '#22c55e' : getLicenseColor(nextClass),
+                      }}
+                    />
+                  </div>
+                  <span className={`text-[8px] font-mono ${canPromote ? 'text-green-400' : 'text-white/25'}`}>
+                    {canPromote ? `→ ${nextClass} ready` : `${srToPromo.toFixed(2)} SR to ${nextClass}`}
+                  </span>
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1">
-                <Shield className="w-3 h-3 text-green-400/40" />
-                <span className="text-[10px] font-mono text-green-400/60">{lic.safetyRating?.toFixed(2) ?? '—'}</span>
-              </div>
-              <span className="text-[11px] font-mono font-bold text-blue-400">{lic.iRating ?? '—'}</span>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
