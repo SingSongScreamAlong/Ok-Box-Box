@@ -20,7 +20,7 @@ export interface TrackShape {
 }
 
 // Vite glob import for all shape files (both *.shape.json and *.json)
-const shapeModules = import.meta.glob('../../../../packages/dashboard/src/data/trackData/*.shape.json', {
+const shapeModules = import.meta.glob('../data/trackShapes/*.shape.json', {
     import: 'default',
     eager: false
 });
@@ -28,7 +28,7 @@ const shapeModules = import.meta.glob('../../../../packages/dashboard/src/data/t
 // Also import slug-named track files (like monza-combinedchicanes.json).
 // NOTE: Vite's *.json glob also matches *.shape.json, so we pre-filter those
 // out here. This avoids ~200 ghost entries polluting the slug lookup.
-const slugModules = import.meta.glob('../../../../packages/dashboard/src/data/trackData/*.json', {
+const slugModules = import.meta.glob('../data/trackShapes/*.json', {
     import: 'default',
     eager: false
 });

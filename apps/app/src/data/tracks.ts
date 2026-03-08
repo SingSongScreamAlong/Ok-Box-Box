@@ -1,5 +1,5 @@
 // Accurate Track Data from iRacing telemetry calibration
-// Source: packages/dashboard/src/data/trackData/*.shape.json
+// Source: apps/app/src/data/trackShapes/*.shape.json
 
 // Map slugs to iRacing shape IDs for the TrackMap component
 // NOTE: Shape files are from iRacing telemetry. Some may be outdated.

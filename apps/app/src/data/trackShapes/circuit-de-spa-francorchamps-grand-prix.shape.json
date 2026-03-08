@@ -1,0 +1,1064 @@
+{
+  "name": "Circuit de Spa-Francorchamps",
+  "trackId": "circuit-de-spa-francorchamps-grand-prix",
+  "centerline": [
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.0384,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.0436,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.0487,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.0625,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.0678,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.0731,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.0782,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.0836,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.0888,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.0943,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.0995,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1048,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1105,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1162,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1221,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1273,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1324,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1376,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.143,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1486,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1542,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1596,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1649,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1704,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1758,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1812,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1867,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1922,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.1978,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.2033,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.2089,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.2145,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.2201,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.2258,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.2315,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.2372,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.2429,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.2487,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.2544,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.2602,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.266,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.272,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.2778,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.2837,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.2895,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.2954,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.3013,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.3072,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.3132,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.3191,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.325,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.3307,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.3365,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.342,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.3473,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.3526,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.3579,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.3632,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.3684,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.374,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.3794,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.3849,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.3899,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.3956,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.401,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4068,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4121,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4175,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.423,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4282,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4332,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4384,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4439,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.449,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4544,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4598,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4651,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4704,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4757,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4813,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4869,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4927,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.4979,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5035,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5093,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5152,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5204,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5255,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.531,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.536,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5412,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5468,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5525,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5575,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5627,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5681,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5736,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5791,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5843,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5895,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.5949,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6008,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6067,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6126,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6176,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6227,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6279,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6334,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6387,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6442,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6495,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6545,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6595,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6646,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6698,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.675,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6806,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.686,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6917,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.6974,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7027,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7079,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.713,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7181,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7231,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7286,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7343,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7394,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7447,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7499,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.755,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7604,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7659,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7715,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7773,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7824,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7884,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7943,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.7994,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8045,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8097,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8151,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8205,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8259,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8314,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.837,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8426,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8482,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8537,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8594,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8651,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8708,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8764,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8821,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8879,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8937,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.8995,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.9054,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.9112,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.9171,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.9231,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.929,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.935,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.9411,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.947,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.9521,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.9577,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.963,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.9682,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.9733,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.9786,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.9838,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.9889,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.9943,
+      "alt": null
+    },
+    {
+      "x": 0.0,
+      "y": 0.0,
+      "distPct": 0.9996,
+      "alt": null
+    }
+  ],
+  "bounds": {
+    "xMin": 0.0,
+    "xMax": 0.0,
+    "yMin": 0.0,
+    "yMax": 0.0
+  },
+  "pointCount": 175,
+  "capturedBy": "ControlBox Relay"
+}
