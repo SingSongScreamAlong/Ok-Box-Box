@@ -702,18 +702,30 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       socketRef.current.disconnect();
       socketRef.current = null;
     }
+    if (rateIntervalRef.current) {
+      clearInterval(rateIntervalRef.current);
+      rateIntervalRef.current = null;
+    }
+    frameCountRef.current = 0;
+    setTelemetryRate(0);
     setStatus('disconnected');
     setTelemetry({ ...defaultTelemetry, strategy: { ...defaultStrategy } });
     setSession(defaultSession);
   }, []);
 
-  // Auto-connect on mount
+  // Auto-connect on mount, cleanup on unmount
   useEffect(() => {
     if (!initialized) {
       setInitialized(true);
       console.log('[Relay] Auto-connecting to server...');
       connect();
     }
+    return () => {
+      if (rateIntervalRef.current) {
+        clearInterval(rateIntervalRef.current);
+        rateIntervalRef.current = null;
+      }
+    };
   }, [initialized, connect]);
 
   return (
