@@ -88,6 +88,7 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
 
                 // Decode base64 audio
                 const audioBuffer = Buffer.from(data.audio, 'base64');
+                const audioFormat = data.format || 'webm';
 
                 // Get current telemetry for context
                 const telemetry = getTelemetryForVoice('live');
@@ -119,7 +120,8 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
                         recentMessages: [],
                         telemetry,
                         driverContext
-                    }
+                    },
+                    audioFormat
                 );
 
                 if (!conversation) {

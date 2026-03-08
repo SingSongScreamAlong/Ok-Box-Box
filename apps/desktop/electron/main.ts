@@ -14,7 +14,7 @@ let sessionId: string | null = null;
 let voiceSystem: VoiceSystem | null = null;
 let updateCheckInterval: NodeJS.Timeout | null = null;
 
-const SERVER_URL = 'http://localhost:3001'; // DEV: local server for testing
+const SERVER_URL = 'https://octopus-app-qsi3i.ondigitalocean.app';
 const SUPABASE_URL = 'https://muypplgzqqtjlwinhunw.supabase.co';
 const APP_VERSION = '1.0.0';
 
@@ -475,9 +475,9 @@ ipcMain.on('voice:pttState', (_event, pressed: boolean) => {
   voiceSystem?.onPTTStateChange(pressed);
 });
 
-ipcMain.on('voice:audioData', (_event, audioBuffer: Buffer) => {
+ipcMain.on('voice:audioData', (_event, audioBuffer: Buffer, mimeType: string) => {
   console.log(`🎤 Received audio data from renderer: ${audioBuffer?.length || 0} bytes`);
-  voiceSystem?.processAudio(audioBuffer);
+  voiceSystem?.processAudio(audioBuffer, mimeType);
 });
 
 // Window control IPC handlers
@@ -663,8 +663,20 @@ app.whenReady().then(async () => {
   
   // Check for existing session
   const session = store.get('session') as UserSession | undefined;
+  console.log('🔐 Session check:', session ? `expires ${new Date(session.expiresAt).toISOString()}` : 'no session');
   if (session && Date.now() < session.expiresAt) {
+    console.log('🔐 Valid session found, connecting...');
     connectToServer(session.accessToken);
+    startIRacingRelay();
+  } else if (session) {
+    console.log('🔐 Session expired, need to re-login');
+  }
+  
+  // DEV MODE: Connect without auth for voice testing (relay-only mode)
+  const devToken = process.env.DEV_AUTH_TOKEN;
+  if (devToken && !session) {
+    console.log('🔧 DEV MODE: Connecting with dev token...');
+    connectToServer(devToken);
     startIRacingRelay();
   }
 

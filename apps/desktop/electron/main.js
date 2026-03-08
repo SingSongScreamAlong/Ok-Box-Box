@@ -50,7 +50,7 @@ let videoInterval = null;
 let sessionId = null;
 let voiceSystem = null;
 let updateCheckInterval = null;
-const SERVER_URL = 'http://localhost:3001'; // DEV: local server for testing
+const SERVER_URL = 'https://octopus-app-qsi3i.ondigitalocean.app';
 const SUPABASE_URL = 'https://muypplgzqqtjlwinhunw.supabase.co';
 const APP_VERSION = '1.0.0';
 // ── Protocol Handler (okboxbox:// deep links) ──
@@ -473,9 +473,9 @@ electron_1.ipcMain.handle('get-status', async () => {
 electron_1.ipcMain.on('voice:pttState', (_event, pressed) => {
     voiceSystem?.onPTTStateChange(pressed);
 });
-electron_1.ipcMain.on('voice:audioData', (_event, audioBuffer) => {
+electron_1.ipcMain.on('voice:audioData', (_event, audioBuffer, mimeType) => {
     console.log(`🎤 Received audio data from renderer: ${audioBuffer?.length || 0} bytes`);
-    voiceSystem?.processAudio(audioBuffer);
+    voiceSystem?.processAudio(audioBuffer, mimeType);
 });
 // Window control IPC handlers
 electron_1.ipcMain.on('window:minimize', () => {
@@ -639,8 +639,20 @@ electron_1.app.whenReady().then(async () => {
     }
     // Check for existing session
     const session = store.get('session');
+    console.log('🔐 Session check:', session ? `expires ${new Date(session.expiresAt).toISOString()}` : 'no session');
     if (session && Date.now() < session.expiresAt) {
+        console.log('🔐 Valid session found, connecting...');
         connectToServer(session.accessToken);
+        startIRacingRelay();
+    }
+    else if (session) {
+        console.log('🔐 Session expired, need to re-login');
+    }
+    // DEV MODE: Connect without auth for voice testing (relay-only mode)
+    const devToken = process.env.DEV_AUTH_TOKEN;
+    if (devToken && !session) {
+        console.log('🔧 DEV MODE: Connecting with dev token...');
+        connectToServer(devToken);
         startIRacingRelay();
     }
     // Check for updates

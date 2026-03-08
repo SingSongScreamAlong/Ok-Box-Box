@@ -29,7 +29,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Voice
   sendPTTState: (pressed: boolean) => ipcRenderer.send('voice:pttState', pressed),
-  sendAudioData: (audioBuffer: ArrayBuffer) => ipcRenderer.send('voice:audioData', Buffer.from(audioBuffer)),
+  sendAudioData: (audioBuffer: ArrayBuffer, mimeType: string) => ipcRenderer.send('voice:audioData', Buffer.from(audioBuffer), mimeType),
   onStartRecording: (callback: () => void) => {
     ipcRenderer.on('voice:startRecording', () => callback());
   },

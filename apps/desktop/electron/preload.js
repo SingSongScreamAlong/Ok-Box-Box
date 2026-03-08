@@ -27,7 +27,7 @@ electron_1.contextBridge.exposeInMainWorld('electronAPI', {
     },
     // Voice
     sendPTTState: (pressed) => electron_1.ipcRenderer.send('voice:pttState', pressed),
-    sendAudioData: (audioBuffer) => electron_1.ipcRenderer.send('voice:audioData', Buffer.from(audioBuffer)),
+    sendAudioData: (audioBuffer, mimeType) => electron_1.ipcRenderer.send('voice:audioData', Buffer.from(audioBuffer), mimeType),
     onStartRecording: (callback) => {
         electron_1.ipcRenderer.on('voice:startRecording', () => callback());
     },

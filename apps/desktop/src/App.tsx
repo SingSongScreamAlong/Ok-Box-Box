@@ -68,6 +68,7 @@ function App() {
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recordingMimeTypeRef = useRef('audio/webm');
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -206,9 +207,19 @@ function App() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      const preferredMimeTypes = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+      ];
+      const mimeType = preferredMimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
+      const mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
+      recordingMimeTypeRef.current = mediaRecorder.mimeType || mimeType || 'audio/webm';
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -216,7 +227,7 @@ function App() {
         }
       };
 
-      mediaRecorder.start(100); // Collect data every 100ms
+      mediaRecorder.start();
       setIsRecording(true);
     } catch (err) {
       console.error('Failed to start recording:', err);
@@ -238,13 +249,13 @@ function App() {
         return;
       }
 
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      const audioBlob = new Blob(audioChunksRef.current, { type: recordingMimeTypeRef.current });
       console.log('Audio blob size:', audioBlob.size);
       
       const arrayBuffer = await audioBlob.arrayBuffer();
       
       // Send to main process for transcription
-      window.electronAPI.sendAudioData(arrayBuffer);
+      window.electronAPI.sendAudioData(arrayBuffer, recordingMimeTypeRef.current);
 
       // Stop all tracks
       recorder.stream.getTracks().forEach(track => track.stop());

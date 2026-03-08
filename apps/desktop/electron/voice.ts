@@ -220,6 +220,19 @@ export class VoiceSystem {
     let reportCount = 0;
     const SETTLE_REPORTS = 20;
     
+    // Debounce: ignore state changes within this window
+    let lastStateChangeTime = 0;
+    const DEBOUNCE_MS = 300;
+    
+    // Require minimum hold time to confirm press (filters noise)
+    let pressStartTime = 0;
+    const MIN_HOLD_MS = 150;
+    
+    // Track consecutive samples to confirm stable state
+    let consecutivePressed = 0;
+    let consecutiveReleased = 0;
+    const STABLE_SAMPLES = 5;
+    
     console.log(`🎮 HID button detection started for button ${this.config.joystickButton}`);
     console.log('🎮 Waiting for input to settle, then press PTT button...');
     
@@ -272,12 +285,42 @@ export class VoiceSystem {
       }
       
       if (calibrated && buttonByteIndex >= 0) {
-        const pressed = (data[buttonByteIndex] & buttonBitMask) !== 0;
+        const rawPressed = (data[buttonByteIndex] & buttonBitMask) !== 0;
+        const now = Date.now();
         
-        if (pressed !== this.hidButtonState) {
-          this.hidButtonState = pressed;
-          console.log(`🎮 HID PTT: ${pressed ? 'PRESSED' : 'RELEASED'}`);
-          this.onPTTStateChange(pressed);
+        // Track consecutive samples for stability
+        if (rawPressed) {
+          consecutivePressed++;
+          consecutiveReleased = 0;
+        } else {
+          consecutiveReleased++;
+          consecutivePressed = 0;
+        }
+        
+        // Track when button first appears pressed
+        if (rawPressed && pressStartTime === 0) {
+          pressStartTime = now;
+        } else if (!rawPressed) {
+          pressStartTime = 0;
+        }
+        
+        // Only consider it pressed if held for MIN_HOLD_MS AND stable for STABLE_SAMPLES
+        const stablePressed = rawPressed && 
+          (now - pressStartTime) >= MIN_HOLD_MS && 
+          consecutivePressed >= STABLE_SAMPLES;
+        const stableReleased = !rawPressed && consecutiveReleased >= STABLE_SAMPLES;
+        
+        // Only change state if we have stable readings
+        if (stablePressed && !this.hidButtonState && (now - lastStateChangeTime) > DEBOUNCE_MS) {
+          this.hidButtonState = true;
+          lastStateChangeTime = now;
+          console.log(`🎮 HID PTT: PRESSED`);
+          this.onPTTStateChange(true);
+        } else if (stableReleased && this.hidButtonState && (now - lastStateChangeTime) > DEBOUNCE_MS) {
+          this.hidButtonState = false;
+          lastStateChangeTime = now;
+          console.log(`🎮 HID PTT: RELEASED`);
+          this.onPTTStateChange(false);
         }
       }
       
@@ -370,7 +413,7 @@ export class VoiceSystem {
   }
 
   // Called from renderer with recorded audio
-  async processAudio(audioBuffer: Buffer) {
+  async processAudio(audioBuffer: Buffer, mimeType: string = 'audio/webm') {
     if (audioBuffer.length < 1000) {
       console.log('Recording too short, ignored');
       return;
@@ -383,11 +426,17 @@ export class VoiceSystem {
 
     try {
       console.log(`🎤 Sending ${audioBuffer.length} bytes to server for processing...`);
+      const normalizedMimeType = mimeType.toLowerCase();
+      const format = normalizedMimeType.includes('wav')
+        ? 'wav'
+        : normalizedMimeType.includes('ogg') || normalizedMimeType.includes('oga')
+          ? 'ogg'
+          : 'webm';
 
       // Send raw audio to server — server handles STT (Whisper) + AI + TTS (ElevenLabs)
       this.socket.emit('voice:query', {
         audio: audioBuffer.toString('base64'),
-        format: 'webm',
+        format,
       });
 
     } catch (err) {

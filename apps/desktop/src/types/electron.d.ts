@@ -17,7 +17,7 @@ interface ElectronAPI {
   
   // Voice
   sendPTTState: (pressed: boolean) => void;
-  sendAudioData: (audioBuffer: ArrayBuffer) => void;
+  sendAudioData: (audioBuffer: ArrayBuffer, mimeType: string) => void;
   onStartRecording: (callback: () => void) => void;
   onStopRecording: (callback: () => void) => void;
   onPlayAudio: (callback: (base64Audio: string) => void) => void;

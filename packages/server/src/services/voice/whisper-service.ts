@@ -7,7 +7,6 @@
 
 import { config } from '../../config/index.js';
 import OpenAI from 'openai';
-import { Readable } from 'stream';
 
 // ============================================================================
 // TYPES
@@ -15,6 +14,7 @@ import { Readable } from 'stream';
 
 export interface TranscriptionRequest {
     audioBuffer: Buffer;
+    format?: string;
     language?: string; // ISO 639-1 code, e.g., 'en'
     prompt?: string; // Optional prompt to guide transcription
 }
@@ -61,6 +61,32 @@ const RACING_PROMPT = `
 Racing radio communication. Common terms: box, pit, push, gap, delta, understeer, oversteer,
 P1-P20, sector, DRS, tyre, fuel, mode, copy, affirm, negative, standby.
 `;
+
+function getAudioFileMetadata(format?: string): { extension: string; mimeType: string } {
+    const normalized = (format || 'webm').toLowerCase();
+
+    if (normalized.includes('wav')) {
+        return { extension: 'wav', mimeType: 'audio/wav' };
+    }
+
+    if (normalized.includes('ogg') || normalized.includes('oga')) {
+        return { extension: 'ogg', mimeType: 'audio/ogg' };
+    }
+
+    if (normalized.includes('mp3') || normalized.includes('mpeg') || normalized.includes('mpga')) {
+        return { extension: 'mp3', mimeType: 'audio/mpeg' };
+    }
+
+    if (normalized.includes('m4a')) {
+        return { extension: 'm4a', mimeType: 'audio/m4a' };
+    }
+
+    if (normalized.includes('mp4')) {
+        return { extension: 'mp4', mimeType: 'audio/mp4' };
+    }
+
+    return { extension: 'webm', mimeType: 'audio/webm' };
+}
 
 // ============================================================================
 // SERVICE
@@ -116,10 +142,11 @@ export class WhisperService {
                 : RACING_PROMPT;
 
             const startTime = Date.now();
+            const { extension, mimeType } = getAudioFileMetadata(request.format);
 
             // Create a File-like object from Buffer for OpenAI SDK
-            const blob = new Blob([request.audioBuffer], { type: 'audio/webm' });
-            const file = new File([blob], 'audio.webm', { type: 'audio/webm' });
+            const blob = new Blob([request.audioBuffer], { type: mimeType });
+            const file = new File([blob], `audio.${extension}`, { type: mimeType });
             
             const transcription = await this.openai.audio.transcriptions.create({
                 file,
@@ -152,11 +179,13 @@ export class WhisperService {
      */
     async processDriverQuery(
         audioBuffer: Buffer,
-        context: ConversationContext
+        context: ConversationContext,
+        format?: string
     ): Promise<{ query: string; response: string } | null> {
         // First, transcribe the audio
         const transcription = await this.transcribe({
             audioBuffer,
+            format,
             language: 'en',
             prompt: context.recentMessages.slice(-3).join(' ')
         });
