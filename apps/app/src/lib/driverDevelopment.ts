@@ -285,7 +285,7 @@ export async function requestCoachingInsight(context: string): Promise<string | 
   try {
     const auth = await getAuthHeader();
     if (!auth.Authorization) {
-      return 'Focus on smooth inputs and patience. Your recent sessions show improvement in consistency.';
+      return null;
     }
 
     const response = await fetch(`${API_BASE}/api/v1/drivers/me/coaching`, {
@@ -311,11 +311,7 @@ export async function getSkillRecommendations(): Promise<string[]> {
   try {
     const auth = await getAuthHeader();
     if (!auth.Authorization) {
-      return [
-        'Focus on trail braking to improve corner entry speed',
-        'Practice race starts in test sessions',
-        'Work on tire management for longer stints',
-      ];
+      return [];
     }
 
     const response = await fetch(`${API_BASE}/api/v1/drivers/me/recommendations`, {
