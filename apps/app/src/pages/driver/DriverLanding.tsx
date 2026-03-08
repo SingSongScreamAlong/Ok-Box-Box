@@ -49,8 +49,8 @@ import {
   DriverStatsSnapshot,
   TelemetryMetricsResponse,
 } from '../../lib/driverService';
-import {
 import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
+import {
   computePerformanceDirection,
   computeConsistency,
   buildRatingTrend,

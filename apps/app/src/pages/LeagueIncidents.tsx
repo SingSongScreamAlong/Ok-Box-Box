@@ -11,8 +11,8 @@ import {
   getSeverityColor,
   getStatusColor
 } from '../lib/incidents';
-import { 
 import { VIDEO_PLAYBACK_RATE } from '../lib/config';
+import { 
   ArrowLeft, AlertTriangle, CheckCircle, XCircle, 
   Clock, Eye, ChevronRight
 } from 'lucide-react';

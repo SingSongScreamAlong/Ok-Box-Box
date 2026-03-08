@@ -1,5 +1,12 @@
 import { supabase } from './supabase';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
+async function apiAuthHeader(): Promise<Record<string, string>> {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
+}
+
 export interface League {
   id: string;
   name: string;
@@ -255,4 +262,154 @@ export async function getLeagueInvitations(leagueId: string): Promise<LeagueInvi
   }
 
   return data || [];
+}
+
+// ===========================================================================
+// Protests
+// ===========================================================================
+
+export interface LeagueProtest {
+  id: string;
+  leagueId: string;
+  incidentId: string | null;
+  penaltyId: string | null;
+  submittedByDriverId: string | null;
+  submittedByName: string;
+  status: 'pending' | 'under_review' | 'upheld' | 'denied' | 'withdrawn';
+  grounds: string;
+  evidenceUrls: string[];
+  stewardNotes: string | null;
+  resolution: string | null;
+  resolvedByName: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  incidentType: string | null;
+  incidentSeverity: string | null;
+}
+
+function mapProtestStatus(apiStatus: string): LeagueProtest['status'] {
+  if (apiStatus === 'submitted') return 'pending';
+  if (apiStatus === 'rejected') return 'denied';
+  return apiStatus as LeagueProtest['status'];
+}
+
+export async function fetchLeagueProtests(
+  leagueId: string,
+  status?: string
+): Promise<LeagueProtest[]> {
+  try {
+    const auth = await apiAuthHeader();
+    if (!auth.Authorization) return [];
+    const qs = status ? `leagueId=${leagueId}&status=${status}` : `leagueId=${leagueId}`;
+    const res = await fetch(`${API_BASE}/api/protests?${qs}`, { headers: auth });
+    if (!res.ok) return [];
+    const { data } = await res.json();
+    return (data || []).map((row: Record<string, unknown>) => ({
+      ...row,
+      status: mapProtestStatus(row.status as string),
+    })) as LeagueProtest[];
+  } catch {
+    return [];
+  }
+}
+
+export async function updateProtestStatus(
+  protestId: string,
+  status: 'upheld' | 'denied',
+  resolution: string
+): Promise<boolean> {
+  try {
+    const auth = await apiAuthHeader();
+    if (!auth.Authorization) return false;
+    const res = await fetch(`${API_BASE}/api/protests/${protestId}`, {
+      method: 'PUT',
+      headers: { ...auth, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: status === 'denied' ? 'rejected' : status, resolution }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ===========================================================================
+// Series / Seasons / Standings
+// ===========================================================================
+
+export interface LeagueSeries {
+  id: string;
+  leagueId: string;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+}
+
+export interface LeagueSeason {
+  id: string;
+  seriesId: string;
+  leagueId: string;
+  name: string;
+  startDate: string | null;
+  endDate: string | null;
+  isActive: boolean;
+}
+
+export interface LeagueStanding {
+  id: string;
+  seasonId: string;
+  driverId: string;
+  driverName: string;
+  teamId: string | undefined;
+  teamName: string | undefined;
+  carClass: string | undefined;
+  position: number;
+  classPosition: number | undefined;
+  points: number;
+  pointsWithDrops: number;
+  wins: number;
+  podiums: number;
+  poles: number;
+  dnfs: number;
+  racesStarted: number;
+  behindLeader: number | null;
+}
+
+export async function fetchLeagueSeries(leagueId: string): Promise<LeagueSeries[]> {
+  try {
+    const auth = await apiAuthHeader();
+    if (!auth.Authorization) return [];
+    const res = await fetch(`${API_BASE}/api/leagues/${leagueId}/series`, { headers: auth });
+    if (!res.ok) return [];
+    const { data } = await res.json();
+    return data || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchSeriesSeasons(seriesId: string): Promise<LeagueSeason[]> {
+  try {
+    const auth = await apiAuthHeader();
+    if (!auth.Authorization) return [];
+    const res = await fetch(`${API_BASE}/api/leagues/series/${seriesId}/seasons`, { headers: auth });
+    if (!res.ok) return [];
+    const { data } = await res.json();
+    return data || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function fetchSeasonStandings(seasonId: string): Promise<LeagueStanding[]> {
+  try {
+    const auth = await apiAuthHeader();
+    if (!auth.Authorization) return [];
+    const res = await fetch(`${API_BASE}/api/seasons/${seasonId}/standings`, { headers: auth });
+    if (!res.ok) return [];
+    const { data } = await res.json();
+    return data || [];
+  } catch {
+    return [];
+  }
 }

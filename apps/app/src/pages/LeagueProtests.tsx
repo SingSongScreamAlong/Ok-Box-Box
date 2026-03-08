@@ -1,128 +1,21 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getLeague, getUserLeagueRole, League } from '../lib/leagues';
-import { 
+import {
+  getLeague, getUserLeagueRole, League,
+  fetchLeagueProtests, updateProtestStatus, type LeagueProtest,
+} from '../lib/leagues';
 import { VIDEO_PLAYBACK_RATE } from '../lib/config';
-  ArrowLeft, MessageSquare, CheckCircle, XCircle, 
-  Clock, AlertTriangle, ChevronRight, Filter, Search,
-  FileText, User, Calendar, ThumbsUp, ThumbsDown, Scale
+import {
+  ArrowLeft, ChevronRight, FileText, User, Calendar,
+  ThumbsUp, ThumbsDown, Scale
 } from 'lucide-react';
 
-interface Protest {
-  id: string;
-  incidentId: string;
-  submittedBy: {
-    id: string;
-    name: string;
-    team?: string;
-  };
-  submittedAt: string;
-  status: 'pending' | 'under_review' | 'upheld' | 'denied' | 'withdrawn';
-  type: 'penalty_appeal' | 'incident_report' | 'rule_clarification';
-  subject: string;
-  description: string;
-  evidence?: string[];
-  originalPenalty?: {
-    type: string;
-    value: string;
-  };
-  decision?: {
-    outcome: string;
-    reasoning: string;
-    decidedBy: string;
-    decidedAt: string;
-    newPenalty?: {
-      type: string;
-      value: string;
-    };
-  };
-  comments: {
-    id: string;
-    author: string;
-    role: string;
-    content: string;
-    timestamp: string;
-  }[];
+function deriveProtestType(protest: LeagueProtest): string {
+  if (protest.penaltyId) return 'Penalty Appeal';
+  if (protest.incidentId) return 'Incident Report';
+  return 'Submission';
 }
-
-const mockProtests: Protest[] = [
-  {
-    id: 'prot-1',
-    incidentId: 'inc-123',
-    submittedBy: { id: 'u1', name: 'Alex Rivera', team: 'Velocity Racing' },
-    submittedAt: '2026-01-26T15:00:00Z',
-    status: 'pending',
-    type: 'penalty_appeal',
-    subject: 'Appeal of 10-second penalty - Lap 42 contact',
-    description: 'I am appealing the 10-second penalty issued for the lap 42 incident. The telemetry clearly shows I was fully alongside before the braking zone and had the right to racing room. The other driver turned in on me without leaving space.',
-    evidence: ['telemetry_lap42.json', 'onboard_video.mp4'],
-    originalPenalty: { type: 'time', value: '10 seconds' },
-    comments: []
-  },
-  {
-    id: 'prot-2',
-    incidentId: 'inc-124',
-    submittedBy: { id: 'u2', name: 'Jordan Kim', team: 'Thunder Motorsport' },
-    submittedAt: '2026-01-25T20:30:00Z',
-    status: 'under_review',
-    type: 'incident_report',
-    subject: 'Unreported incident - Turn 3 blocking',
-    description: 'Reporting an incident that was not flagged by the system. Driver #77 made multiple defensive moves under braking in Turn 3, which is against the rulebook section 4.2.1.',
-    comments: [
-      {
-        id: 'c1',
-        author: 'Chief Steward',
-        role: 'steward',
-        content: 'We are reviewing the footage. Can you provide the exact lap number?',
-        timestamp: '2026-01-26T10:00:00Z'
-      },
-      {
-        id: 'c2',
-        author: 'Jordan Kim',
-        role: 'driver',
-        content: 'Lap 23, approximately 14:32:45 session time.',
-        timestamp: '2026-01-26T10:15:00Z'
-      }
-    ]
-  },
-  {
-    id: 'prot-3',
-    incidentId: 'inc-125',
-    submittedBy: { id: 'u3', name: 'Marcus Chen', team: 'Apex Dynamics' },
-    submittedAt: '2026-01-24T18:00:00Z',
-    status: 'upheld',
-    type: 'penalty_appeal',
-    subject: 'Appeal of drive-through penalty - Pit lane speeding',
-    description: 'The pit lane speeding penalty was issued in error. My telemetry shows I was at 59.8 kph, below the 60 kph limit.',
-    originalPenalty: { type: 'drive_through', value: 'Drive Through' },
-    decision: {
-      outcome: 'Penalty Rescinded',
-      reasoning: 'After reviewing the telemetry data provided by the driver, we confirm the speed was 59.8 kph. The iRacing detection appears to have been a false positive. Penalty is rescinded.',
-      decidedBy: 'Steward Panel',
-      decidedAt: '2026-01-25T12:00:00Z'
-    },
-    comments: []
-  },
-  {
-    id: 'prot-4',
-    incidentId: 'inc-126',
-    submittedBy: { id: 'u4', name: 'Sarah Williams', team: 'Precision Racing' },
-    submittedAt: '2026-01-23T14:00:00Z',
-    status: 'denied',
-    type: 'penalty_appeal',
-    subject: 'Appeal of 5-second penalty - Track limits',
-    description: 'I believe the track limits penalty was too harsh given the circumstances. I went off to avoid a spinning car.',
-    originalPenalty: { type: 'time', value: '5 seconds' },
-    decision: {
-      outcome: 'Appeal Denied',
-      reasoning: 'While we understand the driver was avoiding an incident, the telemetry shows a clear advantage was gained. The penalty stands as issued.',
-      decidedBy: 'Steward Panel',
-      decidedAt: '2026-01-24T09:00:00Z'
-    },
-    comments: []
-  }
-];
 
 const statusColors: Record<string, string> = {
   pending: 'bg-yellow-500/20 text-yellow-400',
@@ -142,11 +35,11 @@ export function LeagueProtests() {
   const { leagueId } = useParams<{ leagueId: string }>();
   const { user } = useAuth();
   const [league, setLeague] = useState<League | null>(null);
-  const [protests, setProtests] = useState<Protest[]>(mockProtests);
+  const [protests, setProtests] = useState<LeagueProtest[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedProtest, setSelectedProtest] = useState<Protest | null>(null);
-  const [newComment, setNewComment] = useState('');
+  const [selectedProtest, setSelectedProtest] = useState<LeagueProtest | null>(null);
+  const [stewardNote, setStewardNote] = useState('');
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -163,14 +56,16 @@ export function LeagueProtests() {
 
   const loadData = async () => {
     if (!leagueId || !user) return;
-    const [leagueData, role] = await Promise.all([
+    const [leagueData, role, protestData] = await Promise.all([
       getLeague(leagueId),
-      getUserLeagueRole(leagueId, user.id)
+      getUserLeagueRole(leagueId, user.id),
+      fetchLeagueProtests(leagueId),
     ]);
     if (!leagueData || !role || !['owner', 'admin', 'steward'].includes(role)) {
       return;
     }
     setLeague(leagueData);
+    setProtests(protestData);
     setLoading(false);
   };
 
@@ -187,54 +82,18 @@ export function LeagueProtests() {
     denied: protests.filter(p => p.status === 'denied').length
   };
 
-  const handleAddComment = () => {
-    if (!selectedProtest || !newComment.trim()) return;
-    const comment = {
-      id: `c-${Date.now()}`,
-      author: 'Steward',
-      role: 'steward',
-      content: newComment,
-      timestamp: new Date().toISOString()
-    };
-    setProtests(prev => prev.map(p => 
-      p.id === selectedProtest.id 
-        ? { ...p, comments: [...p.comments, comment] }
-        : p
-    ));
-    setSelectedProtest(prev => prev ? { ...prev, comments: [...prev.comments, comment] } : null);
-    setNewComment('');
-  };
-
-  const handleDecision = (protestId: string, outcome: 'upheld' | 'denied') => {
+  const handleDecision = async (protestId: string, outcome: 'upheld' | 'denied') => {
     const reasoning = prompt('Enter reasoning for this decision:');
     if (!reasoning) return;
-    
-    setProtests(prev => prev.map(p => 
-      p.id === protestId 
-        ? { 
-            ...p, 
-            status: outcome,
-            decision: {
-              outcome: outcome === 'upheld' ? 'Appeal Upheld' : 'Appeal Denied',
-              reasoning,
-              decidedBy: 'Steward Panel',
-              decidedAt: new Date().toISOString()
-            }
-          }
+    const ok = await updateProtestStatus(protestId, outcome, reasoning);
+    if (!ok) return;
+    const updated = protests.map(p =>
+      p.id === protestId
+        ? { ...p, status: outcome, resolution: reasoning, resolvedAt: new Date().toISOString() }
         : p
-    ));
-    if (selectedProtest?.id === protestId) {
-      setSelectedProtest(prev => prev ? { 
-        ...prev, 
-        status: outcome,
-        decision: {
-          outcome: outcome === 'upheld' ? 'Appeal Upheld' : 'Appeal Denied',
-          reasoning,
-          decidedBy: 'Steward Panel',
-          decidedAt: new Date().toISOString()
-        }
-      } : null);
-    }
+    );
+    setProtests(updated);
+    setSelectedProtest(updated.find(p => p.id === protestId) ?? null);
   };
 
   if (loading) {
@@ -340,25 +199,22 @@ export function LeagueProtests() {
                             {protest.status.replace('_', ' ')}
                           </span>
                           <span className="text-xs text-white/40">
-                            {typeLabels[protest.type]}
+                            {deriveProtestType(protest)}
                           </span>
+                          {protest.incidentSeverity && (
+                            <span className="text-xs text-white/30">{protest.incidentSeverity}</span>
+                          )}
                         </div>
-                        <p className="text-sm text-white/80 font-medium mb-1">{protest.subject}</p>
+                        <p className="text-sm text-white/80 font-medium mb-1 line-clamp-2">{protest.grounds}</p>
                         <div className="flex items-center gap-4 text-xs text-white/40">
                           <span className="flex items-center gap-1">
                             <User className="w-3 h-3" />
-                            {protest.submittedBy.name}
+                            {protest.submittedByName}
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            {new Date(protest.submittedAt).toLocaleDateString()}
+                            {new Date(protest.createdAt).toLocaleDateString()}
                           </span>
-                          {protest.comments.length > 0 && (
-                            <span className="flex items-center gap-1">
-                              <MessageSquare className="w-3 h-3" />
-                              {protest.comments.length}
-                            </span>
-                          )}
                         </div>
                       </div>
                       <ChevronRight className="w-4 h-4 text-white/30" />
@@ -386,46 +242,50 @@ export function LeagueProtests() {
 
                   <div className="space-y-4">
                     <div>
-                      <p className="text-xs text-white/40 mb-1">Subject</p>
-                      <p className="text-sm text-white/80 font-medium">{selectedProtest.subject}</p>
+                      <p className="text-xs text-white/40 mb-1">Type</p>
+                      <p className="text-sm text-white/70">{deriveProtestType(selectedProtest)}</p>
                     </div>
 
                     <div>
                       <p className="text-xs text-white/40 mb-1">Submitted By</p>
-                      <p className="text-sm text-white/80">{selectedProtest.submittedBy.name}</p>
-                      {selectedProtest.submittedBy.team && (
-                        <p className="text-xs text-white/50">{selectedProtest.submittedBy.team}</p>
-                      )}
+                      <p className="text-sm text-white/80">{selectedProtest.submittedByName}</p>
+                      <p className="text-xs text-white/40 mt-0.5">{new Date(selectedProtest.createdAt).toLocaleString()}</p>
                     </div>
 
                     <div>
-                      <p className="text-xs text-white/40 mb-1">Description</p>
-                      <p className="text-sm text-white/70">{selectedProtest.description}</p>
+                      <p className="text-xs text-white/40 mb-1">Grounds</p>
+                      <p className="text-sm text-white/70 leading-relaxed">{selectedProtest.grounds}</p>
                     </div>
 
-                    {selectedProtest.originalPenalty && (
-                      <div>
-                        <p className="text-xs text-white/40 mb-1">Original Penalty</p>
-                        <p className="text-sm text-red-400">{selectedProtest.originalPenalty.value}</p>
-                      </div>
-                    )}
-
-                    {selectedProtest.evidence && selectedProtest.evidence.length > 0 && (
+                    {selectedProtest.evidenceUrls.length > 0 && (
                       <div>
                         <p className="text-xs text-white/40 mb-2">Evidence</p>
                         <div className="space-y-1">
-                          {selectedProtest.evidence.map((file, i) => (
-                            <div key={i} className="flex items-center gap-2 text-xs text-blue-400">
-                              <FileText className="w-3 h-3" />
-                              {file}
-                            </div>
+                          {selectedProtest.evidenceUrls.map((url, i) => (
+                            <a
+                              key={i}
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-xs text-blue-400 hover:text-blue-300"
+                            >
+                              <FileText className="w-3 h-3 flex-shrink-0" />
+                              {url.split('/').pop() || url}
+                            </a>
                           ))}
                         </div>
                       </div>
                     )}
 
+                    {selectedProtest.stewardNotes && (
+                      <div>
+                        <p className="text-xs text-white/40 mb-1">Steward Notes</p>
+                        <p className="text-sm text-white/60 italic">{selectedProtest.stewardNotes}</p>
+                      </div>
+                    )}
+
                     {/* Decision */}
-                    {selectedProtest.decision && (
+                    {selectedProtest.resolution && (
                       <div className="pt-3 border-t border-white/[0.06]">
                         <p className="text-xs text-white/40 mb-2">Decision</p>
                         <div className={`p-3 rounded ${
@@ -434,30 +294,15 @@ export function LeagueProtests() {
                           <p className={`text-sm font-medium mb-1 ${
                             selectedProtest.status === 'upheld' ? 'text-green-400' : 'text-red-400'
                           }`}>
-                            {selectedProtest.decision.outcome}
+                            {selectedProtest.status === 'upheld' ? 'Appeal Upheld' : 'Appeal Denied'}
                           </p>
-                          <p className="text-xs text-white/60">{selectedProtest.decision.reasoning}</p>
-                          <p className="text-xs text-white/40 mt-2">
-                            — {selectedProtest.decision.decidedBy}, {new Date(selectedProtest.decision.decidedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Comments */}
-                    {selectedProtest.comments.length > 0 && (
-                      <div className="pt-3 border-t border-white/[0.06]">
-                        <p className="text-xs text-white/40 mb-2">Discussion</p>
-                        <div className="space-y-2">
-                          {selectedProtest.comments.map(comment => (
-                            <div key={comment.id} className="bg-white/[0.03] rounded p-2">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs font-medium text-white/80">{comment.author}</span>
-                                <span className="text-[10px] text-white/40">{comment.role}</span>
-                              </div>
-                              <p className="text-xs text-white/60">{comment.content}</p>
-                            </div>
-                          ))}
+                          <p className="text-xs text-white/60">{selectedProtest.resolution}</p>
+                          {selectedProtest.resolvedByName && selectedProtest.resolvedAt && (
+                            <p className="text-xs text-white/40 mt-2">
+                              — {selectedProtest.resolvedByName},{' '}
+                              {new Date(selectedProtest.resolvedAt).toLocaleDateString()}
+                            </p>
+                          )}
                         </div>
                       </div>
                     )}
@@ -465,25 +310,15 @@ export function LeagueProtests() {
                     {/* Actions */}
                     {(selectedProtest.status === 'pending' || selectedProtest.status === 'under_review') && (
                       <div className="pt-4 border-t border-white/[0.06] space-y-3">
-                        {/* Add comment */}
                         <div>
                           <textarea
-                            value={newComment}
-                            onChange={e => setNewComment(e.target.value)}
-                            placeholder="Add a comment..."
+                            value={stewardNote}
+                            onChange={e => setStewardNote(e.target.value)}
+                            placeholder="Add steward notes..."
                             className="w-full px-3 py-2 bg-white/[0.03] border border-white/[0.08] rounded-lg text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/20 resize-none"
                             rows={2}
                           />
-                          <button
-                            onClick={handleAddComment}
-                            disabled={!newComment.trim()}
-                            className="mt-2 px-3 py-1.5 bg-white/[0.05] hover:bg-white/[0.08] text-white/70 rounded text-xs font-medium transition-colors disabled:opacity-50"
-                          >
-                            Add Comment
-                          </button>
                         </div>
-
-                        {/* Decision buttons */}
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleDecision(selectedProtest.id, 'upheld')}

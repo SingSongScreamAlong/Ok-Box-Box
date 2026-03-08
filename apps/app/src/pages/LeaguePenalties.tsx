@@ -11,8 +11,8 @@ import {
   getPenaltyStatusColor,
   getPenaltyTypeColor
 } from '../lib/penalties';
-import { 
 import { VIDEO_PLAYBACK_RATE } from '../lib/config';
+import { 
   ArrowLeft, Flag, CheckCircle, XCircle, 
   Clock, Gavel, ChevronRight, AlertTriangle
 } from 'lucide-react';

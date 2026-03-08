@@ -11,8 +11,8 @@ import {
   SEVERITY_LEVELS,
   PENALTY_TYPES
 } from '../lib/rulebooks';
-import { 
 import { VIDEO_PLAYBACK_RATE } from '../lib/config';
+import { 
   ArrowLeft, Book, Plus, Trash2, Edit2, Save, X, 
   ChevronDown, ChevronUp
 } from 'lucide-react';

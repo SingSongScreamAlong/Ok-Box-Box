@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { 
 import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
+import { 
   Wrench,
   Eye,
   Volume2,

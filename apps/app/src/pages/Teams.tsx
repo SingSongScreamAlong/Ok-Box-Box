@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserTeams, getTeamMembers, TeamWithRole } from '../lib/teams';
-import { 
 import { VIDEO_PLAYBACK_RATE } from '../lib/config';
+import { 
   Plus, Users, Crown, Shield, User, ChevronRight, 
   Gauge, Calendar, Activity, Loader2, ArrowLeft
 } from 'lucide-react';
