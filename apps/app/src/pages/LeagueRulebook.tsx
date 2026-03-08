@@ -19,7 +19,7 @@ import {
 export function LeagueRulebook() {
   const { leagueId, rulebookId } = useParams<{ leagueId: string; rulebookId: string }>();
   const { user } = useAuth();
-  const [league, setLeague] = useState<League | null>(null);
+  const [_league, setLeague] = useState<League | null>(null);
   const [rulebook, setRulebook] = useState<Rulebook | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

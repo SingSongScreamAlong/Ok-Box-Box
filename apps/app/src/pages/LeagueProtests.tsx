@@ -3,8 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getLeague, getUserLeagueRole, League } from '../lib/leagues';
 import { 
-  ArrowLeft, MessageSquare, CheckCircle, XCircle, 
-  Clock, AlertTriangle, ChevronRight, Filter, Search,
+  ArrowLeft, MessageSquare, ChevronRight,
   FileText, User, Calendar, ThumbsUp, ThumbsDown, Scale
 } from 'lucide-react';
 
