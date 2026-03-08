@@ -15,7 +15,7 @@ interface User {
 }
 
 interface Message {
-  id: number;
+  id: string;
   text: string;
   type: 'sent' | 'received';
   timestamp: number;
@@ -65,10 +65,16 @@ function App() {
   const [gamepads, setGamepads] = useState<GamepadInfo[]>([]);
   const [listeningForKey, setListeningForKey] = useState(false);
   const [listeningForButton, setListeningForButton] = useState(false);
-  
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const recordingMimeTypeRef = useRef('audio/webm');
+
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const mediaSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const pcmChunksRef = useRef<Float32Array[]>([]);
+  const sampleRateRef = useRef(44100);
+  const messageCounterRef = useRef(0);
+  const recordingStartedAtRef = useRef(0);
+  const recordingMimeTypeRef = useRef('audio/wav');
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -136,6 +142,56 @@ function App() {
     setGamepads(gpList);
   };
 
+  const encodeWav = (samples: Float32Array[], sampleRate: number) => {
+    const totalSamples = samples.reduce((sum, chunk) => sum + chunk.length, 0);
+    const bytesPerSample = 2;
+    const buffer = new ArrayBuffer(44 + totalSamples * bytesPerSample);
+    const view = new DataView(buffer);
+
+    const writeString = (offset: number, value: string) => {
+      for (let i = 0; i < value.length; i++) {
+        view.setUint8(offset + i, value.charCodeAt(i));
+      }
+    };
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + totalSamples * bytesPerSample, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, 1, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * bytesPerSample, true);
+    view.setUint16(32, bytesPerSample, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, totalSamples * bytesPerSample, true);
+
+    let offset = 44;
+    for (const chunk of samples) {
+      for (let i = 0; i < chunk.length; i++) {
+        const sample = Math.max(-1, Math.min(1, chunk[i]));
+        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+        offset += 2;
+      }
+    }
+
+    return buffer;
+  };
+
+  const cleanupAudioCapture = () => {
+    processorRef.current?.disconnect();
+    mediaSourceRef.current?.disconnect();
+    mediaStreamRef.current?.getTracks().forEach(track => track.stop());
+    audioContextRef.current?.close().catch(() => undefined);
+
+    processorRef.current = null;
+    mediaSourceRef.current = null;
+    mediaStreamRef.current = null;
+    audioContextRef.current = null;
+  };
+
   const saveSettings = async (newSettings: Settings) => {
     setSettings(newSettings);
     await window.electronAPI.saveSettings?.(newSettings);
@@ -157,11 +213,13 @@ function App() {
 
     // Listen for voice/text messages
     window.electronAPI.onMessage?.((msg: { text: string; type: 'sent' | 'received' }) => {
+      messageCounterRef.current += 1;
+      const timestamp = Date.now();
       setMessages((prev) => [...prev.slice(-4), { 
-        id: Date.now(), 
+        id: `${timestamp}-${messageCounterRef.current}`,
         text: msg.text, 
         type: msg.type,
-        timestamp: Date.now() 
+        timestamp
       }]);
     });
 
@@ -206,28 +264,32 @@ function App() {
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const preferredMimeTypes = [
-        'audio/webm;codecs=opus',
-        'audio/webm',
-        'audio/ogg;codecs=opus',
-        'audio/ogg',
-      ];
-      const mimeType = preferredMimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
-      const mediaRecorder = mimeType
-        ? new MediaRecorder(stream, { mimeType })
-        : new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-      recordingMimeTypeRef.current = mediaRecorder.mimeType || mimeType || 'audio/webm';
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: settings.audioInput !== 'default'
+          ? { deviceId: { exact: settings.audioInput } }
+          : true,
+      });
+      const audioContext = new AudioContext();
+      await audioContext.resume();
+      const source = audioContext.createMediaStreamSource(stream);
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data);
-        }
+      mediaStreamRef.current = stream;
+      audioContextRef.current = audioContext;
+      mediaSourceRef.current = source;
+      processorRef.current = processor;
+      pcmChunksRef.current = [];
+      recordingStartedAtRef.current = Date.now();
+      recordingMimeTypeRef.current = 'audio/wav';
+      sampleRateRef.current = audioContext.sampleRate;
+
+      processor.onaudioprocess = (event) => {
+        const input = event.inputBuffer.getChannelData(0);
+        pcmChunksRef.current.push(new Float32Array(input));
       };
 
-      mediaRecorder.start();
+      source.connect(processor);
+      processor.connect(audioContext.destination);
       setIsRecording(true);
     } catch (err) {
       console.error('Failed to start recording:', err);
@@ -235,34 +297,28 @@ function App() {
   };
 
   const stopRecording = async () => {
-    if (!mediaRecorderRef.current) return;
+    if (!audioContextRef.current || !mediaStreamRef.current) return;
 
-    const recorder = mediaRecorderRef.current;
     setIsRecording(false);
 
-    // Use onstop event to ensure all data is collected
-    recorder.onstop = async () => {
-      console.log('MediaRecorder stopped, chunks:', audioChunksRef.current.length);
-      
-      if (audioChunksRef.current.length === 0) {
-        console.error('No audio chunks recorded');
-        return;
-      }
+    console.log('PCM recorder stopped, chunks:', pcmChunksRef.current.length);
 
-      const audioBlob = new Blob(audioChunksRef.current, { type: recordingMimeTypeRef.current });
-      console.log('Audio blob size:', audioBlob.size);
-      
-      const arrayBuffer = await audioBlob.arrayBuffer();
-      
-      // Send to main process for transcription
-      window.electronAPI.sendAudioData(arrayBuffer, recordingMimeTypeRef.current);
+    const durationMs = Date.now() - recordingStartedAtRef.current;
+    const pcmChunks = pcmChunksRef.current;
+    cleanupAudioCapture();
 
-      // Stop all tracks
-      recorder.stream.getTracks().forEach(track => track.stop());
-    };
+    if (pcmChunks.length === 0) {
+      console.error('No audio chunks recorded');
+      return;
+    }
 
-    recorder.stop();
-    mediaRecorderRef.current = null;
+    if (durationMs < 500) {
+      return;
+    }
+
+    const wavBuffer = encodeWav(pcmChunks, sampleRateRef.current);
+
+    window.electronAPI.sendAudioData(wavBuffer, recordingMimeTypeRef.current);
   };
 
   const playAudio = (base64Audio: string) => {

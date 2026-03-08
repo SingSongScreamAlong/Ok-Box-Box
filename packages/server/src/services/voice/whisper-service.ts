@@ -7,6 +7,7 @@
 
 import { config } from '../../config/index.js';
 import OpenAI from 'openai';
+import { toFile } from 'openai/uploads';
 
 // ============================================================================
 // TYPES
@@ -144,9 +145,8 @@ export class WhisperService {
             const startTime = Date.now();
             const { extension, mimeType } = getAudioFileMetadata(request.format);
 
-            // Create a File-like object from Buffer for OpenAI SDK
-            const blob = new Blob([request.audioBuffer], { type: mimeType });
-            const file = new File([blob], `audio.${extension}`, { type: mimeType });
+            // Create a File-like upload using the OpenAI helper expected by the SDK
+            const file = await toFile(request.audioBuffer, `audio.${extension}`, { type: mimeType });
             
             const transcription = await this.openai.audio.transcriptions.create({
                 file,

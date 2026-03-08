@@ -202,6 +202,29 @@ export class VoiceSystem {
     }
   }
 
+  private fallbackToKeyboardPTT(reason: string) {
+    if (this.hidDevice) {
+      try {
+        this.hidDevice.close();
+      } catch (e) { /* ignore */ }
+      this.hidDevice = null;
+    }
+
+    this.hidButtonState = false;
+    this.pttPressed = false;
+
+    if (!this.uiohookStarted) {
+      this.initKeyboardPTT();
+    }
+
+    console.log(`🎮 ${reason}`);
+    console.log(`🎤 Falling back to keyboard PTT: ${this.config.pttKey}`);
+    this.sendToRenderer({
+      text: `Joystick PTT disabled for this session due to noisy HID input. Keyboard PTT is now ${this.config.pttKey}.`,
+      type: 'received'
+    });
+  }
+
   private startHIDButtonDetection() {
     if (!this.hidDevice) return;
     
@@ -215,6 +238,9 @@ export class VoiceSystem {
     let candidateByte = -1;
     let candidateMask = 0;
     let candidateOnTime = 0;
+    const calibrationCycles = new Map<string, number>();
+    const recentToggleTimes: number[] = [];
+    const ignoredCalibrationKeys = new Set<string>();
     
     // Skip first N reports to let axes settle
     let reportCount = 0;
@@ -235,6 +261,30 @@ export class VoiceSystem {
     
     console.log(`🎮 HID button detection started for button ${this.config.joystickButton}`);
     console.log('🎮 Waiting for input to settle, then press PTT button...');
+
+    const resetCalibration = (reason: string, noisyKey?: string) => {
+      calibrated = false;
+      buttonByteIndex = -1;
+      buttonBitMask = 0;
+      candidateByte = -1;
+      candidateMask = 0;
+      candidateOnTime = 0;
+      pressStartTime = 0;
+      consecutivePressed = 0;
+      consecutiveReleased = 0;
+      this.hidButtonState = false;
+      recentToggleTimes.length = 0;
+      calibrationCycles.clear();
+      if (noisyKey) {
+        ignoredCalibrationKeys.add(noisyKey);
+      }
+      console.log(`🎮 ${reason}`);
+      if (ignoredCalibrationKeys.size >= 1) {
+        this.fallbackToKeyboardPTT('Joystick HID noise detected repeatedly');
+        return;
+      }
+      console.log('🎮 Recalibration required - press and RELEASE the PTT button twice...');
+    };
     
     this.hidDevice.on('data', (data: Buffer) => {
       reportCount++;
@@ -265,11 +315,23 @@ export class VoiceSystem {
               // Same bit released - this is a real button!
               const holdTime = Date.now() - candidateOnTime;
               if (holdTime > 50 && holdTime < 5000) {
-                // Valid button press/release cycle
-                buttonByteIndex = i;
-                buttonBitMask = diff;
-                calibrated = true;
-                console.log(`🎮 Calibrated! PTT = byte ${i}, mask 0x${diff.toString(16)} (held ${holdTime}ms)`);
+                const key = `${i}:${diff}`;
+                if (ignoredCalibrationKeys.has(key)) {
+                  candidateByte = -1;
+                  candidateMask = 0;
+                  continue;
+                }
+                const cycles = (calibrationCycles.get(key) || 0) + 1;
+                calibrationCycles.set(key, cycles);
+
+                if (cycles >= 2) {
+                  buttonByteIndex = i;
+                  buttonBitMask = diff;
+                  calibrated = true;
+                  console.log(`🎮 Calibrated! PTT = byte ${i}, mask 0x${diff.toString(16)} after ${cycles} matching cycles`);
+                } else {
+                  console.log(`🎮 Calibration candidate byte ${i}, mask 0x${diff.toString(16)} confirmed ${cycles}/2 times`);
+                }
               }
               candidateByte = -1;
               candidateMask = 0;
@@ -314,11 +376,29 @@ export class VoiceSystem {
         if (stablePressed && !this.hidButtonState && (now - lastStateChangeTime) > DEBOUNCE_MS) {
           this.hidButtonState = true;
           lastStateChangeTime = now;
+          recentToggleTimes.push(now);
+          while (recentToggleTimes.length > 0 && now - recentToggleTimes[0] > 5000) {
+            recentToggleTimes.shift();
+          }
+          if (recentToggleTimes.length >= 6) {
+            resetCalibration('Discarded noisy HID calibration', `${buttonByteIndex}:${buttonBitMask}`);
+            prevReport = Buffer.from(data);
+            return;
+          }
           console.log(`🎮 HID PTT: PRESSED`);
           this.onPTTStateChange(true);
         } else if (stableReleased && this.hidButtonState && (now - lastStateChangeTime) > DEBOUNCE_MS) {
           this.hidButtonState = false;
           lastStateChangeTime = now;
+          recentToggleTimes.push(now);
+          while (recentToggleTimes.length > 0 && now - recentToggleTimes[0] > 5000) {
+            recentToggleTimes.shift();
+          }
+          if (recentToggleTimes.length >= 6) {
+            resetCalibration('Discarded noisy HID calibration', `${buttonByteIndex}:${buttonBitMask}`);
+            prevReport = Buffer.from(data);
+            return;
+          }
           console.log(`🎮 HID PTT: RELEASED`);
           this.onPTTStateChange(false);
         }
