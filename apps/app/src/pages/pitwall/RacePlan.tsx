@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { TrackMap } from '../../components/TrackMap';
 import { useTeamData } from '../../hooks/useTeamData';
-import type { Stint } from '../../services/mockData/types';
 import { VIDEO_PLAYBACK_RATE } from '../../lib/config';
 
 interface RaceConfig {

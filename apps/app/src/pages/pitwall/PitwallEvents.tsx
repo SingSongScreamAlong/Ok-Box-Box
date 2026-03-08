@@ -18,10 +18,12 @@ const statusStyles: Record<string, string> = {
   completed: 'bg-white/10 text-white/40 border-white/20',
 };
 
-function deriveStatus(_event: TeamEventV1): 'upcoming' | 'completed' {
-  // Without a scheduled_at field we assume recent events are upcoming
-  // Once sessions are linked they could be flagged completed
-  return 'upcoming';
+function deriveStatus(event: TeamEventV1): 'upcoming' | 'completed' {
+  if (event.scheduled_at) {
+    return new Date(event.scheduled_at) > new Date() ? 'upcoming' : 'completed';
+  }
+  // No scheduled date: session-linked events have already run
+  return event.session_id ? 'completed' : 'upcoming';
 }
 
 export function PitwallEvents() {

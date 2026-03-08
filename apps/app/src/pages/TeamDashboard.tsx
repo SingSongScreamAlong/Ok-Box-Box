@@ -7,7 +7,7 @@ import {
   Play, GitCompare, Calendar, Fuel, Crown, Shield, User, Clock, Flag
 } from 'lucide-react';
 import { WeatherWidget } from '../components/WeatherWidget';
-import { fetchTeamEventsV1, type TeamEventV1 } from '../lib/teamService';
+import { fetchTeamEvents, type TeamEvent } from '../lib/teamService';
 import { VIDEO_PLAYBACK_RATE } from '../lib/config';
 
 export function TeamDashboard() {
@@ -40,7 +40,7 @@ export function TeamDashboard() {
       getTeam(teamId),
       getUserTeamRole(teamId, user.id),
       getTeamMembers(teamId),
-      fetchTeamEventsV1(teamId),
+      fetchTeamEvents(teamId, 'upcoming'),
     ]);
 
     if (!teamData || !userRole) {
@@ -53,11 +53,11 @@ export function TeamDashboard() {
     setMembers(teamMembers);
 
     // Pick the soonest upcoming event to show weather for its track
-    const upcoming = events
-      .filter((e: TeamEventV1) => e.event_type !== null)
-      .sort((a: TeamEventV1, b: TeamEventV1) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-    if (upcoming.length > 0) {
-      setNextEventTrack(upcoming[0].event_name || undefined);
+    const sorted = (events as TeamEvent[]).sort(
+      (a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()
+    );
+    if (sorted.length > 0) {
+      setNextEventTrack(sorted[0].trackName || undefined);
     }
 
     setLoading(false);

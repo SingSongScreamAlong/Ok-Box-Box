@@ -548,6 +548,7 @@ export interface TeamEventV1 {
   event_name: string | null;
   event_type: 'practice' | 'qualifying' | 'race' | 'endurance' | 'other' | null;
   participating_driver_ids: string[];
+  scheduled_at: string | null;
   created_at: string;
 }
 
