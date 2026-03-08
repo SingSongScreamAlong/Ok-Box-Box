@@ -28,6 +28,8 @@ import {
     getActiveMembership,
     hasTeamPermission,
     getPendingInvitations,
+    getMembershipsForDriver,
+    updateMemberRole,
 } from '../../db/repositories/team-membership.repo.js';
 import { getTeamRosterView } from '../services/teams/team-views.service.js';
 import { getDriverProfileById, getDriverProfileByUserId } from '../../db/repositories/driver-profile.repo.js';
@@ -66,8 +68,24 @@ router.post('/', requireAuth, async (req: Request, res: Response): Promise<void>
  */
 router.get('/', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
-        const teams = await getTeamsForUser(req.user!.id);
-        res.json({ teams, count: teams.length });
+        const userId = req.user!.id;
+        const teams = await getTeamsForUser(userId);
+
+        // Enrich with role info to avoid N+1 on the client
+        const driverProfile = await getDriverProfileByUserId(userId);
+        const memberships = driverProfile
+            ? await getMembershipsForDriver(driverProfile.id)
+            : [];
+        const membershipMap = new Map(memberships.map(m => [m.team_id, m]));
+
+        const teamsWithRole = teams.map(team => {
+            const isOwner = team.owner_user_id === userId;
+            const membership = membershipMap.get(team.id);
+            const role = isOwner ? 'owner' : (membership?.role || 'member');
+            return { ...team, role };
+        });
+
+        res.json({ teams: teamsWithRole, count: teams.length });
     } catch (error) {
         console.error('[Team] Error listing teams:', error);
         res.status(500).json({ error: 'Failed to list teams' });
@@ -367,6 +385,44 @@ router.delete('/:id/members/:driverId', requireAuth, async (req: Request, res: R
     } catch (error) {
         console.error('[Team] Error removing driver:', error);
         res.status(500).json({ error: 'Failed to remove driver' });
+    }
+});
+
+/**
+ * PATCH /api/v1/teams/:id/members/:driverId/role
+ * Update a member's role (owner only)
+ */
+router.patch('/:id/members/:driverId/role', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const isOwner = await isTeamOwner(req.params.id, req.user!.id);
+        if (!isOwner) {
+            res.status(403).json({ error: 'Only team owner can change member roles' });
+            return;
+        }
+
+        const { role } = req.body;
+        const validRoles = ['driver', 'engineer', 'manager'];
+        if (!role || !validRoles.includes(role)) {
+            res.status(400).json({ error: `role must be one of: ${validRoles.join(', ')}` });
+            return;
+        }
+
+        const membership = await getActiveMembership(req.params.id, req.params.driverId);
+        if (!membership) {
+            res.status(404).json({ error: 'Member not found' });
+            return;
+        }
+
+        const updated = await updateMemberRole(membership.id, role);
+        if (!updated) {
+            res.status(500).json({ error: 'Failed to update role' });
+            return;
+        }
+
+        res.json({ success: true, membership: updated });
+    } catch (error) {
+        console.error('[Team] Error updating member role:', error);
+        res.status(500).json({ error: 'Failed to update role' });
     }
 });
 

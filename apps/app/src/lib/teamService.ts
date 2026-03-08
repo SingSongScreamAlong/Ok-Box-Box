@@ -537,3 +537,222 @@ export async function fetchTeamRoster(teamId: string): Promise<any> {
     return null;
   }
 }
+
+// =====================================================================
+// v1 Team Events (server model: session-linked events)
+// =====================================================================
+
+export interface TeamEventV1 {
+  id: string;
+  team_id: string;
+  session_id: string;
+  event_name: string | null;
+  event_type: 'practice' | 'qualifying' | 'race' | 'endurance' | 'other' | null;
+  participating_driver_ids: string[];
+  scheduled_at: string | null;
+  created_at: string;
+}
+
+export interface TeamDebriefV1 {
+  event_id: string;
+  event_name: string | null;
+  session_id: string;
+  driver_summaries: Array<{
+    driver_profile_id: string;
+    display_name: string;
+    headline: string;
+    primary_limiter: string;
+  }>;
+  team_summary: {
+    overall_observation: string;
+    common_patterns: string[];
+    priority_focus: string;
+  } | null;
+  status: 'draft' | 'published';
+}
+
+/**
+ * Fetch team events via v1 API
+ * GET /api/v1/teams/:id/events
+ */
+export async function fetchTeamEventsV1(teamId: string): Promise<TeamEventV1[]> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) return [];
+
+    const response = await fetch(`${API_BASE}/api/v1/teams/${teamId}/events`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    return data.events || [];
+  } catch (error) {
+    console.error('[Team] Error fetching v1 events:', error);
+    return [];
+  }
+}
+
+/**
+ * Create a team event via v1 API
+ * POST /api/v1/teams/:id/events
+ */
+export async function createTeamEventV1(
+  teamId: string,
+  body: {
+    session_id: string;
+    event_name?: string;
+    event_type?: TeamEventV1['event_type'];
+    participating_driver_ids?: string[];
+  }
+): Promise<TeamEventV1 | null> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) return null;
+
+    const response = await fetch(`${API_BASE}/api/v1/teams/${teamId}/events`, {
+      method: 'POST',
+      headers: { ...auth, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || `Request failed: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('[Team] Error creating v1 event:', error);
+    throw error;
+  }
+}
+
+/**
+ * Trigger AI generation of a team debrief
+ * POST /api/v1/teams/:id/events/:eventId/debrief/generate
+ */
+export async function generateTeamDebriefV1(
+  teamId: string,
+  eventId: string
+): Promise<TeamDebriefV1 | null> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) return null;
+
+    const response = await fetch(
+      `${API_BASE}/api/v1/teams/${teamId}/events/${eventId}/debrief/generate`,
+      {
+        method: 'POST',
+        headers: { ...auth, 'Content-Type': 'application/json' },
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || `Failed to generate debrief: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('[Team] Error generating debrief:', error);
+    throw error;
+  }
+}
+
+// =====================================================================
+// Practice Sessions
+// =====================================================================
+
+export interface PracticeSessionSummary {
+  id: string;
+  team_id: string;
+  event_id: string | null;
+  name: string;
+  track_name: string | null;
+  car_name: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  status: 'planned' | 'active' | 'completed';
+  created_at: string;
+}
+
+export interface PracticeRunPlan {
+  id: string;
+  practice_session_id: string;
+  name: string;
+  target_laps: number;
+  completed_laps: number;
+  target_time: string | null;
+  focus_areas: string[];
+  status: 'planned' | 'in_progress' | 'completed';
+  created_at: string;
+}
+
+export interface PracticeDriverStint {
+  id: string;
+  practice_session_id: string;
+  driver_profile_id: string | null;
+  driver_name: string;
+  laps_completed: number;
+  best_lap_time_ms: number | null;
+  avg_lap_time_ms: number | null;
+  consistency_score: number | null;
+  incidents: number;
+  started_at: string | null;
+  ended_at: string | null;
+}
+
+/**
+ * List all practice sessions for a team (most recent first)
+ * GET /api/teams/:teamId/practice
+ */
+export async function fetchPracticeSessions(teamId: string): Promise<PracticeSessionSummary[]> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) return [];
+
+    const response = await fetch(`${API_BASE}/api/teams/${teamId}/practice`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) return [];
+
+    const data = await response.json();
+    return data.data?.sessions || [];
+  } catch (error) {
+    console.error('[Team] Error fetching practice sessions:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch a single practice session with its run plans and driver stints
+ * GET /api/teams/:teamId/practice/:sessionId
+ */
+export async function fetchPracticeSession(
+  teamId: string,
+  sessionId: string
+): Promise<{ session: PracticeSessionSummary; run_plans: PracticeRunPlan[]; driver_stints: PracticeDriverStint[] } | null> {
+  try {
+    const auth = await getAuthHeader();
+    if (!auth.Authorization) return null;
+
+    const response = await fetch(`${API_BASE}/api/teams/${teamId}/practice/${sessionId}`, {
+      headers: { ...auth, 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    return data.data ? {
+      session: data.data,
+      run_plans: data.data.run_plans || [],
+      driver_stints: data.data.driver_stints || [],
+    } : null;
+  } catch (error) {
+    console.error('[Team] Error fetching practice session:', error);
+    return null;
+  }
+}
