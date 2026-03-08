@@ -203,6 +203,7 @@ interface RelayContextValue {
   incidents: LiveIncident[];
   engineerUpdates: EngineerUpdate[];
   raceIntelligence: RaceIntelligence | null;
+  telemetryRate: number;
   connect: () => void;
   disconnect: () => void;
   getCarMapPosition: (trackPos: number) => { x: number; y: number };
@@ -235,8 +236,11 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   const [engineerUpdates, setEngineerUpdates] = useState<EngineerUpdate[]>([]);
   const [raceIntelligence, setRaceIntelligence] = useState<RaceIntelligence | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const [telemetryRate, setTelemetryRate] = useState(0);
   const socketRef = useRef<Socket | null>(null);
   const anonymousFallbackAttemptedRef = useRef(false);
+  const frameCountRef = useRef(0);
+  const rateIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Helper to convert track position to x,y coordinates for map
   const getCarMapPosition = useCallback((trackPos: number): { x: number; y: number } => {
@@ -385,7 +389,16 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     const getCarTrackKey = (row: any, idx: number): string =>
       String(row?.carIdx ?? row?.carId ?? row?.driverId ?? row?.carNumber ?? idx);
 
+    // Start rate counter on first socket setup
+    if (!rateIntervalRef.current) {
+      rateIntervalRef.current = setInterval(() => {
+        setTelemetryRate(frameCountRef.current);
+        frameCountRef.current = 0;
+      }, 1000);
+    }
+
     const handleTelemetryData = (data: any) => {
+      frameCountRef.current++;
       const driver = data?.drivers?.[0];
       const cars = Array.isArray(data?.cars) ? data.cars : [];
       const preferredCar =
@@ -704,7 +717,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   }, [initialized, connect]);
 
   return (
-    <RelayContext.Provider value={{ status, reconnectAttempts, telemetry, session, incidents, engineerUpdates, raceIntelligence, connect, disconnect, getCarMapPosition }}>
+    <RelayContext.Provider value={{ status, reconnectAttempts, telemetry, session, incidents, engineerUpdates, raceIntelligence, telemetryRate, connect, disconnect, getCarMapPosition }}>
       {children}
     </RelayContext.Provider>
   );
@@ -721,6 +734,7 @@ export function useRelay() {
       incidents: [] as LiveIncident[],
       engineerUpdates: [] as EngineerUpdate[],
       raceIntelligence: null as RaceIntelligence | null,
+      telemetryRate: 0,
       connect: () => {},
       disconnect: () => {},
       getCarMapPosition: (trackPos: number) => ({

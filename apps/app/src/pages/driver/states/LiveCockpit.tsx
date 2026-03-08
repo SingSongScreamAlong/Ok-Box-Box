@@ -25,7 +25,9 @@ import {
   Activity,
   Gauge,
   Mic,
-  Loader2
+  Loader2,
+  Wifi,
+  Radio
 } from 'lucide-react';
 import { TrackMinimap } from '../../../components/TrackMinimap';
 import { DriverHUDOverlay } from '../../../components/DriverHUDOverlay';
@@ -46,7 +48,7 @@ interface AIAlert {
  * Only shows what matters RIGHT NOW.
  */
 export function LiveCockpit() {
-  const { status, telemetry, session, raceIntelligence } = useRelay();
+  const { status, telemetry, session, raceIntelligence, telemetryRate } = useRelay();
   const { metrics: behavioralMetrics } = useLiveBehavioral({ 
     runId: 'live',
     enabled: status === 'in_session' || status === 'connected'
@@ -55,6 +57,7 @@ export function LiveCockpit() {
   const [alerts, setAlerts] = useState<AIAlert[]>([]);
   const [showIntel, setShowIntel] = useState(true);
   const [showBehavioral, setShowBehavioral] = useState(true);
+  const [showRelayPanel, setShowRelayPanel] = useState(false);
 
   // PTT voice query
   const voiceChatHistoryRef = useRef<ChatMessage[]>([]);
@@ -197,14 +200,78 @@ export function LiveCockpit() {
                 <span>{telemetry.strategy.fuelLapsRemaining} laps</span>
               </div>
             )}
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[10px] uppercase tracking-wider text-green-400">
-                {status === 'in_session' ? 'Live' : 'Connected'}
+            <button
+              onClick={() => setShowRelayPanel(p => !p)}
+              className="flex items-center gap-1.5 hover:bg-white/5 px-1.5 py-0.5 rounded transition-colors"
+            >
+              <div className={`w-2 h-2 rounded-full ${
+                status === 'in_session' ? 'bg-green-500 animate-pulse' :
+                status === 'connected' ? 'bg-green-500' :
+                status === 'connecting' || status === 'reconnecting' ? 'bg-yellow-500 animate-pulse' :
+                'bg-red-500'
+              }`} />
+              <span className={`text-[10px] uppercase tracking-wider ${
+                status === 'in_session' ? 'text-green-400' :
+                status === 'connected' ? 'text-green-400/70' :
+                status === 'connecting' || status === 'reconnecting' ? 'text-yellow-400' :
+                'text-red-400'
+              }`}>
+                {status === 'in_session' ? 'Live' :
+                 status === 'connected' ? 'Idle' :
+                 status === 'connecting' ? 'Connecting' :
+                 status === 'reconnecting' ? 'Reconnecting' : 'Offline'}
               </span>
-            </div>
+              {status === 'in_session' && telemetryRate > 0 && (
+                <span className="text-[9px] text-white/30 font-mono">{telemetryRate}Hz</span>
+              )}
+              <ChevronDown className={`w-2.5 h-2.5 text-white/30 transition-transform ${showRelayPanel ? 'rotate-180' : ''}`} />
+            </button>
           </div>
         </div>
+
+        {/* Relay Status Panel (expandable) */}
+        {showRelayPanel && (
+          <div className="bg-black/80 border border-white/10 px-3 py-2 grid grid-cols-5 gap-3 text-[10px]">
+            <div>
+              <div className="text-white/30 uppercase tracking-wider mb-0.5">Connection</div>
+              <div className="flex items-center gap-1">
+                <Wifi className={`w-3 h-3 ${status === 'in_session' || status === 'connected' ? 'text-green-400' : 'text-white/20'}`} />
+                <span className="text-white/70 capitalize">{status.replace('_', ' ')}</span>
+              </div>
+            </div>
+            <div>
+              <div className="text-white/30 uppercase tracking-wider mb-0.5">Session</div>
+              <div className="flex items-center gap-1">
+                <Radio className={`w-3 h-3 ${status === 'in_session' ? 'text-green-400' : 'text-white/20'}`} />
+                <span className="text-white/70">{session.sessionType ? session.sessionType.charAt(0).toUpperCase() + session.sessionType.slice(1) : 'None'}</span>
+              </div>
+            </div>
+            <div>
+              <div className="text-white/30 uppercase tracking-wider mb-0.5">Track</div>
+              <span className="text-white/70 truncate block">{session.trackName || '—'}</span>
+            </div>
+            <div>
+              <div className="text-white/30 uppercase tracking-wider mb-0.5">Car</div>
+              <span className="text-white/70 truncate block">{session.carName || '—'}</span>
+            </div>
+            <div>
+              <div className="text-white/30 uppercase tracking-wider mb-0.5">Data Rate</div>
+              <div className="flex items-center gap-1">
+                <Activity className={`w-3 h-3 ${telemetryRate > 0 ? 'text-green-400' : 'text-white/20'}`} />
+                <span className={`font-mono ${telemetryRate > 0 ? 'text-green-400' : 'text-white/40'}`}>
+                  {telemetryRate > 0 ? `${telemetryRate} fps` : 'No data'}
+                </span>
+              </div>
+            </div>
+            {telemetry.otherCars.length > 0 && (
+              <div className="col-span-5 flex items-center gap-4 border-t border-white/5 pt-1 mt-0.5">
+                <span className="text-white/30">Cars on track: <span className="text-white/70 font-mono">{telemetry.otherCars.length}</span></span>
+                {session.rpmRedline > 0 && <span className="text-white/30">Redline: <span className="text-white/70 font-mono">{session.rpmRedline}</span></span>}
+                {session.fuelTankCapacity > 0 && <span className="text-white/30">Tank: <span className="text-white/70 font-mono">{session.fuelTankCapacity}L</span></span>}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Critical Alerts */}
         {alerts.filter(a => a.urgency === 'critical').map(alert => (
