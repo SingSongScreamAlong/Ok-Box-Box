@@ -3,9 +3,12 @@ import {
   Cloud, CloudRain, CloudSnow, Sun, CloudSun, Wind,
   Droplets, Thermometer, Eye, AlertTriangle
 } from 'lucide-react';
+import { fetchTrackWeather, type TrackWeather } from '../lib/weatherService';
+
+type WeatherCondition = TrackWeather['current']['condition'];
 
 interface WeatherData {
-  condition: 'clear' | 'partly-cloudy' | 'cloudy' | 'rain' | 'heavy-rain' | 'snow';
+  condition: WeatherCondition;
   temperature: number;
   trackTemp: number;
   humidity: number;
@@ -18,29 +21,10 @@ interface WeatherData {
 
 interface ForecastHour {
   time: string;
-  condition: WeatherData['condition'];
+  condition: WeatherCondition;
   temperature: number;
   rainChance: number;
 }
-
-// Mock weather data
-const mockWeather: WeatherData = {
-  condition: 'partly-cloudy',
-  temperature: 72,
-  trackTemp: 98,
-  humidity: 65,
-  windSpeed: 12,
-  windDirection: 'NE',
-  visibility: 10,
-  rainChance: 15,
-  forecast: [
-    { time: 'Now', condition: 'partly-cloudy', temperature: 72, rainChance: 15 },
-    { time: '+1h', condition: 'cloudy', temperature: 70, rainChance: 25 },
-    { time: '+2h', condition: 'cloudy', temperature: 68, rainChance: 40 },
-    { time: '+3h', condition: 'rain', temperature: 66, rainChance: 75 },
-    { time: '+4h', condition: 'rain', temperature: 64, rainChance: 80 },
-  ]
-};
 
 function getWeatherIcon(condition: WeatherData['condition'], size: 'sm' | 'md' | 'lg' = 'md') {
   const sizeClass = size === 'sm' ? 'w-4 h-4' : size === 'lg' ? 'w-8 h-8' : 'w-5 h-5';
@@ -67,22 +51,49 @@ interface WeatherWidgetProps {
 }
 
 export function WeatherWidget({ variant = 'compact', trackName }: WeatherWidgetProps) {
-  const [weather, setWeather] = useState<WeatherData>(mockWeather);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Simulate weather updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setWeather(prev => ({
-        ...prev,
-        temperature: prev.temperature + (Math.random() - 0.5) * 2,
-        trackTemp: prev.trackTemp + (Math.random() - 0.5) * 3,
-        windSpeed: Math.max(0, prev.windSpeed + (Math.random() - 0.5) * 2),
-      }));
-    }, 30000);
+  const trackId = trackName
+    ? trackName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    : 'unknown';
 
-    return () => clearInterval(interval);
-  }, []);
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      const data = await fetchTrackWeather(trackId);
+      if (cancelled) return;
+      setWeather({
+        condition: data.current.condition,
+        temperature: data.current.temperature,
+        trackTemp: data.current.trackTemp,
+        humidity: data.current.humidity,
+        windSpeed: data.current.windSpeed,
+        windDirection: data.current.windDirection,
+        visibility: data.current.visibility,
+        rainChance: data.current.rainChance,
+        forecast: data.forecast.map(f => ({
+          time: f.time,
+          condition: f.condition,
+          temperature: f.temperature,
+          rainChance: f.rainChance,
+        })),
+      });
+    };
+
+    load();
+    const interval = setInterval(load, 5 * 60 * 1000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [trackId]);
+
+  if (!weather) {
+    return (
+      <div className="bg-white/[0.03] border border-white/[0.06] rounded-lg p-4 text-white/30 text-xs">
+        Loading weather…
+      </div>
+    );
+  }
 
   const hasRainWarning = weather.rainChance > 50 || weather.forecast.some(f => f.rainChance > 60);
 

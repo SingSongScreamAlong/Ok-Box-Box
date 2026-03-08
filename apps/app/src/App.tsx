@@ -49,9 +49,12 @@ const LaunchRelay         = lazy(() => import('./pages/LaunchRelay').then(m => (
 const TrackSelectorPage   = lazy(() => import('./pages/track-intel/TrackSelectorPage').then(m => ({ default: m.TrackSelectorPage })));
 const TrackMapPage        = lazy(() => import('./pages/track-intel/TrackMapPage').then(m => ({ default: m.TrackMapPage })));
 const EventView           = lazy(() => import('./pages/EventView').then(m => ({ default: m.EventView })));
-const AdminOps            = lazy(() => import('./pages/AdminOps').then(m => ({ default: m.AdminOps })));
-const AdminUserList       = lazy(() => import('./pages/AdminUsers').then(m => ({ default: m.AdminUserList })));
-const AdminUserDetail     = lazy(() => import('./pages/AdminUsers').then(m => ({ default: m.AdminUserDetail })));
+const AdminLayout         = lazy(() => import('./pages/admin/AdminLayout').then(m => ({ default: m.AdminLayout })));
+const AdminOverview       = lazy(() => import('./pages/admin/AdminOverview').then(m => ({ default: m.AdminOverview })));
+const AdminOps            = lazy(() => import('./pages/admin/AdminOps').then(m => ({ default: m.AdminOps })));
+const AdminUsers          = lazy(() => import('./pages/admin/AdminUsers').then(m => ({ default: m.AdminUsers })));
+const AdminEntitlements   = lazy(() => import('./pages/admin/AdminEntitlements').then(m => ({ default: m.AdminEntitlements })));
+const AdminTelemetry      = lazy(() => import('./pages/admin/AdminTelemetry').then(m => ({ default: m.AdminTelemetry })));
 
 // Team tier
 const TeamDashboard   = lazy(() => import('./pages/TeamDashboard').then(m => ({ default: m.TeamDashboard })));
@@ -204,9 +207,14 @@ function App() {
         <Route path="/create-league" element={<ProtectedRoute><CreateLeague /></ProtectedRoute>} />
         <Route path="/subscription"  element={<ProtectedRoute><SubscriptionManagement /></ProtectedRoute>} />
         <Route path="/event/:eventId" element={<ProtectedRoute><EventView /></ProtectedRoute>} />
-        <Route path="/admin/ops" element={<ProtectedRoute><AdminOps /></ProtectedRoute>} />
-        <Route path="/admin/users" element={<ProtectedRoute><AdminUserList /></ProtectedRoute>} />
-        <Route path="/admin/users/:userId" element={<ProtectedRoute><AdminUserDetail /></ProtectedRoute>} />
+        {/* ── Admin (nested layout with sidebar) ────────────────────── */}
+        <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+          <Route index element={<AdminOverview />} />
+          <Route path="ops" element={<AdminOps />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="entitlements" element={<AdminEntitlements />} />
+          <Route path="telemetry" element={<AdminTelemetry />} />
+        </Route>
 
         <Route path="/track-intel" element={
           <ProtectedRoute>
