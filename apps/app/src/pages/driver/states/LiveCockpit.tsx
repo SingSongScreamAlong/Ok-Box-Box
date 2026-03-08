@@ -830,6 +830,11 @@ export function LiveCockpit() {
         voiceTranscript={voiceQuery.transcript}
         voiceResponse={voiceQuery.lastResponse}
       />
+
+      {/* Build marker */}
+      <div className="fixed bottom-1 right-2 text-[9px] text-white/10 font-mono select-none pointer-events-none z-50">
+        v{__APP_VERSION__} · {__GIT_COMMIT__.slice(0, 7)} · {__BUILD_TIME__.slice(0, 16).replace('T', ' ')}
+      </div>
     </div>
   );
 }

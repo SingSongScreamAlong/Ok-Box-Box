@@ -7,6 +7,7 @@
  * Run with: npx tsx src/services/telemetry/behavioral-validation.test.ts
  */
 
+import { describe, it, expect } from 'vitest';
 import { TelemetryPacket } from './telemetry-streams.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -437,43 +438,31 @@ function runTest(name: string, packets: TelemetryPacket[], expectations: {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MAIN
+// TEST SUITE
 // ═══════════════════════════════════════════════════════════════════════════════
-
-console.log('╔═══════════════════════════════════════════════════════════════╗');
-console.log('║     BEHAVIORAL INDEX VALIDATION TEST                         ║');
-console.log('╚═══════════════════════════════════════════════════════════════╝');
 
 const TICK_COUNT = 3600; // ~1 minute at 60Hz
 
-const results: boolean[] = [];
+describe('Behavioral Index Validation', () => {
+    it('smooth session should score high BSI, CPI-2, and reliability', () => {
+        expect(runTest('SMOOTH SESSION', generateSmoothSession(TICK_COUNT), {
+            bsiMin: 50,
+            cpi2Min: 60,
+            reliabilityMin: 90,
+        })).toBe(true);
+    });
 
-// Test 1: Smooth session - expect high scores
-results.push(runTest('SMOOTH SESSION (careful driving)', generateSmoothSession(TICK_COUNT), {
-    bsiMin: 50,      // Should have decent braking
-    cpi2Min: 60,     // Should have few corrections
-    reliabilityMin: 90, // Good FPS
-}));
+    it('overdrive session should score low BSI and CPI-2', () => {
+        expect(runTest('OVERDRIVE SESSION', generateOverdriveSession(TICK_COUNT), {
+            bsiMax: 60,
+            cpi2Max: 50,
+            reliabilityMin: 90,
+        })).toBe(true);
+    });
 
-// Test 2: Overdrive session - expect lower scores
-results.push(runTest('OVERDRIVE SESSION (aggressive driving)', generateOverdriveSession(TICK_COUNT), {
-    bsiMax: 60,      // ABS should hurt BSI
-    cpi2Max: 50,     // Corrections should hurt CPI-2
-    reliabilityMin: 90, // Still good FPS
-}));
-
-// Test 3: Degraded session - expect low reliability
-results.push(runTest('DEGRADED SESSION (bad FPS)', generateDegradedSession(TICK_COUNT), {
-    reliabilityMax: 30, // Bad FPS should show low reliability
-}));
-
-// Summary
-console.log('\n═══════════════════════════════════════════════════════════════');
-const passCount = results.filter(r => r).length;
-const totalCount = results.length;
-if (passCount === totalCount) {
-    console.log(`✅ ALL TESTS PASSED (${passCount}/${totalCount})`);
-} else {
-    console.log(`❌ SOME TESTS FAILED (${passCount}/${totalCount} passed)`);
-}
-console.log('═══════════════════════════════════════════════════════════════');
+    it('degraded session should show low reliability', () => {
+        expect(runTest('DEGRADED SESSION', generateDegradedSession(TICK_COUNT), {
+            reliabilityMax: 30,
+        })).toBe(true);
+    });
+});

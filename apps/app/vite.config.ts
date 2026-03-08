@@ -17,6 +17,7 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version ?? 'UNKNOWN'),
     __GIT_COMMIT__: JSON.stringify(gitCommit),
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
   server: {
     port: 5175,
