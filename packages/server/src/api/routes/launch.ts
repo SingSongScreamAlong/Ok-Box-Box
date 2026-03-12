@@ -7,6 +7,7 @@ import { Router, Request, Response } from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import { generateLaunchToken, LaunchSurface, validateLaunchToken, consumeNonce } from '../../services/auth/launch-token.js';
 import { getAuthService } from '../../services/auth/auth-service.js';
+import { deriveCapabilitiesFromEntitlements, getEntitlementRepository } from '../../services/billing/entitlement-service.js';
 
 const router = Router();
 
@@ -44,13 +45,19 @@ router.post('/launch-token', requireAuth, async (req: Request, res: Response): P
             return;
         }
 
-        // Get user capabilities (simplified - in production, fetch from DB)
-        // For now, derive from isSuperAdmin flag similar to bootstrap endpoint
-        const capabilities = {
-            driver_hud: true,       // Everyone gets BlackBox
-            pitwall_view: true,     // Everyone gets BlackBox
-            incident_review: user.isSuperAdmin  // ControlBox requires admin
-        };
+        const entitlementRepo = getEntitlementRepository();
+        const entitlements = await entitlementRepo.getForUser(user.id);
+        const activeEntitlements = entitlements.filter(e => e.status === 'active' || e.status === 'trial');
+
+        const roles: string[] = [];
+        if (activeEntitlements.some(e => e.product === 'league' || e.product === 'bundle')) {
+            roles.push('racecontrol');
+        }
+        if (user.isSuperAdmin) {
+            roles.push('admin');
+        }
+
+        const capabilities = deriveCapabilitiesFromEntitlements(activeEntitlements, roles);
 
         // Generate launch token
         const result = generateLaunchToken(
@@ -169,18 +176,32 @@ router.post('/launch-token/exchange', async (req: Request, res: Response): Promi
     }
 
     const accessToken = authService.generateAccessToken(user);
+    const refreshToken = await authService.generateRefreshToken(
+        user.id,
+        req.headers['user-agent'],
+        req.ip
+    );
     const decoded = authService.verifyAccessToken(accessToken);
+    const entitlementRepo = getEntitlementRepository();
+    const dbEntitlements = await entitlementRepo.getForUser(user.id);
+    const active = dbEntitlements.filter(e => e.status === 'active' || e.status === 'trial');
+    const hasDriver = user.isSuperAdmin || active.some(e => e.product === 'driver' || e.product === 'bundle');
+    const hasTeam = user.isSuperAdmin || active.some(e => e.product === 'team' || e.product === 'bundle');
+    const hasLeague = user.isSuperAdmin || active.some(e => e.product === 'league' || e.product === 'bundle');
+    const tier = hasLeague ? 'league' : hasTeam ? 'team' : hasDriver ? 'driver' : 'free';
 
     res.json({
         success: true,
         data: {
             accessToken,
+            refreshToken,
             expiresAt: decoded?.exp ?? null,
             user: {
                 id: user.id,
                 email: user.email,
                 displayName: user.displayName,
             },
+            tier,
             surface: payload.surface,
         }
     });

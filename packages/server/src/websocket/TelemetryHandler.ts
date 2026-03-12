@@ -216,8 +216,9 @@ export class TelemetryHandler {
             });
             
             if (rawData && typeof rawData === 'object') {
-                updateTelemetryCache('live', {
+                updateTelemetryCache(rawData.sessionId || 'live', {
                     trackName: rawData.trackName,
+                    trackLength: rawData.trackLength,
                     sessionType: rawData.sessionType
                 });
                 
@@ -246,8 +247,9 @@ export class TelemetryHandler {
             console.log('📍 SESSION INFO:', JSON.stringify(rawData).substring(0, 500));
             
             if (rawData && typeof rawData === 'object') {
-                updateTelemetryCache('live', {
+                updateTelemetryCache(rawData.sessionId || 'live', {
                     trackName: rawData.trackName || rawData.track,
+                    trackLength: rawData.trackLength,
                     sessionType: rawData.sessionType || rawData.session
                 });
                 
@@ -338,7 +340,7 @@ export class TelemetryHandler {
             this.cachedStandings = rawData.standings;
 
             // Update telemetry cache for voice AI context
-            updateTelemetryCache('live', {
+            updateTelemetryCache(rawData.sessionId || 'live', {
                 standings: rawData.standings,
                 totalCars: rawData.totalCars || rawData.standings.length,
             });
@@ -366,6 +368,9 @@ export class TelemetryHandler {
         socket.on('telemetry', (data: unknown) => {
             // Normalize raw format from desktop relay (has raw field with iRacing data)
             const rawData = normalizeRawTelemetry(data as any);
+            if ((!Array.isArray(rawData.standings) || rawData.standings.length === 0) && this.cachedStandings.length > 0) {
+                rawData.standings = this.cachedStandings;
+            }
             
             // Enrich car data with driver names from cached session info
             if (this.cachedDrivers.length > 0 && rawData.cars) {

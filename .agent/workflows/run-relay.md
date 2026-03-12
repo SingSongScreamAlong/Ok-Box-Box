@@ -33,7 +33,7 @@ CONTROLBOX_SERVER_URL=http://YOUR_MAC_IP:3001 python main.py
 
 ### Connect to production:
 ```bash
-CONTROLBOX_SERVER_URL=https://octopus-app-qsi3i.ondigitalocean.app python main.py
+CONTROLBOX_SERVER_URL=https://api.okboxbox.com python main.py
 ```
 
 ### Dry run (test without iRacing):

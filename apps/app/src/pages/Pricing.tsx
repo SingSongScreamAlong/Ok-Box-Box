@@ -9,7 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { CheckCircle, Loader2 } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001' : 'https://app.okboxbox.com');
 
 // Maps pricing card ID → Stripe tier (server-side determines price ID)
 const STRIPE_TIER: Record<string, 'driver' | 'team' | 'league'> = {
@@ -64,7 +64,7 @@ const PRICING_TIERS: PricingTier[] = [
     features: [
       'AI Race Engineer (voice)',
       'AI Spotter',
-      'AI Performance Analyst',
+      'Performance analysis & debriefs',
       'Live situational awareness',
       'Fuel & tire strategy',
       'Session history & IDP',

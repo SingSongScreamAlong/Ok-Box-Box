@@ -27,6 +27,8 @@ export interface VoiceGenerationResult {
     durationMs?: number;
 }
 
+export type CrewVoiceRole = 'engineer' | 'spotter' | 'analyst' | 'strategist' | 'crewChief';
+
 interface ElevenLabsVoice {
     voice_id: string;
     name: string;
@@ -45,21 +47,63 @@ const DEFAULT_MODEL_ID = 'eleven_flash_v2_5'; // Fastest model (~75ms TTFB)
 // Voice presets for different contexts
 export const VOICE_PRESETS = {
     raceEngineer: {
-        voiceId: 'JBFqnCBsd6RMkjVDRZzb', // British Football Announcer
+        voiceId: 'ErXwobaYiN019PkySvjV',
         stability: 0.5,
         similarityBoost: 0.75,
     },
     urgent: {
-        voiceId: 'JBFqnCBsd6RMkjVDRZzb', // British Football Announcer - more intense
+        voiceId: 'ErXwobaYiN019PkySvjV',
         stability: 0.3,
         similarityBoost: 0.8,
     },
     calm: {
-        voiceId: 'JBFqnCBsd6RMkjVDRZzb', // British Football Announcer - calmer
+        voiceId: 'ErXwobaYiN019PkySvjV',
         stability: 0.7,
         similarityBoost: 0.6,
+    },
+    spotter: {
+        voiceId: 'TxGEqnHWrfWFTfGW9XjX',
+        stability: 0.35,
+        similarityBoost: 0.82,
+    },
+    analyst: {
+        voiceId: 'VR6AewLTigWG4xSOukaG',
+        stability: 0.68,
+        similarityBoost: 0.65,
+    },
+    strategist: {
+        voiceId: 'pNInz6obpgDQGcFmaJgB',
+        stability: 0.58,
+        similarityBoost: 0.78,
+    },
+    crewChief: {
+        voiceId: 'yoZ06aMxZJJ28mfd3POQ',
+        stability: 0.46,
+        similarityBoost: 0.8,
     }
 };
+
+const ROLE_TO_VOICE_PRESET: Record<CrewVoiceRole, typeof VOICE_PRESETS.raceEngineer> = {
+    engineer: VOICE_PRESETS.raceEngineer,
+    spotter: VOICE_PRESETS.spotter,
+    analyst: VOICE_PRESETS.analyst,
+    strategist: VOICE_PRESETS.strategist,
+    crewChief: VOICE_PRESETS.crewChief,
+};
+
+export function isCrewVoiceRole(value: unknown): value is CrewVoiceRole {
+    return value === 'engineer'
+        || value === 'spotter'
+        || value === 'analyst'
+        || value === 'strategist'
+        || value === 'crewChief';
+}
+
+export function getVoicePresetForRole(role: CrewVoiceRole | string | undefined): typeof VOICE_PRESETS.raceEngineer {
+    return role && isCrewVoiceRole(role)
+        ? ROLE_TO_VOICE_PRESET[role]
+        : VOICE_PRESETS.raceEngineer;
+}
 
 // Acknowledgment phrases played immediately after STT while LLM+TTS process
 const ACK_PHRASES = [

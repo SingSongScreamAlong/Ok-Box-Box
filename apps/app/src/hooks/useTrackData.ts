@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 export interface TrackShape {
     name: string;
     trackId: string;
+    isFallback?: boolean;
     course_id?: number;
     centerline: Array<{
         x: number;
@@ -58,6 +59,7 @@ function generateFallbackOval(trackId: string): TrackShape {
     return {
         name: trackId,
         trackId: trackId,
+        isFallback: true,
         centerline: points,
         bounds: {
             xMin: centerX - radiusX - 50,

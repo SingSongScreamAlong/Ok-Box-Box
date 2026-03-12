@@ -8,7 +8,7 @@ This is the special operations view featuring:
 Run the console with the dedicated ops command:
 
 ```bash
-npm run ops:console
+npm run legacy:ops-console
 ```
 
 This will:
@@ -26,4 +26,4 @@ The source code is located in:
 - **Competitor Analysis**: `src/components/CompetitorAnalysis/CompetitorPositions.tsx`
 - **Timing Tower**: `src/components/TimingTower/TimingTower.tsx`
 
-> **Note:** This runs separately from the main `packages/dashboard` app. To integrate it fully, we will need to port the Redux logic to the new codebase.
+> **Note:** This runs separately from the main `apps/app` application UI. To integrate it fully, we will need to port the Redux logic to the new codebase.

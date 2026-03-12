@@ -56,7 +56,7 @@ VITE_SENTRY_DSN=https://xxx@sentry.io/xxx
 Returns overall system health with component status.
 
 ```bash
-curl https://api.okboxbox.com/health
+curl https://app.okboxbox.com/api/health
 ```
 
 Response:
@@ -81,14 +81,14 @@ Response:
 For Kubernetes/container orchestration. Returns 200 if ready, 503 if not.
 
 ```bash
-curl https://api.okboxbox.com/health/ready
+curl https://app.okboxbox.com/api/health/ready
 ```
 
 ### `/health/telemetry` - Active Sessions
 Shows current relay connections and active sessions.
 
 ```bash
-curl https://api.okboxbox.com/health/telemetry
+curl https://app.okboxbox.com/api/health/telemetry
 ```
 
 Response:
@@ -119,7 +119,7 @@ METRICS_ENABLED=true
 
 ### Endpoint
 ```bash
-curl https://api.okboxbox.com/metrics
+curl https://app.okboxbox.com/metrics
 ```
 
 ### Key Metrics
@@ -208,9 +208,9 @@ groups:
 ### Recommended: UptimeRobot or Better Uptime
 
 **Endpoints to Monitor:**
-- `https://api.okboxbox.com/health` - API health
+- `https://app.okboxbox.com/api/health` - API health
 - `https://okboxbox.com` - Frontend
-- `wss://api.okboxbox.com/socket.io/` - WebSocket
+- `wss://app.okboxbox.com/socket.io/` - WebSocket
 
 **Check Interval:** 1 minute
 **Alert Channels:** Email, Slack, PagerDuty
@@ -283,13 +283,13 @@ git push origin main
 
 ```bash
 # Check API health
-curl -s https://api.okboxbox.com/health | jq
+curl -s https://app.okboxbox.com/api/health | jq
 
 # Check active sessions
-curl -s https://api.okboxbox.com/health/telemetry | jq
+curl -s https://app.okboxbox.com/api/health/telemetry | jq
 
 # Check metrics (if enabled)
-curl -s https://api.okboxbox.com/metrics | head -50
+curl -s https://app.okboxbox.com/metrics | head -50
 
 # Tail logs
 doctl apps logs <app-id> --follow --type=run

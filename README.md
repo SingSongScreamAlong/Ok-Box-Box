@@ -11,16 +11,16 @@ ControlBox is a standalone application + web dashboard providing live race contr
 These are the **only** supported development entrypoints.
 
 - **Canonical App / Dashboard (ONLY dashboard)**
-  - **Path**: `packages/dashboard`
+  - **Path**: `apps/app`
   - **Run**: `npm run app`
-  - **Build identity**: `http://localhost:5173/about/build`
+  - **Build identity**: `http://localhost:5175/about/build`
 
 - **Marketing Website (marketing only)**
   - **Path**: `apps/website`
   - **Run**: `npm run website`
 
 - **Relay (Electron desktop app)**
-  - **Path**: `apps/relay`
+  - **Path**: `apps/desktop`
   - **Run**: `npm run relay`
 
 - **API (backend)**
@@ -77,11 +77,14 @@ docker-compose up -d
 # Install dependencies
 npm install
 
-# Build packages
-npm run build
+# Start the application UI
+npm run app
 
-# Start development servers
-npm run dev
+# Start the API
+npm run api
+
+# Start the desktop relay
+npm run relay
 ```
 
 ### Services
@@ -89,7 +92,8 @@ npm run dev
 | Service | URL |
 |---------|-----|
 | API Server | http://localhost:3001 |
-| Dashboard | http://localhost:5173 |
+| Application UI | http://localhost:5175 |
+| Marketing Website | http://localhost:5173 |
 | Ops Console | http://localhost:3005 |
 | PostgreSQL | localhost:5432 |
 | Redis | localhost:6379 |
@@ -100,12 +104,17 @@ npm run dev
 
 ```
 controlbox/
+├── apps/
+│   ├── app/             # Canonical application UI
+│   ├── desktop/         # Canonical desktop relay
+│   └── website/         # Marketing website
 ├── packages/
 │   ├── common/          # Shared types, constants, utilities
 │   ├── server/          # Backend API server
-│   └── dashboard/       # React frontend
+│   └── protocol/        # Shared protocol definitions
 ├── tools/
-│   └── iracing-relay/   # iRacing SDK relay agent
+│   ├── relay-agent/     # Python relay/dev tooling
+│   └── relay-python/    # Older Python relay tooling
 ├── docs/                # Documentation
 ├── docker-compose.yml   # Local dev environment
 └── package.json         # Workspace root
@@ -117,13 +126,19 @@ controlbox/
 
 ```bash
 # Run backend only
-npm run dev:server
+npm run api
 
-# Run frontend only
-npm run dev:dashboard
+# Run application UI only
+npm run app
+
+# Run website only
+npm run website
+
+# Run desktop relay only
+npm run relay
 
 # Run Live Race Ops Console (Legacy)
-npm run ops:console
+npm run legacy:ops-console
 
 # Run tests
 npm run test

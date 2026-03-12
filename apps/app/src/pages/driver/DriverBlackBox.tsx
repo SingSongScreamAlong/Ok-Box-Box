@@ -22,7 +22,7 @@ type Urgency = 'critical' | 'warning' | 'info';
 
 interface AIAlert {
   id: string;
-  role: 'engineer' | 'spotter' | 'analyst';
+  role: 'engineer' | 'spotter';
   message: string;
   urgency: Urgency;
   timestamp: number;
@@ -85,19 +85,6 @@ export function DriverBlackBox() {
       }
     }
 
-    // Analyst: Lap improvement
-    if (telemetry.bestLap !== null && telemetry.lastLap !== null) {
-      if (telemetry.lastLap <= telemetry.bestLap) {
-        newAlerts.push({
-          id: 'pb-lap',
-          role: 'analyst',
-          message: 'Personal best lap',
-          urgency: 'info',
-          timestamp: now,
-        });
-      }
-    }
-
     setAlerts(newAlerts);
   }, [status, telemetry.fuel, telemetry.fuelPerLap, telemetry.delta, telemetry.bestLap, telemetry.lastLap]);
 
@@ -120,7 +107,6 @@ export function DriverBlackBox() {
     switch (role) {
       case 'engineer': return 'text-orange-400';
       case 'spotter': return 'text-blue-400';
-      case 'analyst': return 'text-purple-400';
     }
   };
 
@@ -489,9 +475,6 @@ export function DriverBlackBox() {
             </Link>
             <Link to="/driver/crew/spotter" className="text-[10px] uppercase tracking-wider text-blue-400/60 hover:text-blue-400 flex items-center gap-1">
               <MessageSquare className="w-3 h-3" /> Spotter
-            </Link>
-            <Link to="/driver/crew/analyst" className="text-[10px] uppercase tracking-wider text-purple-400/60 hover:text-purple-400 flex items-center gap-1">
-              <MessageSquare className="w-3 h-3" /> Analyst
             </Link>
           </div>
           <div className="text-[10px] text-white/20">

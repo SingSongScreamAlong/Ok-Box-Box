@@ -192,7 +192,11 @@ router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
         }
 
         const authService = getAuthService();
-        const result = await authService.refreshAccessToken(refreshToken);
+        const result = await authService.refreshAccessToken(
+            refreshToken,
+            req.headers['user-agent'],
+            req.ip
+        );
 
         if (!result) {
             res.status(401).json({

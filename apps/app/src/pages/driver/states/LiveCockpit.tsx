@@ -36,7 +36,7 @@ type Urgency = 'critical' | 'warning' | 'info';
 
 interface AIAlert {
   id: string;
-  role: 'engineer' | 'spotter' | 'analyst';
+  role: 'engineer' | 'spotter';
   message: string;
   urgency: Urgency;
 }
@@ -160,7 +160,6 @@ export function LiveCockpit() {
     switch (role) {
       case 'engineer': return 'text-orange-400';
       case 'spotter': return 'text-blue-400';
-      case 'analyst': return 'text-purple-400';
     }
   };
 
@@ -867,9 +866,6 @@ export function LiveCockpit() {
             </Link>
             <Link to="/driver/crew/spotter" className="text-[10px] uppercase tracking-wider text-blue-400/60 hover:text-blue-400 flex items-center gap-1">
               <MessageSquare className="w-3 h-3" /> Spotter
-            </Link>
-            <Link to="/driver/crew/analyst" className="text-[10px] uppercase tracking-wider text-purple-400/60 hover:text-purple-400 flex items-center gap-1">
-              <MessageSquare className="w-3 h-3" /> Analyst
             </Link>
           </div>
           {/* PTT mic status indicator */}

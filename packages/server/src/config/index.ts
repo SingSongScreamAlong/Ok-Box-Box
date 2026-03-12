@@ -2,6 +2,17 @@
 // Server Configuration
 // =====================================================================
 
+import { createHash } from 'crypto';
+
+const derivedDevSecret = createHash('sha256')
+    .update([
+        process.cwd(),
+        process.env.USERNAME || '',
+        process.env.COMPUTERNAME || '',
+        'okboxbox-dev-secret',
+    ].join('|'))
+    .digest('hex');
+
 export const config = {
     // Server
     nodeEnv: process.env.NODE_ENV || 'development',
@@ -13,15 +24,15 @@ export const config = {
     databasePoolSize: parseInt(process.env.DATABASE_POOL_SIZE || '10', 10),
 
     // Redis
-    redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
+    redisUrl: process.env.REDIS_URL || (process.env.NODE_ENV === 'production' ? '' : 'redis://localhost:6379'),
 
     // JWT
-    jwtSecret: process.env.JWT_SECRET || 'controlbox_dev_secret',
+    jwtSecret: process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : derivedDevSecret),
     jwtExpiresIn: process.env.JWT_EXPIRES_IN || '24h',
 
     // CORS — auto-strip localhost in production
     corsOrigins: (() => {
-        const origins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3000,https://app.okboxbox.com,https://okboxbox.com,https://octopus-app-qsi3i.ondigitalocean.app').split(',');
+        const origins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:5175,http://127.0.0.1:5173,http://127.0.0.1:5175,https://app.okboxbox.com,https://okboxbox.com,https://www.okboxbox.com').split(',').map(origin => origin.trim()).filter(Boolean);
         if (process.env.NODE_ENV === 'production') {
             const filtered = origins.filter(o => !o.includes('localhost') && !o.includes('127.0.0.1'));
             return filtered.length > 0 ? filtered : origins; // fallback to all if nothing left
@@ -45,6 +56,7 @@ export const config = {
     metricsEnabled: process.env.METRICS_ENABLED === 'true',
     diagnosticsEnabled: process.env.DIAGNOSTICS_ENABLED === 'true',
     opsUiEnabled: process.env.OPS_UI_ENABLED === '1',
+    allowAnonymousSocketViewers: process.env.ALLOW_ANONYMOUS_SOCKET_VIEWERS === 'true' || process.env.NODE_ENV !== 'production',
 
     // External AI Services
     openaiApiKey: process.env.OPENAI_API_KEY || '',
@@ -57,6 +69,7 @@ export const config = {
     // Admin seeding — override defaults via env in production
     seedAdminEmail: process.env.SEED_ADMIN_EMAIL || 'admin@okboxbox.com',
     seedAdminPassword: process.env.SEED_ADMIN_PASSWORD || '',
+    devSeedAdminPassword: process.env.DEV_SEED_ADMIN_PASSWORD || derivedDevSecret.slice(0, 24),
 
     // FP1 Testing Mode — grants all driver capabilities to free tier users
     fp1TestingMode: process.env.FP1_TESTING_MODE === 'true',
@@ -64,7 +77,7 @@ export const config = {
 
 // Validate required production configs
 if (config.nodeEnv === 'production') {
-    if (config.jwtSecret === 'controlbox_dev_secret') {
+    if (!config.jwtSecret) {
         throw new Error('JWT_SECRET must be set in production');
     }
     if (config.jwtSecret.length < 32) {
@@ -93,7 +106,11 @@ if (config.nodeEnv === 'production') {
         console.warn(`⚠️  CORS_ORIGINS contains localhost entries in production: ${localhostOrigins.join(', ')}. Remove them for production security.`);
     }
 
-    // Warn if admin seed password is not set — a known default will be used as fallback
+    if (config.allowAnonymousSocketViewers) {
+        console.warn('⚠️  ALLOW_ANONYMOUS_SOCKET_VIEWERS enabled in production — websocket telemetry may be visible to unauthenticated clients.');
+    }
+
+    // Warn if admin seed password is not set — production first-admin seeding will fail without it
     if (!process.env.SEED_ADMIN_PASSWORD) {
         console.warn('⚠️  SEED_ADMIN_PASSWORD not set — set this env var before first deployment to avoid a predictable admin password.');
     }

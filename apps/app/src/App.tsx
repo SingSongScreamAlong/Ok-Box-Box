@@ -28,7 +28,6 @@ const DriverHistory    = lazy(() => import('./pages/driver/DriverHistory').then(
 const DriverProfilePage = lazy(() => import('./pages/driver/DriverProfilePage').then(m => ({ default: m.DriverProfilePage })));
 const EngineerChat     = lazy(() => import('./pages/driver/crew/EngineerChat').then(m => ({ default: m.EngineerChat })));
 const SpotterChat      = lazy(() => import('./pages/driver/crew/SpotterChat').then(m => ({ default: m.SpotterChat })));
-const AnalystChat      = lazy(() => import('./pages/driver/crew/AnalystChat').then(m => ({ default: m.AnalystChat })));
 const DriverProgress   = lazy(() => import('./pages/driver/DriverProgress').then(m => ({ default: m.DriverProgress })));
 const DriverIDP        = lazy(() => import('./pages/driver/DriverIDP').then(m => ({ default: m.DriverIDP })));
 const ReplayViewer     = lazy(() => import('./pages/driver/ReplayViewer').then(m => ({ default: m.ReplayViewer })));
@@ -183,7 +182,7 @@ function App() {
           <Route path="profile"      element={<DriverProfilePage />} />
           <Route path="crew/engineer" element={<EngineerChat />} />
           <Route path="crew/spotter"  element={<SpotterChat />} />
-          <Route path="crew/analyst"  element={<AnalystChat />} />
+          <Route path="crew/analyst"  element={<Navigate to="/driver/idp" replace />} />
           <Route path="progress"     element={<DriverProgress />} />
           <Route path="idp"          element={<DriverIDP />} />
           <Route path="replay/:sessionId" element={<ReplayViewer />} />

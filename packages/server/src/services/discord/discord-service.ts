@@ -17,7 +17,7 @@ import type {
 // Discord API base URL
 const DISCORD_API = 'https://discord.com/api/v10';
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
-const APP_URL = process.env.APP_URL || 'https://control.okboxbox.com';
+const APP_URL = process.env.APP_URL || 'https://app.okboxbox.com';
 
 interface ConfigRow {
     id: string;

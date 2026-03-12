@@ -9,10 +9,7 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY packages/common/package*.json ./packages/common/
-COPY packages/protocol/package*.json ./packages/protocol/
-COPY packages/server/package*.json ./packages/server/
-COPY packages/dashboard/package*.json ./packages/dashboard/
+COPY apps/app/package*.json ./apps/app/
 
 # Install dependencies
 RUN npm ci
@@ -23,24 +20,21 @@ ARG CACHE_BUST=2026011501
 # API URL for Vite build - pass from DigitalOcean App Platform
 ARG VITE_API_URL=https://octopus-app-qsi3i.ondigitalocean.app
 ENV VITE_API_URL=$VITE_API_URL
+ARG VITE_WS_URL=wss://octopus-app-qsi3i.ondigitalocean.app
+ENV VITE_WS_URL=$VITE_WS_URL
 
 # Copy source code
 COPY tsconfig.base.json ./
-COPY packages/common ./packages/common
-COPY packages/protocol ./packages/protocol
-COPY packages/server ./packages/server
-COPY packages/dashboard ./packages/dashboard
+COPY apps/app ./apps/app
 
-# Build common, protocol, and dashboard packages
-RUN npm run build -w packages/common && \
-    npm run build -w packages/protocol && \
-    npm run build -w packages/dashboard
+# Build app
+RUN npm run build -w apps/app
 
 # Stage 2: Production Dashboard (LAST STAGE - this is what gets deployed)
 FROM nginx:alpine
 
-# Copy built dashboard
-COPY --from=builder /app/packages/dashboard/dist /usr/share/nginx/html
+# Copy built app
+COPY --from=builder /app/apps/app/dist /usr/share/nginx/html
 
 # Copy custom nginx config for SPA
 COPY nginx.conf /etc/nginx/conf.d/default.conf

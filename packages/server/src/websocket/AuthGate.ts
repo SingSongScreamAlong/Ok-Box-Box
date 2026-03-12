@@ -14,30 +14,8 @@ export class AuthGate {
             const relayId = socket.handshake.auth.relayId || socket.handshake.query.relayId;
             const authService = getAuthService();
 
-            const resolveUserFromToken = async () => {
-                let user: any = null;
-
-                const payload = token ? authService.verifyAccessToken(token) : null;
-                if (payload) {
-                    user = await authService.getUserById(payload.sub);
-                }
-
-                if (!user && token) {
-                    const supabasePayload = await authService.verifySupabaseToken(token);
-                    if (supabasePayload) {
-                        user = await authService.findOrCreateSupabaseUser(
-                            supabasePayload.sub,
-                            supabasePayload.email,
-                            supabasePayload.displayName || supabasePayload.email.split('@')[0]
-                        );
-                    }
-                }
-
-                return user;
-            };
-
             if (relayId && token) {
-                const user = await resolveUserFromToken();
+                const user = await authService.resolveUserFromToken(token);
                 if (user && user.isActive) {
                     let entitlements: any[] = [];
                     try {
@@ -75,16 +53,22 @@ export class AuthGate {
             // Allow dashboard/viewer connections - they only receive telemetry, don't send
             // If no token provided, allow as anonymous viewer (rate-limited)
             if (!token) {
+                if (!config.allowAnonymousSocketViewers) {
+                    return next(new Error('Authentication required for websocket connection'));
+                }
                 socket.data.user = { id: 'anonymous', email: 'viewer@anonymous', isActive: true, roles: ['viewer'], entitlements: [] };
                 socket.data.isViewer = true;
                 return next();
             }
 
-            const user = await resolveUserFromToken();
+            const user = await authService.resolveUserFromToken(token);
 
             // If token verification failed, allow as anonymous viewer instead of rejecting
             // This enables dashboard connections even if Supabase JWT verification fails
             if (!user || !user.isActive) {
+                if (!config.allowAnonymousSocketViewers) {
+                    return next(new Error('Invalid or expired websocket token'));
+                }
                 socket.data.user = { id: 'anonymous', email: 'viewer@anonymous', isActive: true, roles: ['viewer'], entitlements: [] };
                 socket.data.isViewer = true;
                 return next();
@@ -125,6 +109,9 @@ export class AuthGate {
                     'telemetry:controls',
                 ]);
                 if (relayBypassEvents.has(eventName)) {
+                    if (!socket.data.isRelay) {
+                        return next(new Error('Relay authentication required for telemetry event'));
+                    }
                     // Size check for high-volume events to prevent flooding
                     const MAX_TELEMETRY_BYTES = 512 * 1024; // 512 KB
                     const payload = packet[1];

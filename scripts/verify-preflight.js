@@ -1,5 +1,5 @@
 const DEFAULT_WEBSITE_BASE_URL = 'http://localhost:5174';
-const DEFAULT_DASHBOARD_BASE_URL = 'http://localhost:5173';
+const DEFAULT_APP_BASE_URL = 'http://localhost:5175';
 
 function normalizeBaseUrl(url) {
     return String(url ?? '').replace(/\/$/, '');
@@ -12,7 +12,7 @@ function resolveExpectedAppBaseUrl() {
 
     const mode = process.env.PREFLIGHT_MODE ?? process.env.NODE_ENV ?? 'development';
     return mode === 'development'
-        ? 'http://localhost:5173'
+        ? 'http://localhost:5175'
         : 'https://app.okboxbox.com';
 }
 
@@ -41,8 +41,8 @@ async function run() {
     const websiteBaseUrl = normalizeBaseUrl(
         process.env.WEBSITE_BASE_URL ?? DEFAULT_WEBSITE_BASE_URL
     );
-    const dashboardBaseUrl = normalizeBaseUrl(
-        process.env.DASHBOARD_BASE_URL ?? DEFAULT_DASHBOARD_BASE_URL
+    const appBaseUrl = normalizeBaseUrl(
+        process.env.APP_BASE_URL ?? DEFAULT_APP_BASE_URL
     );
 
     const preflightHeader = { 'x-okboxbox-preflight': '1' };
@@ -82,41 +82,38 @@ async function run() {
         add('website GET /login -> 302 Location', false, String(err?.message ?? err));
     }
 
-    // Dashboard /about/build markers
+    // App shell routes
     try {
-        const url = `${dashboardBaseUrl}/about/build`;
-        const { res, text } = await httpGet(url, { headers: preflightHeader });
-
-        const hasVersionMarker = text.includes('data-preflight-marker="build-version"');
-        const hasEnvMarker = text.includes('data-preflight-marker="build-env"');
-
-        add(
-            'dashboard GET /about/build -> markers present',
-            res.status === 200 && hasVersionMarker && hasEnvMarker,
-            `status=${res.status} versionMarker=${hasVersionMarker} envMarker=${hasEnvMarker}`
-        );
+        const url = `${appBaseUrl}/login`;
+        const { res } = await httpGet(url, { headers: preflightHeader });
+        add('app GET /login -> 200', res.status === 200, `status=${res.status}`);
     } catch (err) {
         add(
-            'dashboard GET /about/build -> markers present',
+            'app GET /login -> 200',
             false,
             String(err?.message ?? err)
         );
     }
 
-    // Dashboard /team/pitwall skeleton marker
     try {
-        const url = `${dashboardBaseUrl}/team/pitwall`;
-        const { res, text } = await httpGet(url, { headers: preflightHeader });
-
-        const hasSkeleton = text.includes('SKELETON ONLY');
-        add(
-            'dashboard GET /team/pitwall -> skeleton marker',
-            res.status === 200 && hasSkeleton,
-            `status=${res.status} skeletonMarker=${hasSkeleton}`
-        );
+        const url = `${appBaseUrl}/pricing`;
+        const { res } = await httpGet(url, { headers: preflightHeader });
+        add('app GET /pricing -> 200', res.status === 200, `status=${res.status}`);
     } catch (err) {
         add(
-            'dashboard GET /team/pitwall -> skeleton marker',
+            'app GET /pricing -> 200',
+            false,
+            String(err?.message ?? err)
+        );
+    }
+
+    try {
+        const url = `${appBaseUrl}/download`;
+        const { res } = await httpGet(url, { headers: preflightHeader });
+        add('app GET /download -> 200', res.status === 200, `status=${res.status}`);
+    } catch (err) {
+        add(
+            'app GET /download -> 200',
             false,
             String(err?.message ?? err)
         );
@@ -127,7 +124,7 @@ async function run() {
 
     console.log('');
     console.log(`Website:   ${websiteBaseUrl}`);
-    console.log(`Dashboard: ${dashboardBaseUrl}`);
+    console.log(`App:       ${appBaseUrl}`);
     console.log(`Expected Login Location: ${expectedLoginLocation}`);
     console.log('');
 

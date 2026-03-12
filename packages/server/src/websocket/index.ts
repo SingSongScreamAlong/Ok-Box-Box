@@ -15,11 +15,44 @@ import { RoomManager } from './RoomManager.js';
 import { TelemetryHandler } from './TelemetryHandler.js';
 import { BroadcastHandler, setIO } from './BroadcastHandler.js';
 import { BehavioralGateway } from './BehavioralGateway.js';
-import { getWhisperService, getVoiceService, VOICE_PRESETS } from '../services/voice/index.js';
+import { getWhisperService, getVoiceService } from '../services/voice/index.js';
 import { getTelemetryForVoice } from './telemetry-cache.js';
-import { getCachedDriverContext, formatDriverContextForAI } from '../services/voice/driver-context.service.js';
+import { getDriverProfileByUserId } from '../db/repositories/driver-profile.repo.js';
+import { buildLiveTelemetryContext, fetchDriverContextForVoice } from '../driverbox/routes/drivers.js';
+import { getVoicePresetForRole, isCrewVoiceRole } from '../services/voice/voice-service.js';
+import { processPreferenceChange } from '../services/ai/preference-parser.js';
 
 let io: Server;
+const voiceConversationHistory = new Map<string, { messages: string[]; updatedAt: number }>();
+const MAX_VOICE_HISTORY_MESSAGES = 8;
+
+function getVoiceHistoryKey(socket: Socket, sessionId: string, role: string): string {
+    return `${socket.data.user?.id || socket.id}:${sessionId}:${role}`;
+}
+
+function normalizeLiveRadioRole(role: unknown): 'engineer' | 'spotter' {
+    return role === 'spotter' ? 'spotter' : 'engineer';
+}
+
+function getVoiceHistory(key: string): string[] {
+    return voiceConversationHistory.get(key)?.messages || [];
+}
+
+function setVoiceHistory(key: string, messages: string[]): void {
+    voiceConversationHistory.set(key, {
+        messages: messages.slice(-MAX_VOICE_HISTORY_MESSAGES),
+        updatedAt: Date.now()
+    });
+}
+
+function clearVoiceHistoryForSocket(socket: Socket): void {
+    const prefix = `${socket.data.user?.id || socket.id}:`;
+    for (const key of voiceConversationHistory.keys()) {
+        if (key.startsWith(prefix)) {
+            voiceConversationHistory.delete(key);
+        }
+    }
+}
 
 export function initializeWebSocket(httpServer: HttpServer): Server {
     io = new Server(httpServer, {
@@ -65,14 +98,21 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
         behavioralGateway.setup(socket);
 
         // 4. Voice Query Handler
-        socket.on('voice:query', async (data: { audio: string; format?: string }) => {
+        socket.on('voice:query', async (data: { audio: string; format?: string; sessionId?: string | null; role?: string | null }) => {
             try {
+                console.log(`🎤 voice:query received – format=${data.format}, audio length=${data.audio?.length ?? 0} chars, socketId=${socket.id}, isRelay=${socket.data.isRelay}, user=${socket.data.user?.email || 'none'}`);
+
                 // Check voice_engineer capability
                 const entitlements: any[] = socket.data.user?.entitlements ?? [];
                 const caps = deriveCapabilitiesFromEntitlements(entitlements, []);
-                if (!socket.data.user?.isSuperAdmin && !caps.voice_engineer) {
+                const allowDevRelayVoice = config.nodeEnv === 'development' && socket.data.isRelay === true;
+                if (!socket.data.user?.isSuperAdmin && !caps.voice_engineer && !allowDevRelayVoice) {
+                    console.log('🎤 BLOCKED: no voice entitlement. isSuperAdmin=', socket.data.user?.isSuperAdmin, 'caps.voice_engineer=', caps.voice_engineer, 'allowDevRelayVoice=', allowDevRelayVoice);
                     socket.emit('voice:response', { success: false, error: 'Subscription required. Visit /pricing to upgrade.' });
                     return;
+                }
+                if (allowDevRelayVoice && !caps.voice_engineer) {
+                    console.log('🎤 Allowing relay voice query in development without paid entitlement');
                 }
 
                 const whisperService = getWhisperService();
@@ -89,55 +129,70 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
                 // Decode base64 audio
                 const audioBuffer = Buffer.from(data.audio, 'base64');
                 const audioFormat = data.format || 'webm';
+                console.log(`🎤 Decoded audio: ${audioBuffer.length} bytes, format=${audioFormat}, first4=[${audioBuffer.slice(0, 4).toString('hex')}]`);
 
                 // Get current telemetry for context
-                const telemetry = getTelemetryForVoice('live');
-                
-                // Get driver's iRacing ID from telemetry (if available)
-                const iRacingId = telemetry?.driverName ? String(telemetry.driverName) : undefined;
-                
-                // Fetch driver context (IDP profile, traits, goals, team strategy)
-                let driverContext: string | undefined;
-                if (iRacingId) {
+                const requestedSessionId = typeof data.sessionId === 'string' && data.sessionId.length > 0
+                    ? data.sessionId
+                    : 'live';
+                const requestedRole = isCrewVoiceRole(data.role)
+                    ? normalizeLiveRadioRole(data.role)
+                    : 'engineer';
+                const telemetry = getTelemetryForVoice(requestedSessionId) || getTelemetryForVoice('live');
+                const historyKey = getVoiceHistoryKey(socket, requestedSessionId, requestedRole);
+                const recentMessages = getVoiceHistory(historyKey);
+
+                let driverContext = '';
+                const userId = typeof socket.data.user?.id === 'string' ? socket.data.user.id : null;
+                if (userId && userId !== 'relay' && userId !== 'anonymous') {
                     try {
-                        const ctx = await getCachedDriverContext(iRacingId);
-                        if (ctx) {
-                            driverContext = formatDriverContextForAI(ctx);
-                            console.log('🎤 Voice query - driver context loaded for:', ctx.driverName);
+                        const driverProfile = await getDriverProfileByUserId(userId);
+                        if (driverProfile) {
+                            driverContext = await fetchDriverContextForVoice(driverProfile.id);
                         }
                     } catch (err) {
-                        console.warn('Could not load driver context:', err);
+                        console.warn('Could not load relay voice driver profile context:', err);
                     }
                 }
+
+                const liveContext = buildLiveTelemetryContext(requestedSessionId);
+                const combinedContext = [driverContext, liveContext].filter(Boolean).join('\n');
 
                 // Process voice query (STT + AI response)
                 const conversation = await whisperService.processDriverQuery(
                     audioBuffer,
                     {
-                        sessionId: 'live',
-                        driverId: socket.id,
-                        iRacingId,
-                        recentMessages: [],
+                        sessionId: requestedSessionId,
+                        driverId: userId || socket.id,
+                        role: requestedRole,
+                        recentMessages,
                         telemetry,
-                        driverContext
+                        driverContext: combinedContext
                     },
                     audioFormat
                 );
 
                 if (!conversation) {
+                    console.error('🎤 processDriverQuery returned null – transcription or AI failed');
                     socket.emit('voice:response', {
                         success: false,
                         error: 'Failed to process voice query'
                     });
                     return;
                 }
+                setVoiceHistory(historyKey, [...recentMessages, conversation.query, conversation.response]);
+                if (userId && userId !== 'relay' && userId !== 'anonymous') {
+                    processPreferenceChange(userId, conversation.query).catch(() => { /* ignore preference parse errors */ });
+                }
+                console.log(`🎤 Voice query success: "${conversation.query}" → "${conversation.response}"`);
 
                 // Generate TTS audio if available
                 let audioBase64: string | undefined;
                 if (voiceService.isServiceAvailable()) {
+                    const voicePreset = getVoicePresetForRole(requestedRole);
                     const ttsResult = await voiceService.textToSpeech({
                         text: conversation.response,
-                        ...VOICE_PRESETS.raceEngineer
+                        ...voicePreset
                     });
 
                     if (ttsResult.success && ttsResult.audioBuffer) {
@@ -147,6 +202,7 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
 
                 socket.emit('voice:response', {
                     success: true,
+                    role: requestedRole,
                     query: conversation.query,
                     response: conversation.response,
                     audioBase64
@@ -162,6 +218,7 @@ export function initializeWebSocket(httpServer: HttpServer): Server {
         });
 
         socket.on('disconnect', () => {
+            clearVoiceHistoryForSocket(socket);
             socketRateLimiter.cleanup(socket.id);
         });
     });

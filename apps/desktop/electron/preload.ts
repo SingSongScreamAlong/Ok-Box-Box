@@ -17,11 +17,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onSession: (callback: (data: any) => void) => {
     ipcRenderer.on('session', (_event: any, data: any) => callback(data));
   },
+  onAuthUpdated: (callback: (auth: { loggedIn: boolean; user?: { email: string; tier: string } }) => void) => {
+    ipcRenderer.on('auth:updated', (_event: any, auth: { loggedIn: boolean; user?: { email: string; tier: string } }) => callback(auth));
+  },
+  onAuthError: (callback: (message: string) => void) => {
+    ipcRenderer.on('auth:error', (_event: any, message: string) => callback(message));
+  },
   onRelayStatus: (callback: (status: string) => void) => {
     ipcRenderer.on('relay:status', (_event: any, status: string) => callback(status));
   },
   onIRacingStatus: (callback: (status: string) => void) => {
     ipcRenderer.on('iracing:status', (_event: any, status: string) => callback(status));
+  },
+  onVoiceStatus: (callback: (status: { state: 'starting' | 'ready' | 'fallback' | 'listening' | 'processing' | 'error'; detail: string }) => void) => {
+    ipcRenderer.on('voice:status', (_event: any, status: { state: 'starting' | 'ready' | 'fallback' | 'listening' | 'processing' | 'error'; detail: string }) => callback(status));
   },
   onMessage: (callback: (msg: { text: string; type: 'sent' | 'received' }) => void) => {
     ipcRenderer.on('message', (_event: any, msg: any) => callback(msg));
@@ -38,6 +47,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   onPlayAudio: (callback: (base64Audio: string) => void) => {
     ipcRenderer.on('voice:playAudio', (_event: any, audio: string) => callback(audio));
+  },
+  onStopAudio: (callback: () => void) => {
+    ipcRenderer.on('voice:stopAudio', () => callback());
+  },
+  onPTTFallbackMode: (callback: (enabled: boolean) => void) => {
+    ipcRenderer.on('voice:pttFallbackMode', (_event: any, enabled: boolean) => callback(enabled));
   },
 
   // Settings
@@ -65,11 +80,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
 declare global {
   interface Window {
     electronAPI: {
-      getStatus: () => Promise<{ iracing: boolean; server: boolean }>;
+      getStatus: () => Promise<{
+        iracing: boolean;
+        server: boolean;
+        iracingState: 'connected' | 'waiting' | 'disconnected';
+        serverState: 'connected' | 'disconnected' | 'error';
+        voiceState: 'starting' | 'ready' | 'fallback' | 'listening' | 'processing' | 'error';
+        voiceDetail: string;
+      }>;
       onTelemetry: (callback: (data: any) => void) => void;
       onSession: (callback: (data: any) => void) => void;
+      onAuthUpdated: (callback: (auth: { loggedIn: boolean; user?: { email: string; tier: string } }) => void) => void;
+      onAuthError: (callback: (message: string) => void) => void;
       onRelayStatus: (callback: (status: string) => void) => void;
       onIRacingStatus: (callback: (status: string) => void) => void;
+      onVoiceStatus: (callback: (status: { state: 'starting' | 'ready' | 'fallback' | 'listening' | 'processing' | 'error'; detail: string }) => void) => void;
+      onMessage: (callback: (msg: { text: string; type: 'sent' | 'received' }) => void) => void;
       removeAllListeners: (channel: string) => void;
     };
   }

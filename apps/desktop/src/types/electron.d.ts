@@ -5,13 +5,23 @@ interface ElectronAPI {
   checkAuth: () => Promise<{ loggedIn: boolean; user?: { email: string; tier: string }; reason?: string }>;
   
   // Status
-  getStatus: () => Promise<{ iracing: boolean; server: boolean }>;
+  getStatus: () => Promise<{
+    iracing: boolean;
+    server: boolean;
+    iracingState: 'connected' | 'waiting' | 'disconnected';
+    serverState: 'connected' | 'disconnected' | 'error';
+    voiceState: 'starting' | 'ready' | 'fallback' | 'listening' | 'processing' | 'error';
+    voiceDetail: string;
+  }>;
   
   // Event listeners
   onTelemetry: (callback: (data: any) => void) => void;
   onSession: (callback: (data: any) => void) => void;
+  onAuthUpdated: (callback: (auth: { loggedIn: boolean; user?: { email: string; tier: string } }) => void) => void;
+  onAuthError: (callback: (message: string) => void) => void;
   onRelayStatus: (callback: (status: string) => void) => void;
   onIRacingStatus: (callback: (status: string) => void) => void;
+  onVoiceStatus: (callback: (status: { state: 'starting' | 'ready' | 'fallback' | 'listening' | 'processing' | 'error'; detail: string }) => void) => void;
   onRelayMode: (callback: (mode: string) => void) => void;
   onMessage: (callback: (msg: { text: string; type: 'sent' | 'received' }) => void) => void;
   
@@ -21,6 +31,8 @@ interface ElectronAPI {
   onStartRecording: (callback: () => void) => void;
   onStopRecording: (callback: () => void) => void;
   onPlayAudio: (callback: (base64Audio: string) => void) => void;
+  onStopAudio: (callback: () => void) => void;
+  onPTTFallbackMode: (callback: (enabled: boolean) => void) => void;
   
   // Settings
   getSettings: () => Promise<any>;

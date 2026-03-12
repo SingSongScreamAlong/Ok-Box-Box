@@ -16,7 +16,7 @@ Download the latest release and extract to any folder.
 ### 2. Configure
 Copy `.env.example` to `.env` and add your auth token:
 ```
-SERVER_URL=https://octopus-app-qsi3i.ondigitalocean.app
+SERVER_URL=https://api.okboxbox.com
 AUTH_TOKEN=your_token_here
 ```
 
@@ -63,7 +63,7 @@ python main.py --rate 20  # 20 Hz telemetry
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BLACKBOX_SERVER_URL` | `http://localhost:3000` | ControlBox Server URL |
+| `BLACKBOX_SERVER_URL` | `http://localhost:3001` | ControlBox Server URL |
 | `POLL_RATE_HZ` | `10` | Telemetry updates per second |
 | `LOG_LEVEL` | `INFO` | Logging verbosity |
 | `LOG_TELEMETRY` | `false` | Log each telemetry frame |

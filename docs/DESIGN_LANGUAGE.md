@@ -20,7 +20,7 @@ Use these variables. Do NOT hardcode hex values.
 | **Success** | `--success` | Good/healthy |
 | **Warning** | `--warning` | Warnings (often same family as orange) |
 
-**Canonical source:** `packages/dashboard/src/styles/theme.css`
+**Canonical source:** `apps/app/src/index.css`
 
 ## 2. Typography Rules
 

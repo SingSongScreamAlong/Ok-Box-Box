@@ -3,7 +3,7 @@ set -e
 
 # ==========================================
 # Ok, Box Box - Release Packaging Script
-# Packages Server, Dashboard, and Relay for RC1
+# Packages Server, App, and Relay Tooling for RC1
 # ==========================================
 
 VERSION="v1.0.0-rc1"
@@ -18,8 +18,19 @@ echo "📂 Creating release directory: $RELEASE_DIR"
 rm -rf "$RELEASE_DIR"
 mkdir -p "$RELEASE_DIR"
 
-# 2. Package Relay Agent
-echo "🏎️  Packaging Relay Agent..."
+if [ -d "apps/desktop/release" ] && [ "$(find apps/desktop/release -mindepth 1 -maxdepth 1 | head -n 1)" ]; then
+  echo "🖥️  Packaging Desktop Relay..."
+  mkdir -p "$RELEASE_DIR/Desktop"
+  cp -r apps/desktop/release/* "$RELEASE_DIR/Desktop/"
+  (cd "$RELEASE_DIR" && zip -r "OkBoxBox-Desktop-$VERSION.zip" Desktop)
+  rm -rf "$RELEASE_DIR/Desktop"
+else
+  echo "⚠️  Desktop release artifacts not found in apps/desktop/release"
+  echo "   Build them with: npm run electron:build --workspace=okboxbox-desktop"
+fi
+
+# 2. Package Relay Agent Tooling
+echo "🏎️  Packaging Relay Agent Tooling..."
 mkdir -p "$RELEASE_DIR/Relay-Agent"
 
 # In a real CI env, we'd run the Windows build here.
@@ -69,17 +80,17 @@ chmod +x "$RELEASE_DIR/Server/start_server.sh"
 (cd "$RELEASE_DIR" && zip -r "OkBoxBox-Server-$VERSION.zip" Server)
 rm -rf "$RELEASE_DIR/Server"
 
-# 4. Package Dashboard (Static Build)
-echo "📊 Packaging Dashboard..."
-echo "   - Building dashboard..."
-(cd packages/dashboard && npm install && npm run build)
+# 4. Package App (Static Build)
+echo "📊 Packaging App..."
+echo "   - Building app..."
+(cd apps/app && npm install && npm run build)
 
-mkdir -p "$RELEASE_DIR/Dashboard"
-cp -r packages/dashboard/dist/* "$RELEASE_DIR/Dashboard/"
+mkdir -p "$RELEASE_DIR/App"
+cp -r apps/app/dist/* "$RELEASE_DIR/App/"
 
-# Zip Dashboard
-(cd "$RELEASE_DIR" && zip -r "OkBoxBox-Dashboard-$VERSION.zip" Dashboard)
-rm -rf "$RELEASE_DIR/Dashboard"
+# Zip App
+(cd "$RELEASE_DIR" && zip -r "OkBoxBox-App-$VERSION.zip" App)
+rm -rf "$RELEASE_DIR/App"
 
 # 5. Finalize
 echo "==========================================="

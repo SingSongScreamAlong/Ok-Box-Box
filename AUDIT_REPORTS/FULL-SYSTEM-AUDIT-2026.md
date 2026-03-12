@@ -288,7 +288,7 @@ The system is architecturally sound with clear separation of concerns, proper au
    ```
    VITE_SUPABASE_URL=https://muypplgzqqtjlwinhunw.supabase.co
    VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIs...
-   VITE_API_URL=https://octopus-app-qsi3i.ondigitalocean.app
+   VITE_API_URL=https://api.okboxbox.com
    ```
    The Supabase anon key is a public key by design, but the production API URL and Supabase project ID are exposed in version control. The `.env` file should be in `.gitignore`.
 
@@ -461,12 +461,12 @@ The relay reads **50+ iRacing SDK variables** per car including:
 
 ### Admin Seeding
 
-**CRITICAL — Default admin credentials are hardcoded:**
+**CRITICAL — Default admin credentials were hardcoded at audit time:**
 ```typescript
 const email = 'admin@okboxbox.com';
 const password = 'ControlBox2024!';
 ```
-This creates a super admin user with a known password on first deployment. While it uses `ON CONFLICT DO NOTHING` and only runs if no admin exists, the password should be generated or required from environment.
+At the time of this audit, this created a super admin user with a known password on first deployment. Follow-up cleanup removed the universal fallback and now requires an explicit production seed password while using a machine-derived development-only fallback locally.
 
 ---
 
@@ -631,17 +631,17 @@ All Dockerfiles use multi-stage builds. The server Dockerfiles are nearly identi
 | # | Issue | Location | Risk |
 |---|-------|----------|------|
 | S1 | **`.env` committed with live credentials** | `apps/app/.env` | Supabase URL, anon key, production API URL exposed in git |
-| S2 | **Hardcoded default admin password** | `packages/server/src/db/migrations.ts:153` | `ControlBox2024!` — known credential |
-| S3 | **Unauthenticated WebSocket connections** | `packages/server/src/websocket/AuthGate.ts:17-20` | All telemetry/strategy data accessible without auth |
-| S4 | **Sessions/Incidents API routes lack auth** | `packages/server/src/api/routes/sessions.ts`, `incidents.ts` | Anyone can CRUD sessions and incidents |
+| S2 | **Development admin seed password was hardcoded at audit time** | `packages/server/src/db/migrations.ts` | Fixed in follow-up cleanup; dev fallback is now machine-derived instead of universal |
+| S3 | **WebSocket AuthGate allowed unauthenticated viewers at audit time** | `packages/server/src/websocket/AuthGate.ts` | Fixed in follow-up cleanup; production now requires auth unless explicitly overridden |
+| S4 | **Sessions/Incidents API routes lack auth** | `packages/server/src/api/routes/sessions.ts`, `incidents.ts` | Audit finding superseded; current routes require auth |
 
 ### HIGH Issues
 
 | # | Issue | Location | Risk |
 |---|-------|----------|------|
-| S5 | **JWT_SECRET validation only warns** | `packages/server/src/config/index.ts` | Weak secrets in production only generate console warnings |
+| S5 | **JWT_SECRET validation only warned at audit time** | `packages/server/src/config/index.ts` | Superseded; production now fails if `JWT_SECRET` is missing or too short |
 | S6 | **Client-supplied rules in AI analysis** | `packages/server/src/api/routes/incidents.ts:108` | Untrusted input influences AI recommendations |
-| S7 | **Production API URL hardcoded in relay config** | `tools/relay-agent/config.py:20` | `https://octopus-app-qsi3i.ondigitalocean.app` as default |
+| S7 | **Production API URL was hardcoded in relay config at audit time** | `tools/relay-agent/config.py` | Superseded; relay defaults now target `https://api.okboxbox.com` |
 
 ### MEDIUM Issues
 
@@ -730,9 +730,9 @@ Contains the original ProjectBlackBox codebase with:
 | ID | Finding | Impact |
 |----|---------|--------|
 | F1 | `.env` with live Supabase credentials committed to git | Credential exposure |
-| F2 | Hardcoded default admin password `ControlBox2024!` | Known credential attack |
-| F3 | WebSocket AuthGate allows unauthenticated connections | Full telemetry data leak |
-| F4 | Sessions/Incidents REST routes lack authentication | Unauthorized data manipulation |
+| F2 | Hardcoded default admin password `ControlBox2024!` | Historical audit finding; fixed in follow-up cleanup |
+| F3 | WebSocket AuthGate allows unauthenticated connections | Historical audit finding; production now requires auth unless explicitly overridden |
+| F4 | Sessions/Incidents REST routes lack authentication | Historical audit finding; current routes require auth |
 
 ### High (Address Before Production)
 
@@ -741,7 +741,7 @@ Contains the original ProjectBlackBox codebase with:
 | F5 | Two separate auth systems (Supabase + internal JWT) | Complexity, potential bypass |
 | F6 | Client-supplied rules influence AI analysis | Untrusted input in AI pipeline |
 | F7 | TelemetryHandler.ts is 825 lines — needs decomposition | Maintainability risk |
-| F8 | Production API URL hardcoded in relay config defaults | Accidental production connections |
+| F8 | Production API URL was hardcoded in relay config defaults at audit time | Historical finding; live relay defaults now target `https://api.okboxbox.com` |
 | F9 | Duplicate/near-identical Dockerfiles | Maintenance burden |
 
 ### Medium (Address in Next Sprint)

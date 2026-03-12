@@ -177,5 +177,5 @@
 
 ### URLs:
 - **Frontend:** https://okboxbox.com
-- **API:** https://octopus-app-qsi3i.ondigitalocean.app
-- **Health:** https://octopus-app-qsi3i.ondigitalocean.app/api/health
+- **API:** https://api.okboxbox.com
+- **Health:** https://api.okboxbox.com/api/health

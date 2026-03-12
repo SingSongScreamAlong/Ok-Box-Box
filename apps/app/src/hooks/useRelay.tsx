@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase';
 export type RelayStatus = 'disconnected' | 'connecting' | 'connected' | 'in_session' | 'reconnecting';
 
 export interface CarMapPosition {
-  trackPercentage: number;
+  trackPercentage?: number;
   carNumber?: string;
   driverName?: string;
   position?: number;
@@ -263,7 +263,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       socketRef.current = null;
     }
 
-    const wsUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+    const wsUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001' : 'https://app.okboxbox.com');
     console.log('[Relay] Connecting to server:', wsUrl);
     setStatus('connecting');
 
@@ -486,7 +486,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
                 ? standingPct
                 : (isValidTrackPct(livePct)
                   ? livePct
-                  : (isValidTrackPct(prevPct) ? prevPct : (idx / totalDrivers)));
+                  : (isValidTrackPct(prevPct) ? prevPct : undefined));
 
             return {
               trackPercentage,
@@ -539,7 +539,6 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       
       if (rankedRows.length > 0) {
         const sortedDrivers = [...rankedRows].sort((a, b) => (a.position || 999) - (b.position || 999));
-        const totalDrivers = Math.max(sortedDrivers.length, 1);
         const playerRow = sortedDrivers.find((d: any) => !!d?.isPlayer) || playerStanding;
         setTelemetry(prev => ({
           ...prev,
@@ -552,16 +551,12 @@ export function RelayProvider({ children }: { children: ReactNode }) {
             const standingPct = driver.lapDistPct;
             const livePct = liveCar?.pos?.s;
             const prevPct = prev.otherCars.find((c) => getCarTrackKey(c, idx) === getCarTrackKey(driver, idx))?.trackPercentage;
-            const positionBasedPct =
-              (typeof driver.position === 'number' && driver.position > 0)
-                ? ((driver.position - 1) / totalDrivers)
-                : (idx / totalDrivers);
             const trackPercentage =
               isValidTrackPct(standingPct)
                 ? standingPct
                 : (isValidTrackPct(livePct)
                   ? livePct
-                  : (isValidTrackPct(prevPct) ? prevPct : positionBasedPct));
+                  : (isValidTrackPct(prevPct) ? prevPct : undefined));
             return {
               trackPercentage,
               carNumber: driver.carNumber || String(driver.position || idx + 1),
@@ -580,7 +575,6 @@ export function RelayProvider({ children }: { children: ReactNode }) {
 
       socket.on('competitor_data', (data: any[]) => {
       if (data && Array.isArray(data)) {
-        const totalDrivers = Math.max(data.length, 1);
         const playerCompetitor = data.find((car: any) => !!car?.isPlayer);
         setTelemetry(prev => ({
           ...prev,
@@ -595,7 +589,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
               ? car.lapDistPct
               : (() => {
                 const prevPct = prev.otherCars.find((c) => getCarTrackKey(c, idx) === getCarTrackKey(car, idx))?.trackPercentage;
-                return isValidTrackPct(prevPct) ? prevPct : (idx / totalDrivers);
+                return isValidTrackPct(prevPct) ? prevPct : undefined;
               })(),
             carNumber: car.carNumber || String(car.position || idx + 1),
             driverName: car.driver || `Car ${idx + 1}`,

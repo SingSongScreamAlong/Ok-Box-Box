@@ -80,7 +80,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
-      - name: Build app
+      - name: Build app workspace
         run: npm run build
         working-directory: apps/app
         env:

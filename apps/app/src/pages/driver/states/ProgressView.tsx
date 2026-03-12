@@ -190,11 +190,11 @@ export function ProgressView({ sessionMemory, timeSinceSession }: ProgressViewPr
           Full Stats
         </Link>
         <Link 
-          to="/driver/crew/analyst"
+          to="/driver/idp"
           className="flex items-center justify-center gap-2 p-4 bg-purple-500/20 border border-purple-500/30 rounded text-xs uppercase tracking-wider hover:bg-purple-500/30 transition-colors"
         >
           <Target className="w-4 h-4" />
-          Talk to Analyst
+          Open Analysis
           <ChevronRight className="w-3 h-3" />
         </Link>
       </div>

@@ -39,7 +39,7 @@ import {
   Target, ArrowUpRight,
   Lock, Unlock,
   AlertTriangle, TrendingDown, Zap,
-  Wrench, Eye, BarChart3, TrendingUp,
+  Wrench, Eye, TrendingUp,
   Activity, Clock
 } from 'lucide-react';
 import {
@@ -959,7 +959,6 @@ function CrewPreviewPanel({ sessions, focus, telemetry }: { sessions: DriverSess
   const crewRoles = [
     { key: 'engineer' as const, label: 'Engineer', icon: Wrench, color: '#f97316', link: '/driver/crew/engineer', personality: 'Methodical. Data-driven. Your car is my responsibility.' },
     { key: 'spotter' as const, label: 'Spotter', icon: Eye, color: '#3b82f6', link: '/driver/crew/spotter', personality: 'Eyes everywhere. I see what you can\'t.' },
-    { key: 'analyst' as const, label: 'Analyst', icon: BarChart3, color: '#8b5cf6', link: '/driver/crew/analyst', personality: 'Patterns don\'t lie. Let me show you the numbers.' },
   ];
 
   // Phase 5: Dynamic crew status based on focus
@@ -980,7 +979,7 @@ function CrewPreviewPanel({ sessions, focus, telemetry }: { sessions: DriverSess
           Full Crew <ChevronRight className="w-3 h-3" />
         </Link>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/[0.06]">
+      <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/[0.06]">
         {crewRoles.map(role => {
           const Icon = role.icon;
           const insight = insights.find(i => i.role === role.key);

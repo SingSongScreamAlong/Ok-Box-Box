@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useDriverData } from '../../hooks/useDriverData';
 import { useLiveBehavioral, getBehavioralGrade } from '../../hooks/useLiveBehavioral';
 import { Link } from 'react-router-dom';
-import { Wifi, WifiOff, Radio, Headphones, Wrench, Eye, BarChart3, ChevronRight, CheckCircle2, Circle, AlertCircle, Play, MessageSquare, Shield, TrendingUp, Award, Gauge } from 'lucide-react';
+import { Wifi, WifiOff, Radio, Headphones, Wrench, Eye, ChevronRight, CheckCircle2, Circle, AlertCircle, Play, MessageSquare, Shield, TrendingUp, Award, Gauge } from 'lucide-react';
 import { getLicenseColor } from '../../lib/driverService';
 
 type CrewMemberStatus = 'ready' | 'active' | 'standby' | 'offline';
@@ -54,23 +54,9 @@ export function DriverHome() {
     return "We can review racecraft together.";
   };
 
-  const getAnalystMessage = () => {
-    if (isLive && behavioralMetrics) {
-      const weakest = ['bsi', 'tci', 'cpi2', 'rci'].reduce((a, b) => 
-        behavioralMetrics.behavioral[a as keyof typeof behavioralMetrics.behavioral] < 
-        behavioralMetrics.behavioral[b as keyof typeof behavioralMetrics.behavioral] ? a : b
-      );
-      const labels: Record<string, string> = { bsi: 'braking', tci: 'throttle', cpi2: 'cornering', rci: 'rhythm' };
-      return `Your ${labels[weakest]} needs attention.`;
-    }
-    if (isLive) return "Recording lap data for debrief.";
-    return "Ready to review your sessions.";
-  };
-
   const crewMembers: CrewMember[] = [
     { id: 'engineer', name: 'Race Engineer', role: 'Strategy & Setup', icon: <Wrench className="w-6 h-6" />, status: isLive ? 'active' : isConnected ? 'ready' : 'standby', statusMessage: getEngineerMessage(), color: '#f97316', link: '/driver/crew/engineer' },
     { id: 'spotter', name: 'Spotter', role: 'Traffic & Awareness', icon: <Eye className="w-6 h-6" />, status: isLive ? 'active' : isConnected ? 'ready' : 'standby', statusMessage: getSpotterMessage(), color: '#3b82f6', link: '/driver/crew/spotter' },
-    { id: 'analyst', name: 'Performance Analyst', role: 'Data & Insights', icon: <BarChart3 className="w-6 h-6" />, status: isLive ? 'active' : 'standby', statusMessage: getAnalystMessage(), color: '#8b5cf6', link: '/driver/crew/analyst' },
   ];
 
   const getStatusIcon = (s: CrewMemberStatus) => {
@@ -139,7 +125,7 @@ export function DriverHome() {
       </div>
       <div>
         <div className="flex items-center gap-3 mb-4"><Headphones className="w-5 h-5 text-[#f97316]" /><h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={{ fontFamily: 'Orbitron, sans-serif' }}>Your Virtual Crew</h2></div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {crewMembers.map((m) => (
             <Link key={m.id} to={m.link} className="bg-black/40 backdrop-blur-sm border border-white/10 p-5 hover:border-white/30 transition-all cursor-pointer group block">
               <div className="flex items-start justify-between mb-4">

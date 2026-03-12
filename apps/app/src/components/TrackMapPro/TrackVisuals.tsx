@@ -230,7 +230,7 @@ export function TrackVisuals({ shape, carPosition, otherCars, showSectors = true
                         key={car.carNumber || idx}
                         initial={{ x: coords.x, y: coords.y }}
                         animate={{ x: coords.x, y: coords.y }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                        transition={{ duration: 0.28, ease: 'linear' }}
                         style={{ cursor: onCarClick ? 'pointer' : undefined }}
                         onClick={() => onCarClick?.(car)}
                     >
@@ -266,7 +266,7 @@ export function TrackVisuals({ shape, carPosition, otherCars, showSectors = true
                 <motion.g
                     initial={{ x: carCoords.x, y: carCoords.y }}
                     animate={{ x: carCoords.x, y: carCoords.y }}
-                    transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                    transition={{ duration: 0.24, ease: 'linear' }}
                 >
                     {/* Outer glow ring */}
                     <circle r="24" fill="#06b6d4" fillOpacity="0.15" />

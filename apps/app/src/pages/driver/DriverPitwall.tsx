@@ -181,7 +181,7 @@ export function DriverPitwall() {
           </div>
 
           {/* Crew Access Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Link to="/driver/crew/engineer" className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded shadow-lg shadow-black/20 p-6 hover:border-[#f97316]/50 transition-colors group">
               <div className="w-12 h-12 bg-[#f97316]/20 border border-[#f97316]/30 rounded flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
                 <Wrench className="w-6 h-6 text-[#f97316]" />
@@ -201,17 +201,6 @@ export function DriverPitwall() {
               <p className="text-xs text-white/50 mt-2">Discuss race starts, traffic, competitors</p>
               <div className="flex items-center gap-1 mt-4 text-xs text-[#3b82f6]">
                 <span>Race Briefing</span>
-                <ChevronRight className="w-3 h-3" />
-              </div>
-            </Link>
-            <Link to="/driver/crew/analyst" className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded shadow-lg shadow-black/20 p-6 hover:border-[#8b5cf6]/50 transition-colors group">
-              <div className="w-12 h-12 bg-[#8b5cf6]/20 border border-[#8b5cf6]/30 rounded flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                <TrendingUp className="w-6 h-6 text-[#8b5cf6]" />
-              </div>
-              <h3 className="text-sm font-semibold uppercase tracking-wider" style={{ fontFamily: 'Orbitron, sans-serif' }}>Analyst</h3>
-              <p className="text-xs text-white/50 mt-2">Review sessions, analyze performance</p>
-              <div className="flex items-center gap-1 mt-4 text-xs text-[#8b5cf6]">
-                <span>View Analysis</span>
                 <ChevronRight className="w-3 h-3" />
               </div>
             </Link>
@@ -529,13 +518,13 @@ export function DriverPitwall() {
               className="text-sm font-semibold uppercase tracking-wider"
               style={{ fontFamily: 'Orbitron, sans-serif' }}
             >
-              Performance Analyst
+              Performance Notes
             </h2>
             <p className="text-[10px] text-white/40 uppercase">Data & Insights</p>
           </div>
         </div>
         <div className="p-4">
-          <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Analyst Notes</div>
+          <div className="text-[10px] uppercase tracking-wider text-white/40 mb-2">Performance Notes</div>
           <div className="p-3 border border-white/[0.08] bg-white/[0.02] rounded text-sm text-white/60 italic">
             {status === 'in_session' ? (
               telemetry.bestLap !== null ? (

@@ -10,7 +10,7 @@ import { useVoice } from '../../../hooks/useVoice';
 import { 
   Eye, Send, ArrowLeft, Calendar,
   Settings2, ChevronRight, Loader2,
-  Car, Users, AlertTriangle, MapPin, Wrench, BarChart3, Radio
+  Car, Users, AlertTriangle, MapPin, Wrench, Radio
 } from 'lucide-react';
 
 interface Message {
@@ -142,13 +142,6 @@ export function SpotterChat() {
             >
               <Eye className="w-3 h-3" />
               Spotter
-            </Link>
-            <Link 
-              to="/driver/crew/analyst"
-              className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded text-xs font-medium bg-white/[0.03] text-white/50 border border-white/[0.08] hover:bg-white/[0.06] hover:text-white/70 transition-colors"
-            >
-              <BarChart3 className="w-3 h-3" />
-              Analyst
             </Link>
           </div>
         </div>

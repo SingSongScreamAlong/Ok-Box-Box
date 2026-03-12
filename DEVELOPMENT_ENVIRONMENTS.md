@@ -6,12 +6,13 @@ This document tracks what components are developed and tested on which machine, 
 
 ## 🍎 Mac (Primary Development)
 
-**Role:** All core development, server, dashboard, documentation
+**Role:** All core development, server, application UI, website, and documentation
 
 | Component | Path | Status | Notes |
 |-----------|------|--------|-------|
 | Server (Node.js) | `packages/server/` | ✅ Active | Express + Socket.IO |
-| Dashboard (React) | `packages/dashboard/` | ✅ Active | Vite + TailwindCSS |
+| Application UI (React) | `apps/app/` | ✅ Active | Vite + TailwindCSS |
+| Marketing Website (React) | `apps/website/` | ✅ Active | Vite |
 | Common Types | `packages/common/` | ✅ Active | Shared TypeScript types |
 | Protocol Schemas | `packages/protocol/` | ✅ Active | Telemetry protocol definitions |
 | Documentation | `docs/` | ✅ Active | All markdown docs |
@@ -19,7 +20,8 @@ This document tracks what components are developed and tested on which machine, 
 | Docker Config | `docker-compose*.yml` | ✅ Active | Container orchestration |
 
 **Development Server URLs:**
-- Dashboard: http://localhost:5173
+- Application UI: http://localhost:5175
+- Marketing Website: http://localhost:5173
 - API Server: http://localhost:3001
 - WebSocket: ws://localhost:3001
 
@@ -31,9 +33,10 @@ This document tracks what components are developed and tested on which machine, 
 
 | Component | Path | Status | Notes |
 |-----------|------|--------|-------|
-| Relay Agent (Python) | `tools/relay-agent/` | ⏳ Pending Test | Requires iRacing SDK |
-| Relay Launcher (Electron) | `apps/relay/` | ⏳ Pending Test | Packages relay-agent |
-| Python Client Lib | `tools/relay-python/` | ⏳ Pending Test | ControlBox Python API |
+| Desktop Relay (Electron) | `apps/desktop/` | ✅ Active | Canonical desktop relay app |
+| Relay Agent Tooling (Python) | `tools/relay-agent/` | ⏳ Pending Test | Dev tooling and standalone relay path |
+| Legacy Relay App (Electron) | `apps/relay/` | ⚠️ Legacy | Older relay desktop app |
+| Python Client Lib | `tools/relay-python/` | ⚠️ Legacy | Older ControlBox Python API |
 
 **Requirements:**
 - Python 3.9+
@@ -52,17 +55,18 @@ This document tracks what components are developed and tested on which machine, 
 | Stripe Billing | ✅ | N/A | 2026-01-18 | Needs test keys |
 | IDP/Driver Stats | ✅ | N/A | 2026-01-18 | |
 | Rate Limiting | ✅ | N/A | 2026-01-18 | |
-| **Dashboard**
-| All Pages | ✅ | N/A | 2026-01-18 | |
+| **Application UI**
+| All Pages | ✅ | N/A | 2026-01-18 | `apps/app` |
 | My IDP Page | ✅ | N/A | 2026-01-18 | Radar chart + billing |
 | **Relay**
-| Python Relay | ✅ Built | ⏳ Pending | - | Needs iRacing |
-| Electron Launcher | ✅ Built | ⏳ Pending | - | Needs packaging test |
+| Desktop Relay | ✅ Built | ⏳ Pending | - | Canonical desktop relay |
+| Relay Agent Tooling | ✅ Built | ⏳ Pending | - | Needs iRacing |
+| Legacy Electron Relay | ✅ Built | ⏳ Pending | - | Legacy path only |
 | Protocol v2 | ✅ Defined | ⏳ Pending | - | |
 | **End-to-End**
 | Mac → Server | ✅ | N/A | 2026-01-18 | |
 | PC → Server | N/A | ⏳ Pending | - | |
-| Full Pipeline | N/A | ⏳ Pending | - | iRacing → Relay → Server |
+| Full Pipeline | N/A | ⏳ Pending | - | iRacing → Relay → Server → App |
 
 ---
 
@@ -93,12 +97,13 @@ git push origin main
 
 When on the Windows PC, verify:
 
+- [ ] `apps/desktop` launches and connects as the canonical relay
 - [ ] `tools/relay-agent/main.py` connects to server
-- [ ] Telemetry flows from iRacing → Server → Dashboard
+- [ ] Telemetry flows from iRacing → Server → App
 - [ ] Session start/end events work
 - [ ] Driver identification works
 - [ ] Launch token authentication works
-- [ ] Electron relay launcher packages correctly
+- [ ] Desktop relay packaging works correctly
 - [ ] Protocol v2 messages parse correctly
 
 ---

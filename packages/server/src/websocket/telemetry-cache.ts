@@ -123,13 +123,20 @@ export interface TelemetrySnapshot {
 // Simple in-memory cache keyed by sessionId
 const telemetryCache: Map<string, TelemetrySnapshot> = new Map();
 
-export function updateTelemetryCache(sessionId: string, data: Partial<TelemetrySnapshot>): void {
+function writeTelemetrySnapshot(sessionId: string, data: Partial<TelemetrySnapshot>): void {
     const existing = telemetryCache.get(sessionId) || {};
-    telemetryCache.set(sessionId, { 
-        ...existing, 
+    telemetryCache.set(sessionId, {
+        ...existing,
         ...data,
         updatedAt: Date.now()
     });
+}
+
+export function updateTelemetryCache(sessionId: string, data: Partial<TelemetrySnapshot>): void {
+    writeTelemetrySnapshot(sessionId, data);
+    if (sessionId !== 'live') {
+        writeTelemetrySnapshot('live', data);
+    }
 }
 
 export function getTelemetryForVoice(sessionId: string): TelemetrySnapshot | undefined {

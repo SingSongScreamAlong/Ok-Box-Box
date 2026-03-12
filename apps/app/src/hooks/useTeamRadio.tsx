@@ -1,9 +1,9 @@
-ï»¿/**
+/**
  * useTeamRadio
  *
  * Connects this client to a team's radio room on the server via Socket.IO.
  * When a driver on the team fires a voice:query, the server processes it
- * (Whisper STT Î“Ã¥Ã† AI engineer Î“Ã¥Ã† ElevenLabs TTS) and broadcasts a team:radio
+ * (Whisper STT GåÆ AI engineer GåÆ ElevenLabs TTS) and broadcasts a team:radio
  * event to all sockets in `team:{teamId}`.
  *
  * This hook:
@@ -129,7 +129,7 @@ export function useTeamRadio(
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const wsUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+      const wsUrl = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001' : 'https://app.okboxbox.com');
 
       const socket = io(wsUrl, {
         transports: ['websocket', 'polling'],

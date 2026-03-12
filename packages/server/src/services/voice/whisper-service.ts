@@ -7,7 +7,10 @@
 
 import { config } from '../../config/index.js';
 import OpenAI from 'openai';
-import { toFile } from 'openai/uploads';
+import { createReadStream, writeFileSync, unlinkSync, mkdtempSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { isCrewVoiceRole } from './voice-service.js';
 
 // ============================================================================
 // TYPES
@@ -46,9 +49,45 @@ export interface ConversationContext {
     sessionId: string;
     driverId: string;
     iRacingId?: string;
+    role?: 'engineer' | 'spotter' | 'analyst' | 'strategist' | 'crewChief';
     recentMessages: string[];
     telemetry?: TelemetryContext;
-    driverContext?: string; // Pre-formatted driver context from IDP
+    driverContext?: string; // Pre-formatted driver and session context
+}
+
+function buildCrewSystemPrompt(
+    role: 'engineer' | 'spotter' | 'analyst' | 'strategist' | 'crewChief',
+    driverKnowledge: string,
+    telemetryInfo: string
+): string {
+    const prompts: Record<'engineer' | 'spotter' | 'analyst' | 'strategist' | 'crewChief', string> = {
+        engineer: `You are a professional race engineer providing real-time radio communication to YOUR driver in iRacing.
+You know this driver personally - their strengths, weaknesses, goals, and history. Use this knowledge to give personalized advice.
+Keep responses brief (1-2 sentences max), clear, and actionable.
+Use racing terminology naturally. Stay calm and focused.
+IMPORTANT: Use the ACTUAL telemetry and driver data provided below. Do NOT make up data.`,
+        spotter: `You are a professional race spotter speaking to your driver over live radio.
+Your job is situational awareness, urgency, and clarity. Use short, punchy radio language.
+Call threats, opportunities, traffic, and race state cleanly. Prefer one sentence unless detail is necessary.
+IMPORTANT: Use the ACTUAL telemetry and driver data provided below. Do NOT make up data.`,
+        analyst: `You are a motorsport performance analyst speaking to your driver over radio.
+Be precise, data-focused, and concise. Cite specific numbers when they matter, but keep it brief enough for a driver at speed.
+Prioritize pace trends, consistency, degradation, and what the data implies next.
+IMPORTANT: Use the ACTUAL telemetry and driver data provided below. Do NOT make up data.`,
+        strategist: `You are the driver's race strategist speaking over radio.
+Focus on pit timing, fuel windows, tire life, traffic risk, and race-position tradeoffs.
+Deliver a decisive call in 1-2 sentences with the strongest actionable recommendation first.
+IMPORTANT: Use the ACTUAL telemetry and driver data provided below. Do NOT make up data.`,
+        crewChief: `You are the driver's crew chief speaking over radio.
+Synthesize the engineer, strategist, and spotter viewpoints into one clear command.
+Be authoritative, calm, and practical. Give the priority call first, then one supporting detail if needed.
+IMPORTANT: Use the ACTUAL telemetry and driver data provided below. Do NOT make up data.`,
+    };
+
+    return `${prompts[role]}
+
+${driverKnowledge}
+${telemetryInfo}`;
 }
 
 // ============================================================================
@@ -145,31 +184,43 @@ export class WhisperService {
             const startTime = Date.now();
             const { extension, mimeType } = getAudioFileMetadata(request.format);
 
-            // Create a File-like upload using the OpenAI helper expected by the SDK
-            const file = await toFile(request.audioBuffer, `audio.${extension}`, { type: mimeType });
-            
-            const transcription = await this.openai.audio.transcriptions.create({
-                file,
-                model: WHISPER_MODEL,
-                language: request.language,
-                prompt
-            });
+            // Write to temp file for reliable format detection by OpenAI
+            const tmpDir = mkdtempSync(join(tmpdir(), 'whisper-'));
+            const tmpPath = join(tmpDir, `audio.${extension}`);
+            writeFileSync(tmpPath, request.audioBuffer);
+            console.log(`🎙️ Wrote ${request.audioBuffer.length} bytes to ${tmpPath} (${mimeType})`);
 
-            const durationMs = Date.now() - startTime;
+            try {
+                const transcription = await this.openai.audio.transcriptions.create({
+                    file: createReadStream(tmpPath),
+                    model: WHISPER_MODEL,
+                    language: request.language,
+                    prompt
+                });
 
-            console.log(`🎙️ Transcribed: "${transcription.text}" (${durationMs}ms)`);
+                const durationMs = Date.now() - startTime;
 
-            return {
-                success: true,
-                text: transcription.text,
-                durationMs
-            };
+                console.log(`🎙️ Transcribed: "${transcription.text}" (${durationMs}ms)`);
 
-        } catch (error) {
-            console.error('Transcription error:', error);
+                return {
+                    success: true,
+                    text: transcription.text,
+                    durationMs
+                };
+            } finally {
+                // Cleanup temp file
+                try { unlinkSync(tmpPath); } catch { /* ignore */ }
+                try { unlinkSync(tmpDir); } catch { /* ignore - may not be empty */ }
+            }
+
+        } catch (error: any) {
+            const msg = error?.message || 'Unknown error';
+            const status = error?.status || error?.response?.status;
+            const body = error?.error || error?.response?.data;
+            console.error(`Transcription error (status=${status}): ${msg}`, body ? JSON.stringify(body) : '');
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: msg
             };
         }
     }
@@ -196,6 +247,7 @@ export class WhisperService {
         }
 
         const query = transcription.text;
+        const role = isCrewVoiceRole(context.role) ? context.role : 'engineer';
 
         // Generate AI response using chat completion
         try {
@@ -288,14 +340,7 @@ ${standingsInfo}
                 messages: [
                     {
                         role: 'system',
-                        content: `You are a professional race engineer providing real-time radio communication to YOUR driver in iRacing.
-You know this driver personally - their strengths, weaknesses, goals, and history. Use this knowledge to give personalized advice.
-Keep responses brief (1-2 sentences max), clear, and actionable.
-Use racing terminology naturally. Stay calm and focused.
-IMPORTANT: Use the ACTUAL telemetry and driver data provided below. Do NOT make up data.
-
-${driverKnowledge}
-${telemetryInfo}`
+                        content: buildCrewSystemPrompt(role, driverKnowledge, telemetryInfo)
                     },
                     ...context.recentMessages.map((msg, i) => ({
                         role: i % 2 === 0 ? 'user' as const : 'assistant' as const,
@@ -310,7 +355,7 @@ ${telemetryInfo}`
             const aiResponse = completion.choices?.[0]?.message?.content || 'Copy that.';
 
             console.log(`🗣️ Driver: "${query}"`);
-            console.log(`🎧 Engineer: "${aiResponse}"`);
+            console.log(`🎧 ${role}: "${aiResponse}"`);
 
             return { query, response: aiResponse };
 

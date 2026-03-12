@@ -4,7 +4,7 @@
 // =====================================================================
 
 import { randomBytes, createHash } from 'crypto';
-import { sign, verify } from 'jsonwebtoken';
+import { sign, verify, type Secret, type SignOptions } from 'jsonwebtoken';
 import { hash, compare } from 'bcrypt';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import type {
@@ -14,12 +14,13 @@ import type {
     LoginResponse
 } from '@controlbox/common';
 import { pool } from '../../db/client.js';
+import { config } from '../../config/index.js';
 
 // Configuration
-const JWT_SECRET = process.env.JWT_SECRET || 'controlbox-dev-secret-change-in-production';
+const JWT_SECRET: Secret = config.jwtSecret;
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
 const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || '';
-const JWT_EXPIRES_IN = '7d';
+const JWT_EXPIRES_IN: SignOptions['expiresIn'] = config.jwtExpiresIn as SignOptions['expiresIn'];
 const REFRESH_TOKEN_EXPIRES_DAYS = 30;
 const BCRYPT_ROUNDS = 12;
 
@@ -63,6 +64,10 @@ function mapRowToUser(row: AdminUserRow): AdminUser {
     };
 }
 
+function hashRefreshTokenValue(token: string): string {
+    return createHash('sha256').update(token).digest('hex');
+}
+
 export class AuthService {
     /**
      * Hash a password
@@ -101,6 +106,30 @@ export class AuthService {
         } catch {
             return null;
         }
+    }
+
+    /**
+     * Resolve an authenticated user from either an internal JWT or a Supabase JWT.
+     */
+    async resolveUserFromToken(token: string): Promise<AdminUser | null> {
+        const payload = this.verifyAccessToken(token);
+        if (payload) {
+            const user = await this.getUserById(payload.sub);
+            if (user) {
+                return user;
+            }
+        }
+
+        const supabasePayload = await this.verifySupabaseToken(token);
+        if (!supabasePayload) {
+            return null;
+        }
+
+        return this.findOrCreateSupabaseUser(
+            supabasePayload.sub,
+            supabasePayload.email,
+            supabasePayload.displayName || supabasePayload.email.split('@')[0]
+        );
     }
 
     /**
@@ -183,7 +212,7 @@ export class AuthService {
      */
     async generateRefreshToken(userId: string, userAgent?: string, ipAddress?: string): Promise<string> {
         const token = randomBytes(64).toString('hex');
-        const tokenHash = createHash('sha256').update(token).digest('hex');
+        const tokenHash = hashRefreshTokenValue(token);
 
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_EXPIRES_DAYS);
@@ -201,7 +230,7 @@ export class AuthService {
      * Validate and consume a refresh token
      */
     async validateRefreshToken(token: string): Promise<AdminUser | null> {
-        const tokenHash = createHash('sha256').update(token).digest('hex');
+        const tokenHash = hashRefreshTokenValue(token);
 
         const result = await pool.query<AdminUserRow>(
             `SELECT au.* FROM refresh_tokens rt
@@ -224,7 +253,7 @@ export class AuthService {
      * Revoke a refresh token
      */
     async revokeRefreshToken(token: string): Promise<void> {
-        const tokenHash = createHash('sha256').update(token).digest('hex');
+        const tokenHash = hashRefreshTokenValue(token);
 
         await pool.query(
             `UPDATE refresh_tokens SET revoked_at = NOW() WHERE token_hash = $1`,
@@ -315,17 +344,71 @@ export class AuthService {
     /**
      * Refresh access token
      */
-    async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string; expiresAt: number } | null> {
-        const user = await this.validateRefreshToken(refreshToken);
-        if (!user) {
-            return null;
+    async refreshAccessToken(refreshToken: string, userAgent?: string, ipAddress?: string): Promise<{ accessToken: string; refreshToken: string; expiresAt: number } | null> {
+        const tokenHash = hashRefreshTokenValue(refreshToken);
+        const client = await pool.connect();
+
+        try {
+            await client.query('BEGIN');
+
+            const result = await client.query<AdminUserRow & { token_user_agent: string | null; token_ip_address: string | null }>(
+                `SELECT au.*, rt.user_agent AS token_user_agent, rt.ip_address AS token_ip_address
+                 FROM refresh_tokens rt
+                 JOIN admin_users au ON au.id = rt.admin_user_id
+                 WHERE rt.token_hash = $1
+                   AND rt.expires_at > NOW()
+                   AND rt.revoked_at IS NULL
+                   AND au.is_active = true
+                 FOR UPDATE`,
+                [tokenHash]
+            );
+
+            if (result.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return null;
+            }
+
+            const userRow = result.rows[0];
+
+            await client.query(
+                `UPDATE refresh_tokens
+                 SET revoked_at = NOW()
+                 WHERE token_hash = $1
+                   AND revoked_at IS NULL`,
+                [tokenHash]
+            );
+
+            const nextRefreshToken = randomBytes(64).toString('hex');
+            const nextRefreshTokenHash = hashRefreshTokenValue(nextRefreshToken);
+            const nextRefreshTokenExpiresAt = new Date();
+            nextRefreshTokenExpiresAt.setDate(nextRefreshTokenExpiresAt.getDate() + REFRESH_TOKEN_EXPIRES_DAYS);
+
+            await client.query(
+                `INSERT INTO refresh_tokens (admin_user_id, token_hash, expires_at, user_agent, ip_address)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [
+                    userRow.id,
+                    nextRefreshTokenHash,
+                    nextRefreshTokenExpiresAt,
+                    userAgent ?? userRow.token_user_agent,
+                    ipAddress ?? userRow.token_ip_address,
+                ]
+            );
+
+            await client.query('COMMIT');
+
+            const user = mapRowToUser(userRow);
+            const accessToken = this.generateAccessToken(user);
+            const decoded = this.verifyAccessToken(accessToken);
+            const expiresAt = decoded?.exp ?? 0;
+
+            return { accessToken, refreshToken: nextRefreshToken, expiresAt };
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
         }
-
-        const accessToken = this.generateAccessToken(user);
-        const decoded = this.verifyAccessToken(accessToken);
-        const expiresAt = decoded?.exp ?? 0;
-
-        return { accessToken, expiresAt };
     }
 
     /**

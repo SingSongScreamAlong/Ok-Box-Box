@@ -5,18 +5,18 @@
 | Service | Domain | Codebase Location | Run Command |
 |---------|--------|-------------------|-------------|
 | **Marketing Website** | `okboxbox.com` | `apps/website` | `npm run website` |
-| **Application UI** | `app.okboxbox.com` | `packages/dashboard` | `npm run app` |
-| **API** | `api.okboxbox.com` | `packages/server` | `npm run api` |
+| **Application UI** | `app.okboxbox.com` | `apps/app` | `npm run app` |
+| **API** | `app.okboxbox.com` | `packages/server` | `npm run api` |
 
-> **THIS IS THE ONLY DASHBOARD:** `packages/dashboard` (run: `npm run app`).
+> **THIS IS THE ONLY APPLICATION UI:** `apps/app` (run: `npm run app`).
 
 ## 2) Canonical Apps
 
 Exactly one canonical location for each app:
 
 - **Website (marketing):** `apps/website`
-- **App (dashboard):** `packages/dashboard`
-- **Relay (electron):** `apps/relay`
+- **App (application UI):** `apps/app`
+- **Relay (desktop app):** `apps/desktop`
 
 ## 3) Canonical User Flow (Linear)
 
@@ -28,7 +28,7 @@ Exactly one canonical location for each app:
   - driver/team/league/broadcast surfaces
 - **Relay (desktop app)**
   - connects simulator telemetry to the platform
-- **API (api.okboxbox.com)**
+- **API (app.okboxbox.com)**
   - product backend
 
 ## 4) Canonical UI Entrypoints (Application UI)

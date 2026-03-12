@@ -2,8 +2,8 @@ const http = require('http');
 const { io } = require('socket.io-client');
 
 // CONFIG
-const API_URL = 'http://localhost:3000/api';
-const WS_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:3001/api';
+const WS_URL = 'http://localhost:3001';
 // To test authenticated tier, paste a valid Bearer token here:
 const AUTH_TOKEN = '';
 

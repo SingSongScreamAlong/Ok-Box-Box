@@ -26,7 +26,7 @@ Python Relay (iracing_relay.py)
     ↓ local socket.io (port 9999)
 Electron Bridge (python-bridge-simple.ts)
     ↓ socket.io (dual-ship)
-    ├── Production Server (octopus-app-qsi3i.ondigitalocean.app)
+    ├── Production Server (api.okboxbox.com)
     └── Local Standalone Server (localhost:3001)
          ↓
     TelemetryHandler.ts
@@ -88,7 +88,7 @@ Electron Bridge (python-bridge-simple.ts)
 
 | Target | URL | Status |
 |--------|-----|--------|
-| Cloud | `https://octopus-app-qsi3i.ondigitalocean.app` | ✅ Confirmed |
+| Cloud | `https://api.okboxbox.com` | Current canonical production API host |
 | Local | `http://localhost:3001` | ✅ Confirmed |
 
 ---

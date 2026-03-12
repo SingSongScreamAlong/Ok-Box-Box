@@ -246,7 +246,7 @@ class OkBoxBoxRelay(ctk.CTk):
         
         # Server
         self._add_setting_row(content, "Server URL", "BLACKBOX_SERVER_URL", 
-                             current.get("BLACKBOX_SERVER_URL", "https://octopus-app-qsi3i.ondigitalocean.app"))
+                             current.get("BLACKBOX_SERVER_URL", "https://api.okboxbox.com"))
         
         # Save button
         btn_save = ctk.CTkButton(content, text="Save Settings", font=("Segoe UI Bold", 14),

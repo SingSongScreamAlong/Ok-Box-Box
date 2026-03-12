@@ -10,7 +10,7 @@ class SettingsManager:
     def __init__(self):
         self.env_path = Path(__file__).parent / '.env'
         self._defaults = {
-            'BLACKBOX_SERVER_URL': os.getenv('BLACKBOX_SERVER_URL', 'http://localhost:3000'),
+            'BLACKBOX_SERVER_URL': os.getenv('BLACKBOX_SERVER_URL', 'http://localhost:3001'),
             'RELAY_ID': 'pitbox-relay-1',
             'PTT_TYPE': 'keyboard', # or 'joystick'
             'PTT_KEY': 'space',

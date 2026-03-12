@@ -29,6 +29,7 @@ services:
     # Route rules - which paths this component handles
     routes:
       - path: /api
+      - path: /metrics
       - path: /oauth/iracing
     
     # Health check
@@ -72,6 +73,8 @@ services:
       # CORS - Allow app and marketing site origins
       - key: CORS_ORIGINS
         value: "https://app.okboxbox.com,https://okboxbox.com,https://www.okboxbox.com"
+      - key: APP_URL
+        value: "https://app.okboxbox.com"
       
       # Stripe Billing
       - key: STRIPE_SECRET_KEY
@@ -105,6 +108,14 @@ services:
       - key: OPENAI_API_KEY
         scope: RUN_TIME
         type: SECRET
+      - key: ELEVENLABS_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+
+      - key: METRICS_ENABLED
+        value: "true"
+      - key: OPS_UI_ENABLED
+        value: "1"
       
       # Dashboard URL for billing redirects (must be the app, not the marketing site)
       - key: DASHBOARD_URL
@@ -133,9 +144,9 @@ static_sites:
     # Environment for build
     envs:
       - key: VITE_API_URL
-        value: "https://octopus-app-qsi3i.ondigitalocean.app"
+        value: "https://app.okboxbox.com"
       - key: VITE_WS_URL
-        value: "wss://octopus-app-qsi3i.ondigitalocean.app"
+        value: "wss://app.okboxbox.com"
       - key: VITE_SUPABASE_URL
         scope: BUILD_TIME
         type: SECRET

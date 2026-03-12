@@ -115,9 +115,7 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-COPY packages/common/package*.json ./packages/common/
-COPY packages/protocol/package*.json ./packages/protocol/
-COPY packages/dashboard/package*.json ./packages/dashboard/
+COPY apps/app/package*.json ./apps/app/
 
 # Install dependencies
 RUN npm ci
@@ -132,20 +130,16 @@ ENV VITE_WS_URL=$VITE_WS_URL
 
 # Copy source
 COPY tsconfig.base.json ./
-COPY packages/common ./packages/common
-COPY packages/protocol ./packages/protocol
-COPY packages/dashboard ./packages/dashboard
+COPY apps/app ./apps/app
 
-# Build common, protocol, then dashboard
-RUN npm run build -w packages/common && \
-    npm run build -w packages/protocol && \
-    npm run build -w packages/dashboard
+# Build app
+RUN npm run build -w apps/app
 
 # Production stage - nginx
 FROM nginx:alpine
 
-# Copy built dashboard
-COPY --from=builder /app/packages/dashboard/dist /usr/share/nginx/html
+# Copy built app
+COPY --from=builder /app/apps/app/dist /usr/share/nginx/html
 
 # Custom nginx config
 RUN cat > /etc/nginx/conf.d/default.conf << 'NGINX'

@@ -14,7 +14,7 @@ export interface RelaySettings {
     skippedVersion: string | null;
 }
 
-const DEFAULT_API_URL = process.env.OKBOXBOX_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+const DEFAULT_API_URL = process.env.OKBOXBOX_API_URL || 'https://app.okboxbox.com';
 const DEFAULT_APP_URL = process.env.OKBOXBOX_APP_URL || 'https://app.okboxbox.com';
 // In production: RELAY_SECRET env var authenticates the relay without a user token
 const DEFAULT_RELAY_ID = process.env.RELAY_SECRET || `okboxbox-relay-${randomUUID()}`;

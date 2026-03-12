@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import { useTrackData } from '../hooks/useTrackData';
-import { getTrackId } from '../data/tracks';
+import { getTrackData, getTrackId } from '../data/tracks';
 import { getPointAtPercentage } from '../utils/trackMath';
 
 interface TrackMapProps {
@@ -24,6 +24,7 @@ export function TrackMap({
 }: TrackMapProps) {
     const shapeId = getShapeId(trackId);
     const { shape, loading, error } = useTrackData(shapeId);
+    const trackMetadata = getTrackData(trackId);
 
     // Generate SVG Path from Centerline
     const pathData = useMemo(() => {
@@ -71,6 +72,7 @@ export function TrackMap({
 
     if (loading) return <div className="text-white/50 animate-pulse text-xs">Loading Track...</div>;
     if (error || !shape) return <div className="text-red-500 text-xs text-center borderBorder border-red-900/30 p-2 rounded bg-black/50">Track shape not found ({shapeId})</div>;
+    if (shape.isFallback) return <div className="text-white/30 text-xs text-center p-2 rounded bg-black/50 font-mono">Track shape unavailable ({trackMetadata?.name || trackId})</div>;
 
     return (
         <div className={`relative w-full h-full ${className}`}>
@@ -129,7 +131,7 @@ export function TrackMap({
                     <motion.g
                         initial={{ x: carCoords.x, y: carCoords.y }}
                         animate={{ x: carCoords.x, y: carCoords.y }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                        transition={{ duration: 0.24, ease: 'linear' }}
                     >
                         {/* Pulsing Dot */}
                         <circle r="20" fill={activeColor} opacity="0.4">

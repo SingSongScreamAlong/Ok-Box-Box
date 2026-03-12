@@ -194,7 +194,7 @@
 | `/api/v1/schedule/*` | Upcoming races |
 | `/api/v1/auth/*` | Authentication, OAuth |
 
-## 6.2 Relay Agent (`apps/relay-agent/`)
+## 6.2 Relay Agent (`tools/relay-agent/`)
 
 | Feature | What It Does |
 |---------|--------------|

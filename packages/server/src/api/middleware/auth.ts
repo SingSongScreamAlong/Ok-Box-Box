@@ -71,25 +71,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     }
 
     const authService = getAuthService();
-    let user: AdminUser | null = null;
-
-    // 1. Try internal JWT first
-    const payload = authService.verifyAccessToken(token);
-    if (payload) {
-        user = await authService.getUserById(payload.sub);
-    }
-
-    // 2. Fallback: Try Supabase JWT (from apps/app frontend)
-    if (!user) {
-        const supabasePayload = await authService.verifySupabaseToken(token);
-        if (supabasePayload) {
-            user = await authService.findOrCreateSupabaseUser(
-                supabasePayload.sub,
-                supabasePayload.email,
-                supabasePayload.displayName || supabasePayload.email.split('@')[0]
-            );
-        }
-    }
+    const user = await authService.resolveUserFromToken(token);
 
     if (!user || !user.isActive) {
         res.status(401).json({
@@ -138,25 +120,7 @@ export async function optionalAuth(req: Request, _res: Response, next: NextFunct
     }
 
     const authService = getAuthService();
-    let user: AdminUser | null = null;
-
-    // 1. Try internal JWT
-    const payload = authService.verifyAccessToken(token);
-    if (payload) {
-        user = await authService.getUserById(payload.sub);
-    }
-
-    // 2. Fallback: Try Supabase JWT
-    if (!user) {
-        const supabasePayload = await authService.verifySupabaseToken(token);
-        if (supabasePayload) {
-            user = await authService.findOrCreateSupabaseUser(
-                supabasePayload.sub,
-                supabasePayload.email,
-                supabasePayload.displayName || supabasePayload.email.split('@')[0]
-            );
-        }
-    }
+    const user = await authService.resolveUserFromToken(token);
 
     if (user && user.isActive) {
         // Fetch entitlements for rate limiting

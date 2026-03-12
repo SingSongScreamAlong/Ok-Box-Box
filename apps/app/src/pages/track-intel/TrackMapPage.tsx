@@ -5,7 +5,7 @@ import { TurnDetailPanel } from '../../components/track-intel/TurnDetailPanel';
 import { TeamPrepPanel } from '../../components/track-intel/TeamPrepPanel';
 import { Activity, ClipboardList } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001' : 'https://app.okboxbox.com');
 
 interface TrackData {
   id: string;

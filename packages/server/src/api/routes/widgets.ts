@@ -292,7 +292,7 @@ router.get('/:leagueId/countdown', async (req: Request, res: Response) => {
 router.get('/embed.js', (_req: Request, res: Response) => {
     const script = `
 (function() {
-    const API_BASE = window.CONTROLBOX_API || 'https://control.okboxbox.com/api/widgets';
+    const API_BASE = window.CONTROLBOX_API || 'https://app.okboxbox.com/api/widgets';
     
     document.querySelectorAll('[data-controlbox-widget]').forEach(async el => {
         const type = el.dataset.controlboxWidget;

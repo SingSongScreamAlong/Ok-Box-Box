@@ -4,7 +4,7 @@ import { Settings, Download, Upload, Star, Loader2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { PitwallBackground } from '../../components/PitwallBackground';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001' : 'https://app.okboxbox.com');
 
 interface Setup {
   id: string;

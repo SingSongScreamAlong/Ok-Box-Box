@@ -17,9 +17,9 @@ if local_env.exists():
     load_dotenv(local_env, override=True)
 
 # PitBox Server Connection (local or cloud)
-# Production API: https://octopus-app-qsi3i.ondigitalocean.app
+# Production API: https://api.okboxbox.com
 # Local dev: http://localhost:3001
-CLOUD_URL = os.getenv('BLACKBOX_SERVER_URL', 'https://octopus-app-qsi3i.ondigitalocean.app')
+CLOUD_URL = os.getenv('BLACKBOX_SERVER_URL', 'https://api.okboxbox.com')
 AI_AGENT_URL = os.getenv('AI_AGENT_URL', 'http://localhost:3001')
 
 # Relay Identification

@@ -4,9 +4,10 @@
 
 | Path | Run Command | What it is used for | Status |
 |------|------------|---------------------|--------|
-| `packages/dashboard` | `npm run app` | Canonical application UI (dashboard) | **CANONICAL** |
+| `apps/app` | `npm run app` | Canonical application UI | **CANONICAL** |
 | `apps/website` | `npm run website` | Marketing site only | **CANONICAL** |
-| `apps/relay` | `npm run relay` | Electron relay desktop app | **CANONICAL** |
+| `apps/desktop` | `npm run relay` | Canonical desktop relay app | **CANONICAL** |
+| `apps/relay` | `npm run relay:legacy` | Legacy relay desktop app | **LEGACY-REFERENCE** |
 | `packages/server` | `npm run api` | API server | **CANONICAL** |
 | `legacy/ProjectBlackBox/dashboard` | `npm run legacy:dashboard` | Legacy Live Race Ops Console (LROC) UI | **LEGACY-REFERENCE** |
 | `legacy/ProjectBlackBox/blackbox-web` | `npm run legacy:website` | Legacy Next.js web UI | **DELETE-CANDIDATE** |
@@ -20,7 +21,7 @@ Legacy LROC location: `legacy/ProjectBlackBox/dashboard`
 
 - **Decision:** **LEGACY-REFERENCE (read-only)**
 - **Rule:** Do not “half migrate” this UI. Only port features into the canonical app.
-- **Canonical replacement surface:** `packages/dashboard` route `/team/pitwall`
+- **Canonical replacement surface:** `apps/app` route `/team/pitwall`
 - **Status:** Implemented minimal skeleton in canonical app.
 
 ## 3) Duplicate Dashboard Prevention
@@ -32,7 +33,7 @@ Legacy LROC location: `legacy/ProjectBlackBox/dashboard`
 
 - `apps/website` is marketing only and is the public entry point.
 - Website `/login` must redirect to `app.okboxbox.com/login`.
-- No shared layouts/components between `apps/website` and `packages/dashboard`.
+- No shared layouts/components between `apps/website` and `apps/app`.
 
 ## 5) Cleanup Plan
 

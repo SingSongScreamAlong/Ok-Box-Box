@@ -17,7 +17,7 @@
    
    The `.do/app.yaml` will auto-configure, but verify:
    - **API**: Dockerfile, port 8080
-   - **Dashboard**: Static site, `packages/dashboard`
+   - **App**: Static site, `apps/app`
 
 4. **Add Environment Variables**
    
@@ -25,7 +25,7 @@
    |----------|------|-------|
    | `DATABASE_URL` | Secret | From DO Managed DB or external |
    | `JWT_SECRET` | Secret | Generate: `openssl rand -hex 32` |
-   | `CORS_ORIGINS` | Plain | Your dashboard URL |
+   | `CORS_ORIGINS` | Plain | Your app URL |
    | `OPENAI_API_KEY` | Secret | Optional (has fallback) |
    | `DISCORD_BOT_TOKEN` | Secret | Optional |
    | `DO_SPACES_ENDPOINT` | Plain | `https://nyc3.digitaloceanspaces.com` |
@@ -113,7 +113,7 @@ psql $DATABASE_URL
 
 **App Platform**: Automatic SSL included.
 
-**Droplet**: Use Caddy or nginx with Let's Encrypt:
+**App**: Use Caddy or nginx with Let's Encrypt:
 
 ```bash
 # Install Caddy
@@ -125,7 +125,7 @@ your-domain.com {
     reverse_proxy localhost:8080
 }
 
-dashboard.your-domain.com {
+app.your-domain.com {
     reverse_proxy localhost:3000
 }
 EOF
@@ -150,7 +150,7 @@ curl https://your-api-domain/api/health
 | Component | App Platform | Droplet |
 |-----------|--------------|---------|
 | API Server | $5/mo | $6/mo (shared) |
-| Dashboard | $3/mo | included |
+| App | $3/mo | included |
 | PostgreSQL | $7/mo | $7/mo (managed) |
 | **Total** | **~$15/mo** | **~$13/mo** |
 
@@ -170,6 +170,6 @@ curl https://your-api-domain/api/health
 - Check logs: `docker compose logs api`
 - Verify environment variables set
 
-**Dashboard can't reach API**
+**App can't reach API**
 - Check `VITE_API_URL` matches API URL
-- Verify CORS_ORIGINS includes dashboard domain
+- Verify `CORS_ORIGINS` includes app domain

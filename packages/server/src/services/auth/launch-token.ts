@@ -9,8 +9,10 @@
 
 import jwt from 'jsonwebtoken';
 import { randomBytes } from 'crypto';
+import { config } from '../../config/index.js';
+import type { Capabilities } from '../billing/entitlement-service.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me-in-prod';
+const JWT_SECRET = config.jwtSecret;
 const TOKEN_EXPIRY_SECONDS = 60;
 
 // ============================================================================
@@ -45,10 +47,10 @@ export interface LaunchTokenResult {
 export function generateLaunchToken(
     userId: string,
     surface: LaunchSurface,
-    capabilities: Record<string, boolean>
+    capabilities: Pick<Capabilities, 'driver_hud' | 'pitwall_view' | 'incident_review'>
 ): LaunchTokenResult | null {
     // Check capability for requested surface
-    const SURFACE_CAPABILITY_MAP: Record<LaunchSurface, string> = {
+    const SURFACE_CAPABILITY_MAP: Record<LaunchSurface, keyof Pick<Capabilities, 'driver_hud' | 'pitwall_view' | 'incident_review'>> = {
         driver: 'driver_hud',
         team: 'pitwall_view',
         racecontrol: 'incident_review'
@@ -77,7 +79,7 @@ export function generateLaunchToken(
 
     // Build URLs
     const protocolUrl = `okboxbox://launch?token=${encodeURIComponent(token)}`;
-    const webBase = process.env.APP_URL || 'https://control.okboxbox.com';
+    const webBase = process.env.APP_URL || 'https://app.okboxbox.com';
     const fallbackUrl = `${webBase}/launch?token=${encodeURIComponent(token)}`;
 
     return {

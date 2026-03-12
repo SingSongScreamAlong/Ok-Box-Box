@@ -172,7 +172,7 @@ export function DebriefCard({ sessionMemory, timeSinceSession }: DebriefCardProp
       {/* Actions */}
       <div className="flex items-center justify-center gap-4 pt-4">
         <Link 
-          to="/driver/crew/analyst"
+          to="/driver/idp"
           className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded text-xs uppercase tracking-wider hover:bg-purple-500/30 transition-colors"
         >
           Deep Dive Analysis

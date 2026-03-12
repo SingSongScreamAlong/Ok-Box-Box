@@ -32,7 +32,8 @@ import { getCurrentTraits } from '../../db/repositories/driver-traits.repo.js';
 import { getReportsForDriver } from '../../db/repositories/driver-reports.repo.js';
 import { chatCompletion, isLLMConfigured } from '../../services/ai/llm-service.js';
 import { getTelemetryForVoice } from '../../websocket/telemetry-cache.js';
-import { getWhisperService, getVoiceService, VOICE_PRESETS } from '../../services/voice/index.js';
+import { getWhisperService, getVoiceService } from '../../services/voice/index.js';
+import { getVoicePresetForRole, isCrewVoiceRole } from '../../services/voice/voice-service.js';
 import { getAnalyzer } from '../../services/ai/live-session-analyzer.js';
 import { getRunState } from '../../services/telemetry/behavioral-worker.js';
 import {
@@ -2115,6 +2116,20 @@ DURING A LIVE SESSION you have access to ACCUMULATED RACE INTELLIGENCE with deep
 
 IMPORTANT: Never make up data. Only reference numbers from the data below. If you see patterns, explain them.${liveInstructions}${noLiveNote}
 \n${allContext}`,
+
+            strategist: `You are a professional race strategist working with a sim racer on iRacing.
+You optimize race outcome through pit timing, fuel windows, tire life, traffic management, and risk trade-offs.
+Lead with the strongest recommendation first. Be decisive, concise, and specific about why the strategy is right.
+During live sessions, prioritize pit window, undercut/overcut risk, fuel burn, tire state, and position consequences.
+IMPORTANT: Never make up data. Only reference numbers from the data below.${liveInstructions}${noLiveNote}
+\n${allContext}`,
+
+            crewChief: `You are a professional crew chief working with a sim racer on iRacing.
+You synthesize engineer, strategist, and spotter inputs into one clear race command.
+Be authoritative, practical, and calm. Lead with the priority action, then one supporting reason.
+During live sessions, combine car state, race context, and driver tendencies into the best next call.
+IMPORTANT: Never make up data. Only reference numbers from the data below.${liveInstructions}${noLiveNote}
+\n${allContext}`,
         };
 
         const systemPrompt = systemPrompts[role] || systemPrompts.engineer;
@@ -2125,6 +2140,8 @@ IMPORTANT: Never make up data. Only reference numbers from the data below. If yo
                 engineer: `I've reviewed your data. ${driverContext ? 'Based on your recent sessions, focus on consistency and clean racing.' : 'Connect your iRacing account so I can analyze your sessions.'} Let me know what you'd like to work on.`,
                 spotter: `Copy that. ${driverContext ? 'I see your recent results — let\'s talk race strategy.' : 'Link your iRacing account and I\'ll have your data ready.'} What do you need?`,
                 analyst: `Looking at the numbers. ${driverContext ? 'Your recent performance data shows some interesting patterns.' : 'I\'ll need your iRacing data connected to provide analysis.'} What would you like me to dig into?`,
+                strategist: `Copy. ${driverContext ? 'I\'ve got the race numbers in front of me.' : 'Link your iRacing data and I\'ll build the strategy picture.'} What call do you want me to solve?`,
+                crewChief: `Understood. ${driverContext ? 'I\'ll make the call from the full race picture.' : 'Get your data linked and I\'ll have the whole operation ready.'} What do you need right now?`,
             };
             res.json({ response: fallbacks[role] || fallbacks.engineer });
             return;
@@ -2174,6 +2191,7 @@ IMPORTANT: Never make up data. Only reference numbers from the data below. If yo
 router.post('/me/voice-chat', requireAuth, async (req: Request, res: Response): Promise<void> => {
     try {
         const { audio, role = 'engineer', history } = req.body;
+        const resolvedRole = isCrewVoiceRole(role) ? role : 'engineer';
 
         if (!audio) {
             res.status(400).json({ error: 'audio (base64) is required' });
@@ -2196,7 +2214,7 @@ router.post('/me/voice-chat', requireAuth, async (req: Request, res: Response): 
         }
 
         const transcript = transcription.text;
-        apiLogger.info(`[VoiceChat] ${role} ← "${transcript}"`);
+        apiLogger.info(`[VoiceChat] ${resolvedRole} ← "${transcript}"`);
 
         // 2. Build crew context — identical to crew-chat (full telemetry + historical data)
         const profile = await getDriverProfileByUserId(req.user!.id);
@@ -2238,9 +2256,19 @@ VOICE MODE — 1 sentence unless they ask for detail. They are racing.${liveInst
 Precise, cite specific numbers when available. Conversational but data-focused.
 VOICE MODE — 1-2 sentences max. Save the full debrief for after the session.${liveInstructions}
 \n${allContext}`,
+
+            strategist: `You are a professional race strategist talking to your driver over radio.
+Prioritize pit timing, fuel windows, tire life, and position trade-offs.
+VOICE MODE — 1-2 sentences max. Lead with the strongest call.${liveInstructions}
+\n${allContext}`,
+
+            crewChief: `You are the crew chief talking to your driver over radio.
+Synthesize the engineer, spotter, and strategist views into one decisive instruction.
+VOICE MODE — 1-2 sentences max. Give the command first, then the key reason.${liveInstructions}
+\n${allContext}`,
         };
 
-        const systemPrompt = systemPrompts[role] || systemPrompts.engineer;
+        const systemPrompt = systemPrompts[resolvedRole] || systemPrompts.engineer;
 
         let responseText = '';
 
@@ -2249,8 +2277,10 @@ VOICE MODE — 1-2 sentences max. Save the full debrief for after the session.${
                 engineer: 'Copy that. Keep your head in it.',
                 spotter: 'Copy.',
                 analyst: 'Noted. We\'ll debrief after.',
+                strategist: 'Copy. Stand by for the call.',
+                crewChief: 'Understood. Execute the priority and keep focused.',
             };
-            responseText = fallbacks[role] || fallbacks.engineer;
+            responseText = fallbacks[resolvedRole] || fallbacks.engineer;
         } else {
             const messages: { role: 'system' | 'user' | 'assistant'; content: string }[] = [
                 { role: 'system', content: systemPrompt },
@@ -2271,15 +2301,16 @@ VOICE MODE — 1-2 sentences max. Save the full debrief for after the session.${
                 : 'Copy, standby.';
         }
 
-        apiLogger.info(`[VoiceChat] ${role} → "${responseText}"`);
+        apiLogger.info(`[VoiceChat] ${resolvedRole} → "${responseText}"`);
 
         // 3. Convert response to speech (ElevenLabs)
         let audioBase64: string | undefined;
         const voiceService = getVoiceService();
         if (voiceService.isServiceAvailable()) {
+            const voicePreset = getVoicePresetForRole(resolvedRole);
             const ttsResult = await voiceService.textToSpeech({
                 text: responseText,
-                ...VOICE_PRESETS.raceEngineer,
+                ...voicePreset,
             });
             if (ttsResult.success && ttsResult.audioBuffer) {
                 audioBase64 = ttsResult.audioBuffer.toString('base64');
@@ -2366,15 +2397,7 @@ export function buildDriverContextForAI(profile: any, aggregate: any, traits: an
     return lines.join('\n');
 }
 
-export function buildLiveTelemetryContext(): string {
-    // Try both 'live' key and any active session
-    const snapshot = getTelemetryForVoice('live');
-    if (!snapshot || !snapshot.updatedAt) return '';
-
-    // Stale check — if data is older than 30 seconds, session is probably over
-    const age = Date.now() - snapshot.updatedAt;
-    if (age > 30000) return '';
-
+function buildLiveTelemetryContextFromSnapshot(snapshot: any, contextSessionId: string): string {
     const lines: string[] = [];
     lines.push('\n--- LIVE SESSION DATA (REAL-TIME) ---');
 
@@ -2494,7 +2517,7 @@ export function buildLiveTelemetryContext(): string {
 
     // LIVE BEHAVIORAL INDICES from BehavioralWorker
     // Real-time technique analysis computed from telemetry stream
-    const behavioralState = getRunState('live');
+    const behavioralState = getRunState(contextSessionId) || getRunState('live');
     if (behavioralState && behavioralState.totalTicks > 100) {
         lines.push('');
         lines.push('--- LIVE TECHNIQUE ANALYSIS ---');
@@ -2541,7 +2564,7 @@ export function buildLiveTelemetryContext(): string {
 
     // ACCUMULATED RACE INTELLIGENCE from LiveSessionAnalyzer
     // This gives the AI the full story of the race so far — not just a snapshot
-    const analyzer = getAnalyzer('live');
+    const analyzer = getAnalyzer(contextSessionId) || getAnalyzer('live');
     if (analyzer && snapshot.tireWear && snapshot.fuelLevel != null) {
         const analysisContext = analyzer.buildContextForAI({
             fuelLevel: snapshot.fuelLevel,
@@ -2559,6 +2582,18 @@ export function buildLiveTelemetryContext(): string {
     }
 
     return lines.join('\n');
+}
+
+export function buildLiveTelemetryContext(sessionId?: string): string {
+    // Try requested session first, then fall back to the live alias
+    const resolvedSessionId = sessionId || 'live';
+    const snapshot = (sessionId ? getTelemetryForVoice(sessionId) : undefined) || getTelemetryForVoice('live');
+    if (!snapshot || !snapshot.updatedAt) return '';
+
+    // Stale check — if data is older than 30 seconds, session is probably over
+    const age = Date.now() - snapshot.updatedAt;
+    if (age > 30000) return '';
+    return buildLiveTelemetryContextFromSnapshot(snapshot, resolvedSessionId);
 }
 
 // Cache for voice driver context — keyed by driver profile ID, TTL 10 min.

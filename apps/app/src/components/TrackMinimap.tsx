@@ -59,6 +59,15 @@ export function TrackMinimap({ trackName, trackPosition, otherCars, incidents, c
         );
     }
 
+    if (shape.isFallback) {
+        return (
+            <div className={`flex flex-col items-center justify-center text-center text-white/30 text-[10px] font-mono px-3 ${className}`}>
+                <div>TRACK SHAPE UNAVAILABLE</div>
+                <div className="text-white/20 mt-1">{trackName}</div>
+            </div>
+        );
+    }
+
     return (
         <div className={`relative ${className}`}>
             <svg viewBox={viewBox} className="w-full h-full">
@@ -86,7 +95,7 @@ export function TrackMinimap({ trackName, trackPosition, otherCars, incidents, c
 
                 {/* Other cars — small dots */}
                 {otherCars?.map((car, i) => {
-                    if (car.isPlayer || !car.trackPercentage) return null;
+                    if (car.isPlayer || car.trackPercentage == null) return null;
                     const c = getPointAtPercentage(shape, car.trackPercentage);
                     if (!c) return null;
                     return (
@@ -97,7 +106,7 @@ export function TrackMinimap({ trackName, trackPosition, otherCars, incidents, c
                             opacity="0.7"
                             initial={{ cx: c.x, cy: c.y }}
                             animate={{ cx: c.x, cy: c.y }}
-                            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                            transition={{ duration: 0.28, ease: 'linear' }}
                         />
                     );
                 })}
@@ -107,7 +116,7 @@ export function TrackMinimap({ trackName, trackPosition, otherCars, incidents, c
                     <motion.g
                         initial={{ x: playerCoords.x, y: playerCoords.y }}
                         animate={{ x: playerCoords.x, y: playerCoords.y }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                        transition={{ duration: 0.24, ease: 'linear' }}
                     >
                         <circle r="10" fill="#06b6d4" fillOpacity="0.2" />
                         <circle r="6" fill="#06b6d4" />

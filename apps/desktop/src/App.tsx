@@ -6,6 +6,10 @@ import bgVideo from './assets/bg.mp4';
 interface Status {
   iracing: boolean;
   server: boolean;
+  iracingState: 'connected' | 'waiting' | 'disconnected';
+  serverState: 'connected' | 'disconnected' | 'error';
+  voiceState: 'starting' | 'ready' | 'fallback' | 'listening' | 'processing' | 'error';
+  voiceDetail: string;
   mode: 'waiting' | 'driving' | 'spectating';
 }
 
@@ -21,6 +25,8 @@ interface Message {
   timestamp: number;
 }
 
+type CrewRole = 'engineer' | 'spotter';
+
 interface Settings {
   audioInput: string;
   audioOutput: string;
@@ -28,6 +34,26 @@ interface Settings {
   pttKey: string;
   joystickId: number;
   joystickButton: number;
+  crewRole: CrewRole;
+}
+
+const DEFAULT_SETTINGS: Settings = {
+  audioInput: 'default',
+  audioOutput: 'default',
+  pttType: 'keyboard',
+  pttKey: 'Space',
+  joystickId: 0,
+  joystickButton: 0,
+  crewRole: 'engineer',
+};
+
+const CREW_ROLE_LABELS: Record<CrewRole, string> = {
+  engineer: 'Engineer',
+  spotter: 'Spotter',
+};
+
+function normalizeLiveCrewRole(value: unknown): CrewRole {
+  return value === 'spotter' ? 'spotter' : 'engineer';
 }
 
 interface AudioDevice {
@@ -43,7 +69,7 @@ interface GamepadInfo {
 }
 
 function App() {
-  const [status, setStatus] = useState<Status>({ iracing: false, server: false, mode: 'waiting' });
+  const [status, setStatus] = useState<Status>({ iracing: false, server: false, iracingState: 'waiting', serverState: 'disconnected', voiceState: 'starting', voiceDetail: 'Starting', mode: 'waiting' });
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [loginError, setLoginError] = useState('');
@@ -53,18 +79,12 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [settings, setSettings] = useState<Settings>({
-    audioInput: 'default',
-    audioOutput: 'default',
-    pttType: 'keyboard',
-    pttKey: 'Space',
-    joystickId: 0,
-    joystickButton: 0,
-  });
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [audioDevices, setAudioDevices] = useState<AudioDevice[]>([]);
   const [gamepads, setGamepads] = useState<GamepadInfo[]>([]);
   const [listeningForKey, setListeningForKey] = useState(false);
   const [listeningForButton, setListeningForButton] = useState(false);
+  const [pttFallbackMode, setPttFallbackMode] = useState(false);
 
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -76,6 +96,18 @@ function App() {
   const recordingStartedAtRef = useRef(0);
   const recordingMimeTypeRef = useRef('audio/wav');
   const videoRef = useRef<HTMLVideoElement>(null);
+  const isRecordingRef = useRef(false);
+  const isStartingRecordingRef = useRef(false);
+  const isStoppingRecordingRef = useRef(false);
+  const stopRequestedWhileStartingRef = useRef(false);
+  const recordingSessionRef = useRef(0);
+  const listenersInitializedRef = useRef(false);
+  const keyboardListenerCleanupRef = useRef<(() => void) | null>(null);
+  const settingsRef = useRef(settings);
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null);
+  const currentAudioUrlRef = useRef<string | null>(null);
+  const fallbackPollIntervalRef = useRef<number | null>(null);
+  const fallbackPressedRef = useRef(false);
 
   useEffect(() => {
     if (!window.electronAPI) {
@@ -84,30 +116,122 @@ function App() {
       return;
     }
 
+    window.electronAPI.onAuthUpdated?.(async (auth) => {
+      if (!auth.loggedIn || !auth.user) {
+        setUser(null);
+        setStatus({ iracing: false, server: false, iracingState: 'waiting', serverState: 'disconnected', voiceState: 'starting', voiceDetail: 'Starting', mode: 'waiting' });
+        return;
+      }
+
+      setLoginError('');
+      setUser(auth.user);
+      const loadedSettings = await loadSettings();
+      setupListeners(loadedSettings);
+      window.electronAPI.getStatus().then((s) => setStatus({ ...s, mode: 'waiting' }));
+    });
+
+    window.electronAPI.onAuthError?.((message) => {
+      setUser(null);
+      setLoginError(message);
+      setStatus({ iracing: false, server: false, iracingState: 'waiting', serverState: 'disconnected', voiceState: 'starting', voiceDetail: 'Starting', mode: 'waiting' });
+      setLoading(false);
+    });
+
     window.electronAPI.checkAuth().then(async (result) => {
       if (result.loggedIn && result.user) {
+        setLoginError('');
         setUser(result.user);
         window.electronAPI.getStatus().then((s) => setStatus({ ...s, mode: 'waiting' }));
         // Load settings first, then setup listeners with loaded settings
         const loadedSettings = await loadSettings();
         setupListeners(loadedSettings);
+      } else if (result.reason === 'expired') {
+        setLoginError('Your saved session expired. Please sign in again.');
       }
       setLoading(false);
     });
   }, []);
 
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  const stopAudioPlayback = () => {
+    currentAudioRef.current?.pause();
+    currentAudioRef.current = null;
+    if (currentAudioUrlRef.current) {
+      URL.revokeObjectURL(currentAudioUrlRef.current);
+      currentAudioUrlRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      keyboardListenerCleanupRef.current?.();
+      if (fallbackPollIntervalRef.current !== null) {
+        window.clearInterval(fallbackPollIntervalRef.current);
+        fallbackPollIntervalRef.current = null;
+      }
+      stopAudioPlayback();
+      cleanupAudioCapture();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (fallbackPollIntervalRef.current !== null) {
+      window.clearInterval(fallbackPollIntervalRef.current);
+      fallbackPollIntervalRef.current = null;
+    }
+
+    if (!pttFallbackMode || settings.pttType !== 'joystick') {
+      if (fallbackPressedRef.current) {
+        fallbackPressedRef.current = false;
+        window.electronAPI.sendPTTState(false);
+      }
+      return;
+    }
+
+    fallbackPollIntervalRef.current = window.setInterval(() => {
+      const hasFocus = document.hasFocus();
+      const gamepads = navigator.getGamepads();
+      const gamepad = gamepads[settingsRef.current.joystickId];
+      const pressed = hasFocus && !!gamepad?.buttons?.[settingsRef.current.joystickButton]?.pressed;
+
+      if (pressed !== fallbackPressedRef.current) {
+        fallbackPressedRef.current = pressed;
+        window.electronAPI.sendPTTState(pressed);
+      }
+    }, 50);
+
+    return () => {
+      if (fallbackPollIntervalRef.current !== null) {
+        window.clearInterval(fallbackPollIntervalRef.current);
+        fallbackPollIntervalRef.current = null;
+      }
+      if (fallbackPressedRef.current) {
+        fallbackPressedRef.current = false;
+        window.electronAPI.sendPTTState(false);
+      }
+    };
+  }, [pttFallbackMode, settings.pttType, settings.joystickId, settings.joystickButton]);
+
   const loadSettings = async (): Promise<Settings> => {
     // Load saved settings from main process
     const saved = await window.electronAPI.getSettings?.();
     if (saved) {
-      setSettings(saved);
-      return saved;
+      const mergedSettings: Settings = {
+        ...DEFAULT_SETTINGS,
+        ...saved,
+        crewRole: normalizeLiveCrewRole(saved.crewRole),
+      };
+      setSettings(mergedSettings);
+      return mergedSettings;
     }
     // Load audio devices
     loadAudioDevices();
     // Load gamepads
     loadGamepads();
-    return settings; // Return current defaults if no saved settings
+    return DEFAULT_SETTINGS;
   };
 
   const loadAudioDevices = async () => {
@@ -190,6 +314,9 @@ function App() {
     mediaSourceRef.current = null;
     mediaStreamRef.current = null;
     audioContextRef.current = null;
+    isRecordingRef.current = false;
+    isStartingRecordingRef.current = false;
+    isStoppingRecordingRef.current = false;
   };
 
   const saveSettings = async (newSettings: Settings) => {
@@ -198,12 +325,26 @@ function App() {
   };
 
   const setupListeners = (currentSettings: Settings = settings) => {
+    settingsRef.current = currentSettings;
+
+    if (listenersInitializedRef.current) {
+      return keyboardListenerCleanupRef.current ?? (() => undefined);
+    }
+
+    listenersInitializedRef.current = true;
+
     window.electronAPI.onRelayStatus((s: string) => {
-      setStatus((prev) => ({ ...prev, server: s === 'connected' }));
+      const serverState = s === 'error' ? 'error' : s === 'connected' ? 'connected' : 'disconnected';
+      setStatus((prev) => ({ ...prev, server: serverState === 'connected', serverState }));
     });
 
     window.electronAPI.onIRacingStatus((s: string) => {
-      setStatus((prev) => ({ ...prev, iracing: s === 'connected' }));
+      const iracingState = s === 'connected' ? 'connected' : s === 'disconnected' ? 'disconnected' : 'waiting';
+      setStatus((prev) => ({ ...prev, iracing: iracingState === 'connected', iracingState }));
+    });
+
+    window.electronAPI.onVoiceStatus?.((voice) => {
+      setStatus((prev) => ({ ...prev, voiceState: voice.state, voiceDetail: voice.detail }));
     });
 
     // Listen for relay mode changes (driving vs spectating)
@@ -237,32 +378,35 @@ function App() {
       playAudio(base64Audio);
     });
 
-    // Keyboard PTT listener (uses configured key from settings)
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === currentSettings.pttKey && !e.repeat) {
-        console.log(`Keyboard PTT: ${currentSettings.pttKey} PRESSED`);
-        window.electronAPI.sendPTTState(true);
-      }
-    };
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === currentSettings.pttKey) {
-        console.log(`Keyboard PTT: ${currentSettings.pttKey} RELEASED`);
+    window.electronAPI.onStopAudio?.(() => {
+      stopAudioPlayback();
+    });
+
+    window.electronAPI.onPTTFallbackMode?.((enabled: boolean) => {
+      setPttFallbackMode(enabled);
+      if (!enabled && fallbackPressedRef.current) {
+        fallbackPressedRef.current = false;
         window.electronAPI.sendPTTState(false);
       }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    });
 
-    // NOTE: Gamepad PTT is now handled via HID in main process (works without window focus)
-    // The renderer no longer polls gamepad - main process sends PTT state via onStartRecording/onStopRecording
+    const cleanup = () => undefined;
 
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
+    keyboardListenerCleanupRef.current = cleanup;
+    return cleanup;
   };
 
   const startRecording = async () => {
+    if (isRecordingRef.current || isStartingRecordingRef.current) {
+      return;
+    }
+
+    isStartingRecordingRef.current = true;
+    isStoppingRecordingRef.current = false;
+    stopRequestedWhileStartingRef.current = false;
+    const sessionId = recordingSessionRef.current + 1;
+    recordingSessionRef.current = sessionId;
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: settings.audioInput !== 'default'
@@ -274,6 +418,13 @@ function App() {
       const source = audioContext.createMediaStreamSource(stream);
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
 
+      if (recordingSessionRef.current !== sessionId) {
+        stream.getTracks().forEach(track => track.stop());
+        audioContext.close().catch(() => undefined);
+        isStartingRecordingRef.current = false;
+        return;
+      }
+
       mediaStreamRef.current = stream;
       audioContextRef.current = audioContext;
       mediaSourceRef.current = source;
@@ -284,28 +435,62 @@ function App() {
       sampleRateRef.current = audioContext.sampleRate;
 
       processor.onaudioprocess = (event) => {
+        if (!isRecordingRef.current || recordingSessionRef.current !== sessionId) {
+          return;
+        }
         const input = event.inputBuffer.getChannelData(0);
         pcmChunksRef.current.push(new Float32Array(input));
       };
 
       source.connect(processor);
       processor.connect(audioContext.destination);
+      isStartingRecordingRef.current = false;
+      isRecordingRef.current = true;
       setIsRecording(true);
+
+      if (stopRequestedWhileStartingRef.current) {
+        stopRequestedWhileStartingRef.current = false;
+        void stopRecording();
+      }
     } catch (err) {
+      isStartingRecordingRef.current = false;
+      isRecordingRef.current = false;
       console.error('Failed to start recording:', err);
+      messageCounterRef.current += 1;
+      const timestamp = Date.now();
+      const detail = err instanceof Error ? err.message : 'Microphone unavailable';
+      setMessages((prev) => [...prev.slice(-4), {
+        id: `${timestamp}-${messageCounterRef.current}`,
+        text: `PTT unavailable: ${detail}`,
+        type: 'received',
+        timestamp,
+      }]);
     }
   };
 
   const stopRecording = async () => {
-    if (!audioContextRef.current || !mediaStreamRef.current) return;
+    if (isStoppingRecordingRef.current) {
+      return;
+    }
+
+    if (isStartingRecordingRef.current && !isRecordingRef.current) {
+      stopRequestedWhileStartingRef.current = true;
+      return;
+    }
+
+    if (!audioContextRef.current || !mediaStreamRef.current || !isRecordingRef.current) return;
+
+    isStoppingRecordingRef.current = true;
+    isRecordingRef.current = false;
 
     setIsRecording(false);
 
     console.log('PCM recorder stopped, chunks:', pcmChunksRef.current.length);
 
     const durationMs = Date.now() - recordingStartedAtRef.current;
-    const pcmChunks = pcmChunksRef.current;
+    const pcmChunks = [...pcmChunksRef.current];
     cleanupAudioCapture();
+    isStoppingRecordingRef.current = false;
 
     if (pcmChunks.length === 0) {
       console.error('No audio chunks recorded');
@@ -313,16 +498,19 @@ function App() {
     }
 
     if (durationMs < 500) {
+      console.log(`Recording too short (${durationMs}ms < 500ms), discarded`);
       return;
     }
 
     const wavBuffer = encodeWav(pcmChunks, sampleRateRef.current);
-
+    console.log(`Sending WAV: ${wavBuffer.byteLength} bytes, ${durationMs}ms, ${pcmChunks.length} chunks, ${sampleRateRef.current}Hz`);
     window.electronAPI.sendAudioData(wavBuffer, recordingMimeTypeRef.current);
   };
 
   const playAudio = (base64Audio: string) => {
     try {
+      stopAudioPlayback();
+
       const audioData = atob(base64Audio);
       const arrayBuffer = new ArrayBuffer(audioData.length);
       const view = new Uint8Array(arrayBuffer);
@@ -333,6 +521,17 @@ function App() {
       const audioBlob = new Blob([arrayBuffer], { type: 'audio/mp3' });
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
+      currentAudioRef.current = audio;
+      currentAudioUrlRef.current = audioUrl;
+      audio.onended = () => {
+        if (currentAudioRef.current === audio) {
+          currentAudioRef.current = null;
+        }
+        if (currentAudioUrlRef.current === audioUrl) {
+          URL.revokeObjectURL(audioUrl);
+          currentAudioUrlRef.current = null;
+        }
+      };
       audio.play();
     } catch (err) {
       console.error('Failed to play audio:', err);
@@ -359,9 +558,9 @@ function App() {
   const handleLogout = async () => {
     await window.electronAPI.logout();
     setUser(null);
+    setLoginError('');
     setMessages([]);
-    window.electronAPI.removeAllListeners('relay:status');
-    window.electronAPI.removeAllListeners('iracing:status');
+    setStatus({ iracing: false, server: false, iracingState: 'waiting', serverState: 'disconnected', voiceState: 'starting', voiceDetail: 'Starting', mode: 'waiting' });
   };
 
   // Custom title bar component
@@ -525,7 +724,7 @@ function App() {
             </div>
             <div className="status-content">
               <span className="status-label">RELAY</span>
-              <span className="status-value">{status.server ? 'Online' : 'Connecting...'}</span>
+              <span className="status-value">{status.serverState === 'connected' ? 'Online' : status.serverState === 'error' ? 'Connection error' : 'Disconnected'}</span>
             </div>
           </div>
           
@@ -535,7 +734,23 @@ function App() {
             </div>
             <div className="status-content">
               <span className="status-label">iRACING</span>
-              <span className="status-value">{status.iracing ? 'Live' : 'Waiting...'}</span>
+              <span className="status-value">{status.iracingState === 'connected' ? 'Live' : status.iracingState === 'disconnected' ? 'Disconnected' : 'Waiting...'}</span>
+            </div>
+          </div>
+
+          <div className={`status-card ${status.voiceState === 'ready' || status.voiceState === 'fallback' ? 'connected' : ''}`}>
+            <div className="status-indicator">
+              <span className={`dot ${status.voiceState === 'ready' || status.voiceState === 'fallback' ? 'active' : ''}`} />
+            </div>
+            <div className="status-content">
+              <span className="status-label">VOICE</span>
+              <span className="status-value">
+                {status.voiceState === 'ready' ? 'Ready' :
+                 status.voiceState === 'fallback' ? 'Fallback mode' :
+                 status.voiceState === 'listening' ? 'Listening' :
+                 status.voiceState === 'processing' ? 'Processing' :
+                 status.voiceState === 'error' ? 'Error' : 'Starting...'}
+              </span>
             </div>
           </div>
         </div>
@@ -567,12 +782,17 @@ function App() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
                 <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                <line x1="12" y1="19" x2="12" y2="23"/>
-                <line x1="8" y1="23" x2="16" y2="23"/>
               </svg>
-              <span>Hold <kbd>SPACE</kbd> or wheel button to talk</span>
+              <span>
+                {status.voiceState === 'error'
+                  ? `Voice unavailable: ${status.voiceDetail}`
+                  : status.voiceState === 'fallback'
+                    ? `Voice ready in fallback mode. ${status.voiceDetail}. Keep the app focused while using ${CREW_ROLE_LABELS[settings.crewRole]}.`
+                    : `Ready to talk to ${CREW_ROLE_LABELS[settings.crewRole]}. Hold your PTT and ask naturally.`}
+              </span>
             </div>
           )}
+
           {messages.map((msg) => (
             <div key={msg.id} className={`message ${msg.type}`}>
               <div className="message-icon">
@@ -649,6 +869,18 @@ function App() {
               {/* PTT Settings */}
               <section className="settings-section">
                 <h3>PUSH TO TALK</h3>
+                {settings.pttType === 'joystick' && pttFallbackMode && (
+                  <div className="message received">
+                    <div className="message-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                      </svg>
+                    </div>
+                    <span className="message-text">Focused-window fallback is active for wheel PTT.</span>
+                  </div>
+                )}
                 
                 <div className="setting-row">
                   <label>PTT Type</label>
@@ -658,6 +890,17 @@ function App() {
                   >
                     <option value="keyboard">Keyboard</option>
                     <option value="joystick">Wheel/Joystick</option>
+                  </select>
+                </div>
+
+                <div className="setting-row">
+                  <label>Live Radio Voice</label>
+                  <select
+                    value={settings.crewRole}
+                    onChange={(e) => saveSettings({ ...settings, crewRole: e.target.value as CrewRole })}
+                  >
+                    <option value="engineer">Engineer</option>
+                    <option value="spotter">Spotter</option>
                   </select>
                 </div>
 

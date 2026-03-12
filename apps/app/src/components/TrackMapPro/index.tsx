@@ -106,6 +106,14 @@ export function TrackMapPro({
         </div>
     );
 
+    if (shape.isFallback) return (
+        <div className="flex flex-col items-center justify-center w-full h-full text-white/30 font-mono text-xs p-4 text-center">
+            <div>TRACK_SHAPE_UNAVAILABLE</div>
+            <div className="text-white/20 mt-2">ID: {shapeId}</div>
+            <div className="text-white/20 mt-1">{trackMetadata?.name || trackId}</div>
+        </div>
+    );
+
     return (
         <div
             ref={containerRef}

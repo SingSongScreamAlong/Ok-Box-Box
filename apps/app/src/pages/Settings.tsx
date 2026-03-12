@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { User, Mail, Shield, Key, Trash2, Loader2, CheckCircle, AlertTriangle, Link2, Unlink, RefreshCw } from 'lucide-react';
+import { User, Mail, Shield, Key, Trash2, Loader2, CheckCircle, AlertTriangle, Link2, Unlink } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001' : 'https://app.okboxbox.com');
 
 export function Settings() {
   const { user, session } = useAuth();

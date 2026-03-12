@@ -12,7 +12,6 @@ COPY package*.json ./
 COPY packages/common/package*.json ./packages/common/
 COPY packages/protocol/package*.json ./packages/protocol/
 COPY packages/server/package*.json ./packages/server/
-COPY packages/dashboard/package*.json ./packages/dashboard/
 
 # Install dependencies
 RUN npm ci
@@ -25,7 +24,6 @@ COPY tsconfig.base.json ./
 COPY packages/common ./packages/common
 COPY packages/protocol ./packages/protocol
 COPY packages/server ./packages/server
-COPY packages/dashboard ./packages/dashboard
 
 # Build common, protocol, and server packages
 RUN npm run build -w packages/common && \

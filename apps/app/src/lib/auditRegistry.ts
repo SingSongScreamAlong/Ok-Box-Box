@@ -34,7 +34,7 @@ export const PAGE_CODES: Record<string, { tier: string; code: string; name: stri
   '/driver/progress': { tier: 'D', code: 'PRG', name: 'Driver Progress' },
   '/driver/crew/engineer': { tier: 'D', code: 'ENG', name: 'Engineer Chat' },
   '/driver/crew/spotter': { tier: 'D', code: 'SPT', name: 'Spotter Chat' },
-  '/driver/crew/analyst': { tier: 'D', code: 'ANL', name: 'Analyst Chat' },
+  '/driver/crew/analyst': { tier: 'D', code: 'ANL', name: 'Analysis Redirect' },
   '/driver/pitwall': { tier: 'D', code: 'DPW', name: 'Driver Pitwall' },
   '/driver/settings/hud': { tier: 'D', code: 'HUD', name: 'HUD Settings' },
   '/driver/settings/voice': { tier: 'D', code: 'VOI', name: 'Voice Settings' },

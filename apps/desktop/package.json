@@ -7,10 +7,12 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
+    "build:ci": "npm run compile && vite build",
     "build": "npm run compile && vite build && electron-builder",
     "compile": "tsc -p tsconfig.electron.json",
     "preview": "vite preview",
-    "electron:dev": "npm run compile && concurrently \"vite\" \"wait-on http://localhost:5177 && electron .\"",
+    "electron:dev": "node run-electron-dev.cjs",
+    "electron:dev:hosted": "node run-electron-dev-hosted.cjs",
     "electron:build": "npm run compile && vite build && electron-builder"
   },
   "dependencies": {
@@ -35,6 +37,14 @@
   "build": {
     "appId": "com.okboxbox.desktop",
     "productName": "Ok,Box Box",
+    "protocols": [
+      {
+        "name": "Ok, Box Box",
+        "schemes": [
+          "okboxbox"
+        ]
+      }
+    ],
     "directories": {
       "output": "release"
     },

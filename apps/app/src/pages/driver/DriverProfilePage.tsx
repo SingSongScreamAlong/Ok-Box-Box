@@ -4,7 +4,7 @@ import { getDriverProfile, updateDriverProfile, DriverProfile } from '../../lib/
 import { supabase } from '../../lib/supabase';
 import { User, Hash, Edit2, Check, X, Loader2, Link2, Unlink, CheckCircle, AlertTriangle } from 'lucide-react';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://octopus-app-qsi3i.ondigitalocean.app';
+const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001' : 'https://app.okboxbox.com');
 
 export function DriverProfilePage() {
   const { user, session } = useAuth();

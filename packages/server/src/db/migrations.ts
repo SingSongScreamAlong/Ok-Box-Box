@@ -304,7 +304,21 @@ export async function seedAdminUser(): Promise<void> {
 
         const email = config.seedAdminEmail;
 
-        const password = config.seedAdminPassword || 'ControlBox2024!'; // fallback only if env not set
+        let password = config.seedAdminPassword;
+
+        if (!password) {
+
+            if (config.nodeEnv === 'production') {
+
+                throw new Error('SEED_ADMIN_PASSWORD must be set before seeding the first admin user in production');
+
+            }
+
+            password = config.devSeedAdminPassword;
+
+            console.warn('   ⚠️  SEED_ADMIN_PASSWORD not set — using derived development-only admin password');
+
+        }
 
         const displayName = 'Admin User';
 

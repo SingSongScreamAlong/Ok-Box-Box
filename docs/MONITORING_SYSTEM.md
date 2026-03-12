@@ -91,10 +91,10 @@ VITE_SENTRY_DSN=https://xxx@sentry.io/xxx
 
 | Endpoint | Check Interval | Alert Threshold |
 |----------|----------------|-----------------|
-| `https://api.okboxbox.com/health` | 1 min | 2 failures |
+| `https://app.okboxbox.com/api/health` | 1 min | 2 failures |
 | `https://app.okboxbox.com` | 1 min | 2 failures |
 | `https://okboxbox.com` | 5 min | 2 failures |
-| `wss://api.okboxbox.com/socket.io` | 1 min | 3 failures |
+| `wss://app.okboxbox.com/socket.io` | 1 min | 3 failures |
 
 ### Health Check Endpoint
 

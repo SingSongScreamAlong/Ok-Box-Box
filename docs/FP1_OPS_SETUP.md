@@ -58,7 +58,7 @@ Use **BetterStack** (free tier: 10 monitors, 3-min checks) or **UptimeRobot** (f
 
 1. Go to [betterstack.com/uptime](https://betterstack.com/uptime) → Sign up
 2. Create a **Monitor**:
-   - **URL**: `https://octopus-app-qsi3i.ondigitalocean.app/api/health`
+   - **URL**: `https://app.okboxbox.com/api/health`
    - **Check interval**: 3 minutes
    - **Request method**: GET
    - **Expected status**: 200
@@ -74,7 +74,7 @@ Use **BetterStack** (free tier: 10 monitors, 3-min checks) or **UptimeRobot** (f
 
 1. Go to [uptimerobot.com](https://uptimerobot.com) → Sign up
 2. Add Monitor → HTTP(s)
-3. **URL**: `https://octopus-app-qsi3i.ondigitalocean.app/api/health`
+3. **URL**: `https://app.okboxbox.com/api/health`
 4. **Interval**: 5 minutes
 5. **Alert Contact**: your email
 

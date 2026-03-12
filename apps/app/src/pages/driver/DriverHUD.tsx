@@ -250,7 +250,7 @@ export function DriverHUD() {
         <div>
           <div className="flex items-center gap-3 mb-3">
             <BarChart3 className="w-5 h-5 text-[#8b5cf6]" />
-            <h2 className="text-sm uppercase tracking-wider text-white/60">Analyst Displays</h2>
+            <h2 className="text-sm uppercase tracking-wider text-white/60">Performance Displays</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {widgets.filter(w => w.crewMember === 'analyst').map((widget) => (

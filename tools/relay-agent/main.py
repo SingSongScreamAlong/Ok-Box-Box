@@ -7,7 +7,7 @@ Usage:
     python main.py [--url SERVER_URL]
 
 Environment Variables:
-    BLACKBOX_SERVER_URL - PitBox Server WebSocket URL (default: http://localhost:3000)
+    BLACKBOX_SERVER_URL - PitBox Server WebSocket URL (default: http://localhost:3001)
     POLL_RATE_HZ - Telemetry polling rate (default: 10)
     LOG_LEVEL - Logging level (default: INFO)
 """
