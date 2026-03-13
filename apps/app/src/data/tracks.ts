@@ -5,19 +5,18 @@
 // NOTE: Shape files are from iRacing telemetry. Some may be outdated.
 // To update: capture new telemetry data from iRacing and regenerate shape files.
 export const TRACK_SLUG_MAP: Record<string, string> = {
-  // Daytona - 381 is the old NASCAR road config with bus stop chicane
-  // TODO: Need to capture fresh telemetry for current 24h layout
-  'daytona': '381',        // Daytona Road Course (older layout with bus stop)
+  // Daytona
+  'daytona': '381',
   'daytona-road': '381',
-  'daytona-24h': '381',    // Same file for now - needs update
+  'daytona-24h': '381',
   'daytona-oval': '191',
 
   // Watkins Glen
-  'watkins-glen': '146',   // Placeholder - will load if file with this ID exists, else searches
-  'watkins-glen-boot': '483', // Likely boot if 483 exists
+  'watkins-glen': '146',
+  'watkins-glen-boot': '483',
 
   // Spa
-  'spa': '163', // Common iRacing ID for Spa
+  'spa': '163',
   'spa-francorchamps': '163',
 
   // Laguna Seca
@@ -30,7 +29,67 @@ export const TRACK_SLUG_MAP: Record<string, string> = {
   'phoenix-oval': '419',
 
   // Road Atlanta
-  // 'road-atlanta': '30', // Warn: ID 30 is Irwindale. Need to find Road Atlanta ID.
+  'road-atlanta': 'road-atlanta',
+
+  // Monza
+  'monza': 'monza',
+  'monza-combined': 'monza',
+  'autodromo-nazionale-monza': 'monza',
+
+  // Silverstone
+  'silverstone': 'silverstone',
+  'silverstone-gp': 'silverstone',
+
+  // Nurburgring
+  'nurburgring': 'nurburgring',
+  'nurburgring-gp': 'nurburgring',
+  'nordschleife': 'nordschleife',
+  'nurburgring-nordschleife': 'nordschleife',
+
+  // Suzuka
+  'suzuka': 'suzuka',
+  'suzuka-international': 'suzuka',
+
+  // Imola
+  'imola': 'imola',
+  'autodromo-enzo-e-dino-ferrari': 'imola',
+
+  // COTA
+  'cota': 'cota',
+  'circuit-of-the-americas': 'cota',
+
+  // Mount Panorama (Bathurst)
+  'mount-panorama': 'mount-panorama',
+  'bathurst': 'mount-panorama',
+
+  // Interlagos
+  'interlagos': 'interlagos',
+  'autodromo-jose-carlos-pace': 'interlagos',
+
+  // Brands Hatch
+  'brands-hatch': 'brands-hatch',
+  'brands-hatch-gp': 'brands-hatch',
+
+  // Okayama
+  'okayama': 'okayama',
+  'okayama-international': 'okayama',
+
+  // Oulton Park
+  'oulton-park': 'oulton-park',
+
+  // Lime Rock
+  'lime-rock': 'lime-rock',
+  'lime-rock-park': 'lime-rock',
+
+  // Tsukuba
+  'tsukuba': 'tsukuba',
+
+  // Sebring
+  'sebring': 'sebring',
+  'sebring-international': 'sebring',
+
+  // Long Beach
+  'long-beach': 'long-beach',
 };
 
 // Centerline point from telemetry
@@ -287,6 +346,400 @@ export const TRACK_DATA: Record<string, TrackData> = {
       direction: 'clockwise',
       elevation: { minimum: 52, maximum: 168, change: 116 },
       coordinates: { latitude: 36.5841, longitude: -121.7534 }
+    }
+  },
+
+  'monza': {
+    id: 'monza',
+    name: 'Autodromo Nazionale Monza',
+    country: 'Italy',
+    length: 5793,
+    layout: 'Grand Prix',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1931 },
+      { number: 2, name: 'Sector 2', startDistance: 1931, endDistance: 3862 },
+      { number: 3, name: 'Sector 3', startDistance: 3862, endDistance: 5793 }
+    ],
+    corners: [
+      { number: 1, name: 'Variante del Rettifilo', type: 'chicane', apex: { distance: 700, x: 400, y: 100, normalizedDistance: 0.121 }, braking: { distance: 550, x: 350, y: 80 }, exit: { distance: 850, x: 450, y: 130 }, gear: 2, apexSpeed: 80, difficulty: 'hard', notes: 'Heavy braking from top speed' },
+      { number: 2, name: 'Curva Grande', type: 'right', apex: { distance: 1400, x: 700, y: 250, normalizedDistance: 0.242 }, entry: { distance: 1200, x: 600, y: 200 }, exit: { distance: 1600, x: 800, y: 300 }, gear: 7, apexSpeed: 260, difficulty: 'medium' },
+      { number: 3, name: 'Variante della Roggia', type: 'chicane', apex: { distance: 2200, x: 900, y: 450, normalizedDistance: 0.380 }, braking: { distance: 2050, x: 850, y: 400 }, exit: { distance: 2350, x: 920, y: 500 }, gear: 2, apexSpeed: 75, difficulty: 'hard' },
+      { number: 4, name: 'Lesmo 1', type: 'right', apex: { distance: 2800, x: 950, y: 600, normalizedDistance: 0.483 }, braking: { distance: 2650, x: 940, y: 560 }, exit: { distance: 2950, x: 930, y: 640 }, gear: 4, apexSpeed: 155, difficulty: 'hard' },
+      { number: 5, name: 'Lesmo 2', type: 'right', apex: { distance: 3200, x: 880, y: 700, normalizedDistance: 0.552 }, braking: { distance: 3050, x: 910, y: 670 }, exit: { distance: 3350, x: 840, y: 730 }, gear: 4, apexSpeed: 145, difficulty: 'hard' },
+      { number: 6, name: 'Ascari', type: 'chicane', apex: { distance: 4200, x: 600, y: 800, normalizedDistance: 0.725 }, braking: { distance: 4050, x: 650, y: 780 }, exit: { distance: 4350, x: 550, y: 810 }, gear: 4, apexSpeed: 140, difficulty: 'medium' },
+      { number: 7, name: 'Parabolica', type: 'right', apex: { distance: 5200, x: 250, y: 600, normalizedDistance: 0.897 }, braking: { distance: 5050, x: 300, y: 650 }, exit: { distance: 5400, x: 200, y: 500 }, gear: 4, apexSpeed: 165, difficulty: 'hard', notes: 'Long fast right, critical for lap time' }
+    ],
+    svg: {
+      viewBox: '0 0 1000 900',
+      path: 'M 200,50 L 350,50 Q 500,60 600,120 L 750,250 Q 850,350 900,500 L 920,650 Q 930,750 880,820 L 750,850 Q 600,860 450,830 L 300,770 Q 200,700 180,580 L 170,400 Q 170,250 200,150 L 200,50 Z'
+    },
+    metadata: {
+      direction: 'clockwise',
+      elevation: { minimum: 138, maximum: 168, change: 30 },
+      coordinates: { latitude: 45.6156, longitude: 9.2811 }
+    }
+  },
+
+  'silverstone': {
+    id: 'silverstone',
+    name: 'Silverstone Circuit',
+    country: 'UK',
+    length: 5891,
+    layout: 'Grand Prix',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1964 },
+      { number: 2, name: 'Sector 2', startDistance: 1964, endDistance: 3927 },
+      { number: 3, name: 'Sector 3', startDistance: 3927, endDistance: 5891 }
+    ],
+    corners: [
+      { number: 1, name: 'Abbey', type: 'right', apex: { distance: 300, x: 400, y: 500, normalizedDistance: 0.051 }, braking: { distance: 200, x: 350, y: 520 }, exit: { distance: 400, x: 450, y: 470 }, gear: 4, apexSpeed: 160, difficulty: 'medium' },
+      { number: 2, name: 'Farm', type: 'right', apex: { distance: 650, x: 550, y: 380, normalizedDistance: 0.110 }, entry: { distance: 550, x: 500, y: 420 }, exit: { distance: 750, x: 600, y: 340 }, gear: 3, apexSpeed: 120, difficulty: 'easy' },
+      { number: 3, name: 'Village', type: 'left', apex: { distance: 1100, x: 750, y: 250, normalizedDistance: 0.187 }, braking: { distance: 950, x: 700, y: 290 }, exit: { distance: 1250, x: 800, y: 210 }, gear: 3, apexSpeed: 110, difficulty: 'medium' },
+      { number: 6, name: 'Copse', type: 'right', apex: { distance: 2100, x: 1000, y: 100, normalizedDistance: 0.356 }, entry: { distance: 2000, x: 950, y: 120 }, exit: { distance: 2200, x: 1050, y: 90 }, gear: 6, apexSpeed: 245, difficulty: 'hard', notes: 'Flat out in GT3' },
+      { number: 7, name: 'Maggots', type: 'left', apex: { distance: 2600, x: 1100, y: 200, normalizedDistance: 0.441 }, entry: { distance: 2500, x: 1080, y: 160 }, exit: { distance: 2700, x: 1110, y: 250 }, gear: 6, apexSpeed: 240, difficulty: 'hard' },
+      { number: 8, name: 'Becketts', type: 'right', apex: { distance: 2900, x: 1080, y: 350, normalizedDistance: 0.492 }, entry: { distance: 2800, x: 1100, y: 300 }, exit: { distance: 3000, x: 1050, y: 400 }, gear: 5, apexSpeed: 200, difficulty: 'hard', notes: 'Famous high-speed complex' },
+      { number: 10, name: 'Stowe', type: 'right', apex: { distance: 3600, x: 900, y: 550, normalizedDistance: 0.611 }, braking: { distance: 3450, x: 950, y: 500 }, exit: { distance: 3750, x: 850, y: 600 }, gear: 4, apexSpeed: 155, difficulty: 'hard' },
+      { number: 12, name: 'Club', type: 'right', apex: { distance: 4400, x: 600, y: 650, normalizedDistance: 0.747 }, braking: { distance: 4250, x: 650, y: 630 }, exit: { distance: 4550, x: 550, y: 660 }, gear: 3, apexSpeed: 120, difficulty: 'medium' }
+    ],
+    svg: {
+      viewBox: '0 0 1200 750',
+      path: 'M 300,550 L 450,500 Q 600,430 750,350 L 900,250 Q 1000,170 1080,130 L 1100,150 Q 1120,200 1100,300 L 1050,450 Q 980,570 880,630 L 700,680 Q 500,700 350,660 L 250,600 Q 280,580 300,550 Z'
+    },
+    metadata: {
+      direction: 'clockwise',
+      elevation: { minimum: 150, maximum: 170, change: 20 },
+      coordinates: { latitude: 52.0786, longitude: -1.0169 }
+    }
+  },
+
+  'nurburgring': {
+    id: 'nurburgring',
+    name: 'Nürburgring Grand Prix',
+    country: 'Germany',
+    length: 5148,
+    layout: 'Grand Prix',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1716 },
+      { number: 2, name: 'Sector 2', startDistance: 1716, endDistance: 3432 },
+      { number: 3, name: 'Sector 3', startDistance: 3432, endDistance: 5148 }
+    ],
+    corners: [
+      { number: 1, name: 'Turn 1', type: 'right', apex: { distance: 300, x: 300, y: 200, normalizedDistance: 0.058 }, braking: { distance: 200, x: 250, y: 210 }, exit: { distance: 400, x: 350, y: 180 }, gear: 3, apexSpeed: 110, difficulty: 'medium' },
+      { number: 4, name: 'Mercedes Arena', type: 'chicane', apex: { distance: 1400, x: 700, y: 100, normalizedDistance: 0.272 }, braking: { distance: 1250, x: 650, y: 110 }, exit: { distance: 1550, x: 750, y: 95 }, gear: 3, apexSpeed: 100, difficulty: 'medium' },
+      { number: 7, name: 'Dunlop', type: 'hairpin', apex: { distance: 2400, x: 900, y: 300, normalizedDistance: 0.466 }, braking: { distance: 2250, x: 880, y: 260 }, exit: { distance: 2550, x: 910, y: 350 }, gear: 2, apexSpeed: 70, difficulty: 'hard' },
+      { number: 10, name: 'Schumacher S', type: 'chicane', apex: { distance: 3500, x: 800, y: 550, normalizedDistance: 0.680 }, braking: { distance: 3350, x: 830, y: 510 }, exit: { distance: 3650, x: 760, y: 580 }, gear: 3, apexSpeed: 105, difficulty: 'medium' },
+      { number: 13, name: 'Veedol Chicane', type: 'chicane', apex: { distance: 4600, x: 400, y: 500, normalizedDistance: 0.894 }, braking: { distance: 4450, x: 450, y: 490 }, exit: { distance: 4750, x: 350, y: 480 }, gear: 2, apexSpeed: 75, difficulty: 'hard', notes: 'Last corner before main straight' }
+    ],
+    svg: {
+      viewBox: '0 0 1000 650',
+      path: 'M 200,250 L 350,200 Q 500,150 650,120 L 800,100 Q 900,100 950,180 L 950,300 Q 940,420 880,500 L 750,560 Q 600,590 450,570 L 300,520 Q 200,460 180,350 L 200,250 Z'
+    },
+    metadata: {
+      direction: 'clockwise',
+      elevation: { minimum: 320, maximum: 380, change: 60 },
+      coordinates: { latitude: 50.3356, longitude: 6.9475 }
+    }
+  },
+
+  'suzuka': {
+    id: 'suzuka',
+    name: 'Suzuka International Racing Course',
+    country: 'Japan',
+    length: 5807,
+    layout: 'Grand Prix',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1936 },
+      { number: 2, name: 'Sector 2', startDistance: 1936, endDistance: 3871 },
+      { number: 3, name: 'Sector 3', startDistance: 3871, endDistance: 5807 }
+    ],
+    corners: [
+      { number: 1, name: 'Turn 1', type: 'right', apex: { distance: 300, x: 350, y: 300, normalizedDistance: 0.052 }, braking: { distance: 200, x: 300, y: 310 }, exit: { distance: 400, x: 400, y: 280 }, gear: 4, apexSpeed: 150, difficulty: 'medium' },
+      { number: 2, name: 'S Curves (1)', type: 'left-right', apex: { distance: 800, x: 550, y: 180, normalizedDistance: 0.138 }, entry: { distance: 700, x: 500, y: 220 }, exit: { distance: 900, x: 600, y: 150 }, gear: 4, apexSpeed: 155, difficulty: 'hard', notes: 'Famous S curves' },
+      { number: 5, name: 'Dunlop', type: 'left', apex: { distance: 1600, x: 800, y: 100, normalizedDistance: 0.276 }, braking: { distance: 1500, x: 750, y: 110 }, exit: { distance: 1700, x: 850, y: 100 }, gear: 3, apexSpeed: 120, difficulty: 'medium' },
+      { number: 7, name: 'Degner 1', type: 'right', apex: { distance: 2200, x: 950, y: 200, normalizedDistance: 0.379 }, braking: { distance: 2100, x: 920, y: 170 }, exit: { distance: 2300, x: 970, y: 240 }, gear: 3, apexSpeed: 110, difficulty: 'hard' },
+      { number: 8, name: 'Degner 2', type: 'right', apex: { distance: 2500, x: 980, y: 330, normalizedDistance: 0.431 }, entry: { distance: 2400, x: 975, y: 280 }, exit: { distance: 2600, x: 970, y: 380 }, gear: 3, apexSpeed: 100, difficulty: 'medium' },
+      { number: 10, name: 'Hairpin', type: 'hairpin', apex: { distance: 3200, x: 850, y: 550, normalizedDistance: 0.551 }, braking: { distance: 3050, x: 880, y: 500 }, exit: { distance: 3350, x: 810, y: 580 }, gear: 2, apexSpeed: 60, difficulty: 'hard', notes: 'Tight hairpin' },
+      { number: 11, name: 'Spoon Curve', type: 'left', apex: { distance: 3900, x: 600, y: 650, normalizedDistance: 0.672 }, entry: { distance: 3750, x: 680, y: 620 }, exit: { distance: 4050, x: 520, y: 660 }, gear: 4, apexSpeed: 145, difficulty: 'hard', notes: 'Long sweeping double-apex' },
+      { number: 13, name: '130R', type: 'left', apex: { distance: 4800, x: 250, y: 550, normalizedDistance: 0.827 }, entry: { distance: 4700, x: 300, y: 570 }, exit: { distance: 4900, x: 200, y: 520 }, gear: 7, apexSpeed: 280, difficulty: 'hard', notes: 'Famous high-speed corner' },
+      { number: 14, name: 'Casio Triangle', type: 'chicane', apex: { distance: 5400, x: 200, y: 400, normalizedDistance: 0.930 }, braking: { distance: 5250, x: 210, y: 450 }, exit: { distance: 5550, x: 220, y: 350 }, gear: 2, apexSpeed: 65, difficulty: 'medium' }
+    ],
+    svg: {
+      viewBox: '0 0 1050 700',
+      path: 'M 200,350 L 300,300 Q 420,220 550,180 L 700,140 Q 850,110 950,180 L 980,300 Q 990,430 930,530 L 800,600 Q 650,650 500,650 L 350,630 Q 220,590 180,480 L 200,350 Z'
+    },
+    metadata: {
+      direction: 'clockwise',
+      elevation: { minimum: 40, maximum: 80, change: 40 },
+      coordinates: { latitude: 34.8431, longitude: 136.5406 }
+    }
+  },
+
+  'imola': {
+    id: 'imola',
+    name: 'Autodromo Enzo e Dino Ferrari',
+    country: 'Italy',
+    length: 4909,
+    layout: 'Grand Prix',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1636 },
+      { number: 2, name: 'Sector 2', startDistance: 1636, endDistance: 3273 },
+      { number: 3, name: 'Sector 3', startDistance: 3273, endDistance: 4909 }
+    ],
+    corners: [
+      { number: 1, name: 'Tamburello', type: 'left', apex: { distance: 600, x: 400, y: 200, normalizedDistance: 0.122 }, entry: { distance: 500, x: 350, y: 220 }, exit: { distance: 700, x: 450, y: 180 }, gear: 5, apexSpeed: 200, difficulty: 'medium' },
+      { number: 3, name: 'Tosa', type: 'left', apex: { distance: 1300, x: 700, y: 100, normalizedDistance: 0.265 }, braking: { distance: 1150, x: 650, y: 120 }, exit: { distance: 1450, x: 750, y: 90 }, gear: 2, apexSpeed: 80, difficulty: 'hard' },
+      { number: 6, name: 'Piratella', type: 'right', apex: { distance: 2200, x: 900, y: 300, normalizedDistance: 0.448 }, braking: { distance: 2050, x: 870, y: 260 }, exit: { distance: 2350, x: 920, y: 350 }, gear: 3, apexSpeed: 120, difficulty: 'medium' },
+      { number: 8, name: 'Acque Minerali', type: 'chicane', apex: { distance: 2800, x: 850, y: 500, normalizedDistance: 0.570 }, braking: { distance: 2650, x: 880, y: 460 }, exit: { distance: 2950, x: 810, y: 530 }, gear: 3, apexSpeed: 100, difficulty: 'hard' },
+      { number: 10, name: 'Variante Alta', type: 'chicane', apex: { distance: 3600, x: 600, y: 600, normalizedDistance: 0.733 }, braking: { distance: 3450, x: 650, y: 580 }, exit: { distance: 3750, x: 550, y: 610 }, gear: 3, apexSpeed: 95, difficulty: 'medium' },
+      { number: 12, name: 'Rivazza 1', type: 'left', apex: { distance: 4200, x: 350, y: 550, normalizedDistance: 0.856 }, braking: { distance: 4050, x: 400, y: 570 }, exit: { distance: 4350, x: 300, y: 520 }, gear: 3, apexSpeed: 115, difficulty: 'medium' },
+      { number: 13, name: 'Rivazza 2', type: 'left', apex: { distance: 4600, x: 200, y: 450, normalizedDistance: 0.937 }, entry: { distance: 4500, x: 250, y: 480 }, exit: { distance: 4700, x: 180, y: 400 }, gear: 3, apexSpeed: 110, difficulty: 'medium' }
+    ],
+    svg: {
+      viewBox: '0 0 1000 700',
+      path: 'M 150,350 L 300,250 Q 450,150 600,120 L 780,100 Q 900,110 950,220 L 950,380 Q 930,500 850,570 L 680,620 Q 500,650 350,600 L 200,520 Q 140,450 150,350 Z'
+    },
+    metadata: {
+      direction: 'counter-clockwise',
+      elevation: { minimum: 30, maximum: 75, change: 45 },
+      coordinates: { latitude: 44.3439, longitude: 11.7167 }
+    }
+  },
+
+  'cota': {
+    id: 'cota',
+    name: 'Circuit of the Americas',
+    country: 'USA',
+    length: 5513,
+    layout: 'Grand Prix',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1838 },
+      { number: 2, name: 'Sector 2', startDistance: 1838, endDistance: 3675 },
+      { number: 3, name: 'Sector 3', startDistance: 3675, endDistance: 5513 }
+    ],
+    corners: [
+      { number: 1, name: 'Turn 1', type: 'left', apex: { distance: 400, x: 350, y: 200, normalizedDistance: 0.073 }, braking: { distance: 300, x: 300, y: 230 }, exit: { distance: 500, x: 400, y: 170 }, gear: 2, apexSpeed: 75, difficulty: 'hard', notes: 'Uphill hairpin, famous overtaking spot' },
+      { number: 3, name: 'Turn 3-4 (S Curves)', type: 'left-right', apex: { distance: 1000, x: 600, y: 100, normalizedDistance: 0.181 }, entry: { distance: 900, x: 550, y: 130 }, exit: { distance: 1100, x: 650, y: 80 }, gear: 5, apexSpeed: 190, difficulty: 'hard' },
+      { number: 11, name: 'Turn 11', type: 'hairpin', apex: { distance: 2700, x: 950, y: 400, normalizedDistance: 0.490 }, braking: { distance: 2550, x: 920, y: 360 }, exit: { distance: 2850, x: 960, y: 440 }, gear: 2, apexSpeed: 70, difficulty: 'medium' },
+      { number: 12, name: 'Turn 12', type: 'left', apex: { distance: 3200, x: 900, y: 550, normalizedDistance: 0.581 }, braking: { distance: 3050, x: 930, y: 510 }, exit: { distance: 3350, x: 860, y: 580 }, gear: 2, apexSpeed: 65, difficulty: 'hard', notes: 'Heavy braking' },
+      { number: 15, name: 'Turn 15', type: 'left', apex: { distance: 4000, x: 650, y: 650, normalizedDistance: 0.726 }, entry: { distance: 3900, x: 700, y: 630 }, exit: { distance: 4100, x: 600, y: 660 }, gear: 5, apexSpeed: 190, difficulty: 'medium' },
+      { number: 19, name: 'Turn 19', type: 'left', apex: { distance: 5100, x: 250, y: 500, normalizedDistance: 0.925 }, braking: { distance: 4950, x: 300, y: 520 }, exit: { distance: 5250, x: 220, y: 470 }, gear: 3, apexSpeed: 105, difficulty: 'medium' }
+    ],
+    svg: {
+      viewBox: '0 0 1050 700',
+      path: 'M 200,400 L 300,280 Q 400,160 550,100 L 750,80 Q 900,90 980,200 L 1000,350 Q 1000,480 940,570 L 800,640 Q 650,680 480,660 L 300,600 Q 200,540 180,450 L 200,400 Z'
+    },
+    metadata: {
+      direction: 'counter-clockwise',
+      elevation: { minimum: 131, maximum: 172, change: 41 },
+      coordinates: { latitude: 30.1328, longitude: -97.6411 }
+    }
+  },
+
+  'mount-panorama': {
+    id: 'mount-panorama',
+    name: 'Mount Panorama Circuit',
+    country: 'Australia',
+    length: 6213,
+    layout: 'Grand Prix',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 2071 },
+      { number: 2, name: 'Sector 2', startDistance: 2071, endDistance: 4142 },
+      { number: 3, name: 'Sector 3', startDistance: 4142, endDistance: 6213 }
+    ],
+    corners: [
+      { number: 1, name: 'Hell Corner', type: 'right', apex: { distance: 400, x: 300, y: 500, normalizedDistance: 0.064 }, braking: { distance: 300, x: 250, y: 520 }, exit: { distance: 500, x: 350, y: 470 }, gear: 2, apexSpeed: 65, difficulty: 'hard' },
+      { number: 2, name: 'Mountain Straight Chicane', type: 'chicane', apex: { distance: 1000, x: 500, y: 350, normalizedDistance: 0.161 }, braking: { distance: 850, x: 450, y: 380 }, exit: { distance: 1150, x: 550, y: 320 }, gear: 3, apexSpeed: 100, difficulty: 'medium' },
+      { number: 5, name: 'The Cutting', type: 'left-right', apex: { distance: 2200, x: 750, y: 100, normalizedDistance: 0.354 }, entry: { distance: 2100, x: 700, y: 130 }, exit: { distance: 2300, x: 800, y: 80 }, gear: 3, apexSpeed: 110, difficulty: 'hard', notes: 'Narrow mountain section' },
+      { number: 8, name: 'The Dipper', type: 'right', apex: { distance: 3200, x: 900, y: 250, normalizedDistance: 0.515 }, braking: { distance: 3050, x: 870, y: 220 }, exit: { distance: 3350, x: 920, y: 300 }, gear: 3, apexSpeed: 95, difficulty: 'hard', notes: 'Blind entry, steep descent' },
+      { number: 11, name: 'Forrest Elbow', type: 'left', apex: { distance: 4000, x: 850, y: 450, normalizedDistance: 0.644 }, braking: { distance: 3850, x: 870, y: 400 }, exit: { distance: 4150, x: 820, y: 500 }, gear: 2, apexSpeed: 70, difficulty: 'hard', notes: 'Critical for Conrod exit speed' },
+      { number: 18, name: 'The Chase', type: 'left-right', apex: { distance: 5500, x: 400, y: 600, normalizedDistance: 0.885 }, entry: { distance: 5400, x: 450, y: 580 }, exit: { distance: 5600, x: 350, y: 610 }, gear: 4, apexSpeed: 150, difficulty: 'hard' },
+      { number: 19, name: 'Murray Corner', type: 'right', apex: { distance: 5900, x: 200, y: 550, normalizedDistance: 0.950 }, braking: { distance: 5750, x: 250, y: 570 }, exit: { distance: 6050, x: 180, y: 520 }, gear: 2, apexSpeed: 65, difficulty: 'hard', notes: 'Last corner, leads to main straight' }
+    ],
+    svg: {
+      viewBox: '0 0 1000 650',
+      path: 'M 150,550 L 300,500 Q 450,420 600,300 L 750,180 Q 850,100 930,150 L 950,280 Q 960,400 900,500 L 780,580 Q 600,630 400,620 L 250,590 Q 160,570 150,550 Z'
+    },
+    metadata: {
+      direction: 'counter-clockwise',
+      elevation: { minimum: 462, maximum: 632, change: 170 },
+      coordinates: { latitude: -33.4464, longitude: 149.5583 }
+    }
+  },
+
+  'interlagos': {
+    id: 'interlagos',
+    name: 'Autódromo José Carlos Pace',
+    country: 'Brazil',
+    length: 4309,
+    layout: 'Grand Prix',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1436 },
+      { number: 2, name: 'Sector 2', startDistance: 1436, endDistance: 2873 },
+      { number: 3, name: 'Sector 3', startDistance: 2873, endDistance: 4309 }
+    ],
+    corners: [
+      { number: 1, name: 'Senna S (Turn 1)', type: 'left', apex: { distance: 250, x: 350, y: 300, normalizedDistance: 0.058 }, braking: { distance: 150, x: 300, y: 320 }, exit: { distance: 350, x: 400, y: 270 }, gear: 3, apexSpeed: 110, difficulty: 'hard', notes: 'Famous downhill braking into S' },
+      { number: 4, name: 'Descida do Lago', type: 'left', apex: { distance: 1200, x: 700, y: 100, normalizedDistance: 0.278 }, braking: { distance: 1050, x: 650, y: 120 }, exit: { distance: 1350, x: 750, y: 90 }, gear: 3, apexSpeed: 115, difficulty: 'medium' },
+      { number: 7, name: 'Laranjinha', type: 'left', apex: { distance: 2100, x: 900, y: 300, normalizedDistance: 0.487 }, entry: { distance: 2000, x: 870, y: 260 }, exit: { distance: 2200, x: 920, y: 350 }, gear: 4, apexSpeed: 150, difficulty: 'medium' },
+      { number: 8, name: 'Pinheirinho', type: 'left', apex: { distance: 2600, x: 850, y: 480, normalizedDistance: 0.603 }, entry: { distance: 2500, x: 870, y: 430 }, exit: { distance: 2700, x: 820, y: 520 }, gear: 4, apexSpeed: 140, difficulty: 'medium' },
+      { number: 10, name: 'Mergulho', type: 'left', apex: { distance: 3200, x: 650, y: 600, normalizedDistance: 0.743 }, braking: { distance: 3050, x: 700, y: 570 }, exit: { distance: 3350, x: 600, y: 620 }, gear: 3, apexSpeed: 100, difficulty: 'hard' },
+      { number: 12, name: 'Juncao', type: 'left', apex: { distance: 3900, x: 350, y: 550, normalizedDistance: 0.905 }, braking: { distance: 3750, x: 400, y: 570 }, exit: { distance: 4050, x: 300, y: 520 }, gear: 3, apexSpeed: 120, difficulty: 'hard', notes: 'Critical for main straight speed' }
+    ],
+    svg: {
+      viewBox: '0 0 1000 700',
+      path: 'M 200,380 L 350,300 Q 500,200 650,130 L 800,100 Q 920,110 960,220 L 950,380 Q 920,500 830,580 L 650,630 Q 450,660 300,600 L 200,520 Q 170,450 200,380 Z'
+    },
+    metadata: {
+      direction: 'counter-clockwise',
+      elevation: { minimum: 720, maximum: 798, change: 78 },
+      coordinates: { latitude: -23.7036, longitude: -46.6975 }
+    }
+  },
+
+  'brands-hatch': {
+    id: 'brands-hatch',
+    name: 'Brands Hatch',
+    country: 'UK',
+    length: 3908,
+    layout: 'Grand Prix',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1303 },
+      { number: 2, name: 'Sector 2', startDistance: 1303, endDistance: 2605 },
+      { number: 3, name: 'Sector 3', startDistance: 2605, endDistance: 3908 }
+    ],
+    corners: [
+      { number: 1, name: 'Paddock Hill Bend', type: 'right', apex: { distance: 300, x: 350, y: 400, normalizedDistance: 0.077 }, braking: { distance: 200, x: 300, y: 420 }, exit: { distance: 400, x: 400, y: 370 }, gear: 3, apexSpeed: 105, difficulty: 'hard', notes: 'Famous blind downhill right' },
+      { number: 2, name: 'Druids', type: 'hairpin', apex: { distance: 800, x: 600, y: 250, normalizedDistance: 0.205 }, braking: { distance: 650, x: 550, y: 300 }, exit: { distance: 950, x: 630, y: 210 }, gear: 2, apexSpeed: 55, difficulty: 'hard' },
+      { number: 4, name: 'Surtees', type: 'right', apex: { distance: 1400, x: 800, y: 150, normalizedDistance: 0.358 }, entry: { distance: 1300, x: 750, y: 170 }, exit: { distance: 1500, x: 850, y: 140 }, gear: 5, apexSpeed: 170, difficulty: 'medium' },
+      { number: 6, name: 'Hawthorn Bend', type: 'right', apex: { distance: 2200, x: 950, y: 350, normalizedDistance: 0.563 }, entry: { distance: 2100, x: 920, y: 300 }, exit: { distance: 2300, x: 960, y: 400 }, gear: 3, apexSpeed: 110, difficulty: 'medium' },
+      { number: 8, name: 'Westfield', type: 'left', apex: { distance: 2800, x: 850, y: 550, normalizedDistance: 0.716 }, entry: { distance: 2700, x: 880, y: 500 }, exit: { distance: 2900, x: 810, y: 580 }, gear: 2, apexSpeed: 70, difficulty: 'medium' },
+      { number: 10, name: 'Clearways', type: 'right', apex: { distance: 3500, x: 500, y: 550, normalizedDistance: 0.896 }, entry: { distance: 3400, x: 550, y: 560 }, exit: { distance: 3600, x: 450, y: 530 }, gear: 4, apexSpeed: 140, difficulty: 'hard', notes: 'Key for pit straight speed' }
+    ],
+    svg: {
+      viewBox: '0 0 1050 650',
+      path: 'M 200,450 L 350,380 Q 500,290 650,220 L 800,160 Q 920,130 980,220 L 980,380 Q 960,500 880,570 L 700,610 Q 500,630 350,580 L 220,510 Q 190,480 200,450 Z'
+    },
+    metadata: {
+      direction: 'clockwise',
+      elevation: { minimum: 50, maximum: 110, change: 60 },
+      coordinates: { latitude: 51.3569, longitude: 0.2628 }
+    }
+  },
+
+  'okayama': {
+    id: 'okayama',
+    name: 'Okayama International Circuit',
+    country: 'Japan',
+    length: 3703,
+    layout: 'Grand Prix',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1234 },
+      { number: 2, name: 'Sector 2', startDistance: 1234, endDistance: 2469 },
+      { number: 3, name: 'Sector 3', startDistance: 2469, endDistance: 3703 }
+    ],
+    corners: [
+      { number: 1, name: 'First Corner', type: 'left', apex: { distance: 300, x: 350, y: 300, normalizedDistance: 0.081 }, braking: { distance: 200, x: 300, y: 320 }, exit: { distance: 400, x: 400, y: 270 }, gear: 3, apexSpeed: 100, difficulty: 'medium' },
+      { number: 3, name: 'Moss Corner', type: 'right', apex: { distance: 1000, x: 600, y: 150, normalizedDistance: 0.270 }, braking: { distance: 850, x: 550, y: 180 }, exit: { distance: 1150, x: 650, y: 130 }, gear: 2, apexSpeed: 70, difficulty: 'hard' },
+      { number: 5, name: 'Attwood Curve', type: 'left', apex: { distance: 1800, x: 850, y: 280, normalizedDistance: 0.486 }, entry: { distance: 1700, x: 800, y: 250 }, exit: { distance: 1900, x: 880, y: 320 }, gear: 4, apexSpeed: 130, difficulty: 'medium' },
+      { number: 8, name: 'Revolver', type: 'right', apex: { distance: 2600, x: 800, y: 500, normalizedDistance: 0.702 }, braking: { distance: 2450, x: 830, y: 460 }, exit: { distance: 2750, x: 760, y: 530 }, gear: 3, apexSpeed: 90, difficulty: 'hard' },
+      { number: 10, name: 'Last Corner', type: 'right', apex: { distance: 3400, x: 400, y: 500, normalizedDistance: 0.919 }, braking: { distance: 3250, x: 450, y: 510 }, exit: { distance: 3550, x: 350, y: 480 }, gear: 3, apexSpeed: 95, difficulty: 'medium' }
+    ],
+    svg: {
+      viewBox: '0 0 950 600',
+      path: 'M 200,350 L 350,280 Q 500,200 650,160 L 800,150 Q 890,160 920,250 L 900,380 Q 870,480 780,530 L 600,560 Q 400,570 280,500 L 210,420 Q 190,380 200,350 Z'
+    },
+    metadata: {
+      direction: 'clockwise',
+      elevation: { minimum: 240, maximum: 285, change: 45 },
+      coordinates: { latitude: 34.9150, longitude: 134.2217 }
+    }
+  },
+
+  'lime-rock': {
+    id: 'lime-rock',
+    name: 'Lime Rock Park',
+    country: 'USA',
+    length: 2414,
+    layout: 'Full Course',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 805 },
+      { number: 2, name: 'Sector 2', startDistance: 805, endDistance: 1609 },
+      { number: 3, name: 'Sector 3', startDistance: 1609, endDistance: 2414 }
+    ],
+    corners: [
+      { number: 1, name: 'Big Bend', type: 'right', apex: { distance: 200, x: 350, y: 350, normalizedDistance: 0.083 }, entry: { distance: 150, x: 300, y: 370 }, exit: { distance: 300, x: 400, y: 320 }, gear: 4, apexSpeed: 140, difficulty: 'medium', notes: 'Fast sweeping right' },
+      { number: 3, name: 'Right Hander', type: 'right', apex: { distance: 800, x: 700, y: 150, normalizedDistance: 0.331 }, braking: { distance: 700, x: 650, y: 180 }, exit: { distance: 900, x: 730, y: 130 }, gear: 3, apexSpeed: 100, difficulty: 'hard' },
+      { number: 5, name: 'The Uphill', type: 'left', apex: { distance: 1400, x: 850, y: 300, normalizedDistance: 0.580 }, entry: { distance: 1300, x: 820, y: 260 }, exit: { distance: 1500, x: 870, y: 350 }, gear: 4, apexSpeed: 145, difficulty: 'hard', notes: 'Blind uphill left' },
+      { number: 6, name: 'West Bend', type: 'left', apex: { distance: 1800, x: 750, y: 450, normalizedDistance: 0.746 }, entry: { distance: 1700, x: 800, y: 410 }, exit: { distance: 1900, x: 680, y: 480 }, gear: 5, apexSpeed: 165, difficulty: 'medium' },
+      { number: 7, name: 'The Downhill', type: 'right', apex: { distance: 2200, x: 450, y: 480, normalizedDistance: 0.911 }, entry: { distance: 2100, x: 520, y: 490 }, exit: { distance: 2300, x: 380, y: 460 }, gear: 5, apexSpeed: 170, difficulty: 'medium', notes: 'Fast downhill right to main straight' }
+    ],
+    svg: {
+      viewBox: '0 0 950 550',
+      path: 'M 200,400 L 350,350 Q 500,270 650,200 L 780,160 Q 870,160 900,230 L 890,350 Q 870,440 790,490 L 600,510 Q 400,520 280,470 L 210,420 Q 195,410 200,400 Z'
+    },
+    metadata: {
+      direction: 'clockwise',
+      elevation: { minimum: 220, maximum: 280, change: 60 },
+      coordinates: { latitude: 41.9281, longitude: -73.3833 }
+    }
+  },
+
+  'sebring': {
+    id: 'sebring',
+    name: 'Sebring International Raceway',
+    country: 'USA',
+    length: 6019,
+    layout: 'Full Course',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 2006 },
+      { number: 2, name: 'Sector 2', startDistance: 2006, endDistance: 4013 },
+      { number: 3, name: 'Sector 3', startDistance: 4013, endDistance: 6019 }
+    ],
+    corners: [
+      { number: 1, name: 'Turn 1', type: 'right', apex: { distance: 350, x: 350, y: 400, normalizedDistance: 0.058 }, braking: { distance: 250, x: 300, y: 420 }, exit: { distance: 450, x: 400, y: 370 }, gear: 3, apexSpeed: 110, difficulty: 'medium' },
+      { number: 3, name: 'Turn 3 Hairpin', type: 'left', apex: { distance: 1100, x: 600, y: 200, normalizedDistance: 0.183 }, braking: { distance: 950, x: 550, y: 230 }, exit: { distance: 1250, x: 650, y: 180 }, gear: 2, apexSpeed: 60, difficulty: 'hard' },
+      { number: 7, name: 'Turn 7', type: 'right', apex: { distance: 2500, x: 900, y: 300, normalizedDistance: 0.415 }, entry: { distance: 2400, x: 870, y: 260 }, exit: { distance: 2600, x: 920, y: 350 }, gear: 4, apexSpeed: 140, difficulty: 'medium', notes: 'Bumpy surface' },
+      { number: 10, name: 'Turn 10', type: 'hairpin', apex: { distance: 3500, x: 850, y: 550, normalizedDistance: 0.582 }, braking: { distance: 3350, x: 870, y: 510 }, exit: { distance: 3650, x: 820, y: 580 }, gear: 2, apexSpeed: 55, difficulty: 'hard', notes: 'Tight hairpin' },
+      { number: 13, name: 'Turn 13', type: 'left', apex: { distance: 4500, x: 600, y: 600, normalizedDistance: 0.748 }, entry: { distance: 4400, x: 640, y: 590 }, exit: { distance: 4600, x: 560, y: 600 }, gear: 5, apexSpeed: 170, difficulty: 'medium' },
+      { number: 17, name: 'Turn 17', type: 'right', apex: { distance: 5600, x: 250, y: 500, normalizedDistance: 0.930 }, braking: { distance: 5450, x: 300, y: 520 }, exit: { distance: 5750, x: 220, y: 470 }, gear: 3, apexSpeed: 100, difficulty: 'hard', notes: 'Key for main straight speed' }
+    ],
+    svg: {
+      viewBox: '0 0 1000 700',
+      path: 'M 150,450 L 300,380 Q 480,270 650,200 L 830,150 Q 950,160 980,270 L 960,420 Q 930,540 840,610 L 650,650 Q 450,670 300,620 L 180,540 Q 140,490 150,450 Z'
+    },
+    metadata: {
+      direction: 'clockwise',
+      elevation: { minimum: 15, maximum: 25, change: 10 },
+      coordinates: { latitude: 27.4544, longitude: -81.3483 }
+    }
+  },
+
+  'long-beach': {
+    id: 'long-beach',
+    name: 'Long Beach Street Circuit',
+    country: 'USA',
+    length: 3167,
+    layout: 'Street Circuit',
+    sectors: [
+      { number: 1, name: 'Sector 1', startDistance: 0, endDistance: 1056 },
+      { number: 2, name: 'Sector 2', startDistance: 1056, endDistance: 2111 },
+      { number: 3, name: 'Sector 3', startDistance: 2111, endDistance: 3167 }
+    ],
+    corners: [
+      { number: 1, name: 'Turn 1', type: 'right', apex: { distance: 300, x: 350, y: 350, normalizedDistance: 0.095 }, braking: { distance: 200, x: 300, y: 370 }, exit: { distance: 400, x: 400, y: 320 }, gear: 2, apexSpeed: 70, difficulty: 'hard', notes: 'Tight right into harbour section' },
+      { number: 4, name: 'Fountain Turn', type: 'hairpin', apex: { distance: 1000, x: 700, y: 150, normalizedDistance: 0.316 }, braking: { distance: 850, x: 650, y: 180 }, exit: { distance: 1150, x: 730, y: 130 }, gear: 1, apexSpeed: 45, difficulty: 'hard', notes: 'Slowest point, tight hairpin' },
+      { number: 6, name: 'Turn 6', type: 'right', apex: { distance: 1600, x: 900, y: 300, normalizedDistance: 0.505 }, entry: { distance: 1500, x: 850, y: 270 }, exit: { distance: 1700, x: 920, y: 340 }, gear: 3, apexSpeed: 110, difficulty: 'medium' },
+      { number: 8, name: 'Turn 8', type: 'left', apex: { distance: 2200, x: 800, y: 500, normalizedDistance: 0.695 }, braking: { distance: 2100, x: 830, y: 460 }, exit: { distance: 2300, x: 760, y: 530 }, gear: 2, apexSpeed: 65, difficulty: 'hard' },
+      { number: 11, name: 'Turn 11', type: 'right', apex: { distance: 2900, x: 400, y: 500, normalizedDistance: 0.916 }, braking: { distance: 2750, x: 450, y: 510 }, exit: { distance: 3050, x: 350, y: 480 }, gear: 2, apexSpeed: 60, difficulty: 'hard', notes: 'Final corner, no runoff' }
+    ],
+    svg: {
+      viewBox: '0 0 1000 600',
+      path: 'M 200,400 L 350,350 Q 500,280 650,220 L 800,170 Q 910,160 940,240 L 920,370 Q 890,470 800,520 L 600,550 Q 400,560 280,510 L 210,440 Q 195,420 200,400 Z'
+    },
+    metadata: {
+      direction: 'clockwise',
+      elevation: { minimum: 5, maximum: 15, change: 10 },
+      coordinates: { latitude: 33.7627, longitude: -118.1896 }
     }
   }
 };
