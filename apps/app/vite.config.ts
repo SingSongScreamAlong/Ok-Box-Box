@@ -1,16 +1,25 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { readFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 
 const pkg = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf-8')
 ) as { version?: string };
 
-const gitCommit =
+let gitCommit =
   process.env.GIT_COMMIT ??
   process.env.VERCEL_GIT_COMMIT_SHA ??
   process.env.GITHUB_SHA ??
-  'UNKNOWN';
+  undefined;
+
+if (!gitCommit) {
+  try {
+    gitCommit = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
+  } catch {
+    gitCommit = 'UNKNOWN';
+  }
+}
 
 export default defineConfig({
   plugins: [react()],

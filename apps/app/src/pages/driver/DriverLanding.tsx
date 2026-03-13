@@ -1571,6 +1571,13 @@ export function DriverLanding() {
       {!hasSeenWelcome && (
         <DriverWelcome displayName={displayName} onComplete={markAsSeen} />
       )}
+
+      {/* Build stamp */}
+      <div className="mt-8 pb-2 text-center">
+        <span className="text-[9px] font-mono text-white/15 select-all">
+          {__GIT_COMMIT__}·{__BUILD_TIME__?.slice(0, 16)}
+        </span>
+      </div>
     </div>
   );
 }
