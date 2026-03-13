@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRelay } from '../hooks/useRelay';
 import { DriverDataProvider, useDriverData } from '../hooks/useDriverData';
 import { getDisciplineLabel } from '../lib/driverService';
-import { Settings, LogOut, User, ChevronDown, BarChart3, Users, Trophy, Zap, MessageSquare, TrendingUp, Flag, Map, Radio, Brain } from 'lucide-react';
+import { Settings, LogOut, User, ChevronDown, Users, Trophy, Zap, MessageSquare, TrendingUp, Flag, Map, Radio, Brain, Calendar, ClipboardList } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 function DriverLayoutContent() {
@@ -49,12 +49,11 @@ function DriverLayoutContent() {
   };
 
   const navItems = [
-    { to: '/driver/home', icon: Radio, label: 'Home' },
+    { to: '/driver/home', icon: Calendar, label: 'Prepare' },
     { to: '/driver/cockpit', icon: Zap, label: 'Race' },
     { to: '/driver/crew/engineer', icon: MessageSquare, label: 'Crew' },
+    { to: '/driver/history', icon: ClipboardList, label: 'Review' },
     { to: '/driver/progress', icon: TrendingUp, label: 'Develop' },
-    { to: '/driver/history', icon: BarChart3, label: 'History' },
-    { to: '/track-intel', icon: Map, label: 'Tracks' },
   ];
 
   const primaryLicense = profile?.licenses?.[0];
@@ -189,6 +188,14 @@ function DriverLayoutContent() {
                   >
                     <Radio className="w-4 h-4" />
                     Admin Ops
+                  </NavLink>
+                  <NavLink
+                    to="/track-intel"
+                    className="flex items-center gap-2 px-4 py-3 text-xs uppercase tracking-wider text-white/60 hover:text-white hover:bg-white/5"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    <Map className="w-4 h-4" />
+                    Track Intel
                   </NavLink>
                   <NavLink
                     to="/settings"
