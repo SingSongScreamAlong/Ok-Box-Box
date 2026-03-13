@@ -42,6 +42,7 @@ import { FatigueAwarenessCard } from '../../components/FatigueAwarenessCard';
 import { TrackFamiliarityCard } from '../../components/TrackFamiliarityCard';
 import { IncidentPatternCard } from '../../components/IncidentPatternCard';
 import { SessionIntentPicker } from '../../components/SessionIntentPicker';
+import { RaceStartCoach } from '../../components/RaceStartCoach';
 import {
   WifiOff, Radio, ChevronRight,
   Play, Download, Gauge, Shield,
@@ -1635,6 +1636,9 @@ export function DriverLanding() {
 
         {/* ═══ PHASE 1d: INCIDENT PATTERN RECOGNITION ═══ */}
         {!isTrainingMode && <IncidentPatternCard sessions={sessions} />}
+
+        {/* ═══ PHASE 2b: RACE START SURVIVAL COACH ═══ */}
+        {!isTrainingMode && <RaceStartCoach sessions={sessions} />}
 
         {/* ═══ PHASE 0: IDP INTELLIGENCE SUMMARY ═══ */}
         {!isTrainingMode && <IDPSummaryCard />}
