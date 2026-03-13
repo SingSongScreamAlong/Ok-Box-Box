@@ -39,6 +39,7 @@ import { PerformanceConfidenceMeter } from '../../components/PerformanceConfiden
 import { RacePrepFlow } from '../../components/RacePrepFlow';
 import { DebriefCard } from './states/DebriefCard';
 import { FatigueAwarenessCard } from '../../components/FatigueAwarenessCard';
+import { TrackFamiliarityCard } from '../../components/TrackFamiliarityCard';
 import {
   WifiOff, Radio, ChevronRight,
   Play, Download, Gauge, Shield,
@@ -1634,6 +1635,9 @@ export function DriverLanding() {
         {sessionCount > 0 && (
           <CrewPreviewPanel sessions={sessions} focus={direction.primaryFocus} telemetry={sessionTelemetry} />
         )}
+
+        {/* ═══ PHASE 1c: TRACK FAMILIARITY ═══ */}
+        {!isTrainingMode && <TrackFamiliarityCard sessions={sessions} />}
 
         {/* COMPETITIVE TREND + iRATING SPARKLINE (merged section) */}
         <FiveRaceTrendSummary sessions={sessions} loading={loading} />
