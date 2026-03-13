@@ -1,15 +1,17 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { 
+import {
   Flag,
   TrendingUp,
-  TrendingDown,
   Target,
   ChevronRight,
   Clock,
   Award,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
+import { fetchCrewBrief, type CrewBrief } from '../../../lib/driverService';
 
 interface SessionMemory {
   lastSessionEnd: number | null;
@@ -22,15 +24,38 @@ interface SessionMemory {
 interface DebriefCardProps {
   sessionMemory: SessionMemory;
   timeSinceSession: number | null;
+  /** When true, renders as an inline card (for Home embed) instead of full-page centered */
+  compact?: boolean;
 }
 
 /**
  * DebriefCard - POST_RUN state
- * 
+ *
  * Shown immediately after a session ends (within 30 min).
- * Provides immediate debrief: key moments, delta analysis, "work on this".
+ * Wired to real crew brief API — no hardcoded mock data.
+ *
+ * Phase 0: Uses fetchCrewBrief() to get AI-generated session debriefs
+ * TODO Phase 1: Add telemetry-specific key moments from session replay data
  */
-export function DebriefCard({ sessionMemory, timeSinceSession }: DebriefCardProps) {
+export function DebriefCard({ sessionMemory, timeSinceSession, compact }: DebriefCardProps) {
+  const [brief, setBrief] = useState<CrewBrief | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCrewBrief()
+      .then(briefs => {
+        if (briefs && briefs.length > 0) {
+          // Most recent brief first
+          const sorted = [...briefs].sort((a, b) =>
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+          setBrief(sorted[0]);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
   const formatTimeSince = (ms: number | null) => {
     if (ms === null) return 'Unknown';
     const minutes = Math.floor(ms / (1000 * 60));
@@ -47,8 +72,155 @@ export function DebriefCard({ sessionMemory, timeSinceSession }: DebriefCardProp
     return 'th';
   };
 
+  // Extract structured debrief points from crew brief content
+  const getDebriefPoints = (): {
+    engineerSays: string;
+    keyImprovement: string | null;
+    keyWeakness: string | null;
+    biggestMistake: string | null;
+    strongestSegment: string | null;
+  } => {
+    const content = brief?.content;
+
+    // Default position-based engineer message
+    const pos = sessionMemory.lastPosition;
+    const defaultMsg = pos && pos <= 3
+      ? `Strong result at P${pos}. Let's review what worked.`
+      : pos && pos <= 10
+      ? `P${pos} gives us good data. I've identified areas to improve.`
+      : `Good session for data. Let's identify where we can improve.`;
+
+    if (!content) return { engineerSays: defaultMsg, keyImprovement: null, keyWeakness: null, biggestMistake: null, strongestSegment: null };
+
+    // crew brief content may be a string or structured object
+    if (typeof content === 'string') {
+      return { engineerSays: content, keyImprovement: null, keyWeakness: null, biggestMistake: null, strongestSegment: null };
+    }
+
+    // Structured content — try to extract 4-point debrief
+    // Supports both new Phase 0 fields AND legacy SessionDebriefResponse shape
+    return {
+      engineerSays: content.summary || content.headline || content.engineer_says || content.message || defaultMsg,
+      keyImprovement: content.key_improvement || content.keyImprovement || content.secondary_observation || null,
+      keyWeakness: content.key_weakness || content.keyWeakness || content.primary_limiter || null,
+      biggestMistake: content.biggest_mistake || content.biggestMistake || null,
+      strongestSegment: content.strongest_segment || content.strongestSegment || null,
+    };
+  };
+
+  const debrief = getDebriefPoints();
+
+  const ORBITRON = { fontFamily: 'Orbitron, sans-serif' };
+  const wrapperClass = compact
+    ? 'border border-[#f97316]/30 bg-[#0e0e0e]/80 backdrop-blur-sm'
+    : 'max-w-2xl mx-auto px-4 py-8 space-y-6';
+
+  if (compact) {
+    // Compact inline card for Home page embed
+    return (
+      <div className={wrapperClass}>
+        <div className="px-5 py-3 border-b border-[#f97316]/20 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="w-3.5 h-3.5 text-[#f97316]/50" />
+            <h2 className="text-sm uppercase tracking-[0.15em] text-[#f97316]" style={ORBITRON}>Session Debrief</h2>
+          </div>
+          <span className="text-[10px] text-white/20">{formatTimeSince(timeSinceSession)}</span>
+        </div>
+        <div className="px-5 py-4">
+          {/* Session header */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Flag className="w-4 h-4 text-white/30" />
+              <span className="text-[12px] text-white/60 font-medium">{sessionMemory.lastTrackName || 'Unknown Track'}</span>
+              <span className="text-[9px] text-white/20 uppercase">{sessionMemory.lastSessionType || 'Session'}</span>
+            </div>
+            {sessionMemory.lastPosition && (
+              <span className="text-lg font-bold font-mono text-white/80">
+                P{sessionMemory.lastPosition}<span className="text-xs text-white/30">{getPositionSuffix(sessionMemory.lastPosition)}</span>
+              </span>
+            )}
+          </div>
+
+          {loading ? (
+            <div className="flex items-center gap-2 py-3">
+              <Loader2 className="w-4 h-4 text-[#f97316]/50 animate-spin" />
+              <span className="text-[11px] text-white/30">Processing session debrief...</span>
+            </div>
+          ) : (
+            <>
+              {/* Engineer assessment */}
+              <div className="mb-3">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Award className="w-3 h-3 text-[#f97316]/50" />
+                  <span className="text-[9px] uppercase tracking-wider text-white/25">Engineer</span>
+                </div>
+                <p className="text-[11px] text-white/50 italic leading-relaxed">"{debrief.engineerSays}"</p>
+              </div>
+
+              {/* 4-point summary grid */}
+              <div className="grid grid-cols-2 gap-2">
+                {debrief.keyImprovement && (
+                  <div className="p-2 border border-green-500/15 bg-green-500/[0.03]">
+                    <div className="flex items-center gap-1 mb-1">
+                      <CheckCircle className="w-3 h-3 text-green-400" />
+                      <span className="text-[8px] uppercase tracking-wider text-green-400/60">Key Improvement</span>
+                    </div>
+                    <p className="text-[10px] text-white/40 line-clamp-2">{debrief.keyImprovement}</p>
+                  </div>
+                )}
+                {debrief.keyWeakness && (
+                  <div className="p-2 border border-yellow-500/15 bg-yellow-500/[0.03]">
+                    <div className="flex items-center gap-1 mb-1">
+                      <AlertCircle className="w-3 h-3 text-yellow-400" />
+                      <span className="text-[8px] uppercase tracking-wider text-yellow-400/60">Key Weakness</span>
+                    </div>
+                    <p className="text-[10px] text-white/40 line-clamp-2">{debrief.keyWeakness}</p>
+                  </div>
+                )}
+                {debrief.strongestSegment && (
+                  <div className="p-2 border border-blue-500/15 bg-blue-500/[0.03]">
+                    <div className="flex items-center gap-1 mb-1">
+                      <TrendingUp className="w-3 h-3 text-blue-400" />
+                      <span className="text-[8px] uppercase tracking-wider text-blue-400/60">Strongest</span>
+                    </div>
+                    <p className="text-[10px] text-white/40 line-clamp-2">{debrief.strongestSegment}</p>
+                  </div>
+                )}
+                {debrief.biggestMistake && (
+                  <div className="p-2 border border-red-500/15 bg-red-500/[0.03]">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Target className="w-3 h-3 text-red-400" />
+                      <span className="text-[8px] uppercase tracking-wider text-red-400/60">Work On</span>
+                    </div>
+                    <p className="text-[10px] text-white/40 line-clamp-2">{debrief.biggestMistake}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* If no structured points, show a simple message */}
+              {!debrief.keyImprovement && !debrief.keyWeakness && !debrief.strongestSegment && !debrief.biggestMistake && brief && (
+                <p className="text-[10px] text-white/25 mt-2">Detailed analysis available in full history.</p>
+              )}
+            </>
+          )}
+
+          {/* Quick actions */}
+          <div className="flex items-center gap-3 mt-4 pt-3 border-t border-white/[0.06]">
+            <Link to="/driver/history" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
+              Full History <ChevronRight className="w-3 h-3" />
+            </Link>
+            <Link to="/driver/crew/engineer" className="text-[10px] text-[#f97316]/50 hover:text-[#f97316]/80 uppercase tracking-wider flex items-center gap-1">
+              Ask Engineer <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Full-page mode (original layout, but with real data)
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+    <div className={wrapperClass}>
       {/* Header */}
       <div className="text-center mb-8">
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500/20 border border-orange-500/30 rounded mb-4">
@@ -57,9 +229,9 @@ export function DebriefCard({ sessionMemory, timeSinceSession }: DebriefCardProp
             Session Complete • {formatTimeSince(timeSinceSession)}
           </span>
         </div>
-        <h1 
+        <h1
           className="text-2xl font-bold uppercase tracking-wider"
-          style={{ fontFamily: 'Orbitron, sans-serif' }}
+          style={ORBITRON}
         >
           Debrief
         </h1>
@@ -87,99 +259,81 @@ export function DebriefCard({ sessionMemory, timeSinceSession }: DebriefCardProp
             </div>
           )}
         </div>
-
-        {/* Key Stats */}
-        <div className="grid grid-cols-3 gap-4 py-4 border-t border-b border-white/10">
-          <div className="text-center">
-            <div className="text-xs text-white/40 uppercase mb-1">Best Lap</div>
-            <div className="text-xl font-mono font-bold text-purple-400">1:42.847</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xs text-white/40 uppercase mb-1">Avg Pace</div>
-            <div className="text-xl font-mono font-bold">1:43.521</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xs text-white/40 uppercase mb-1">Consistency</div>
-            <div className="text-xl font-mono font-bold text-green-400">94%</div>
-          </div>
-        </div>
       </div>
 
-      {/* Engineer Debrief */}
-      <div className="bg-white/[0.03] backdrop-blur-xl border border-orange-500/20 rounded p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 bg-orange-500/20 rounded flex items-center justify-center">
-            <Award className="w-4 h-4 text-orange-400" />
-          </div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider">Engineer Says</h2>
+      {loading ? (
+        <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded p-8 text-center">
+          <Loader2 className="w-8 h-8 text-orange-400/50 animate-spin mx-auto mb-3" />
+          <p className="text-sm text-white/40">Processing your session debrief...</p>
         </div>
-        <p className="text-sm text-white/70 italic mb-4">
-          {sessionMemory.lastPosition && sessionMemory.lastPosition <= 3 
-            ? `"Strong result. P${sessionMemory.lastPosition} is exactly where we needed to be. Your consistency in the final stint was excellent."`
-            : sessionMemory.lastPosition && sessionMemory.lastPosition <= 10
-            ? `"Solid session. P${sessionMemory.lastPosition} gives us good data to work with. I've identified a few areas where we can find time."`
-            : `"Good session for data collection. Let's review the key moments and identify where we can improve."`
-          }
-        </p>
-      </div>
-
-      {/* Key Moments */}
-      <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 bg-purple-500/20 rounded flex items-center justify-center">
-            <Target className="w-4 h-4 text-purple-400" />
-          </div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider">Key Moments</h2>
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-start gap-3 p-2 bg-green-500/10 border border-green-500/20 rounded">
-            <CheckCircle className="w-4 h-4 text-green-400 mt-0.5" />
-            <div>
-              <div className="text-sm font-semibold text-green-400">Personal Best Lap 12</div>
-              <div className="text-xs text-white/50">Gained 0.3s through Turn 4 complex</div>
+      ) : (
+        <>
+          {/* Engineer Debrief */}
+          <div className="bg-white/[0.03] backdrop-blur-xl border border-orange-500/20 rounded p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 bg-orange-500/20 rounded flex items-center justify-center">
+                <Award className="w-4 h-4 text-orange-400" />
+              </div>
+              <h2 className="text-sm font-semibold uppercase tracking-wider">Engineer Says</h2>
             </div>
+            <p className="text-sm text-white/70 italic mb-4">"{debrief.engineerSays}"</p>
           </div>
-          <div className="flex items-start gap-3 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded">
-            <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5" />
-            <div>
-              <div className="text-sm font-semibold text-yellow-400">Lap 18 - Tire Degradation</div>
-              <div className="text-xs text-white/50">Lost 0.5s in sector 3 due to rear grip</div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Work On This */}
-      <div className="bg-white/[0.03] backdrop-blur-xl border border-blue-500/20 rounded p-4">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 bg-blue-500/20 rounded flex items-center justify-center">
-            <TrendingUp className="w-4 h-4 text-blue-400" />
-          </div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider">Work On This</h2>
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            <TrendingDown className="w-4 h-4 text-red-400" />
-            <span className="text-white/70">Braking into Turn 1 — 8m early vs your best</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <TrendingDown className="w-4 h-4 text-yellow-400" />
-            <span className="text-white/70">Throttle application T6 exit — losing 0.15s</span>
-          </div>
-        </div>
-      </div>
+          {/* 4-point debrief */}
+          {(debrief.keyImprovement || debrief.keyWeakness || debrief.strongestSegment || debrief.biggestMistake) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {debrief.keyImprovement && (
+                <div className="bg-white/[0.03] border border-green-500/20 rounded p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle className="w-4 h-4 text-green-400" />
+                    <span className="text-xs uppercase tracking-wider text-green-400">Key Improvement</span>
+                  </div>
+                  <p className="text-sm text-white/60">{debrief.keyImprovement}</p>
+                </div>
+              )}
+              {debrief.keyWeakness && (
+                <div className="bg-white/[0.03] border border-yellow-500/20 rounded p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertCircle className="w-4 h-4 text-yellow-400" />
+                    <span className="text-xs uppercase tracking-wider text-yellow-400">Key Weakness</span>
+                  </div>
+                  <p className="text-sm text-white/60">{debrief.keyWeakness}</p>
+                </div>
+              )}
+              {debrief.strongestSegment && (
+                <div className="bg-white/[0.03] border border-blue-500/20 rounded p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <TrendingUp className="w-4 h-4 text-blue-400" />
+                    <span className="text-xs uppercase tracking-wider text-blue-400">Strongest Segment</span>
+                  </div>
+                  <p className="text-sm text-white/60">{debrief.strongestSegment}</p>
+                </div>
+              )}
+              {debrief.biggestMistake && (
+                <div className="bg-white/[0.03] border border-red-500/20 rounded p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-4 h-4 text-red-400" />
+                    <span className="text-xs uppercase tracking-wider text-red-400">Work On This</span>
+                  </div>
+                  <p className="text-sm text-white/60">{debrief.biggestMistake}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
 
       {/* Actions */}
       <div className="flex items-center justify-center gap-4 pt-4">
-        <Link 
+        <Link
           to="/driver/idp"
           className="flex items-center gap-2 px-4 py-2 bg-purple-500/20 border border-purple-500/30 rounded text-xs uppercase tracking-wider hover:bg-purple-500/30 transition-colors"
         >
           Deep Dive Analysis
           <ChevronRight className="w-3 h-3" />
         </Link>
-        <Link 
-          to="/driver/sessions"
+        <Link
+          to="/driver/history"
           className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 rounded text-xs uppercase tracking-wider hover:bg-white/10 transition-colors"
         >
           Session History

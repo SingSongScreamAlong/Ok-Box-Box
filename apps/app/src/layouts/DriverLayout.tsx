@@ -1,9 +1,9 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useRelay } from '../hooks/useRelay';
 import { DriverDataProvider, useDriverData } from '../hooks/useDriverData';
 import { getDisciplineLabel } from '../lib/driverService';
-import { Settings, LogOut, User, ChevronDown, BarChart3, Users, Trophy, Zap, MessageSquare, TrendingUp, Flag, Brain, Map, Radio } from 'lucide-react';
+import { Settings, LogOut, User, ChevronDown, BarChart3, Users, Trophy, Zap, MessageSquare, TrendingUp, Flag, Map, Radio, Brain } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 
 function DriverLayoutContent() {
@@ -12,6 +12,7 @@ function DriverLayoutContent() {
   const { profile } = useDriverData();
   const navigate = useNavigate();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const location = useLocation();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -48,10 +49,10 @@ function DriverLayoutContent() {
   };
 
   const navItems = [
-    { to: '/driver/cockpit', icon: Zap, label: 'Cockpit' },
+    { to: '/driver/home', icon: Radio, label: 'Home' },
+    { to: '/driver/cockpit', icon: Zap, label: 'Race' },
     { to: '/driver/crew/engineer', icon: MessageSquare, label: 'Crew' },
-    { to: '/driver/progress', icon: TrendingUp, label: 'Progress' },
-    { to: '/driver/idp', icon: Brain, label: 'Profile' },
+    { to: '/driver/progress', icon: TrendingUp, label: 'Develop' },
     { to: '/driver/history', icon: BarChart3, label: 'History' },
     { to: '/track-intel', icon: Map, label: 'Tracks' },
   ];
@@ -86,22 +87,28 @@ function DriverLayoutContent() {
             </NavLink>
 
             <nav className="flex items-center gap-1">
-              {navItems.map(({ to, icon: Icon, label }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-wider transition-colors ${
-                      isActive
-                        ? 'text-[#f97316] bg-[#f97316]/10'
-                        : 'text-white/60 hover:text-white hover:bg-white/5'
-                    }`
-                  }
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="hidden md:inline">{label}</span>
-                </NavLink>
-              ))}
+              {navItems.map(({ to, icon: Icon, label }) => {
+                // Develop nav item should also highlight on /driver/idp
+                const isDevelopActive = label === 'Develop' && (
+                  location.pathname === '/driver/progress' || location.pathname === '/driver/idp'
+                );
+                return (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    className={({ isActive }) =>
+                      `flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-wider transition-colors ${
+                        isActive || isDevelopActive
+                          ? 'text-[#f97316] bg-[#f97316]/10'
+                          : 'text-white/60 hover:text-white hover:bg-white/5'
+                      }`
+                    }
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="hidden md:inline">{label}</span>
+                  </NavLink>
+                );
+              })}
             </nav>
           </div>
 
@@ -142,6 +149,14 @@ function DriverLayoutContent() {
                   >
                     <User className="w-4 h-4" />
                     Driver Profile
+                  </NavLink>
+                  <NavLink
+                    to="/driver/idp"
+                    className="flex items-center gap-2 px-4 py-3 text-xs uppercase tracking-wider text-white/60 hover:text-white hover:bg-white/5"
+                    onClick={() => setUserMenuOpen(false)}
+                  >
+                    <Brain className="w-4 h-4" />
+                    Driver Intelligence
                   </NavLink>
                   <NavLink
                     to="/teams"

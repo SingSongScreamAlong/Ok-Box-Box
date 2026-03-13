@@ -30,9 +30,14 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRelay } from '../../hooks/useRelay';
 import { useAuth } from '../../contexts/AuthContext';
 import { useDriverData } from '../../hooks/useDriverData';
+import { useDriverState } from '../../hooks/useDriverState';
 import { Link } from 'react-router-dom';
 import { DriverWelcome } from '../../components/DriverWelcome';
 import { useFirstTimeExperience } from '../../components/PitwallWelcome';
+import { IDPSummaryCard } from '../../components/IDPSummaryCard';
+import { PerformanceConfidenceMeter } from '../../components/PerformanceConfidenceMeter';
+import { RacePrepFlow } from '../../components/RacePrepFlow';
+import { DebriefCard } from './states/DebriefCard';
 import {
   WifiOff, Radio, ChevronRight,
   Play, Download, Gauge, Shield,
@@ -1091,39 +1096,8 @@ function LicensesCompactPanel({ profile }: { profile: ReturnType<typeof useDrive
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// UPGRADE TEASER (CFO audit: tier differentiation + upgrade triggers)
-// ═════════════════════════════════════════════════════════════════════════════
-
-function UpgradeTeaser() {
-  const features = [
-    { label: 'Telemetry Replay', desc: 'Review every corner in detail' },
-    { label: 'Strategy Engine', desc: 'AI pit window & fuel modeling' },
-    { label: 'Advanced Crew', desc: 'Deep behavioral coaching' },
-    { label: 'Team Pitwall', desc: 'Multi-driver live monitoring' },
-  ];
-
-  return (
-    <div className="border border-white/[0.06] bg-gradient-to-r from-[#f97316]/[0.03] to-transparent backdrop-blur-sm overflow-hidden">
-      <div className="px-5 py-3 flex items-center justify-between border-b border-white/[0.04]">
-        <div className="flex items-center gap-2">
-          <Zap className="w-3.5 h-3.5 text-[#f97316]/50" />
-          <span className="text-[10px] uppercase tracking-[0.15em] text-white/30" style={ORBITRON}>Unlock More</span>
-        </div>
-        <span className="text-[9px] text-white/15 uppercase tracking-wider">Coming Soon</span>
-      </div>
-      <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-white/[0.04]">
-        {features.map(f => (
-          <div key={f.label} className="p-3 text-center opacity-50 hover:opacity-70 transition-opacity">
-            <Lock className="w-3.5 h-3.5 mx-auto mb-1.5 text-white/20" />
-            <div className="text-[10px] font-semibold text-white/40 mb-0.5">{f.label}</div>
-            <div className="text-[8px] text-white/20">{f.desc}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+// UpgradeTeaser removed in Phase 0 — premature for closed beta.
+// TODO Phase 2: Reintroduce when tier differentiation is ready.
 
 // ═════════════════════════════════════════════════════════════════════════════
 // NEXT ACTION BLOCK (mission brief style)
@@ -1356,9 +1330,13 @@ export function DriverLanding() {
   const { user } = useAuth();
   const { status } = useRelay();
   const { profile, sessions, stats, loading } = useDriverData();
+  const { state: driverState, sessionMemory, timeSinceLastSession } = useDriverState();
   const displayName = profile?.displayName || user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Driver';
 
   const isLive = status === 'in_session';
+
+  // Race Prep flow modal state
+  const [racePrepOpen, setRacePrepOpen] = useState(false);
 
   // First-time user experience
   const { hasSeenWelcome, markAsSeen } = useFirstTimeExperience('driver_landing');
@@ -1441,6 +1419,13 @@ export function DriverLanding() {
   const sessionCount = sessions.length;
   const isTrainingMode = sessionCount < 3;
 
+  // Compute behavioral stability for confidence meter
+  const behavioralStability = useMemo(() => {
+    if (!sessionTelemetry) return null;
+    const b = computeBehavioralIndices(sessionTelemetry);
+    return b.confidence >= 50 ? b.behavioralStability : null;
+  }, [sessionTelemetry]);
+
   return (
     <div className="relative min-h-[calc(100vh-8rem)]">
       {/* Background video */}
@@ -1470,11 +1455,66 @@ export function DriverLanding() {
           isLive={isLive}
         />
 
+        {/* ═══ LIFECYCLE-AWARE: IN_CAR banner ═══ */}
+        {driverState === 'IN_CAR' && (
+          <div className="border-2 border-green-500/40 bg-green-500/[0.06] backdrop-blur-sm">
+            <div className="px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+                <span className="text-sm font-semibold uppercase tracking-wider text-green-400" style={ORBITRON}>Session Active</span>
+              </div>
+              <Link
+                to="/driver/cockpit"
+                className="px-4 py-2 bg-green-500 text-black font-bold text-[11px] uppercase tracking-wider hover:bg-green-400 flex items-center gap-1.5 rounded"
+              >
+                <Play className="w-3.5 h-3.5" /> Open Cockpit
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ LIFECYCLE-AWARE: POST_RUN debrief ═══ */}
+        {driverState === 'POST_RUN' && (
+          <DebriefCard
+            sessionMemory={sessionMemory}
+            timeSinceSession={timeSinceLastSession}
+            compact
+          />
+        )}
+
         {/* DRIVER STATUS LINE — emotional anchor */}
         {!isTrainingMode && <DriverStatusLine snapshot={snapshot ?? null} sessions={sessions} telemetry={sessionTelemetry} />}
 
         {/* SINCE LAST SESSION — what changed */}
         {!isTrainingMode && <SinceLastSessionBlock snapshot={snapshot ?? null} sessions={sessions} />}
+
+        {/* ═══ PHASE 0: RACE PREP CTA ═══ */}
+        {!isTrainingMode && driverState !== 'IN_CAR' && (
+          <div className="border border-[#f97316]/20 bg-[#f97316]/[0.03] backdrop-blur-sm">
+            <div className="px-5 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Target className="w-3.5 h-3.5 text-[#f97316]/50" />
+                <span className="text-[11px] uppercase tracking-wider text-white/40">Ready for your next session?</span>
+              </div>
+              <button
+                onClick={() => setRacePrepOpen(true)}
+                className="px-3 py-1.5 bg-[#f97316]/10 border border-[#f97316]/30 text-[#f97316] text-[10px] font-semibold uppercase tracking-wider hover:bg-[#f97316]/20 transition-colors flex items-center gap-1.5"
+              >
+                <Target className="w-3 h-3" /> Prepare for Next Race
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ PHASE 0: PERFORMANCE CONFIDENCE METER ═══ */}
+        {!isTrainingMode && (
+          <PerformanceConfidenceMeter
+            cpiIndex={consistency?.index ?? null}
+            behavioralStability={behavioralStability}
+            iRatingDelta={snapshot?.irating_delta ?? null}
+            sampleSize={sessionCount}
+          />
+        )}
 
         {/* TRAINING MODE — consolidated onboarding (replaces all scattered empty states) */}
         {!loading && isTrainingMode && (
@@ -1486,20 +1526,17 @@ export function DriverLanding() {
           <PerformanceDirectiveCard direction={direction} snapshot={snapshot ?? null} />
         )}
 
-        {/* INTELLIGENCE BRIEF LAYOUT - Focused, single-column flow */}
-        
-        {/* PERFORMANCE ATTRIBUTES (max 3 bars) */}
-        {!isTrainingMode && snapshot && (
-          <PerformanceAttributesCompact snapshot={snapshot} sessions={sessions} />
-        )}
+        {/* ═══ PHASE 0: IDP INTELLIGENCE SUMMARY ═══ */}
+        {!isTrainingMode && <IDPSummaryCard />}
 
         {/* CREW INTELLIGENCE PREVIEW */}
         {sessionCount > 0 && (
           <CrewPreviewPanel sessions={sessions} focus={direction.primaryFocus} telemetry={sessionTelemetry} />
         )}
 
-        {/* COMPETITIVE TREND */}
+        {/* COMPETITIVE TREND + iRATING SPARKLINE (merged section) */}
         <FiveRaceTrendSummary sessions={sessions} loading={loading} />
+        {!loading && <IRatingSparkline points={trendPoints} />}
 
         {/* NEXT ACTION */}
         {!isTrainingMode && direction.primaryFocus !== 'needs_data' && (
@@ -1509,20 +1546,26 @@ export function DriverLanding() {
         {/* LICENSES (compact) */}
         <LicensesCompactPanel profile={profile} />
 
-        {/* iRATING TREND */}
-        {!loading && <IRatingSparkline points={trendPoints} />}
+        {/* CPI BREAKDOWN (moved lower — deep detail) */}
+        {!isTrainingMode && snapshot && (
+          <PerformanceAttributesCompact snapshot={snapshot} sessions={sessions} />
+        )}
 
         {/* VALUE SIGNALS (CFO audit: show depth of analysis) */}
         {!loading && <ValueSignalStrip sessions={sessions} stats={stats} hasTelemetry={!!telemetryMetrics?.available} />}
-
-        {/* UPGRADE TEASER (CFO audit: tier differentiation) */}
-        {!isTrainingMode && <UpgradeTeaser />}
 
         {/* BUILD IDENTIFIER */}
         <div className="fixed bottom-2 right-2 z-50 px-2 py-1 bg-black/80 border border-white/10 rounded text-[9px] font-mono text-white/40">
           v{__APP_VERSION__}.{__GIT_COMMIT__?.slice(0, 7) || 'dev'}
         </div>
       </div>
+
+      {/* Race Prep Flow modal */}
+      <RacePrepFlow
+        sessions={sessions}
+        isOpen={racePrepOpen}
+        onClose={() => setRacePrepOpen(false)}
+      />
 
       {/* First-time user welcome modal */}
       {!hasSeenWelcome && (

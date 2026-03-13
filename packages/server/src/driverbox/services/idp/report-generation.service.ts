@@ -91,10 +91,16 @@ ${ctx.metrics.positions_gained !== null ? `- Position Delta: ${ctx.metrics.posit
 ## Current Characteristic Indicators
 ${ctx.traits.length > 0 ? ctx.traits.map(t => `- ${t.trait_label} (${(t.confidence * 100).toFixed(0)}%)`).join('\n') : '- Insufficient data for characteristic indicators'}
 
-Generate a session analysis containing:
-1. Primary performance limiter identified this session
-2. Secondary observation
-3. Recommended focus area for next session
+Generate a session analysis as JSON with these exact fields:
+- headline: One-line session summary
+- primary_limiter: Primary performance limiter identified this session
+- secondary_observation: Secondary technical observation
+- recommended_focus: Recommended focus area for next session
+- summary: 1-2 sentence engineer assessment of the session overall
+- key_improvement: One specific area where driver improved vs baseline or showed strength
+- key_weakness: One specific area that limited performance most
+- biggest_mistake: Single most costly error or loss (null if clean session)
+- strongest_segment: Best segment/stint/phase of the session and why
 
 LANGUAGE RULES:
 - Use neutral, technical language only
@@ -166,6 +172,12 @@ interface SessionDebriefResponse {
     primary_limiter: string;
     secondary_observation: string;
     recommended_focus: string;
+    // Phase 0: 4-point debrief fields for DebriefCard
+    summary?: string;
+    key_improvement?: string | null;
+    key_weakness?: string | null;
+    biggest_mistake?: string | null;
+    strongest_segment?: string | null;
 }
 
 interface MonthlyNarrativeResponse {
@@ -224,6 +236,11 @@ function getMockResponse(type: 'session_debrief' | 'monthly_narrative'): Session
             primary_limiter: 'Brake release timing at corner entry. Lap time variance concentrated in mid-sector complex.',
             secondary_observation: 'Pace degradation index indicates tire management within acceptable parameters.',
             recommended_focus: 'Isolate sector 2 corners for reference lap analysis. Target consistent brake release point.',
+            summary: 'Lap time variance concentrated in sector 2 entry phase. Tire management nominal. Brake release timing is the primary development target.',
+            key_improvement: 'Tire management within target window across full stint length.',
+            key_weakness: 'Brake release timing at corner entry producing elevated lap variance.',
+            biggest_mistake: null,
+            strongest_segment: 'Final stint pace remained within 0.3% of opening stint median.',
         };
     }
     return {

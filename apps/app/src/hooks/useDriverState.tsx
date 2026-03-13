@@ -68,7 +68,7 @@ export function useDriverState(): DriverStateContext {
 
   // Detect session end and save memory
   useEffect(() => {
-    const isInSession = status === 'in_session' || status === 'connected';
+    const isInSession = status === 'in_session';
     if (isInSession) {
       setWasInSession(true);
     } else if (wasInSession && !isInSession && status !== 'connecting') {
@@ -93,8 +93,8 @@ export function useDriverState(): DriverStateContext {
 
   // Determine current driver state
   const determineState = useCallback((): DriverState => {
-    // IN_CAR: Active session
-    if (status === 'in_session' || status === 'connected') {
+    // IN_CAR: Active iRacing session detected
+    if (status === 'in_session') {
       return 'IN_CAR';
     }
 
@@ -134,7 +134,7 @@ export function useDriverState(): DriverStateContext {
   // Confidence score (0-1) based on data quality
   const confidence = (() => {
     if (status === 'in_session') return 1.0;
-    if (status === 'connected') return 0.9;
+    if (status === 'connected') return 0.8;
     if (sessionMemory.lastSessionEnd) return 0.7;
     return 0.5; // No session history
   })();
