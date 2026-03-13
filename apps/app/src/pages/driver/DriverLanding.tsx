@@ -38,6 +38,7 @@ import { IDPSummaryCard } from '../../components/IDPSummaryCard';
 import { PerformanceConfidenceMeter } from '../../components/PerformanceConfidenceMeter';
 import { RacePrepFlow } from '../../components/RacePrepFlow';
 import { DebriefCard } from './states/DebriefCard';
+import { FatigueAwarenessCard } from '../../components/FatigueAwarenessCard';
 import {
   WifiOff, Radio, ChevronRight,
   Play, Download, Gauge, Shield,
@@ -1612,6 +1613,9 @@ export function DriverLanding() {
             sampleSize={sessionCount}
           />
         )}
+
+        {/* ═══ PHASE 1b: FATIGUE / SESSION LOAD AWARENESS ═══ */}
+        {!isTrainingMode && <FatigueAwarenessCard sessions={sessions} />}
 
         {/* TRAINING MODE — consolidated onboarding (replaces all scattered empty states) */}
         {!loading && isTrainingMode && (
