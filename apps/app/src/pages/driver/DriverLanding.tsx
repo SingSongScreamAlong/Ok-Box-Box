@@ -43,6 +43,7 @@ import { TrackFamiliarityCard } from '../../components/TrackFamiliarityCard';
 import { IncidentPatternCard } from '../../components/IncidentPatternCard';
 import { SessionIntentPicker } from '../../components/SessionIntentPicker';
 import { RaceStartCoach } from '../../components/RaceStartCoach';
+import { RaceWeekBriefing } from '../../components/RaceWeekBriefing';
 import {
   WifiOff, Radio, ChevronRight,
   Play, Download, Gauge, Shield,
@@ -1583,6 +1584,9 @@ export function DriverLanding() {
             compact
           />
         )}
+
+        {/* ═══ PHASE 2c: RACE WEEK BRIEFING (top-level forward-looking) ═══ */}
+        {!isTrainingMode && driverState !== 'IN_CAR' && <RaceWeekBriefing sessions={sessions} />}
 
         {/* DRIVER STATUS LINE — emotional anchor */}
         {!isTrainingMode && <DriverStatusLine snapshot={snapshot ?? null} sessions={sessions} telemetry={sessionTelemetry} />}
