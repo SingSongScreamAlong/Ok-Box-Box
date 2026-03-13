@@ -438,6 +438,53 @@ router.get('/me/crew-brief', requireAuth, async (req: Request, res: Response): P
 });
 
 /**
+ * GET /api/v1/drivers/me/session-intent
+ * Get current session intent preference
+ */
+router.get('/me/session-intent', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const result = await pool.query(
+            `SELECT current_intent, updated_at FROM driver_session_intent WHERE admin_user_id = $1`,
+            [req.user!.id]
+        );
+        if (result.rows.length === 0) {
+            res.json({ intent: null, updated_at: null });
+            return;
+        }
+        res.json({ intent: result.rows[0].current_intent, updated_at: result.rows[0].updated_at });
+    } catch (error) {
+        apiLogger.error({ err: error }, '[IDP] Error fetching session intent:', error);
+        res.status(500).json({ error: 'Failed to fetch session intent' });
+    }
+});
+
+/**
+ * PUT /api/v1/drivers/me/session-intent
+ * Set current session intent preference
+ * Body: { intent: 'practice' | 'quali_sim' | 'race_sim' | 'limit_pushing' | 'testing' }
+ */
+router.put('/me/session-intent', requireAuth, async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { intent } = req.body;
+        const validIntents = ['practice', 'quali_sim', 'race_sim', 'limit_pushing', 'testing'];
+        if (!intent || !validIntents.includes(intent)) {
+            res.status(400).json({ error: `Invalid intent. Must be one of: ${validIntents.join(', ')}` });
+            return;
+        }
+        await pool.query(
+            `INSERT INTO driver_session_intent (admin_user_id, current_intent, updated_at)
+             VALUES ($1, $2, NOW())
+             ON CONFLICT (admin_user_id) DO UPDATE SET current_intent = $2, updated_at = NOW()`,
+            [req.user!.id, intent]
+        );
+        res.json({ intent, updated_at: new Date().toISOString() });
+    } catch (error) {
+        apiLogger.error({ err: error }, '[IDP] Error setting session intent:', error);
+        res.status(500).json({ error: 'Failed to set session intent' });
+    }
+});
+
+/**
  * POST /api/v1/drivers/me/resync-profile
  * Trigger a full OAuth-based profile + career stats re-sync for the current user
  */

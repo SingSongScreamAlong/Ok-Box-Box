@@ -41,6 +41,7 @@ import { DebriefCard } from './states/DebriefCard';
 import { FatigueAwarenessCard } from '../../components/FatigueAwarenessCard';
 import { TrackFamiliarityCard } from '../../components/TrackFamiliarityCard';
 import { IncidentPatternCard } from '../../components/IncidentPatternCard';
+import { SessionIntentPicker } from '../../components/SessionIntentPicker';
 import {
   WifiOff, Radio, ChevronRight,
   Play, Download, Gauge, Shield,
@@ -1605,6 +1606,9 @@ export function DriverLanding() {
             </div>
           </div>
         )}
+
+        {/* ═══ PHASE 2a: SESSION INTENT PICKER ═══ */}
+        {!isTrainingMode && driverState !== 'IN_CAR' && <SessionIntentPicker />}
 
         {/* ═══ PHASE 0: PERFORMANCE CONFIDENCE METER ═══ */}
         {!isTrainingMode && (
