@@ -1025,7 +1025,7 @@ function CrewPreviewPanel({ sessions, focus, telemetry }: { sessions: DriverSess
 // LICENSES PANEL (compact)
 // ═════════════════════════════════════════════════════════════════════════════
 
-function LicensesCompactPanel({ profile }: { profile: ReturnType<typeof useDriverData>['profile'] }) {
+function LicensesCompactPanel({ profile, sessions }: { profile: ReturnType<typeof useDriverData>['profile']; sessions: DriverSessionSummary[] }) {
   const licenses = profile?.licenses;
   if (!licenses || licenses.length === 0) return null;
 
@@ -1036,10 +1036,57 @@ function LicensesCompactPanel({ profile }: { profile: ReturnType<typeof useDrive
   const PROMO_THRESHOLD = 3.00;
   const NEXT_CLASS: Record<string, string> = { R: 'D', D: 'C', C: 'B', B: 'A' };
 
+  // Compute SR projection per discipline from recent official races
+  const srProjections = useMemo(() => {
+    const projections: Record<string, { avgSrDelta: number; racesNeeded: number | null; recentRaces: number; trend: 'rising' | 'falling' | 'stable' | 'insufficient' }> = {};
+    
+    for (const lic of licenses) {
+      const disciplineRaces = sessions.filter(s =>
+        s.discipline === lic.discipline &&
+        s.srDelta != null &&
+        (s.official === true || s.sessionType === 'official_race')
+      );
+
+      // Use last 20 official races for projection
+      const recent = disciplineRaces.slice(0, 20);
+      
+      if (recent.length < 3) {
+        projections[lic.discipline] = { avgSrDelta: 0, racesNeeded: null, recentRaces: recent.length, trend: 'insufficient' };
+        continue;
+      }
+
+      const totalSrDelta = recent.reduce((sum, s) => sum + (s.srDelta ?? 0), 0);
+      const avgDelta = totalSrDelta / recent.length;
+
+      // Trend: compare first half vs second half
+      const halfIdx = Math.floor(recent.length / 2);
+      const recentHalf = recent.slice(0, halfIdx);
+      const olderHalf = recent.slice(halfIdx);
+      const recentAvg = recentHalf.reduce((sum, s) => sum + (s.srDelta ?? 0), 0) / recentHalf.length;
+      const olderAvg = olderHalf.reduce((sum, s) => sum + (s.srDelta ?? 0), 0) / olderHalf.length;
+      const trend: 'rising' | 'falling' | 'stable' = recentAvg > olderAvg + 0.02 ? 'rising' : recentAvg < olderAvg - 0.02 ? 'falling' : 'stable';
+
+      const nextClass = NEXT_CLASS[lic.licenseClass];
+      const sr = lic.safetyRating ?? 0;
+      const srNeeded = nextClass ? Math.max(0, PROMO_THRESHOLD - sr) : 0;
+
+      let racesNeeded: number | null = null;
+      if (nextClass && srNeeded > 0 && avgDelta > 0) {
+        racesNeeded = Math.ceil(srNeeded / avgDelta);
+      } else if (nextClass && sr >= PROMO_THRESHOLD) {
+        racesNeeded = 0; // Already promotable
+      }
+      // If avgDelta <= 0, racesNeeded stays null (declining — can't project)
+
+      projections[lic.discipline] = { avgSrDelta: avgDelta, racesNeeded, recentRaces: recent.length, trend };
+    }
+    return projections;
+  }, [licenses, sessions]);
+
   return (
     <div className="border border-white/10 bg-[#0e0e0e]/80 backdrop-blur-sm">
       <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-        <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>Licenses</h2>
+        <h2 className="text-sm uppercase tracking-[0.15em] text-white/60" style={ORBITRON}>License Promotion Tracker</h2>
         <Link to="/driver/idp" className="text-[10px] text-white/30 hover:text-white/50 uppercase tracking-wider flex items-center gap-1">
           Details <ChevronRight className="w-3 h-3" />
         </Link>
@@ -1051,6 +1098,7 @@ function LicensesCompactPanel({ profile }: { profile: ReturnType<typeof useDrive
           const canPromote = nextClass && sr >= PROMO_THRESHOLD;
           const srToPromo = nextClass ? Math.max(0, PROMO_THRESHOLD - sr) : 0;
           const promoProgress = nextClass ? Math.min(1, sr / PROMO_THRESHOLD) : 1;
+          const proj = srProjections[lic.discipline];
 
           return (
             <div key={lic.discipline} className="py-2 px-3 rounded border border-white/[0.06]">
@@ -1072,6 +1120,8 @@ function LicensesCompactPanel({ profile }: { profile: ReturnType<typeof useDrive
                   <span className="text-[11px] font-mono font-bold text-blue-400">{lic.iRating ?? '—'}</span>
                 </div>
               </div>
+
+              {/* Promotion progress bar */}
               {nextClass && (
                 <div className="mt-1.5 flex items-center gap-2">
                   <div className="flex-1 h-1 bg-white/[0.06] rounded-full overflow-hidden">
@@ -1086,6 +1136,53 @@ function LicensesCompactPanel({ profile }: { profile: ReturnType<typeof useDrive
                   <span className={`text-[8px] font-mono ${canPromote ? 'text-green-400' : 'text-white/25'}`}>
                     {canPromote ? `→ ${nextClass} ready` : `${srToPromo.toFixed(2)} SR to ${nextClass}`}
                   </span>
+                </div>
+              )}
+
+              {/* SR Projection — Phase 1a */}
+              {nextClass && proj && (
+                <div className="mt-2 pt-2 border-t border-white/[0.04]">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[9px] font-mono ${
+                        proj.avgSrDelta > 0 ? 'text-green-400/60' : proj.avgSrDelta < 0 ? 'text-red-400/60' : 'text-white/25'
+                      }`}>
+                        {proj.avgSrDelta > 0 ? '+' : ''}{proj.avgSrDelta.toFixed(3)} SR/race
+                      </span>
+                      {proj.trend !== 'insufficient' && (
+                        <span className={`text-[8px] px-1 py-0.5 rounded ${
+                          proj.trend === 'rising' ? 'bg-green-500/10 text-green-400/60' :
+                          proj.trend === 'falling' ? 'bg-red-500/10 text-red-400/60' :
+                          'bg-white/[0.04] text-white/25'
+                        }`}>
+                          {proj.trend === 'rising' ? '↑ improving' : proj.trend === 'falling' ? '↓ declining' : '→ stable'}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[8px] text-white/20">{proj.recentRaces} races sampled</span>
+                  </div>
+
+                  {/* Races-to-promote projection */}
+                  {!canPromote && proj.racesNeeded != null && proj.racesNeeded > 0 && (
+                    <div className="mt-1 text-[10px] text-white/40">
+                      ~<span className="font-mono font-semibold text-white/60">{proj.racesNeeded}</span> races to {nextClass} at current rate
+                    </div>
+                  )}
+                  {!canPromote && proj.racesNeeded == null && proj.trend !== 'insufficient' && (
+                    <div className="mt-1 text-[10px] text-red-400/50">
+                      SR declining — clean races needed to project promotion
+                    </div>
+                  )}
+                  {proj.trend === 'insufficient' && (
+                    <div className="mt-1 text-[10px] text-white/25">
+                      Need {3 - proj.recentRaces} more official race{3 - proj.recentRaces !== 1 ? 's' : ''} to project
+                    </div>
+                  )}
+                  {canPromote && (
+                    <div className="mt-1 text-[10px] text-green-400/60">
+                      ✓ Eligible for promotion — complete MPR to advance
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1544,7 +1641,7 @@ export function DriverLanding() {
         )}
 
         {/* LICENSES (compact) */}
-        <LicensesCompactPanel profile={profile} />
+        <LicensesCompactPanel profile={profile} sessions={sessions} />
 
         {/* CPI BREAKDOWN (moved lower — deep detail) */}
         {!isTrainingMode && snapshot && (
