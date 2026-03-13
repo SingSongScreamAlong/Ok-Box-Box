@@ -40,6 +40,7 @@ import { RacePrepFlow } from '../../components/RacePrepFlow';
 import { DebriefCard } from './states/DebriefCard';
 import { FatigueAwarenessCard } from '../../components/FatigueAwarenessCard';
 import { TrackFamiliarityCard } from '../../components/TrackFamiliarityCard';
+import { IncidentPatternCard } from '../../components/IncidentPatternCard';
 import {
   WifiOff, Radio, ChevronRight,
   Play, Download, Gauge, Shield,
@@ -1627,6 +1628,9 @@ export function DriverLanding() {
         {!isTrainingMode && direction.primaryFocus !== 'needs_data' && (
           <PerformanceDirectiveCard direction={direction} snapshot={snapshot ?? null} />
         )}
+
+        {/* ═══ PHASE 1d: INCIDENT PATTERN RECOGNITION ═══ */}
+        {!isTrainingMode && <IncidentPatternCard sessions={sessions} />}
 
         {/* ═══ PHASE 0: IDP INTELLIGENCE SUMMARY ═══ */}
         {!isTrainingMode && <IDPSummaryCard />}
