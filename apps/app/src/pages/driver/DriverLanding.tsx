@@ -44,6 +44,7 @@ import { IncidentPatternCard } from '../../components/IncidentPatternCard';
 import { SessionIntentPicker } from '../../components/SessionIntentPicker';
 import { RaceStartCoach } from '../../components/RaceStartCoach';
 import { RaceWeekBriefing } from '../../components/RaceWeekBriefing';
+import { ChampionshipTracker } from '../../components/ChampionshipTracker';
 import {
   WifiOff, Radio, ChevronRight,
   Play, Download, Gauge, Shield,
@@ -1654,6 +1655,9 @@ export function DriverLanding() {
 
         {/* ═══ PHASE 1c: TRACK FAMILIARITY ═══ */}
         {!isTrainingMode && <TrackFamiliarityCard sessions={sessions} />}
+
+        {/* ═══ PHASE 4a: CHAMPIONSHIP / SEASON AWARENESS ═══ */}
+        {!isTrainingMode && <ChampionshipTracker sessions={sessions} />}
 
         {/* COMPETITIVE TREND + iRATING SPARKLINE (merged section) */}
         <FiveRaceTrendSummary sessions={sessions} loading={loading} />
