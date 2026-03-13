@@ -60,7 +60,7 @@ healthRouter.get('/', async (_req: Request, res: Response) => {
         success: true,
         data: response,
         ai: getLLMModelInfo(),
-        build: '2026-03-13-v1',
+        build: '2026-03-13-v2',
         opsEnabled: config.opsUiEnabled,
     });
 });

@@ -11,6 +11,13 @@ let pubSubClient: RedisClientType | null = null;
 let isConnecting = false;
 let connectionPromise: Promise<RedisClientType | null> | null = null;
 
+// Circuit breaker: after a failed connection, wait before retrying
+const RETRY_COOLDOWN_MS = 60_000;
+let lastFailureTime = 0;
+let failureLogged = false;
+let pubSubLastFailureTime = 0;
+let pubSubFailureLogged = false;
+
 function formatRedisError(err: unknown): string {
     if (err instanceof Error) {
         const details = [err.name, err.message].filter(Boolean).join(': ');
@@ -49,6 +56,11 @@ export async function getRedisClient(): Promise<RedisClientType | null> {
         return redisClient;
     }
 
+    // Circuit breaker: skip if we failed recently
+    if (lastFailureTime && (Date.now() - lastFailureTime < RETRY_COOLDOWN_MS)) {
+        return null;
+    }
+
     if (isConnecting && connectionPromise) {
         return connectionPromise;
     }
@@ -70,7 +82,15 @@ export async function getPubSubClient(): Promise<RedisClientType | null> {
     }
 
     if (!config.redisUrl) {
-        console.warn('[Redis] REDIS_URL not set, pub/sub unavailable');
+        if (!pubSubFailureLogged) {
+            console.warn('[Redis] REDIS_URL not set, pub/sub unavailable');
+            pubSubFailureLogged = true;
+        }
+        return null;
+    }
+
+    // Circuit breaker
+    if (pubSubLastFailureTime && (Date.now() - pubSubLastFailureTime < RETRY_COOLDOWN_MS)) {
         return null;
     }
 
@@ -78,22 +98,31 @@ export async function getPubSubClient(): Promise<RedisClientType | null> {
         pubSubClient = createClient({
             url: config.redisUrl,
             socket: {
-                reconnectStrategy: (retries) => {
-                    if (retries > 5) return false;
-                    return Math.min(retries * 100, 3000);
-                }
+                reconnectStrategy: false
             }
         });
 
         pubSubClient.on('error', (err) => {
-            console.error('[Redis PubSub] Error:', formatRedisError(err));
+            if (!pubSubFailureLogged) {
+                console.error('[Redis PubSub] Error:', formatRedisError(err));
+                pubSubFailureLogged = true;
+            }
+            pubSubLastFailureTime = Date.now();
+            try { pubSubClient?.disconnect(); } catch (_) {}
+            pubSubClient = null;
         });
 
         await pubSubClient.connect();
+        pubSubFailureLogged = false;
+        pubSubLastFailureTime = 0;
         console.log('[Redis PubSub] Connected');
         return pubSubClient;
     } catch (err) {
-        console.warn('[Redis PubSub] Connection failed:', formatRedisError(err));
+        if (!pubSubFailureLogged) {
+            console.warn('[Redis PubSub] Connection failed:', formatRedisError(err));
+            pubSubFailureLogged = true;
+        }
+        pubSubLastFailureTime = Date.now();
         pubSubClient = null;
         return null;
     }
@@ -101,7 +130,10 @@ export async function getPubSubClient(): Promise<RedisClientType | null> {
 
 async function connectRedis(): Promise<RedisClientType | null> {
     if (!config.redisUrl) {
-        console.warn('[Redis] REDIS_URL not set, Redis unavailable');
+        if (!failureLogged) {
+            console.warn('[Redis] REDIS_URL not set, Redis unavailable');
+            failureLogged = true;
+        }
         return null;
     }
 
@@ -109,34 +141,35 @@ async function connectRedis(): Promise<RedisClientType | null> {
         redisClient = createClient({
             url: config.redisUrl,
             socket: {
-                reconnectStrategy: (retries) => {
-                    if (retries > 5) {
-                        console.error('[Redis] Max reconnection attempts reached');
-                        return false;
-                    }
-                    return Math.min(retries * 100, 3000);
-                }
+                reconnectStrategy: false
             }
         });
 
         redisClient.on('error', (err) => {
-            console.error('[Redis] Error:', formatRedisError(err));
-        });
-
-        redisClient.on('reconnecting', () => {
-            console.log('[Redis] Reconnecting...');
+            if (!failureLogged) {
+                console.error('[Redis] Error:', formatRedisError(err));
+                failureLogged = true;
+            }
+            lastFailureTime = Date.now();
+            try { redisClient?.disconnect(); } catch (_) {}
+            redisClient = null;
         });
 
         redisClient.on('end', () => {
-            console.warn('[Redis] Connection closed');
             redisClient = null;
         });
 
         await redisClient.connect();
+        failureLogged = false;
+        lastFailureTime = 0;
         console.log('[Redis] Connected to', config.redisUrl);
         return redisClient;
     } catch (err) {
-        console.warn('[Redis] Connection failed:', formatRedisError(err));
+        if (!failureLogged) {
+            console.warn('[Redis] Connection failed:', formatRedisError(err));
+            failureLogged = true;
+        }
+        lastFailureTime = Date.now();
         redisClient = null;
         return null;
     }
