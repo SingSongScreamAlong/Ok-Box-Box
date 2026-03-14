@@ -10,6 +10,7 @@ import { ReplayVideoPlayer } from '../../components/replay/ReplayVideoPlayer';
 import { ClipSelector, type ClipInfo } from '../../components/replay/ClipSelector';
 
 const CLIP_SERVER_URL = 'http://127.0.0.1:9998';
+const CLOUD_API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:3001' : 'https://app.okboxbox.com');
 
 // Types
 interface TelemetryPoint {
@@ -226,41 +227,70 @@ export function ReplayViewer() {
   // Telemetry sidecar data for active clip
   const [clipTelemetry, setClipTelemetry] = useState<any[] | null>(null);
 
-  // ─── Fetch clips from local clip server ───
+  // ─── Fetch clips from local clip server, with cloud fallback ───
   useEffect(() => {
     let cancelled = false;
+
+    function mapClip(c: any, source: 'local' | 'cloud'): ClipInfo {
+      const clipId = c.clipId || c.clip_id;
+      return {
+        clipId,
+        sessionId: c.sessionId || c.session_id || '',
+        eventType: c.eventType || c.event_type || 'unknown',
+        eventLabel: c.eventLabel || c.event_label || '',
+        severity: c.severity || 'minor',
+        sessionTimeMs: c.sessionTimeMs || c.session_time_ms || 0,
+        wallClockEvent: c.wallClockEvent || c.wall_clock_event || c.uploadedAt ? new Date(c.uploadedAt).getTime() : 0,
+        durationMs: c.durationMs || c.duration_ms || 0,
+        frameCount: c.frameCount || c.frame_count || 0,
+        resolution: c.resolution || '',
+        filePath: c.filePath || c.file_path || '',
+        fileSizeBytes: c.fileSizeBytes || c.file_size_bytes || 0,
+        serveUrl: source === 'local'
+          ? (c.serveUrl || c.serve_url || `${CLIP_SERVER_URL}/clips/${clipId}.mp4`)
+          : '', // Cloud clips need presigned URL fetched on demand
+        telemetrySync: {
+          sessionTimeMsAtFrame0: c.telemetrySync?.sessionTimeMsAtFrame0 || c.telemetry_sync?.session_time_ms_at_frame_0 || 0,
+          fps: c.telemetrySync?.fps || c.telemetry_sync?.fps || 15,
+        },
+      };
+    }
+
     async function fetchClips() {
+      // Try local clip server first
       try {
         const res = await fetch(`${CLIP_SERVER_URL}/clips`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!cancelled && Array.isArray(data)) {
-          setClips(data.map((c: any) => ({
-            clipId: c.clipId || c.clip_id,
-            sessionId: c.sessionId || c.session_id || '',
-            eventType: c.eventType || c.event_type || 'unknown',
-            eventLabel: c.eventLabel || c.event_label || '',
-            severity: c.severity || 'minor',
-            sessionTimeMs: c.sessionTimeMs || c.session_time_ms || 0,
-            wallClockEvent: c.wallClockEvent || c.wall_clock_event || 0,
-            durationMs: c.durationMs || c.duration_ms || 0,
-            frameCount: c.frameCount || c.frame_count || 0,
-            resolution: c.resolution || '',
-            filePath: c.filePath || c.file_path || '',
-            fileSizeBytes: c.fileSizeBytes || c.file_size_bytes || 0,
-            serveUrl: c.serveUrl || c.serve_url || `${CLIP_SERVER_URL}/clips/${c.clipId || c.clip_id}.mp4`,
-            telemetrySync: {
-              sessionTimeMsAtFrame0: c.telemetrySync?.sessionTimeMsAtFrame0 || c.telemetry_sync?.session_time_ms_at_frame_0 || 0,
-              fps: c.telemetrySync?.fps || c.telemetry_sync?.fps || 15,
-            },
-          })));
-          setClipServerAvailable(true);
+        if (res.ok) {
+          const data = await res.json();
+          if (!cancelled && Array.isArray(data)) {
+            setClips(data.map((c: any) => mapClip(c, 'local')));
+            setClipServerAvailable(true);
+            return;
+          }
         }
       } catch {
-        // Clip server not running — that's OK, fall back to tactical view
-        setClipServerAvailable(false);
+        // Local server not running
       }
+
+      // Fallback: fetch from cloud API
+      try {
+        const res = await fetch(`${CLOUD_API_URL}/api/clips/user/me`);
+        if (res.ok) {
+          const json = await res.json();
+          const data = json.data || json;
+          if (!cancelled && Array.isArray(data) && data.length > 0) {
+            setClips(data.map((c: any) => mapClip(c, 'cloud')));
+            setClipServerAvailable(true);
+            return;
+          }
+        }
+      } catch {
+        // Cloud also unavailable
+      }
+
+      if (!cancelled) setClipServerAvailable(false);
     }
+
     fetchClipsRef.current = fetchClips;
     fetchClips();
     // Poll for new clips every 10s
@@ -284,15 +314,40 @@ export function ReplayViewer() {
     setCurrentTime(timeSeconds);
   }, []);
 
-  const handleSelectClip = useCallback((clip: ClipInfo) => {
-    setActiveClip(clip);
+  const handleSelectClip = useCallback(async (clip: ClipInfo) => {
     setViewMode('video');
-    // Fetch telemetry sidecar for this clip
     setClipTelemetry(null);
-    fetch(`${CLIP_SERVER_URL}/clips/${clip.clipId}_telemetry.json`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (Array.isArray(data)) setClipTelemetry(data); })
-      .catch(() => setClipTelemetry(null));
+
+    // If clip has no serve URL (cloud clip), fetch presigned download URL
+    let resolvedClip = clip;
+    if (!clip.serveUrl) {
+      try {
+        const res = await fetch(`${CLOUD_API_URL}/api/clips/${clip.clipId}/url`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.data?.videoUrl) {
+            resolvedClip = { ...clip, serveUrl: json.data.videoUrl };
+          }
+          // Also fetch cloud telemetry
+          if (json.data?.telemetryUrl) {
+            fetch(json.data.telemetryUrl)
+              .then(r => r.ok ? r.json() : null)
+              .then(data => { if (Array.isArray(data)) setClipTelemetry(data); })
+              .catch(() => {});
+          }
+        }
+      } catch { /* fall through */ }
+    }
+
+    setActiveClip(resolvedClip);
+
+    // Fetch local telemetry sidecar (for local clips)
+    if (clip.serveUrl) {
+      fetch(`${CLIP_SERVER_URL}/clips/${clip.clipId}_telemetry.json`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (Array.isArray(data)) setClipTelemetry(data); })
+        .catch(() => {});
+    }
   }, []);
 
   // Playback simulation (for tactical mode / when no clip is loaded)

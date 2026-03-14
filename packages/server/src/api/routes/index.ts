@@ -173,3 +173,7 @@ apiRouter.use('/v1/teams', teamStrategyRouter);
 import teamPracticeRouter from './team-practice.js';
 apiRouter.use('/v1/teams', teamPracticeRouter);
 
+// Replay Intelligence — Clip cloud storage
+import { clipsRouter } from './clips.js';
+apiRouter.use('/clips', clipsRouter);
+

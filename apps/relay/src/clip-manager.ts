@@ -45,14 +45,32 @@ export class ClipManager extends EventEmitter {
     private maxStorageMb: number;
     private clipDir: string;
     private serving = false;
+    private apiUrl: string;
+    private userId: string;
 
     constructor(maxStorageMb = DEFAULT_MAX_STORAGE_MB) {
         super();
         this.maxStorageMb = maxStorageMb;
+        this.apiUrl = process.env.API_URL || 'https://app.okboxbox.com';
+        this.userId = '';
 
         // Default clip directory
         const homeDir = process.env.USERPROFILE || process.env.HOME || '';
         this.clipDir = path.join(homeDir, 'Ok-Box-Box', 'clips');
+    }
+
+    /**
+     * Set user ID for cloud uploads
+     */
+    setUserId(userId: string): void {
+        this.userId = userId;
+    }
+
+    /**
+     * Set API URL for cloud uploads
+     */
+    setApiUrl(url: string): void {
+        this.apiUrl = url;
     }
 
     /**
@@ -127,6 +145,87 @@ export class ClipManager extends EventEmitter {
         this.emit('clip_added', clip);
 
         console.log(`📹 Clip indexed: ${clip.clipId} [${clip.eventType}] ${clip.eventLabel}`);
+
+        // Upload to cloud in background
+        this.uploadToCloud(clip).catch(err => {
+            console.warn(`☁️ Cloud upload skipped for ${clip.clipId}:`, err.message || err);
+        });
+    }
+
+    /**
+     * Upload a clip (video + telemetry) to cloud storage via presigned URLs
+     */
+    private async uploadToCloud(clip: ClipInfo): Promise<void> {
+        if (!this.userId) {
+            return; // No user linked — skip cloud upload
+        }
+
+        const mp4Path = clip.filePath || path.join(this.clipDir, `${clip.clipId}.mp4`);
+        const telemetryPath = path.join(this.clipDir, `${clip.clipId}_telemetry.json`);
+
+        if (!fs.existsSync(mp4Path)) {
+            return; // No local file to upload
+        }
+
+        // 1. Request presigned upload URLs from server
+        const uploadRes = await fetch(`${this.apiUrl}/api/clips/upload`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                clipId: clip.clipId,
+                sessionId: clip.sessionId,
+                eventType: clip.eventType,
+                eventLabel: clip.eventLabel,
+                severity: clip.severity,
+                sessionTimeMs: clip.sessionTimeMs,
+                durationMs: clip.durationMs,
+                frameCount: clip.frameCount,
+                resolution: clip.resolution,
+                fileSizeBytes: clip.fileSizeBytes,
+                telemetrySync: clip.telemetrySync,
+                userId: this.userId,
+            }),
+        });
+
+        if (!uploadRes.ok) {
+            const text = await uploadRes.text();
+            throw new Error(`Server rejected upload request: ${uploadRes.status} ${text}`);
+        }
+
+        const { data } = await uploadRes.json() as any;
+        if (!data?.videoUploadUrl) {
+            throw new Error('No upload URL returned from server');
+        }
+
+        // 2. Upload MP4 video file
+        const videoBuffer = fs.readFileSync(mp4Path);
+        const videoUploadRes = await fetch(data.videoUploadUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'video/mp4' },
+            body: videoBuffer,
+        });
+
+        if (!videoUploadRes.ok) {
+            throw new Error(`Video upload failed: ${videoUploadRes.status}`);
+        }
+
+        console.log(`☁️ Clip uploaded to cloud: ${clip.clipId} (${(clip.fileSizeBytes / 1024 / 1024).toFixed(1)}MB)`);
+
+        // 3. Upload telemetry JSON if it exists
+        if (data.telemetryUploadUrl && fs.existsSync(telemetryPath)) {
+            const telemetryBuffer = fs.readFileSync(telemetryPath);
+            const telemetryUploadRes = await fetch(data.telemetryUploadUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: telemetryBuffer,
+            });
+
+            if (telemetryUploadRes.ok) {
+                console.log(`   📊 Telemetry uploaded for ${clip.clipId}`);
+            }
+        }
+
+        this.emit('clip_uploaded', clip);
     }
 
     /**

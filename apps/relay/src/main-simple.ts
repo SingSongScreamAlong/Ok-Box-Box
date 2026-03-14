@@ -74,6 +74,9 @@ app.whenReady().then(async () => {
     refreshLinkState();
 
     // Start clip server for replay intelligence
+    const settings = getRelaySettings();
+    clipManager.setApiUrl(settings.apiUrl);
+    if (settings.userId) clipManager.setUserId(settings.userId);
     clipManager.startServer();
 
     // Start the autonomous relay
