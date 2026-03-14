@@ -31,6 +31,7 @@ except ImportError:
 from iracing_reader import IRacingReader
 from pitbox_client import PitBoxClient
 from video_encoder import VideoEncoder
+from screen_capture import ScreenCapture, CaptureConfig
 from voice_recognition import VoiceRecognition
 from overlay import PTTOverlay
 from data_mapper import (
@@ -74,6 +75,18 @@ class RelayAgent:
         self.ir_reader = IRacingReader()
         self.cloud_client = PitBoxClient(cloud_url)
         self.video_encoder = VideoEncoder(self.cloud_client)
+        self.screen_capture = ScreenCapture(CaptureConfig(
+            target_fps=config.CLIP_CAPTURE_FPS,
+            capture_width=config.CLIP_CAPTURE_WIDTH,
+            capture_height=config.CLIP_CAPTURE_HEIGHT,
+            buffer_seconds=config.CLIP_BUFFER_SECONDS,
+            jpeg_quality=config.CLIP_JPEG_QUALITY,
+            pre_event_seconds=config.CLIP_PRE_EVENT_SECONDS,
+            post_event_seconds=config.CLIP_POST_EVENT_SECONDS,
+            max_clip_seconds=config.CLIP_MAX_SECONDS,
+            output_dir=config.CLIP_OUTPUT_DIR,
+            max_storage_mb=config.CLIP_MAX_STORAGE_MB,
+        ))
         self.vr = VoiceRecognition(
             ptt_type=config.PTT_TYPE,
             ptt_key=config.PTT_KEY,
@@ -166,6 +179,7 @@ class RelayAgent:
         """Stop the relay agent"""
         self.running = False
         self.video_encoder.stop()
+        self.screen_capture.stop()
         self.overlay.stop()
         
         # Notify server that session is ending (triggers iRacing profile sync)
@@ -359,6 +373,11 @@ class RelayAgent:
         if not self.video_encoder.running:
             self.video_encoder.start()
 
+        # Start screen capture for replay clips
+        if not self.screen_capture.running:
+            self.screen_capture.session_id = self.session_id or ''
+            self.screen_capture.start()
+
         return True
     
     def _check_flag_state(self):
@@ -397,6 +416,16 @@ class RelayAgent:
             )
             self.cloud_client.send_incident(incident)
             self.incident_count += 1
+
+            # Trigger replay clip on incident
+            driver_names = incident_data.get('driver_names', 'Unknown')
+            inc_count = incident_data.get('incident_count', 0)
+            self.screen_capture.trigger_clip(
+                event_type='incident',
+                event_label=f'Incident: {driver_names} (+{inc_count}x)',
+                severity='major' if inc_count >= 4 else 'moderate' if inc_count >= 2 else 'minor',
+                session_time_ms=int((self.ir_reader.get_session_time() or 0) * 1000),
+            )
     
     def _send_telemetry(self):
         """
@@ -432,6 +461,23 @@ class RelayAgent:
             telemetry['cars'][i]['isPlayer'] = car.is_player
         self.cloud_client.emit('telemetry', telemetry)
         self.telemetry_count += 1
+
+        # Update screen capture session context
+        session_time = self.ir_reader.get_session_time()
+        self.screen_capture.update_session_context(
+            session_id=self.session_id or '',
+            session_time_ms=int((session_time or 0) * 1000),
+        )
+
+        # Poll for completed clips and emit to cloud
+        while not self.screen_capture.pending_clips.empty():
+            try:
+                from dataclasses import asdict
+                clip_meta = self.screen_capture.pending_clips.get_nowait()
+                self.cloud_client.emit('clip_saved', asdict(clip_meta))
+                logger.info(f'📹 Clip emitted: {clip_meta.clip_id}')
+            except Exception:
+                break
         
         # === Standings for leaderboard (1Hz) ===
         if now - self.last_standings_emit >= self.STANDINGS_INTERVAL:

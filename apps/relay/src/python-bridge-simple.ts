@@ -337,6 +337,18 @@ export class PythonBridge extends EventEmitter {
                 this.devSocket.emit('incident', data);
             }
         });
+
+        // Replay clip saved — forward metadata to cloud + dashboard
+        this.localSocket.on('clip_saved', (data: any) => {
+            console.log(`📹 Clip saved: ${data?.clip_id} (${data?.event_type})`);
+            this.emit('clip_saved', data);
+            if (this.cloudSocket?.connected) {
+                this.cloudSocket.emit('clip_saved', data);
+            }
+            if (this.devSocket?.connected) {
+                this.devSocket.emit('clip_saved', data);
+            }
+        });
     }
 
     /**

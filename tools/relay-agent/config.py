@@ -66,11 +66,23 @@ POSITION_JUMP_THRESHOLD = float(os.getenv('POSITION_JUMP_THRESHOLD', '0.05'))  #
 LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
 LOG_TELEMETRY = os.getenv('LOG_TELEMETRY', 'false').lower() == 'true'
 
-# Video Streaming
+# Video Streaming (legacy live feed)
 VIDEO_FPS = int(os.getenv('VIDEO_FPS', '60'))
 VIDEO_WIDTH = int(os.getenv('VIDEO_WIDTH', '854'))
 VIDEO_HEIGHT = int(os.getenv('VIDEO_HEIGHT', '480'))
 VIDEO_QUALITY = int(os.getenv('VIDEO_QUALITY', '70'))
+
+# Replay Clip Capture
+CLIP_CAPTURE_FPS = int(os.getenv('CLIP_CAPTURE_FPS', '15'))
+CLIP_CAPTURE_WIDTH = int(os.getenv('CLIP_CAPTURE_WIDTH', '1280'))
+CLIP_CAPTURE_HEIGHT = int(os.getenv('CLIP_CAPTURE_HEIGHT', '720'))
+CLIP_BUFFER_SECONDS = int(os.getenv('CLIP_BUFFER_SECONDS', '60'))
+CLIP_PRE_EVENT_SECONDS = int(os.getenv('CLIP_PRE_EVENT_SECONDS', '10'))
+CLIP_POST_EVENT_SECONDS = int(os.getenv('CLIP_POST_EVENT_SECONDS', '10'))
+CLIP_MAX_SECONDS = int(os.getenv('CLIP_MAX_SECONDS', '30'))
+CLIP_JPEG_QUALITY = int(os.getenv('CLIP_JPEG_QUALITY', '80'))
+CLIP_MAX_STORAGE_MB = int(os.getenv('CLIP_MAX_STORAGE_MB', '5000'))
+CLIP_OUTPUT_DIR = os.getenv('CLIP_OUTPUT_DIR', '')  # Default: ~/Ok-Box-Box/clips/
 
 # Session Types
 SESSION_TYPES = {

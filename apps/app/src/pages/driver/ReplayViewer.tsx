@@ -1,18 +1,15 @@
-import { useState, useRef, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+// useAuth available for future marker persistence
 import {
   ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2, VolumeX,
   MessageSquare, AlertTriangle, Flag, Plus, Download, Share2, Maximize2,
-  Fuel, Thermometer, Target, Loader2
+  Fuel, Thermometer, Target, Film
 } from 'lucide-react';
-import {
-  fetchSessionDetail,
-  createReplayMarker,
-  type SessionData,
-  type LapData,
-  type ReplayMarker
-} from '../../lib/telemetryService';
+import { ReplayVideoPlayer } from '../../components/replay/ReplayVideoPlayer';
+import { ClipSelector, type ClipInfo } from '../../components/replay/ClipSelector';
+
+const CLIP_SERVER_URL = 'http://127.0.0.1:9998';
 
 // Types
 interface TelemetryPoint {
@@ -203,7 +200,6 @@ function getMarkerColor(type: Marker['type']) {
 }
 
 export function ReplayViewer() {
-  const { user } = useAuth();
   const [session] = useState<ReplaySession>(mockSession);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -217,10 +213,68 @@ export function ReplayViewer() {
   const [newMarkerDesc, setNewMarkerDesc] = useState('');
   const [telemetry, setTelemetry] = useState<TelemetryPoint>(generateTelemetry(0));
   const [filterType, setFilterType] = useState<Marker['type'] | 'all'>('all');
-    const timelineRef = useRef<HTMLDivElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
 
-  // Playback simulation
+  // ─── Clip system state ───
+  const [clips, setClips] = useState<ClipInfo[]>([]);
+  const [activeClip, setActiveClip] = useState<ClipInfo | null>(null);
+  const [clipServerAvailable, setClipServerAvailable] = useState(false);
+  const [viewMode, setViewMode] = useState<'video' | 'tactical'>('video');
+
+  // ─── Fetch clips from local clip server ───
   useEffect(() => {
+    let cancelled = false;
+    async function fetchClips() {
+      try {
+        const res = await fetch(`${CLIP_SERVER_URL}/clips`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data)) {
+          setClips(data.map((c: any) => ({
+            clipId: c.clipId || c.clip_id,
+            sessionId: c.sessionId || c.session_id || '',
+            eventType: c.eventType || c.event_type || 'unknown',
+            eventLabel: c.eventLabel || c.event_label || '',
+            severity: c.severity || 'minor',
+            sessionTimeMs: c.sessionTimeMs || c.session_time_ms || 0,
+            wallClockEvent: c.wallClockEvent || c.wall_clock_event || 0,
+            durationMs: c.durationMs || c.duration_ms || 0,
+            frameCount: c.frameCount || c.frame_count || 0,
+            resolution: c.resolution || '',
+            filePath: c.filePath || c.file_path || '',
+            fileSizeBytes: c.fileSizeBytes || c.file_size_bytes || 0,
+            serveUrl: c.serveUrl || c.serve_url || `${CLIP_SERVER_URL}/clips/${c.clipId || c.clip_id}.mp4`,
+            telemetrySync: {
+              sessionTimeMsAtFrame0: c.telemetrySync?.sessionTimeMsAtFrame0 || c.telemetry_sync?.session_time_ms_at_frame_0 || 0,
+              fps: c.telemetrySync?.fps || c.telemetry_sync?.fps || 15,
+            },
+          })));
+          setClipServerAvailable(true);
+        }
+      } catch {
+        // Clip server not running — that's OK, fall back to tactical view
+        setClipServerAvailable(false);
+      }
+    }
+    fetchClips();
+    // Poll for new clips every 10s
+    const interval = setInterval(fetchClips, 10000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, []);
+
+  // ─── Video time sync → telemetry ───
+  const handleVideoTimeUpdate = useCallback((timeSeconds: number) => {
+    setCurrentTime(timeSeconds);
+  }, []);
+
+  const handleSelectClip = useCallback((clip: ClipInfo) => {
+    setActiveClip(clip);
+    setViewMode('video');
+  }, []);
+
+  // Playback simulation (for tactical mode / when no clip is loaded)
+  useEffect(() => {
+    if (viewMode === 'video' && activeClip) return; // Video player handles its own playback
     if (!isPlaying) return;
     
     const interval = setInterval(() => {
@@ -235,7 +289,7 @@ export function ReplayViewer() {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isPlaying, playbackSpeed, session.duration]);
+  }, [isPlaying, playbackSpeed, session.duration, viewMode, activeClip]);
 
   // Update telemetry based on current time
   useEffect(() => {
@@ -268,6 +322,14 @@ export function ReplayViewer() {
     Math.abs(m.timestamp - currentTime) < 5
   );
 
+  // Map markers to video timeline format
+  const videoMarkers = activeClip ? session.markers.map(m => ({
+    id: m.id,
+    timeSeconds: m.timestamp,
+    type: m.type === 'highlight' ? 'pass' as const : m.type === 'note' ? 'manual' as const : m.type as 'incident' | 'coaching',
+    label: m.title,
+  })) : [];
+
   
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col bg-[#0a0a0a]">
@@ -286,6 +348,21 @@ export function ReplayViewer() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* View mode toggle */}
+          <div className="flex items-center border border-white/10">
+            <button
+              onClick={() => setViewMode('video')}
+              className={`px-2.5 py-1.5 text-[9px] uppercase tracking-wider transition-colors ${viewMode === 'video' ? 'bg-[#f97316]/10 text-[#f97316] border-r border-white/10' : 'text-white/30 hover:text-white/50 border-r border-white/10'}`}
+            >
+              <Film className="w-3 h-3 inline mr-1" />Video
+            </button>
+            <button
+              onClick={() => setViewMode('tactical')}
+              className={`px-2.5 py-1.5 text-[9px] uppercase tracking-wider transition-colors ${viewMode === 'tactical' ? 'bg-[#f97316]/10 text-[#f97316]' : 'text-white/30 hover:text-white/50'}`}
+            >
+              Tactical
+            </button>
+          </div>
           <button className="p-2 text-white/50 hover:text-white hover:bg-white/[0.05] rounded transition-colors">
             <Share2 className="w-4 h-4" />
           </button>
@@ -300,20 +377,51 @@ export function ReplayViewer() {
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
+        {/* Clip Selector Sidebar (left) */}
+        {clips.length > 0 && (
+          <div className="w-64 border-r border-white/[0.06] flex-shrink-0">
+            <ClipSelector
+              clips={clips}
+              activeClipId={activeClip?.clipId}
+              onSelectClip={handleSelectClip}
+            />
+          </div>
+        )}
+
         {/* Video/Replay Area */}
         <div className="flex-1 flex flex-col">
-          {/* Video Player Placeholder */}
+          {/* Video Player or Tactical View */}
           <div className="flex-1 relative bg-black flex items-center justify-center">
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/50" />
-            
-            {/* Placeholder for actual replay */}
-            <div className="text-center">
-              <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-white/[0.05] border border-white/[0.10] flex items-center justify-center">
-                <Play className="w-10 h-10 text-white/30" />
+            {viewMode === 'video' && activeClip?.serveUrl ? (
+              /* ═══ VIDEO MODE: Real clip playback ═══ */
+              <div className="w-full h-full">
+                <ReplayVideoPlayer
+                  src={activeClip.serveUrl}
+                  markers={videoMarkers}
+                  onTimeUpdate={handleVideoTimeUpdate}
+                  autoPlay
+                />
               </div>
-              <p className="text-white/30 text-sm">Replay Video</p>
-              <p className="text-white/20 text-xs mt-1">Lap {Math.floor(currentTime / 107) + 1} of {session.laps}</p>
-            </div>
+            ) : (
+              /* ═══ TACTICAL MODE: Original canvas/placeholder view ═══ */
+              <>
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/50" />
+                <div className="text-center">
+                  <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-white/[0.05] border border-white/[0.10] flex items-center justify-center">
+                    <Play className="w-10 h-10 text-white/30" />
+                  </div>
+                  <p className="text-white/30 text-sm">
+                    {clipServerAvailable ? 'Select a clip from the sidebar' : 'Tactical View'}
+                  </p>
+                  <p className="text-white/20 text-xs mt-1">Lap {Math.floor(currentTime / 107) + 1} of {session.laps}</p>
+                  {!clipServerAvailable && (
+                    <p className="text-white/10 text-[10px] mt-3">
+                      Clip server not detected — start the relay to capture video clips
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Telemetry Overlay */}
             <div className="absolute top-4 left-4 bg-black/70 backdrop-blur-sm rounded-lg p-3 border border-white/[0.10]">
