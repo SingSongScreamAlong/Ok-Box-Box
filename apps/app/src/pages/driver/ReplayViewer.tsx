@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-// useAuth available for future marker persistence
+import { useRelay } from '../../hooks/useRelay';
 import {
   ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2, VolumeX,
   MessageSquare, AlertTriangle, Flag, Plus, Download, Share2, Maximize2,
-  Fuel, Thermometer, Target, Film
+  Fuel, Thermometer, Target, Film, Check
 } from 'lucide-react';
 import { ReplayVideoPlayer } from '../../components/replay/ReplayVideoPlayer';
 import { ClipSelector, type ClipInfo } from '../../components/replay/ClipSelector';
@@ -200,6 +200,7 @@ function getMarkerColor(type: Marker['type']) {
 }
 
 export function ReplayViewer() {
+  const { triggerClip, lastClipSaved, status: relayStatus } = useRelay();
   const [session] = useState<ReplaySession>(mockSession);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -220,6 +221,8 @@ export function ReplayViewer() {
   const [activeClip, setActiveClip] = useState<ClipInfo | null>(null);
   const [clipServerAvailable, setClipServerAvailable] = useState(false);
   const [viewMode, setViewMode] = useState<'video' | 'tactical'>('video');
+  const [clipToast, setClipToast] = useState<string | null>(null);
+  const fetchClipsRef = useRef<() => void>(() => {});
 
   // ─── Fetch clips from local clip server ───
   useEffect(() => {
@@ -256,11 +259,23 @@ export function ReplayViewer() {
         setClipServerAvailable(false);
       }
     }
+    fetchClipsRef.current = fetchClips;
     fetchClips();
     // Poll for new clips every 10s
     const interval = setInterval(fetchClips, 10000);
     return () => { cancelled = true; clearInterval(interval); };
   }, []);
+
+  // ─── Live clip notification + auto-refresh ───
+  useEffect(() => {
+    if (!lastClipSaved?.clipId) return;
+    // Show toast
+    setClipToast(lastClipSaved.eventLabel || `Clip saved: ${lastClipSaved.eventType}`);
+    const timeout = setTimeout(() => setClipToast(null), 4000);
+    // Immediately refresh clip list
+    fetchClipsRef.current();
+    return () => clearTimeout(timeout);
+  }, [lastClipSaved]);
 
   // ─── Video time sync → telemetry ───
   const handleVideoTimeUpdate = useCallback((timeSeconds: number) => {
@@ -364,12 +379,14 @@ export function ReplayViewer() {
             </button>
           </div>
           <button
-            onClick={() => {
-              fetch(`${CLIP_SERVER_URL}/clips`).catch(() => {});
-              // Manual clip trigger — would be wired to relay socket in production
-            }}
-            className="flex items-center gap-1 px-2.5 py-1.5 text-[9px] uppercase tracking-wider border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-colors"
-            title="Save last 10 seconds as clip"
+            onClick={() => triggerClip('manual', 'Manual clip (replay)', 'minor')}
+            disabled={relayStatus !== 'in_session'}
+            className={`flex items-center gap-1 px-2.5 py-1.5 text-[9px] uppercase tracking-wider border transition-colors ${
+              relayStatus === 'in_session'
+                ? 'border-red-500/30 text-red-400 hover:bg-red-500/10 cursor-pointer'
+                : 'border-white/5 text-white/20 cursor-not-allowed'
+            }`}
+            title={relayStatus === 'in_session' ? 'Save last 10 seconds as clip' : 'Connect relay to save clips'}
           >
             <Film className="w-3 h-3" />Save Clip
           </button>
@@ -832,6 +849,13 @@ export function ReplayViewer() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {/* Clip saved toast notification */}
+      {clipToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-emerald-600/90 backdrop-blur-sm text-white px-4 py-3 rounded-lg shadow-xl border border-emerald-400/30 animate-in slide-in-from-bottom-4">
+          <Check className="w-4 h-4 flex-shrink-0" />
+          <span className="text-sm font-medium">{clipToast}</span>
         </div>
       )}
     </div>

@@ -195,6 +195,19 @@ const defaultSession: SessionInfo = {
   carName: null,
 };
 
+export interface ClipSavedEvent {
+  clipId: string;
+  sessionId: string;
+  eventType: string;
+  eventLabel: string;
+  severity: string;
+  sessionTimeMs: number;
+  durationMs: number;
+  frameCount: number;
+  resolution: string;
+  fileSizeBytes: number;
+}
+
 interface RelayContextValue {
   status: RelayStatus;
   reconnectAttempts: number;
@@ -204,8 +217,10 @@ interface RelayContextValue {
   engineerUpdates: EngineerUpdate[];
   raceIntelligence: RaceIntelligence | null;
   telemetryRate: number;
+  lastClipSaved: ClipSavedEvent | null;
   connect: () => void;
   disconnect: () => void;
+  triggerClip: (eventType?: string, eventLabel?: string, severity?: string) => void;
   getCarMapPosition: (trackPos: number) => { x: number; y: number };
 }
 
@@ -237,6 +252,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   const [raceIntelligence, setRaceIntelligence] = useState<RaceIntelligence | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [telemetryRate, setTelemetryRate] = useState(0);
+  const [lastClipSaved, setLastClipSaved] = useState<ClipSavedEvent | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const anonymousFallbackAttemptedRef = useRef(false);
   const frameCountRef = useRef(0);
@@ -669,6 +685,13 @@ export function RelayProvider({ children }: { children: ReactNode }) {
       setRaceIntelligence(null);
       });
 
+      socket.on('clip:saved', (data: any) => {
+      if (data?.clipId) {
+        console.log('[Relay] Clip saved:', data.clipId, data.eventType);
+        setLastClipSaved(data as ClipSavedEvent);
+      }
+      });
+
       socket.on('incident:new', (data: any) => {
       console.log('[Relay] Incident received:', data);
       const incident: LiveIncident = {
@@ -689,6 +712,15 @@ export function RelayProvider({ children }: { children: ReactNode }) {
     };
 
     createSocket(token);
+  }, []);
+
+  const triggerClip = useCallback((eventType = 'manual', eventLabel = 'Manual clip', severity = 'minor') => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('trigger_clip', { event_type: eventType, event_label: eventLabel, severity });
+      console.log('[Relay] Trigger clip sent:', eventLabel);
+    } else {
+      console.warn('[Relay] Cannot trigger clip — not connected');
+    }
   }, []);
 
   const disconnect = useCallback(() => {
@@ -723,7 +755,7 @@ export function RelayProvider({ children }: { children: ReactNode }) {
   }, [initialized, connect]);
 
   return (
-    <RelayContext.Provider value={{ status, reconnectAttempts, telemetry, session, incidents, engineerUpdates, raceIntelligence, telemetryRate, connect, disconnect, getCarMapPosition }}>
+    <RelayContext.Provider value={{ status, reconnectAttempts, telemetry, session, incidents, engineerUpdates, raceIntelligence, telemetryRate, lastClipSaved, connect, disconnect, triggerClip, getCarMapPosition }}>
       {children}
     </RelayContext.Provider>
   );
@@ -741,8 +773,10 @@ export function useRelay() {
       engineerUpdates: [] as EngineerUpdate[],
       raceIntelligence: null as RaceIntelligence | null,
       telemetryRate: 0,
+      lastClipSaved: null,
       connect: () => {},
       disconnect: () => {},
+      triggerClip: () => {},
       getCarMapPosition: (trackPos: number) => ({
         x: 0.5 + Math.cos(trackPos * Math.PI * 2) * 0.35,
         y: 0.5 + Math.sin(trackPos * Math.PI * 2) * 0.25,
