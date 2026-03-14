@@ -363,6 +363,16 @@ export function ReplayViewer() {
               Tactical
             </button>
           </div>
+          <button
+            onClick={() => {
+              fetch(`${CLIP_SERVER_URL}/clips`).catch(() => {});
+              // Manual clip trigger — would be wired to relay socket in production
+            }}
+            className="flex items-center gap-1 px-2.5 py-1.5 text-[9px] uppercase tracking-wider border border-red-500/20 text-red-400 hover:bg-red-500/10 transition-colors"
+            title="Save last 10 seconds as clip"
+          >
+            <Film className="w-3 h-3" />Save Clip
+          </button>
           <button className="p-2 text-white/50 hover:text-white hover:bg-white/[0.05] rounded transition-colors">
             <Share2 className="w-4 h-4" />
           </button>

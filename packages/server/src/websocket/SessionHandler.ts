@@ -182,6 +182,33 @@ export class SessionHandler {
 
             socket.emit('ack', { originalType: 'session_end', success: true });
         });
+
+        // Replay clip saved — store metadata and broadcast to session viewers
+        socket.on('clip_saved', (data: any) => {
+            if (!data?.clip_id && !data?.clipId) return;
+            const clipId = data.clip_id || data.clipId;
+            const sessionId = data.session_id || data.sessionId;
+            console.log(`📹 Clip saved: ${clipId} [${data.event_type || data.eventType}] for session ${sessionId}`);
+
+            // Broadcast to all clients watching this session
+            if (sessionId) {
+                this.io.to(`session:${sessionId}`).emit('clip:saved', {
+                    clipId,
+                    sessionId,
+                    eventType: data.event_type || data.eventType,
+                    eventLabel: data.event_label || data.eventLabel,
+                    severity: data.severity,
+                    sessionTimeMs: data.session_time_ms || data.sessionTimeMs,
+                    durationMs: data.duration_ms || data.durationMs,
+                    frameCount: data.frame_count || data.frameCount,
+                    resolution: data.resolution,
+                    fileSizeBytes: data.file_size_bytes || data.fileSizeBytes,
+                    telemetrySync: data.telemetry_sync || data.telemetrySync,
+                });
+            }
+
+            socket.emit('ack', { originalType: 'clip_saved', success: true });
+        });
     }
 
     public static startCleanupInterval() {

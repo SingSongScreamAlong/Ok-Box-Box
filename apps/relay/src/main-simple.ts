@@ -61,6 +61,9 @@ app.whenReady().then(async () => {
         logout: () => {
             void unlinkRelay();
         },
+        saveClip: () => {
+            pythonBridge?.triggerClip('manual', 'Manual clip (tray)', 'minor');
+        },
     });
 
     // Create status window

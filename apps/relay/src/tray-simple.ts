@@ -22,6 +22,7 @@ interface TrayActions {
     connectRelay: () => void;
     checkForUpdates: () => void;
     logout: () => void;
+    saveClip?: () => void;
 }
 
 export class TrayManager {
@@ -117,6 +118,11 @@ export class TrayManager {
                 label: this.linkedDisplayName ? `� Linked: ${this.linkedDisplayName}` : '🔓 Connect Relay to Account',
                 enabled: !this.linkedDisplayName,
                 click: () => this.actions.connectRelay()
+            },
+            {
+                label: '📹 Save Clip',
+                enabled: this.currentStatus.iRacingDetected,
+                click: () => this.actions.saveClip?.()
             },
             {
                 label: '📊 Open App',
