@@ -13,8 +13,13 @@ Connects iRacing to your Ok, Box Box dashboard for live telemetry, AI race engin
 ### 1. Download & Extract
 Download the latest release and extract to any folder.
 
-### 2. Configure
-Copy `.env.example` to `.env` and add your auth token:
+### 2. Setup
+Double-click **`SETUP.bat`** — it will:
+- Verify Python is installed
+- Install dependencies from `requirements.txt`
+- Create `.env` from the template and open it for editing
+
+Set your auth token in `.env`:
 ```
 SERVER_URL=https://api.okboxbox.com
 AUTH_TOKEN=your_token_here
@@ -23,7 +28,7 @@ AUTH_TOKEN=your_token_here
 Get your auth token from: **Ok, Box Box App → Settings → Relay Token**
 
 ### 3. Run
-Double-click `START-RELAY.bat` or run manually:
+Double-click **`START-RELAY.bat`** or run manually:
 ```powershell
 python main.py
 ```
@@ -63,7 +68,7 @@ python main.py --rate 20  # 20 Hz telemetry
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BLACKBOX_SERVER_URL` | `http://localhost:3001` | ControlBox Server URL |
+| `SERVER_URL` | `https://api.okboxbox.com` | Ok Box Box server URL |
 | `POLL_RATE_HZ` | `10` | Telemetry updates per second |
 | `LOG_LEVEL` | `INFO` | Logging verbosity |
 | `LOG_TELEMETRY` | `false` | Log each telemetry frame |
@@ -92,9 +97,9 @@ pip install pyirsdk
 - Try starting a replay if no live session available
 
 ### "Connection refused to server"
-- Make sure ControlBox Server is running (`cd server && npm start`)
-- Check the server URL is correct
+- Check the `SERVER_URL` in your `.env` is correct
 - Verify firewall isn't blocking the connection
+- Try `python main.py -v` for verbose output
 
 ## Development
 
