@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useRelay } from '../../hooks/useRelay';
 import {
   ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2, VolumeX,
@@ -201,6 +201,7 @@ function getMarkerColor(type: Marker['type']) {
 }
 
 export function ReplayViewer() {
+  const [searchParams] = useSearchParams();
   const { triggerClip, lastClipSaved, status: relayStatus } = useRelay();
   const [session] = useState<ReplaySession>(mockSession);
   const [currentTime, setCurrentTime] = useState(0);
@@ -372,6 +373,16 @@ export function ReplayViewer() {
       .then(json => { if (json?.data) setAnnotations(json.data); })
       .catch(() => {});
   }, []);
+
+  // ─── Deep-link: auto-select clip from ?clip=xxx query param ───
+  useEffect(() => {
+    const clipParam = searchParams.get('clip');
+    if (!clipParam || clips.length === 0) return;
+    const match = clips.find(c => c.clipId === clipParam);
+    if (match && match.clipId !== activeClip?.clipId) {
+      handleSelectClip(match);
+    }
+  }, [searchParams, clips, activeClip?.clipId, handleSelectClip]);
 
   // Playback simulation (for tactical mode / when no clip is loaded)
   useEffect(() => {

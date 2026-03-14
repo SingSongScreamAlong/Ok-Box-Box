@@ -183,6 +183,10 @@ export function ClipSelector({
             const Icon = EVENT_ICONS[clip.eventType] || MessageSquare;
             const severityDot = SEVERITY_DOTS[clip.severity] || SEVERITY_DOTS.minor;
 
+            const thumbUrl = clip.serveUrl
+              ? clip.serveUrl.replace('.mp4', '_thumb.jpg').replace('/clips/', '/clips/')
+              : undefined;
+
             return (
               <button
                 key={clip.clipId}
@@ -193,10 +197,24 @@ export function ClipSelector({
                     : 'hover:bg-white/[0.02] border-l-2 border-l-transparent'
                 }`}
               >
-                {/* Event icon */}
-                <div className={`w-7 h-7 flex-shrink-0 flex items-center justify-center border ${colors.border} ${colors.bg}`}>
-                  <Icon className={`w-3.5 h-3.5 ${colors.text}`} />
-                </div>
+                {/* Thumbnail or event icon */}
+                {thumbUrl ? (
+                  <div className={`w-14 h-9 flex-shrink-0 bg-black/50 border ${colors.border} overflow-hidden relative`}>
+                    <img
+                      src={thumbUrl}
+                      alt=""
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                    <div className={`absolute bottom-0 left-0 px-1 py-px text-[7px] uppercase ${colors.bg} ${colors.text}`}>
+                      {clip.eventType}
+                    </div>
+                  </div>
+                ) : (
+                  <div className={`w-7 h-7 flex-shrink-0 flex items-center justify-center border ${colors.border} ${colors.bg}`}>
+                    <Icon className={`w-3.5 h-3.5 ${colors.text}`} />
+                  </div>
+                )}
 
                 {/* Clip info */}
                 <div className="flex-1 min-w-0">

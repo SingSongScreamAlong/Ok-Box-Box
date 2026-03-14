@@ -29,6 +29,7 @@ clipsRouter.post('/upload', async (req: Request, res: Response): Promise<void> =
             frameCount,
             resolution,
             fileSizeBytes,
+            tags,
             telemetrySync,
             userId,
         } = req.body;
@@ -58,11 +59,12 @@ clipsRouter.post('/upload', async (req: Request, res: Response): Promise<void> =
                 clip_id, session_id, user_id, event_type, event_label, severity,
                 session_time_ms, duration_ms, frame_count, resolution,
                 file_size_bytes, storage_path, telemetry_path,
-                telemetry_sync, uploaded_at
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+                tags, telemetry_sync, uploaded_at
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
             ON CONFLICT (clip_id) DO UPDATE SET
                 storage_path = EXCLUDED.storage_path,
                 telemetry_path = EXCLUDED.telemetry_path,
+                tags = EXCLUDED.tags,
                 uploaded_at = NOW()`,
             [
                 clipId, sessionId, ownerUserId, eventType || 'unknown',
@@ -70,6 +72,7 @@ clipsRouter.post('/upload', async (req: Request, res: Response): Promise<void> =
                 sessionTimeMs || 0, durationMs || 0, frameCount || 0,
                 resolution || '', fileSizeBytes || 0,
                 storagePath, telemetryPath,
+                tags || [],
                 JSON.stringify(telemetrySync || {}),
             ]
         );

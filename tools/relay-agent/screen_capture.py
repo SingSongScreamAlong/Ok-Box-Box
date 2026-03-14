@@ -564,6 +564,29 @@ class ScreenCapture:
             with open(meta_path, 'w') as f:
                 json.dump(asdict(metadata), f, indent=2)
 
+            # Generate thumbnail from mid-clip frame
+            try:
+                mid_idx = len(frames) // 2
+                thumb_path = output_path.replace('.mp4', '_thumb.jpg')
+                thumb_frame = frames[mid_idx]
+                if CV2_AVAILABLE:
+                    import numpy as np
+                    img = cv2.imdecode(np.frombuffer(thumb_frame.jpeg_data, np.uint8), cv2.IMREAD_COLOR)
+                    if img is not None:
+                        # Resize to 320px wide
+                        h, w = img.shape[:2]
+                        scale = 320 / w
+                        thumb = cv2.resize(img, (320, int(h * scale)))
+                        cv2.imwrite(thumb_path, thumb, [cv2.IMWRITE_JPEG_QUALITY, 75])
+                        logger.info(f"   🖼️ Thumbnail saved: {thumb_path}")
+                else:
+                    # Fallback: save raw JPEG mid-frame as thumbnail
+                    with open(thumb_path, 'wb') as tf:
+                        tf.write(thumb_frame.jpeg_data)
+                    logger.info(f"   🖼️ Thumbnail saved (raw): {thumb_path}")
+            except Exception as e:
+                logger.debug(f"Thumbnail generation failed: {e}")
+
             # Write telemetry sidecar for browser sync
             if telemetry_samples:
                 telemetry_path = output_path.replace('.mp4', '_telemetry.json')

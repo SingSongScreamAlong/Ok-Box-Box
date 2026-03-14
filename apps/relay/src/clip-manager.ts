@@ -31,6 +31,7 @@ export interface ClipInfo {
     resolution: string;
     filePath: string;
     fileSizeBytes: number;
+    tags: string[];
     telemetrySync: {
         sessionTimeMsAtFrame0: number;
         fps: number;
@@ -131,6 +132,7 @@ export class ClipManager extends EventEmitter {
             resolution: data.resolution || '',
             filePath: data.file_path || data.filePath || '',
             fileSizeBytes: data.file_size_bytes || data.fileSizeBytes || 0,
+            tags: data.tags || [],
             telemetrySync: {
                 sessionTimeMsAtFrame0: data.telemetry_sync?.session_time_ms_at_frame_0
                     || data.telemetrySync?.sessionTimeMsAtFrame0 || 0,
@@ -182,6 +184,7 @@ export class ClipManager extends EventEmitter {
                 frameCount: clip.frameCount,
                 resolution: clip.resolution,
                 fileSizeBytes: clip.fileSizeBytes,
+                tags: clip.tags || [],
                 telemetrySync: clip.telemetrySync,
                 userId: this.userId,
             }),
@@ -355,6 +358,22 @@ export class ClipManager extends EventEmitter {
             }
             res.writeHead(404);
             res.end('Telemetry data not found');
+            return;
+        }
+
+        // GET /clips/:clipId_thumb.jpg — serve thumbnail
+        const thumbMatch = url.match(/\/clips\/(.+)_thumb\.jpg$/);
+        if (thumbMatch) {
+            const clipId = thumbMatch[1];
+            const thumbPath = path.join(this.clipDir, `${clipId}_thumb.jpg`);
+            if (fs.existsSync(thumbPath)) {
+                const data = fs.readFileSync(thumbPath);
+                res.writeHead(200, { 'Content-Type': 'image/jpeg', 'Content-Length': data.length.toString() });
+                res.end(data);
+                return;
+            }
+            res.writeHead(404);
+            res.end('Thumbnail not found');
             return;
         }
 

@@ -16,7 +16,9 @@ CREATE TABLE IF NOT EXISTS replay_clips (
     file_size_bytes BIGINT NOT NULL DEFAULT 0,
     storage_path    TEXT NOT NULL DEFAULT '',
     telemetry_path  TEXT,
+    tags            TEXT[] DEFAULT '{}',
     telemetry_sync  JSONB DEFAULT '{}',
+    thumbnail_path  TEXT,
     uploaded_at     TIMESTAMPTZ DEFAULT NOW(),
     created_at      TIMESTAMPTZ DEFAULT NOW()
 );
