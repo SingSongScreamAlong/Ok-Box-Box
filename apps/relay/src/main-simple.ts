@@ -19,11 +19,13 @@ import { getRelaySettings } from './settings.js';
 import { TrayManager } from './tray-simple.js';
 import { PythonBridge, RelayStatus } from './python-bridge-simple.js';
 import { createStatusWindow, updateStatus, closeStatusWindow } from './status-window.js';
+import { ClipManager } from './clip-manager.js';
 
 const APP_NAME = 'Ok, Box Box Relay';
 
 let tray: TrayManager | null = null;
 let pythonBridge: PythonBridge | null = null;
+const clipManager = new ClipManager();
 const authManager = new AuthManager();
 let pendingLaunchUrl: string | null = extractProtocolUrl(process.argv);
 
@@ -68,6 +70,9 @@ app.whenReady().then(async () => {
     const restored = await authManager.loadSavedToken();
     refreshLinkState();
 
+    // Start clip server for replay intelligence
+    clipManager.startServer();
+
     // Start the autonomous relay
     await startRelay();
 
@@ -107,6 +112,7 @@ app.on('before-quit', () => {
     console.log('🛑 Shutting down...');
     stopUpdateChecker();
     pythonBridge?.stop();
+    clipManager.stopServer();
     closeStatusWindow();
 });
 
@@ -174,6 +180,11 @@ async function startRelay() {
     pythonBridge.on('status', (status: RelayStatus) => {
         updateStatus(status);
         tray?.updateStatus(status);
+    });
+
+    // Wire clip_saved events into ClipManager
+    pythonBridge.on('clip_saved', (data: any) => {
+        clipManager.onClipSaved(data);
     });
 
     // Start with auto-reconnect

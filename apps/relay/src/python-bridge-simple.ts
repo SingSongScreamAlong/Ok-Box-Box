@@ -61,6 +61,18 @@ export class PythonBridge extends EventEmitter {
     }
 
     /**
+     * Trigger a manual clip save on the Python relay
+     */
+    triggerClip(eventType = 'manual', eventLabel = 'Manual clip', severity = 'minor'): void {
+        if (this.localSocket?.connected) {
+            this.localSocket.emit('trigger_clip', { event_type: eventType, event_label: eventLabel, severity });
+            console.log(`📹 Manual clip trigger sent: ${eventLabel}`);
+        } else {
+            console.warn('Cannot trigger clip — local Python socket not connected');
+        }
+    }
+
+    /**
      * Start the autonomous relay
      */
     async start(): Promise<void> {

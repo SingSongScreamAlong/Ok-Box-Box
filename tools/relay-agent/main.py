@@ -32,6 +32,7 @@ from iracing_reader import IRacingReader
 from pitbox_client import PitBoxClient
 from video_encoder import VideoEncoder
 from screen_capture import ScreenCapture, CaptureConfig
+from local_server import LocalServer
 from voice_recognition import VoiceRecognition
 from overlay import PTTOverlay
 from data_mapper import (
@@ -87,6 +88,8 @@ class RelayAgent:
             output_dir=config.CLIP_OUTPUT_DIR,
             max_storage_mb=config.CLIP_MAX_STORAGE_MB,
         ))
+        self.local_server = LocalServer()
+        self.local_server.on_trigger_clip = self._handle_trigger_clip
         self.vr = VoiceRecognition(
             ptt_type=config.PTT_TYPE,
             ptt_key=config.PTT_KEY,
@@ -156,6 +159,9 @@ class RelayAgent:
         # Video encoder starts later (after session is established)
         # self.video_encoder.start()
         
+        # Start local Socket.IO server for Electron bridge
+        self.local_server.start()
+        
         # Start Overlay
         self.overlay.start()
         
@@ -180,6 +186,7 @@ class RelayAgent:
         self.running = False
         self.video_encoder.stop()
         self.screen_capture.stop()
+        self.local_server.stop()
         self.overlay.stop()
         
         # Notify server that session is ending (triggers iRacing profile sync)
@@ -222,7 +229,9 @@ class RelayAgent:
                 
             # Try to connect to iRacing
             if not self.ir_reader.is_connected():
+                self.local_server.emit('iracing_status', {'connected': False})
                 if self.ir_reader.connect():
+                    self.local_server.emit('iracing_status', {'connected': True})
                     session_sent = False  # Reset for new connection
                 else:
                     # Not connected, wait and retry
@@ -369,6 +378,9 @@ class RelayAgent:
             logger.warning("⚠️ Failed to send session_metadata, will retry")
             return False
         
+        # Forward to Electron bridge
+        self.local_server.emit('session_metadata', metadata)
+        
         # NOW start video encoder (client has session ID)
         if not self.video_encoder.running:
             self.video_encoder.start()
@@ -415,6 +427,7 @@ class RelayAgent:
                 self.discipline_category
             )
             self.cloud_client.send_incident(incident)
+            self.local_server.emit('incident', incident)
             self.incident_count += 1
 
             # Trigger replay clip on incident
@@ -427,6 +440,19 @@ class RelayAgent:
                 session_time_ms=int((self.ir_reader.get_session_time() or 0) * 1000),
             )
     
+    def _handle_trigger_clip(self, data):
+        """Handle manual clip trigger from Electron bridge."""
+        event_type = data.get('event_type', 'manual')
+        event_label = data.get('event_label', 'Manual clip')
+        severity = data.get('severity', 'minor')
+        session_time = self.ir_reader.get_session_time() if self.ir_reader.is_connected() else 0
+        self.screen_capture.trigger_clip(
+            event_type=event_type,
+            event_label=event_label,
+            severity=severity,
+            session_time_ms=int((session_time or 0) * 1000),
+        )
+
     def _send_telemetry(self):
         """
         Send telemetry to server.
@@ -460,6 +486,7 @@ class RelayAgent:
             telemetry['cars'][i]['carIdx'] = car.car_id
             telemetry['cars'][i]['isPlayer'] = car.is_player
         self.cloud_client.emit('telemetry', telemetry)
+        self.local_server.emit('telemetry', telemetry)
         self.telemetry_count += 1
 
         # Update screen capture session context
@@ -475,6 +502,7 @@ class RelayAgent:
                 from dataclasses import asdict
                 clip_meta = self.screen_capture.pending_clips.get_nowait()
                 self.cloud_client.emit('clip_saved', asdict(clip_meta))
+                self.local_server.emit('clip_saved', asdict(clip_meta))
                 logger.info(f'📹 Clip emitted: {clip_meta.clip_id}')
             except Exception:
                 break

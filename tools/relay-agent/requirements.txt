@@ -1,6 +1,7 @@
 # BlackBox Relay Agent Dependencies
 pyirsdk>=1.3.5
 python-socketio[client]>=5.10.0
+python-socketio>=5.10.0
 websocket-client>=1.6.0
 pyyaml>=6.0
 python-dotenv>=1.0.0
