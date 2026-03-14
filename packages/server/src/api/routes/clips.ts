@@ -121,6 +121,40 @@ clipsRouter.get('/:clipId/url', async (req: Request, res: Response): Promise<voi
     }
 });
 
+// ─── GET /api/clips/:clipId/share — Generate long-lived shareable URL ─
+clipsRouter.get('/:clipId/share', async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { clipId } = req.params;
+
+        const result = await pool.query(
+            'SELECT storage_path, event_type, event_label, duration_ms FROM replay_clips WHERE clip_id = $1',
+            [clipId]
+        );
+
+        if (result.rows.length === 0) {
+            res.status(404).json({ success: false, error: 'Clip not found' });
+            return;
+        }
+
+        const { storage_path, event_type, event_label, duration_ms } = result.rows[0];
+        // 7-day expiry for shared links
+        const videoUrl = await generatePresignedDownloadUrl(storage_path, 7 * 24 * 3600);
+
+        res.json({
+            success: true,
+            data: {
+                clipId,
+                videoUrl,
+                expiresIn: '7 days',
+                meta: { eventType: event_type, eventLabel: event_label, durationMs: duration_ms },
+            },
+        });
+    } catch (error) {
+        console.error('[Clips] Share URL generation failed:', error);
+        res.status(500).json({ success: false, error: 'Failed to generate share URL' });
+    }
+});
+
 // ─── GET /api/clips/session/:sessionId — List clips for a session ────
 clipsRouter.get('/session/:sessionId', async (req: Request, res: Response): Promise<void> => {
     try {
@@ -156,6 +190,70 @@ clipsRouter.get('/session/:sessionId', async (req: Request, res: Response): Prom
     } catch (error) {
         console.error('[Clips] Session clips fetch failed:', error);
         res.status(500).json({ success: false, error: 'Failed to fetch clips' });
+    }
+});
+
+// ─── GET /api/clips/session/:sessionId/highlights — Auto-generated session highlights ─
+clipsRouter.get('/session/:sessionId/highlights', async (req: Request, res: Response): Promise<void> => {
+    try {
+        const { sessionId } = req.params;
+        const limit = Math.min(parseInt(req.query.limit as string) || 10, 20);
+
+        // Prioritize: incidents > overtakes > fastest_lap > highlights > others
+        // Order by severity (major > moderate > minor) then by session time
+        const result = await pool.query(
+            `SELECT clip_id, session_id, event_type, event_label, severity,
+                    session_time_ms, duration_ms, frame_count, resolution,
+                    file_size_bytes, telemetry_sync, uploaded_at
+             FROM replay_clips
+             WHERE session_id = $1
+             ORDER BY
+                CASE event_type
+                    WHEN 'incident' THEN 1
+                    WHEN 'overtake' THEN 2
+                    WHEN 'fastest_lap' THEN 3
+                    WHEN 'spin' THEN 4
+                    WHEN 'position_lost' THEN 5
+                    WHEN 'race_start' THEN 6
+                    WHEN 'hard_braking' THEN 7
+                    ELSE 8
+                END,
+                CASE severity
+                    WHEN 'major' THEN 1
+                    WHEN 'moderate' THEN 2
+                    ELSE 3
+                END,
+                session_time_ms ASC
+             LIMIT $2`,
+            [sessionId, limit]
+        );
+
+        const highlights = result.rows.map(r => ({
+            clipId: r.clip_id,
+            sessionId: r.session_id,
+            eventType: r.event_type,
+            eventLabel: r.event_label,
+            severity: r.severity,
+            sessionTimeMs: r.session_time_ms,
+            durationMs: r.duration_ms,
+            frameCount: r.frame_count,
+            resolution: r.resolution,
+            fileSizeBytes: r.file_size_bytes,
+            telemetrySync: r.telemetry_sync,
+            uploadedAt: r.uploaded_at,
+        }));
+
+        res.json({
+            success: true,
+            data: {
+                sessionId,
+                totalClips: highlights.length,
+                highlights,
+            },
+        });
+    } catch (error) {
+        console.error('[Clips] Session highlights fetch failed:', error);
+        res.status(500).json({ success: false, error: 'Failed to fetch highlights' });
     }
 });
 

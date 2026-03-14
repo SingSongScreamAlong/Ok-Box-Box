@@ -4,7 +4,7 @@ import { useRelay } from '../../hooks/useRelay';
 import {
   ArrowLeft, Play, Pause, SkipBack, SkipForward, Volume2, VolumeX,
   MessageSquare, AlertTriangle, Flag, Plus, Download, Share2, Maximize2,
-  Fuel, Thermometer, Target, Film, Check
+  Fuel, Thermometer, Target, Film, Check, Send, X
 } from 'lucide-react';
 import { ReplayVideoPlayer } from '../../components/replay/ReplayVideoPlayer';
 import { ClipSelector, type ClipInfo } from '../../components/replay/ClipSelector';
@@ -227,6 +227,21 @@ export function ReplayViewer() {
   // Telemetry sidecar data for active clip
   const [clipTelemetry, setClipTelemetry] = useState<any[] | null>(null);
 
+  // ─── Clip annotations state ───
+  interface ClipAnnotation {
+    id: string;
+    clipId: string;
+    videoTimeS: number;
+    sessionTimeMs: number;
+    text: string;
+    category: string;
+    createdAt: string;
+  }
+  const [annotations, setAnnotations] = useState<ClipAnnotation[]>([]);
+  const [showAnnotationInput, setShowAnnotationInput] = useState(false);
+  const [annotationText, setAnnotationText] = useState('');
+  const [annotationCategory, setAnnotationCategory] = useState<'note' | 'technique' | 'mistake' | 'highlight'>('note');
+
   // ─── Fetch clips from local clip server, with cloud fallback ───
   useEffect(() => {
     let cancelled = false;
@@ -348,6 +363,14 @@ export function ReplayViewer() {
         .then(data => { if (Array.isArray(data)) setClipTelemetry(data); })
         .catch(() => {});
     }
+
+    // Fetch annotations for this clip
+    setAnnotations([]);
+    setShowAnnotationInput(false);
+    fetch(`${CLOUD_API_URL}/api/clips/${clip.clipId}/annotations`)
+      .then(r => r.ok ? r.json() : null)
+      .then(json => { if (json?.data) setAnnotations(json.data); })
+      .catch(() => {});
   }, []);
 
   // Playback simulation (for tactical mode / when no clip is loaded)
@@ -419,6 +442,44 @@ export function ReplayViewer() {
     setCurrentTime(prev => Math.max(0, Math.min(session.duration, prev + seconds)));
   };
 
+  // ─── Annotation create handler ───
+  const handleCreateAnnotation = useCallback(async () => {
+    if (!activeClip || !annotationText.trim()) return;
+    try {
+      const res = await fetch(`${CLOUD_API_URL}/api/clips/${activeClip.clipId}/annotations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          videoTimeS: currentTime,
+          sessionTimeMs: telemetry.timestamp ? telemetry.timestamp * 1000 : 0,
+          text: annotationText.trim(),
+          category: annotationCategory,
+        }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) setAnnotations(prev => [...prev, json.data].sort((a, b) => a.videoTimeS - b.videoTimeS));
+      }
+    } catch { /* silent */ }
+    setAnnotationText('');
+    setShowAnnotationInput(false);
+  }, [activeClip, annotationText, annotationCategory, currentTime, telemetry.timestamp]);
+
+  const handleDeleteAnnotation = useCallback(async (annotationId: string) => {
+    if (!activeClip) return;
+    try {
+      await fetch(`${CLOUD_API_URL}/api/clips/${activeClip.clipId}/annotations/${annotationId}`, { method: 'DELETE' });
+      setAnnotations(prev => prev.filter(a => a.id !== annotationId));
+    } catch { /* silent */ }
+  }, [activeClip]);
+
+  const annotationCategoryColors: Record<string, string> = {
+    note: 'bg-blue-400',
+    technique: 'bg-green-400',
+    mistake: 'bg-red-400',
+    highlight: 'bg-yellow-400',
+  };
+
   const filteredMarkers = session.markers.filter(m => 
     filterType === 'all' || m.type === filterType
   );
@@ -480,10 +541,35 @@ export function ReplayViewer() {
           >
             <Film className="w-3 h-3" />Save Clip
           </button>
-          <button className="p-2 text-white/50 hover:text-white hover:bg-white/[0.05] rounded transition-colors">
+          <button
+            onClick={async () => {
+              if (!activeClip) return;
+              try {
+                const res = await fetch(`${CLOUD_API_URL}/api/clips/${activeClip.clipId}/share`);
+                if (res.ok) {
+                  const json = await res.json();
+                  if (json.data?.videoUrl) {
+                    await navigator.clipboard.writeText(json.data.videoUrl);
+                    setClipToast('Share link copied to clipboard!');
+                    setTimeout(() => setClipToast(null), 3000);
+                  }
+                }
+              } catch { setClipToast('Could not generate share link'); setTimeout(() => setClipToast(null), 3000); }
+            }}
+            disabled={!activeClip}
+            className={`p-2 rounded transition-colors ${activeClip ? 'text-white/50 hover:text-white hover:bg-white/[0.05]' : 'text-white/15 cursor-not-allowed'}`}
+            title="Copy shareable link"
+          >
             <Share2 className="w-4 h-4" />
           </button>
-          <button className="p-2 text-white/50 hover:text-white hover:bg-white/[0.05] rounded transition-colors">
+          <button
+            onClick={() => {
+              if (activeClip?.serveUrl) window.open(activeClip.serveUrl, '_blank');
+            }}
+            disabled={!activeClip?.serveUrl}
+            className={`p-2 rounded transition-colors ${activeClip?.serveUrl ? 'text-white/50 hover:text-white hover:bg-white/[0.05]' : 'text-white/15 cursor-not-allowed'}`}
+            title="Download clip"
+          >
             <Download className="w-4 h-4" />
           </button>
           <button className="p-2 text-white/50 hover:text-white hover:bg-white/[0.05] rounded transition-colors">
@@ -637,6 +723,17 @@ export function ReplayViewer() {
                   style={{ left: `${(marker.timestamp / session.duration) * 100}%` }}
                   onClick={(e) => { e.stopPropagation(); jumpToMarker(marker); }}
                   title={marker.title}
+                />
+              ))}
+
+              {/* Annotation markers on timeline */}
+              {annotations.map(ann => (
+                <button
+                  key={ann.id}
+                  className={`absolute top-0 w-1.5 h-full ${annotationCategoryColors[ann.category] || 'bg-blue-400'} opacity-60 hover:opacity-100 transition-opacity`}
+                  style={{ left: `${(ann.videoTimeS / session.duration) * 100}%` }}
+                  onClick={(e) => { e.stopPropagation(); setCurrentTime(ann.videoTimeS); setIsPlaying(false); }}
+                  title={`[${ann.category}] ${ann.text}`}
                 />
               ))}
 
@@ -810,6 +907,102 @@ export function ReplayViewer() {
               </button>
             ))}
           </div>
+
+          {/* ─── Clip Annotations Panel ─── */}
+          {activeClip && (
+            <div className="border-t border-white/[0.06]">
+              <div className="p-3 border-b border-white/[0.06]">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-[10px] font-semibold uppercase tracking-wider text-white/50">
+                    <MessageSquare className="w-3 h-3 inline mr-1" />
+                    Annotations
+                  </h3>
+                  <button
+                    onClick={() => { setShowAnnotationInput(!showAnnotationInput); setIsPlaying(false); }}
+                    className="text-[9px] px-2 py-0.5 bg-white/[0.05] hover:bg-white/[0.10] border border-white/[0.10] rounded text-white/50 hover:text-white transition-colors"
+                  >
+                    <Plus className="w-2.5 h-2.5 inline mr-0.5" />
+                    Add at {formatTime(currentTime)}
+                  </button>
+                </div>
+
+                {/* Annotation input */}
+                {showAnnotationInput && (
+                  <div className="space-y-2 mb-2">
+                    <div className="flex gap-1">
+                      {(['note', 'technique', 'mistake', 'highlight'] as const).map(cat => (
+                        <button
+                          key={cat}
+                          onClick={() => setAnnotationCategory(cat)}
+                          className={`px-2 py-0.5 text-[8px] uppercase rounded transition-colors ${
+                            annotationCategory === cat
+                              ? `${annotationCategoryColors[cat]} text-black font-bold`
+                              : 'bg-white/[0.05] text-white/40 hover:text-white/60'
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-1">
+                      <input
+                        type="text"
+                        value={annotationText}
+                        onChange={(e) => setAnnotationText(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleCreateAnnotation(); }}
+                        placeholder="Add note at this moment..."
+                        className="flex-1 px-2 py-1 bg-white/[0.05] border border-white/[0.10] rounded text-[10px] text-white placeholder-white/20 outline-none focus:border-blue-500/50"
+                        autoFocus
+                      />
+                      <button
+                        onClick={handleCreateAnnotation}
+                        disabled={!annotationText.trim()}
+                        className="px-2 py-1 bg-blue-500/20 border border-blue-500/30 rounded text-blue-400 hover:bg-blue-500/30 disabled:opacity-30 transition-colors"
+                      >
+                        <Send className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={() => { setShowAnnotationInput(false); setAnnotationText(''); }}
+                        className="px-1.5 py-1 text-white/30 hover:text-white/60 transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Annotations list */}
+              {annotations.length > 0 && (
+                <div className="max-h-48 overflow-y-auto">
+                  {annotations.map(ann => (
+                    <button
+                      key={ann.id}
+                      onClick={() => { setCurrentTime(ann.videoTimeS); setIsPlaying(false); }}
+                      className="w-full p-2 text-left border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors group"
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className={`w-1.5 h-1.5 mt-1 rounded-full flex-shrink-0 ${annotationCategoryColors[ann.category] || 'bg-blue-400'}`} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] text-white/60 truncate">{ann.text}</span>
+                            <span className="text-[8px] text-white/20 font-mono ml-1 flex-shrink-0">{formatTime(ann.videoTimeS)}</span>
+                          </div>
+                          <span className="text-[8px] text-white/20 uppercase">{ann.category}</span>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteAnnotation(ann.id); }}
+                          className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-400 transition-all"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Session Stats */}
           <div className="p-3 border-t border-white/[0.06] bg-white/[0.02]">
