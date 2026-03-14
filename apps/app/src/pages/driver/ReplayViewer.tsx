@@ -203,7 +203,7 @@ function getMarkerColor(type: Marker['type']) {
 export function ReplayViewer() {
   const [searchParams] = useSearchParams();
   const { triggerClip, lastClipSaved, status: relayStatus } = useRelay();
-  const [session] = useState<ReplaySession>(mockSession);
+  const [baseSession] = useState<ReplaySession>(mockSession);
   const [currentTime, setCurrentTime] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
@@ -242,6 +242,14 @@ export function ReplayViewer() {
   const [showAnnotationInput, setShowAnnotationInput] = useState(false);
   const [annotationText, setAnnotationText] = useState('');
   const [annotationCategory, setAnnotationCategory] = useState<'note' | 'technique' | 'mistake' | 'highlight'>('note');
+
+  // Derive session from active clip when available
+  const session: ReplaySession = activeClip ? {
+    ...baseSession,
+    id: activeClip.sessionId || baseSession.id,
+    title: activeClip.eventLabel || activeClip.eventType || baseSession.title,
+    duration: (activeClip.durationMs || 0) / 1000 || baseSession.duration,
+  } : baseSession;
 
   // ─── Fetch clips from local clip server, with cloud fallback ───
   useEffect(() => {

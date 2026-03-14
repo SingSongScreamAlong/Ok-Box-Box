@@ -104,13 +104,31 @@ services:
         scope: RUN_TIME
         type: SECRET
       
-      # OpenAI (optional, for AI features)
+      # OpenAI (for AI debrief + driver analysis)
       - key: OPENAI_API_KEY
         scope: RUN_TIME
         type: SECRET
       - key: ELEVENLABS_API_KEY
         scope: RUN_TIME
         type: SECRET
+
+      # DigitalOcean Spaces (clip + artifact cloud storage)
+      - key: DO_SPACES_ENDPOINT
+        value: "nyc3.digitaloceanspaces.com"
+      - key: DO_SPACES_BUCKET
+        value: "controlbox-artifacts"
+      - key: DO_SPACES_REGION
+        value: "nyc3"
+      - key: DO_SPACES_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: DO_SPACES_SECRET
+        scope: RUN_TIME
+        type: SECRET
+
+      # FP1 Testing — grants all driver capabilities to free tier
+      - key: FP1_TESTING_MODE
+        value: "true"
 
       - key: METRICS_ENABLED
         value: "true"
