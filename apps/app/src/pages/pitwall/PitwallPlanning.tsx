@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Calendar, Users, Clock, Plus, ChevronDown, ChevronUp, Flag, AlertCircle, Edit, Trash2, UserPlus, Loader2, Target, ChevronRight } from 'lucide-react';
 import { useTeamData } from '../../hooks/useTeamData';
 import { PitwallBackground } from '../../components/PitwallBackground';
+import { StintRotationGenerator } from '../../components/StintRotationGenerator';
 
 const typeStyles: Record<string, { bg: string; text: string; label: string }> = {
   practice: { bg: 'bg-[#3b82f6]/20', text: 'text-[#3b82f6]', label: 'Practice' },
@@ -243,6 +244,11 @@ export function PitwallPlanning() {
             ))}
           </div>
         </div>
+      </div>
+
+      {/* ═══ PHASE 4c: AUTO STINT ROTATION GENERATOR ═══ */}
+      <div className="mt-6">
+        <StintRotationGenerator />
       </div>
       </div>
     </div>
