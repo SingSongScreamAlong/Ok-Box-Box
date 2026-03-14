@@ -67,7 +67,20 @@ interface MonthlyNarrativeContext {
     previous_aggregate?: DriverAggregate;
 }
 
-function buildSessionDebriefPrompt(ctx: SessionDebriefContext): string {
+function buildSessionDebriefPrompt(
+    ctx: SessionDebriefContext,
+    clips: { clipId: string; eventType: string; eventLabel: string; tags: string[]; sessionTimeMs: number }[] = [],
+): string {
+    const clipsSection = clips.length > 0
+        ? `\n## Replay Clips Captured (${clips.length} total)\n${clips.map((c, i) =>
+            `${i + 1}. [${c.eventType}] "${c.eventLabel}" at session time ${(c.sessionTimeMs / 1000).toFixed(0)}s (clipId: ${c.clipId}, tags: ${c.tags.join(', ') || 'none'})`
+        ).join('\n')}\n`
+        : '';
+
+    const clipsInstruction = clips.length > 0
+        ? `\n- clip_references: Array of objects, each with { clipId, reason } linking a specific replay clip to a debrief point. Reference clips that illustrate the primary_limiter, biggest_mistake, key_improvement, or strongest_segment.`
+        : '';
+
     return `You are a race engineer providing post-session analysis.
 Use neutral, engineering-grade language. State observations plainly.
 Be factual, concise, and actionable. Avoid emotional judgment or motivational language.
@@ -90,7 +103,7 @@ ${ctx.metrics.positions_gained !== null ? `- Position Delta: ${ctx.metrics.posit
 
 ## Current Characteristic Indicators
 ${ctx.traits.length > 0 ? ctx.traits.map(t => `- ${t.trait_label} (${(t.confidence * 100).toFixed(0)}%)`).join('\n') : '- Insufficient data for characteristic indicators'}
-
+${clipsSection}
 Generate a session analysis as JSON with these exact fields:
 - headline: One-line session summary
 - primary_limiter: Primary performance limiter identified this session
@@ -100,7 +113,7 @@ Generate a session analysis as JSON with these exact fields:
 - key_improvement: One specific area where driver improved vs baseline or showed strength
 - key_weakness: One specific area that limited performance most
 - biggest_mistake: Single most costly error or loss (null if clean session)
-- strongest_segment: Best segment/stint/phase of the session and why
+- strongest_segment: Best segment/stint/phase of the session and why${clipsInstruction}
 
 LANGUAGE RULES:
 - Use neutral, technical language only
@@ -262,7 +275,7 @@ export async function generateSessionDebrief(
 ): Promise<DriverReport> {
     console.log(`[ReportGen] Generating session debrief for session ${sessionId}`);
 
-    // Fetch required data
+    // Fetch required data (including replay clips for this session)
     const [profile, metrics, traits] = await Promise.all([
         getDriverProfileById(driverProfileId),
         getSessionMetrics(sessionId, driverProfileId),
@@ -280,6 +293,27 @@ export async function generateSessionDebrief(
     const session = sessionResult.rows[0];
     if (!session) throw new Error('Session not found');
 
+    // Fetch replay clips for this session (if any)
+    let clipsSummary: { clipId: string; eventType: string; eventLabel: string; tags: string[]; sessionTimeMs: number }[] = [];
+    try {
+        const clipsResult = await pool.query<{
+            clip_id: string; event_type: string; event_label: string;
+            tags: string[] | null; session_time_ms: number;
+        }>(
+            'SELECT clip_id, event_type, event_label, tags, session_time_ms FROM replay_clips WHERE session_id = $1 ORDER BY session_time_ms ASC',
+            [sessionId]
+        );
+        clipsSummary = clipsResult.rows.map(r => ({
+            clipId: r.clip_id,
+            eventType: r.event_type,
+            eventLabel: r.event_label,
+            tags: r.tags || [],
+            sessionTimeMs: r.session_time_ms,
+        }));
+    } catch {
+        // replay_clips table may not exist yet — skip gracefully
+    }
+
     // Build context
     const context: SessionDebriefContext = {
         driver_name: profile.display_name,
@@ -291,16 +325,21 @@ export async function generateSessionDebrief(
     };
 
     // Generate prompt and call OpenAI
-    const prompt = buildSessionDebriefPrompt(context);
+    const prompt = buildSessionDebriefPrompt(context, clipsSummary);
     const llmResponse = await callOpenAI<SessionDebriefResponse>(prompt, 'session_debrief');
 
-    // Create report
+    // Create report (include clips in content for browser rendering)
+    const contentWithClips = {
+        ...llmResponse as unknown as Record<string, unknown>,
+        replay_clips: clipsSummary,
+    };
+
     const dto: CreateDriverReportDTO = {
         driver_profile_id: driverProfileId,
         report_type: 'session_debrief',
         session_id: sessionId,
         title: `Session Analysis: ${session.track_name}`,
-        content_json: llmResponse as unknown as Record<string, unknown>,
+        content_json: contentWithClips,
         ai_model: AI_MODEL,
         ai_prompt_version: PROMPT_VERSION,
         generation_context: context as unknown as Record<string, unknown>,
@@ -308,7 +347,7 @@ export async function generateSessionDebrief(
     };
 
     const report = await createDriverReport(dto);
-    console.log(`[ReportGen] Created session analysis report ${report.id}`);
+    console.log(`[ReportGen] Created session analysis report ${report.id} (${clipsSummary.length} clips linked)`);
     return report;
 }
 

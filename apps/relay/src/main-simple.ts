@@ -11,7 +11,7 @@
  * Standalone desktop runtime for the embedded relay.
  */
 
-import { app, shell } from 'electron';
+import { app, shell, globalShortcut } from 'electron';
 import { AuthManager } from './auth.js';
 import { checkForUpdates, showUpdateDialog, startUpdateChecker, stopUpdateChecker, manualUpdateCheck } from './auto-updater.js';
 import { extractProtocolUrl, parseProtocolUrl, registerProtocol } from './protocol-handler.js';
@@ -78,6 +78,12 @@ app.whenReady().then(async () => {
     clipManager.setApiUrl(settings.apiUrl);
     if (settings.userId) clipManager.setUserId(settings.userId);
     clipManager.startServer();
+
+    // Register global hotkey for manual clip save
+    globalShortcut.register('CommandOrControl+Shift+C', () => {
+        pythonBridge?.triggerClip('manual', 'Manual clip (hotkey)', 'minor');
+        console.log('📹 Clip triggered via hotkey');
+    });
 
     // Start the autonomous relay
     await startRelay();

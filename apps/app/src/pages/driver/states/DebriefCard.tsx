@@ -9,7 +9,8 @@ import {
   Award,
   AlertCircle,
   CheckCircle,
-  Loader2
+  Loader2,
+  Film
 } from 'lucide-react';
 import { fetchCrewBrief, type CrewBrief } from '../../../lib/driverService';
 
@@ -71,6 +72,21 @@ export function DebriefCard({ sessionMemory, timeSinceSession, compact }: Debrie
     if (pos === 3) return 'rd';
     return 'th';
   };
+
+  // Extract replay clips from debrief content
+  const getReplayClips = (): { clipId: string; eventType: string; eventLabel: string; tags: string[]; sessionTimeMs: number; reason?: string }[] => {
+    const content = brief?.content;
+    if (!content || typeof content === 'string') return [];
+    const clips = content.replay_clips || content.replayClips || [];
+    const refs = content.clip_references || content.clipReferences || [];
+    // Merge AI-generated reasons into clips
+    return clips.map((c: any) => {
+      const ref = refs.find((r: any) => r.clipId === c.clipId);
+      return { ...c, reason: ref?.reason };
+    });
+  };
+
+  const replayClips = getReplayClips();
 
   // Extract structured debrief points from crew brief content
   const getDebriefPoints = (): {
@@ -201,6 +217,31 @@ export function DebriefCard({ sessionMemory, timeSinceSession, compact }: Debrie
               {!debrief.keyImprovement && !debrief.keyWeakness && !debrief.strongestSegment && !debrief.biggestMistake && brief && (
                 <p className="text-[10px] text-white/25 mt-2">Detailed analysis available in full history.</p>
               )}
+
+              {/* Replay clips linked to this debrief */}
+              {replayClips.length > 0 && (
+                <div className="mt-3 pt-2 border-t border-white/[0.04]">
+                  <div className="flex items-center gap-1 mb-1.5">
+                    <Film className="w-3 h-3 text-[#f97316]/50" />
+                    <span className="text-[8px] uppercase tracking-wider text-white/25">{replayClips.length} Replay Clip{replayClips.length > 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="space-y-1">
+                    {replayClips.slice(0, 3).map((clip: any) => (
+                      <Link
+                        key={clip.clipId}
+                        to={`/driver/replay?clip=${clip.clipId}`}
+                        className="flex items-center gap-2 px-2 py-1 bg-white/[0.02] hover:bg-white/[0.05] border border-white/[0.04] transition-colors group"
+                      >
+                        <Film className="w-2.5 h-2.5 text-red-400/50 group-hover:text-red-400" />
+                        <span className="text-[9px] text-white/30 group-hover:text-white/50 truncate flex-1">
+                          {clip.reason || clip.eventLabel || clip.eventType}
+                        </span>
+                        <span className="text-[8px] text-white/15">{Math.floor(clip.sessionTimeMs / 60000)}:{String(Math.floor((clip.sessionTimeMs % 60000) / 1000)).padStart(2, '0')}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
 
@@ -318,6 +359,46 @@ export function DebriefCard({ sessionMemory, timeSinceSession, compact }: Debrie
                   <p className="text-sm text-white/60">{debrief.biggestMistake}</p>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Replay clips linked to debrief */}
+          {replayClips.length > 0 && (
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Film className="w-4 h-4 text-red-400" />
+                <h2 className="text-sm font-semibold uppercase tracking-wider">Session Replay Clips</h2>
+                <span className="text-[10px] text-white/20 ml-auto">{replayClips.length} captured</span>
+              </div>
+              <div className="space-y-2">
+                {replayClips.map((clip: any) => (
+                  <Link
+                    key={clip.clipId}
+                    to={`/driver/replay?clip=${clip.clipId}`}
+                    className="flex items-center gap-3 px-3 py-2 bg-white/[0.02] hover:bg-white/[0.06] border border-white/[0.06] rounded transition-colors group"
+                  >
+                    <Film className="w-4 h-4 text-red-400/40 group-hover:text-red-400 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs text-white/60 group-hover:text-white/80 truncate">
+                        {clip.reason || clip.eventLabel || clip.eventType}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[9px] text-white/20">
+                          {Math.floor(clip.sessionTimeMs / 60000)}:{String(Math.floor((clip.sessionTimeMs % 60000) / 1000)).padStart(2, '0')}
+                        </span>
+                        {clip.tags?.length > 0 && (
+                          <div className="flex gap-1">
+                            {clip.tags.slice(0, 3).map((tag: string) => (
+                              <span key={tag} className="text-[8px] px-1 py-0.5 bg-white/[0.04] text-white/20 rounded">{tag}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRight className="w-3 h-3 text-white/10 group-hover:text-white/30" />
+                  </Link>
+                ))}
+              </div>
             </div>
           )}
         </>

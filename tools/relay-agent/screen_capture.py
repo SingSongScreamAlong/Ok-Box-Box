@@ -113,6 +113,7 @@ class ClipMetadata:
     resolution: str = ''          # "1280x720"
     file_path: str = ''           # Absolute path to MP4
     file_size_bytes: int = 0
+    tags: list = field(default_factory=list)  # Auto-categorization tags
     telemetry_sync: dict = field(default_factory=lambda: {
         'session_time_ms_at_frame_0': 0,
         'fps': 15
@@ -469,13 +470,31 @@ class ScreenCapture:
             frames = frames[-max_frames:]
             telemetry_samples = telemetry_samples[-max_frames:]
 
+        # Auto-categorize from telemetry context
+        try:
+            from clip_categorizer import categorize_clip
+            category = categorize_clip(
+                samples=telemetry_samples,
+                event_type=meta_ctx['event_type'],
+                event_label=meta_ctx['event_label'],
+            )
+            enriched_type = category.primary
+            enriched_label = category.label
+            enriched_tags = category.tags
+            logger.info(f"🏷️ Auto-categorized: {enriched_type} — {enriched_label} (tags: {enriched_tags})")
+        except Exception as e:
+            logger.debug(f"Auto-categorization skipped: {e}")
+            enriched_type = meta_ctx['event_type']
+            enriched_label = meta_ctx['event_label']
+            enriched_tags = []
+
         # Build metadata
         clip_id = str(uuid.uuid4())[:12]
         metadata = ClipMetadata(
             clip_id=clip_id,
             session_id=self.session_id,
-            event_type=meta_ctx['event_type'],
-            event_label=meta_ctx['event_label'],
+            event_type=enriched_type,
+            event_label=enriched_label,
             severity=meta_ctx['severity'],
             session_time_ms=meta_ctx['event_session_time'],
             wall_clock_start=frames[0].timestamp,
@@ -484,6 +503,7 @@ class ScreenCapture:
             duration_ms=int((frames[-1].timestamp - frames[0].timestamp) * 1000),
             frame_count=len(frames),
             resolution=f"{self.config.capture_width}x{self.config.capture_height}",
+            tags=enriched_tags,
             telemetry_sync={
                 'session_time_ms_at_frame_0': frames[0].session_time_ms,
                 'fps': self.config.target_fps,
