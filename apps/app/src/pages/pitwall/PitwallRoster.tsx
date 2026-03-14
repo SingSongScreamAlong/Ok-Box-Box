@@ -4,6 +4,7 @@ import { UserPlus, Search, Filter, Users, Crown, Wrench, User, LinkIcon, Target,
 import { useTeamData } from '../../hooks/useTeamData';
 import { PitwallBackground } from '../../components/PitwallBackground';
 import { InviteBuilder } from '../../components/InviteBuilder';
+import { TeamRiskDashboard } from '../../components/TeamRiskDashboard';
 
 // Types from legacy
 interface DriverSummary {
@@ -285,6 +286,34 @@ export function PitwallRoster() {
           )}
         </div>
       </div>
+
+      {/* ═══ PHASE 4d: TEAM RISK DASHBOARD ═══ */}
+      {roster.members.length > 0 && (
+        <div className="mt-6">
+          <TeamRiskDashboard
+            driverSessions={roster.members.flatMap(m => {
+              // Map roster member stats into per-driver session shape for risk analysis
+              // Real sessions would come from a dedicated API; this uses aggregate roster data
+              const sessions = [];
+              for (let i = 0; i < (m.total_sessions || 0); i++) {
+                sessions.push({
+                  driverId: m.driver_id,
+                  driverName: m.display_name,
+                  trackName: '',
+                  finishPos: null,
+                  startPos: null,
+                  incidents: m.avg_incident_rate ?? null,
+                  iRatingChange: null,
+                  eventType: 'race',
+                  startedAt: m.joined_at,
+                  lapsComplete: m.total_laps ? Math.round(m.total_laps / Math.max(1, m.total_sessions || 1)) : null,
+                });
+              }
+              return sessions;
+            })}
+          />
+        </div>
+      )}
 
       {/* Invite Builder */}
       <InviteBuilder 
