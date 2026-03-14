@@ -223,6 +223,8 @@ export function ReplayViewer() {
   const [viewMode, setViewMode] = useState<'video' | 'tactical'>('video');
   const [clipToast, setClipToast] = useState<string | null>(null);
   const fetchClipsRef = useRef<() => void>(() => {});
+  // Telemetry sidecar data for active clip
+  const [clipTelemetry, setClipTelemetry] = useState<any[] | null>(null);
 
   // ─── Fetch clips from local clip server ───
   useEffect(() => {
@@ -285,6 +287,12 @@ export function ReplayViewer() {
   const handleSelectClip = useCallback((clip: ClipInfo) => {
     setActiveClip(clip);
     setViewMode('video');
+    // Fetch telemetry sidecar for this clip
+    setClipTelemetry(null);
+    fetch(`${CLIP_SERVER_URL}/clips/${clip.clipId}_telemetry.json`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (Array.isArray(data)) setClipTelemetry(data); })
+      .catch(() => setClipTelemetry(null));
   }, []);
 
   // Playback simulation (for tactical mode / when no clip is loaded)
@@ -306,10 +314,37 @@ export function ReplayViewer() {
     return () => clearInterval(interval);
   }, [isPlaying, playbackSpeed, session.duration, viewMode, activeClip]);
 
-  // Update telemetry based on current time
+  // Update telemetry based on current time — use real clip data if available
   useEffect(() => {
-    setTelemetry(generateTelemetry(currentTime));
-  }, [currentTime]);
+    if (viewMode === 'video' && clipTelemetry && clipTelemetry.length > 0) {
+      // Binary search for nearest sample by video time
+      const t = currentTime;
+      let lo = 0, hi = clipTelemetry.length - 1;
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        if (clipTelemetry[mid].t < t) lo = mid + 1; else hi = mid;
+      }
+      // Clamp to nearest
+      const idx = Math.min(lo, clipTelemetry.length - 1);
+      const s = clipTelemetry[idx];
+      setTelemetry({
+        timestamp: s.t,
+        speed: Math.round((s.spd || 0) * 2.237), // m/s → mph
+        throttle: (s.thr || 0) * 100,
+        brake: (s.brk || 0) * 100,
+        steering: (s.str || 0) * 57.3, // rad → deg
+        gear: s.gear || 0,
+        rpm: s.rpm || 0,
+        fuel: s.fuel || 0,
+        tireTemp: { fl: 85, fr: 85, rl: 80, rr: 80 }, // Not in sidecar yet
+        lapTime: undefined,
+        sector: s.dist < 0.333 ? 1 : s.dist < 0.666 ? 2 : 3,
+        position: s.pos || undefined,
+      });
+    } else {
+      setTelemetry(generateTelemetry(currentTime));
+    }
+  }, [currentTime, viewMode, clipTelemetry]);
 
   const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!timelineRef.current) return;

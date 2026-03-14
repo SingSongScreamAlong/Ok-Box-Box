@@ -243,6 +243,22 @@ export class ClipManager extends EventEmitter {
             return;
         }
 
+        // GET /clips/:clipId_telemetry.json — serve telemetry sidecar
+        const telemetryMatch = url.match(/\/clips\/(.+)_telemetry\.json$/);
+        if (telemetryMatch) {
+            const clipId = telemetryMatch[1];
+            const telemetryPath = path.join(this.clipDir, `${clipId}_telemetry.json`);
+            if (fs.existsSync(telemetryPath)) {
+                const data = fs.readFileSync(telemetryPath, 'utf-8');
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(data);
+                return;
+            }
+            res.writeHead(404);
+            res.end('Telemetry data not found');
+            return;
+        }
+
         // GET /health
         if (url === '/health') {
             res.writeHead(200, { 'Content-Type': 'application/json' });

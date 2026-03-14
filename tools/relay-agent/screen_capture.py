@@ -21,7 +21,7 @@ import uuid
 from collections import deque
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
-from typing import Deque, List, Optional
+from typing import Any, Deque, Dict, List, Optional
 
 try:
     import mss
@@ -71,6 +71,24 @@ class CaptureConfig:
 # ═══════════════════════════════════════
 # Data Classes
 # ═══════════════════════════════════════
+
+@dataclass
+class TelemetrySample:
+    """Lightweight telemetry snapshot stored alongside each frame."""
+    session_time_ms: int = 0
+    speed: float = 0          # m/s from iRacing
+    rpm: float = 0
+    gear: int = 0
+    throttle: float = 0       # 0-1
+    brake: float = 0          # 0-1
+    steering: float = 0       # radians
+    fuel_level: float = 0     # liters
+    fuel_pct: float = 0       # 0-1
+    lap: int = 0
+    lap_dist_pct: float = 0   # 0-1
+    position: int = 0
+    incident_count: int = 0
+
 
 @dataclass
 class BufferedFrame:
@@ -178,6 +196,13 @@ class ScreenCapture:
         self._post_event_frames: List[BufferedFrame] = []
         self._post_event_meta: Optional[dict] = None
 
+        # Telemetry snapshot buffer (mirrors frame buffer timing)
+        self._telemetry_buffer: Deque[TelemetrySample] = deque(
+            maxlen=self.config.buffer_seconds * self.config.target_fps
+        )
+        self._current_telemetry: Optional[TelemetrySample] = None
+        self._post_event_telemetry: List[TelemetrySample] = []
+
         # FFmpeg
         self._ffmpeg_path = find_ffmpeg()
 
@@ -242,12 +267,30 @@ class ScreenCapture:
 
     # ─── Session Context ─────────────────────
 
-    def update_session_context(self, session_id: str, session_time_ms: int):
+    def update_session_context(self, session_id: str, session_time_ms: int,
+                               telemetry: Optional[Dict[str, Any]] = None):
         """Called from telemetry loop to keep session time in sync."""
         self.session_id = session_id
         self.session_time_ms = session_time_ms
-        # Mark session as active if session time is advancing
         self.session_active = session_time_ms > 0
+
+        # Store current telemetry snapshot for frame tagging
+        if telemetry:
+            self._current_telemetry = TelemetrySample(
+                session_time_ms=session_time_ms,
+                speed=float(telemetry.get('speed', 0)),
+                rpm=float(telemetry.get('rpm', 0)),
+                gear=int(telemetry.get('gear', 0)),
+                throttle=float(telemetry.get('throttle', 0)),
+                brake=float(telemetry.get('brake', 0)),
+                steering=float(telemetry.get('steering', 0)),
+                fuel_level=float(telemetry.get('fuelLevel', telemetry.get('fuel_level', 0))),
+                fuel_pct=float(telemetry.get('fuelPct', telemetry.get('fuel_pct', 0))),
+                lap=int(telemetry.get('lap', 0)),
+                lap_dist_pct=float(telemetry.get('lapDistPct', telemetry.get('lap_dist_pct', 0))),
+                position=int(telemetry.get('position', 0)),
+                incident_count=int(telemetry.get('incidentCount', telemetry.get('incident_count', 0))),
+            )
 
     # ─── Clip Triggering ─────────────────────
 
@@ -282,9 +325,13 @@ class ScreenCapture:
             f"({len(pre_frames)} pre-frames, recording {self.config.post_event_seconds}s more)"
         )
 
+        # Extract matching pre-event telemetry samples
+        pre_telemetry = list(self._telemetry_buffer)[-len(pre_frames):]
+
         # Store context for post-event continuation
         self._post_event_until = event_wall_clock + self.config.post_event_seconds
         self._post_event_frames = list(pre_frames)
+        self._post_event_telemetry = list(pre_telemetry)
         self._post_event_meta = {
             'event_type': event_type,
             'event_label': event_label,
@@ -337,9 +384,23 @@ class ScreenCapture:
                     self.buffer.append(frame)
                     self.frames_captured += 1
 
+                    # Push matching telemetry sample
+                    if self._current_telemetry:
+                        self._telemetry_buffer.append(self._current_telemetry)
+                    else:
+                        self._telemetry_buffer.append(TelemetrySample(
+                            session_time_ms=self.session_time_ms
+                        ))
+
                     # If we're in post-event recording, also capture for clip
                     if self._post_event_meta and time.time() <= self._post_event_until:
                         self._post_event_frames.append(frame)
+                        if self._current_telemetry:
+                            self._post_event_telemetry.append(self._current_telemetry)
+                        else:
+                            self._post_event_telemetry.append(TelemetrySample(
+                                session_time_ms=self.session_time_ms
+                            ))
                     elif self._post_event_meta and time.time() > self._post_event_until:
                         # Post-event recording finished — encode clip
                         self._finalize_clip()
@@ -390,10 +451,12 @@ class ScreenCapture:
     def _finalize_clip(self):
         """Package collected frames and encode in background thread."""
         frames = self._post_event_frames
+        telemetry_samples = self._post_event_telemetry
         meta_ctx = self._post_event_meta
 
         # Clear state
         self._post_event_frames = []
+        self._post_event_telemetry = []
         self._post_event_meta = None
         self._post_event_until = 0
 
@@ -404,6 +467,7 @@ class ScreenCapture:
         max_frames = self.config.max_clip_seconds * self.config.target_fps
         if len(frames) > max_frames:
             frames = frames[-max_frames:]
+            telemetry_samples = telemetry_samples[-max_frames:]
 
         # Build metadata
         clip_id = str(uuid.uuid4())[:12]
@@ -434,7 +498,7 @@ class ScreenCapture:
         # Encode in background thread
         t = threading.Thread(
             target=self._encode_clip,
-            args=(list(frames), metadata),
+            args=(list(frames), metadata, list(telemetry_samples)),
             daemon=True,
             name=f'ClipEncode-{clip_id}',
         )
@@ -444,10 +508,12 @@ class ScreenCapture:
         # Clean up finished threads
         self.encode_threads = [t for t in self.encode_threads if t.is_alive()]
 
-    def _encode_clip(self, frames: List[BufferedFrame], metadata: ClipMetadata):
+    def _encode_clip(self, frames: List[BufferedFrame], metadata: ClipMetadata,
+                     telemetry_samples: Optional[List[TelemetrySample]] = None):
         """
         Encode frames to MP4. Tries cv2 VideoWriter first,
         falls back to FFmpeg subprocess (JPEG → MP4).
+        Also writes a telemetry JSON sidecar for browser playback sync.
         """
         output_path = os.path.join(
             self.config.output_dir,
@@ -474,9 +540,38 @@ class ScreenCapture:
             metadata.file_path = os.path.abspath(output_path)
             metadata.file_size_bytes = os.path.getsize(output_path)
 
-            # Write JSON sidecar
+            # Write JSON sidecar (clip metadata)
             with open(meta_path, 'w') as f:
                 json.dump(asdict(metadata), f, indent=2)
+
+            # Write telemetry sidecar for browser sync
+            if telemetry_samples:
+                telemetry_path = output_path.replace('.mp4', '_telemetry.json')
+                # Downsample: keep 1 sample per ~66ms (15fps) for efficiency
+                samples_out = []
+                fps = self.config.target_fps
+                for i, sample in enumerate(telemetry_samples):
+                    # Compute video time offset in seconds
+                    video_time_s = i / fps
+                    samples_out.append({
+                        't': round(video_time_s, 3),
+                        'st': sample.session_time_ms,
+                        'spd': round(sample.speed, 1),
+                        'rpm': round(sample.rpm),
+                        'gear': sample.gear,
+                        'thr': round(sample.throttle, 3),
+                        'brk': round(sample.brake, 3),
+                        'str': round(sample.steering, 3),
+                        'fuel': round(sample.fuel_level, 2),
+                        'fuelPct': round(sample.fuel_pct, 3),
+                        'lap': sample.lap,
+                        'dist': round(sample.lap_dist_pct, 4),
+                        'pos': sample.position,
+                        'inc': sample.incident_count,
+                    })
+                with open(telemetry_path, 'w') as f:
+                    json.dump(samples_out, f)
+                logger.info(f"   📊 Telemetry sidecar: {len(samples_out)} samples")
 
             # Enqueue for Electron/cloud
             self.pending_clips.put_nowait(metadata)

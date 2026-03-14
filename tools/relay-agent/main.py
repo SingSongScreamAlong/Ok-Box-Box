@@ -489,11 +489,29 @@ class RelayAgent:
         self.local_server.emit('telemetry', telemetry)
         self.telemetry_count += 1
 
-        # Update screen capture session context
+        # Update screen capture session context (with player telemetry for clip sidecar)
         session_time = self.ir_reader.get_session_time()
+        player_car = next((c for c in cars if c.is_player), None)
+        player_telemetry = None
+        if player_car:
+            player_telemetry = {
+                'speed': player_car.speed,
+                'rpm': player_car.rpm,
+                'gear': player_car.gear,
+                'throttle': player_car.throttle,
+                'brake': player_car.brake,
+                'steering': player_car.steering,
+                'fuelLevel': player_car.fuel_level,
+                'fuelPct': player_car.fuel_pct,
+                'lap': player_car.lap,
+                'lapDistPct': player_car.lap_dist_pct if hasattr(player_car, 'lap_dist_pct') else 0,
+                'position': player_car.position,
+                'incidentCount': player_car.incident_count if hasattr(player_car, 'incident_count') else 0,
+            }
         self.screen_capture.update_session_context(
             session_id=self.session_id or '',
             session_time_ms=int((session_time or 0) * 1000),
+            telemetry=player_telemetry,
         )
 
         # Poll for completed clips and emit to cloud
