@@ -30,7 +30,7 @@ type CrewRole = 'engineer' | 'spotter';
 interface Settings {
   audioInput: string;
   audioOutput: string;
-  pttType: 'keyboard' | 'joystick';
+  pttType: 'disabled' | 'keyboard' | 'joystick';
   pttKey: string;
   joystickId: number;
   joystickButton: number;
@@ -108,6 +108,7 @@ function App() {
   const currentAudioUrlRef = useRef<string | null>(null);
   const fallbackPollIntervalRef = useRef<number | null>(null);
   const fallbackPressedRef = useRef(false);
+  const manualPttPressedRef = useRef(false);
 
   useEffect(() => {
     if (!window.electronAPI) {
@@ -171,6 +172,10 @@ function App() {
       if (fallbackPollIntervalRef.current !== null) {
         window.clearInterval(fallbackPollIntervalRef.current);
         fallbackPollIntervalRef.current = null;
+      }
+      if (manualPttPressedRef.current) {
+        manualPttPressedRef.current = false;
+        window.electronAPI?.sendPTTState(false);
       }
       stopAudioPlayback();
       cleanupAudioCapture();
@@ -322,6 +327,19 @@ function App() {
   const saveSettings = async (newSettings: Settings) => {
     setSettings(newSettings);
     await window.electronAPI.saveSettings?.(newSettings);
+  };
+
+  const setManualPttPressed = (pressed: boolean) => {
+    if (!window.electronAPI || !status.server || !status.iracing) {
+      return;
+    }
+
+    if (manualPttPressedRef.current === pressed) {
+      return;
+    }
+
+    manualPttPressedRef.current = pressed;
+    window.electronAPI.sendPTTState(pressed);
   };
 
   const setupListeners = (currentSettings: Settings = settings) => {
@@ -775,6 +793,37 @@ function App() {
           </div>
         )}
 
+        {status.server && status.iracing && (
+          <button
+            type="button"
+            className={`manual-ptt-button ${isRecording ? 'active' : ''}`}
+            onPointerDown={(e) => {
+              e.preventDefault();
+              setManualPttPressed(true);
+            }}
+            onPointerUp={(e) => {
+              e.preventDefault();
+              setManualPttPressed(false);
+            }}
+            onPointerLeave={() => {
+              setManualPttPressed(false);
+            }}
+            onPointerCancel={() => {
+              setManualPttPressed(false);
+            }}
+          >
+            <span className="manual-ptt-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+            </span>
+            <span className="manual-ptt-text">{isRecording ? 'Release to send' : `Hold to talk to ${CREW_ROLE_LABELS[settings.crewRole]}`}</span>
+          </button>
+        )}
+
         {/* Voice messages */}
         <div className="messages-panel">
           {messages.length === 0 && status.iracing && !isRecording && (
@@ -788,7 +837,7 @@ function App() {
                   ? `Voice unavailable: ${status.voiceDetail}`
                   : status.voiceState === 'fallback'
                     ? `Voice ready in fallback mode. ${status.voiceDetail}. Keep the app focused while using ${CREW_ROLE_LABELS[settings.crewRole]}.`
-                    : `Ready to talk to ${CREW_ROLE_LABELS[settings.crewRole]}. Hold your PTT and ask naturally.`}
+                    : `Ready to talk to ${CREW_ROLE_LABELS[settings.crewRole]}. Hold your PTT or use the on-screen talk button and ask naturally.`}
               </span>
             </div>
           )}
@@ -886,8 +935,9 @@ function App() {
                   <label>PTT Type</label>
                   <select 
                     value={settings.pttType}
-                    onChange={(e) => saveSettings({ ...settings, pttType: e.target.value as 'keyboard' | 'joystick' })}
+                    onChange={(e) => saveSettings({ ...settings, pttType: e.target.value as 'disabled' | 'keyboard' | 'joystick' })}
                   >
+                    <option value="disabled">On-screen button only</option>
                     <option value="keyboard">Keyboard</option>
                     <option value="joystick">Wheel/Joystick</option>
                   </select>

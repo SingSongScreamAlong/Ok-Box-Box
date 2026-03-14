@@ -10,7 +10,7 @@ function loadRelaySecret() {
   try {
     const relaySettingsPath = path.join(process.env.APPDATA || '', '@okboxbox', 'relay', 'relay-settings.json');
     const relaySettingsRaw = fs.readFileSync(relaySettingsPath, 'utf8');
-    const relaySettings = JSON.parse(relaySettingsRaw);
+    const relaySettings = JSON.parse(relaySettingsRaw.replace(/^\uFEFF/, ''));
     return typeof relaySettings.relayId === 'string' ? relaySettings.relayId : '';
   } catch {
     return '';

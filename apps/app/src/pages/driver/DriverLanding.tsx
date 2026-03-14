@@ -45,6 +45,8 @@ import { SessionIntentPicker } from '../../components/SessionIntentPicker';
 import { RaceStartCoach } from '../../components/RaceStartCoach';
 import { RaceWeekBriefing } from '../../components/RaceWeekBriefing';
 import { ChampionshipTracker } from '../../components/ChampionshipTracker';
+import { DriverSkillProfileCard } from '../../components/DriverSkillProfileCard';
+import { AdaptiveCoachingCard } from '../../components/AdaptiveCoachingCard';
 import {
   WifiOff, Radio, ChevronRight,
   Play, Download, Gauge, Shield,
@@ -1658,6 +1660,19 @@ export function DriverLanding() {
 
         {/* ═══ PHASE 4a: CHAMPIONSHIP / SEASON AWARENESS ═══ */}
         {!isTrainingMode && <ChampionshipTracker sessions={sessions} />}
+
+        {/* ═══ PHASE 5a: DRIVER SKILL PROFILE CARD ═══ */}
+        {!isTrainingMode && (
+          <DriverSkillProfileCard
+            sessions={sessions}
+            driverName={displayName}
+            iRating={snapshot?.latest_irating ?? profile?.licenses?.[0]?.iRating}
+            safetyRating={profile?.licenses?.[0]?.safetyRating}
+          />
+        )}
+
+        {/* ═══ PHASE 5b: ADAPTIVE COACHING PERSONALITY ═══ */}
+        {!isTrainingMode && <AdaptiveCoachingCard sessions={sessions} />}
 
         {/* COMPETITIVE TREND + iRATING SPARKLINE (merged section) */}
         <FiveRaceTrendSummary sessions={sessions} loading={loading} />

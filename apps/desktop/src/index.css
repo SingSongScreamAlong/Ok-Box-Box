@@ -663,6 +663,55 @@ body {
   color: var(--error);
 }
 
+.manual-ptt-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.16) 0%, rgba(249, 115, 22, 0.08) 100%);
+  border: 1px solid rgba(249, 115, 22, 0.3);
+  border-radius: 12px;
+  color: var(--accent);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 24px rgba(249, 115, 22, 0.12);
+}
+
+.manual-ptt-button:hover {
+  border-color: rgba(249, 115, 22, 0.45);
+  box-shadow: 0 0 30px rgba(249, 115, 22, 0.18);
+  transform: translateY(-1px);
+}
+
+.manual-ptt-button:active,
+.manual-ptt-button.active {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: var(--error);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.2);
+}
+
+.manual-ptt-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.manual-ptt-icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.manual-ptt-text {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 /* Messages Panel */
 .messages-panel {
   flex: 1;

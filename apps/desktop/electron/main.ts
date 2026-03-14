@@ -560,10 +560,11 @@ function createTray() {
 
 function connectToServer(accessToken: string) {
   const session = store.get('session') as UserSession | undefined;
+  const relayId = process.env.RELAY_SECRET || `pitbox-relay-desktop-${session?.userId || 'unknown'}`;
   
   console.log('🔌 Connecting to server:', SERVER_URL);
   console.log('   Token:', accessToken ? `${accessToken.substring(0, 20)}...` : 'MISSING');
-  console.log('   RelayId:', `pitbox-relay-desktop-${session?.userId || 'unknown'}`);
+  console.log('   RelayId:', relayId);
   
   // Disconnect existing socket if any
   if (socket) {
@@ -573,7 +574,7 @@ function connectToServer(accessToken: string) {
   socket = io(SERVER_URL, {
     transports: ['websocket', 'polling'], // Allow fallback to polling
     auth: { 
-      relayId: process.env.RELAY_SECRET || `pitbox-relay-desktop-${session?.userId || 'unknown'}`,
+      relayId,
       token: accessToken,
     },
     reconnection: true,
@@ -652,6 +653,7 @@ function startIRacingRelay() {
   let lastIncidentCount = 0;
   let pollCount = 0;
   let firstTelemetrySent = false;
+  let firstStrategyRawSent = false;
   let relayPollErrorCount = 0;
   let loggedWaitForDataMiss = false;
   let loggedRawTelemetryMiss = false;
@@ -679,6 +681,7 @@ function startIRacingRelay() {
         lastStandingsTime = 0;
         lastStrategyRawTime = 0;
         lastIncidentCount = 0;
+        firstStrategyRawSent = false;
         console.log('✅ Connected to iRacing');
         voiceSystem?.setIRacingConnected(true);
         mainWindow?.webContents.send('iracing:status', 'connected');
@@ -791,6 +794,7 @@ function startIRacingRelay() {
         lastStandingsTime = 0;
         lastStrategyRawTime = 0;
         lastIncidentCount = 0;
+        firstStrategyRawSent = false;
         voiceSystem?.setSessionId(sessionId);
       }
 
@@ -895,6 +899,19 @@ function startIRacingRelay() {
             timestamp: now,
             ...strategyPayload,
           });
+          if (!firstStrategyRawSent) {
+            firstStrategyRawSent = true;
+            console.log('📤 First strategy_raw emitted', {
+              sessionId,
+              activeCarIdx,
+              carCount: strategyPayload.cars?.length || 0,
+              fuelLevel: strategyPayload.cars?.[0]?.fuelLevel,
+              fuelPct: strategyPayload.cars?.[0]?.fuelPct,
+              onPitRoad: strategyPayload.cars?.[0]?.onPitRoad,
+              lap: strategyPayload.cars?.[0]?.lap,
+              position: strategyPayload.cars?.[0]?.position,
+            });
+          }
         }
 
         // Detect incidents
